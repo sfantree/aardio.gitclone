@@ -1,0 +1,230 @@
+import crypt;
+import time;
+import fsys;
+import fsys.dlg;
+import win.ui;
+import web.layout;
+import web.layout.fontAwesome;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+import thread.command;
+/*DSG{{*/
+var winform = win.form(text="预览窗口";right=511;bottom=471;exmode="toolwindow")
+winform.add(
+custom={cls="custom";text="自定义控件";left=8;top=8;right=504;bottom=400;ah=1;aw=1;z=1};
+richedit={cls="richedit";left=8;top=445;right=504;bottom=469;ah=1;aw=1;edge=1;font=LOGFONT(h=-10);multiline=1;wrap=1;z=2};
+上一张={cls="button";text="上一张";left=56;top=408;right=128;bottom=440;ah=1;aw=1;bgcolor=16777215;color=16777215;z=4};
+下一张={cls="button";text="下一张";left=272;top=408;right=347;bottom=440;ah=1;aw=1;bgcolor=16777215;color=16777215;z=5};
+删除={cls="button";text="删除";left=448;top=408;right=496;bottom=440;ah=1;aw=1;bgcolor=16777215;color=16777215;z=6};
+已阅={cls="button";text="已阅";left=140;top=408;right=260;bottom=440;ah=1;aw=1;bgcolor=16777215;color=16777215;z=3}
+)
+/*}}*/
+
+var meizi_server =thread.get("meizi_server" ) ;
+
+var wbLayout = web.layout( winform.custom );
+
+var title_default=winform.text;
+
+wbLayout.html = /**
+<!doctype html>
+<html>
+<head>
+<style type="text/css">
+html,body{ height:100%; margin:10px;} 
+img {
+        //max-height:100%;
+       	width:100%;
+        text-align:center;
+        vertical-align:middle;
+}   
+</style>
+</head>
+<body>
+
+</body>
+</html>
+**/
+
+var listener=thread.command();
+
+listener.展示图片=function(src,file){
+	try{
+		var img=src;
+		if(io.exist(file)) { img=file;}   
+		var s = '<img src="' ++ img ++ '" referrerpolicy="no-referrer" />'; 
+		var ele = wbLayout.querySelector("body");
+		ele.innerHTML = s ;		
+	} catch(e){}
+} 
+listener.发送结果=function(t){
+	winform.richedit.text=t;
+}
+
+
+listener.save_this_img=function(){
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;} ;
+    var md5 = crypt.md5(src);
+	var file=fsys.getTempDir()++"/jandan/"++md5++".jpg"; //已经下载好了的临时文件
+	if(!io.exist(file)) { return; }
+	var path = fsys.dlg.save('图片文件(.jpg)|*.jpg',,,winform,,md5++".jpg");
+	if(!path) { return ; } //没有选择路径
+	if(!..io.exist(path)){ //路径正确
+		fsys.copy(file,path);   //保存文件
+	}else{ 
+		var over=winform.msgboxTest("文件已存在，是否覆盖？") ;
+		if(over) fsys.copy(file,path); 
+	}
+   		
+}
+
+listener.do_img=function(src){
+    if(!#src) return;
+    var md5 = crypt.md5(src);
+	var file=fsys.getTempDir()++"/jandan/"++md5++".jpg";
+	winform.richedit.text=src;
+	winform.text=src;
+	 
+	//download_img(src,file); 	
+	if(io.exist(file)) {}
+	else{ thread.command.post("download_img",src,file); }
+	thread.command.post("展示图片",src,file); 	
+}
+
+listener.download_img=function(src,file){
+	thread.invoke( 
+		function(src,file){
+			import inet;   
+			import inet.httpFile;
+			import thread.command;
+			var temp_file=file+".tmp";
+			if(io.exist(file)){}
+			else{ 
+				for(i=1;3;1){ 		
+					sleep(1000);			
+					var remoteFile = inet.httpFile( src  , temp_file ); 
+					var ok,err,fileSize = remoteFile.download() ;
+					if(ok) {
+						remoteFile.removeResumeFile();	
+						remoteFile.close();
+						io.rename(temp_file,file);
+						if(io.exist(temp_file)) { io.remove(temp_file); }
+					}
+					if(io.exist(file)){ break; }
+				}
+			}
+		},src,file
+	)	
+}
+
+
+winform.上一张.oncommand = function(id,event){
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;} ;
+	publish("选择上一张",src);
+	winform.上一张.disabled=true;
+	win.setTimeout(
+		function(){
+			var src=thread.get("标志键_src");
+			thread.command.post("do_img",src);
+			//do_img(src);
+			winform.上一张.disabled=false;
+			//winform.text=src;
+		},100
+	)
+	
+}
+
+winform.下一张.oncommand = function(id,event){ 
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;} ;
+	publish("选择下一张",src);
+	winform.下一张.disabled=true;
+	win.setTimeout(
+		function(){
+			var src=thread.get("标志键_src");
+			thread.command.post("do_img",src);
+			//do_img(src);
+			winform.下一张.disabled=false;
+			//winform.text=src;
+		},100
+	)
+}
+
+winform.删除.oncommand = function(id,event){
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;} ;
+	publish("删除图片",src);
+	winform.删除.disabled=true;
+	win.setTimeout(
+		function(){
+			var src=thread.get("标志键_src");
+			thread.command.post("do_img",src);
+			//do_img(src);
+			winform.删除.disabled=false;
+			//winform.text=src;
+		},100
+	)
+}
+
+winform.已阅.oncommand = function(id,event){
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;}
+	thread.invoke( 
+		function(src,meizi_server){
+			import console;
+			import inet.http;
+			import thread.command;
+			var htt=inet.http(thread.get("User-Agent"));		
+			var get_param=function(src){ return thread.get("meizi_param")++"&meizi.url="++src ;}
+			var html,err,errCode =htt.post(meizi_server, get_param(src) );
+			thread.command.post("发送结果",html);
+			htt.close();
+		},src,meizi_server
+	) 
+}
+
+/*
+winform.清理.oncommand = function(id,event){
+	winform.richedit.text="";	
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;}
+    var md5 = crypt.md5(src);
+	var file=fsys.getTempDir()++"/jandan/"++md5++".jpg";
+	if(io.exist(file)) fsys.delete(file);
+}
+*/
+
+
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+	winform.center();
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;} ;
+	//do_img(src); 
+	thread.command.post("do_img",src);
+}
+
+winform.custom.wndproc = function(hwnd,message,wParam,lParam){
+	 select( message ) { 
+        case 0x205/*_WM_RBUTTONUP*/{
+            //鼠标右键弹起,下面获取坐标
+            var x,y = win.getCursorPos();
+            winform.popmenu = win.ui.popmenu(winform);//创建弹出菜单			
+			winform.popmenu.add(tostring(time.now(),"%Y年%m月%d日 %H时%M分%S秒","chs"),function(id){});
+			winform.popmenu.add();
+			winform.popmenu.add('另存为..',function(id){
+				thread.command.post("save_this_img");
+			});
+            winform.popmenu.popup(x-2,y-2,true);//弹出菜单
+        }
+        else{
+            
+        }
+    }
+
+	//无返回值则继续调用默认回调函数
+}
+
+winform.show() 
+win.loopMessage();

@@ -1,0 +1,18 @@
+﻿
+namespace aaz.libhpsocket.helper.client;
+reallocString = function(component, size){
+	component.extra = ..raw.realloc(size>0?size:0, component.extra, "");
+}
+
+appendString = function(component, pData, len){
+	var extra = component.extra; 
+	if(extra) component.extra = ..raw.concat(extra, pData, len);  
+}
+
+getString = function(component){
+	var extra = component.extra;
+	if(extra) {
+		var size = ..raw.sizeof(extra); 
+		if(size) return ..raw.tostring(extra, 1, size);
+	}
+}

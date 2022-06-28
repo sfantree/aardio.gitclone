@@ -1,0 +1,11 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=817;bottom=706;image=$"\res\set.jpg";bgcolor=8421376;bkBottom=0;bkLeft=0;bkRight=0;bkTop=0;parent=...)
+winform.add()
+/*}}*/
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

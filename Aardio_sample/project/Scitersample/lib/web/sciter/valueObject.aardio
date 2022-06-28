@@ -1,0 +1,459 @@
+//valueObject 值对象
+assert(web.sciter);
+import fsys.time;
+import util.registry;
+namespace web.sciter;
+ 
+class valueObject{
+	ctor (v,...) {
+		this = __valueObject_struct(); 
+		this@ = _metaProperty;
+		
+		if( v!==null ){
+			this.setValue(v,...);
+		}
+		..table.gc(this,"clear");
+	};
+}
+
+var valueObject_t = valueObject ;  
+
+namespace valueObject {
+ 	class __valueObject_struct{
+		INT type;
+		INT units;
+		LONG data;
+	} 
+	
+ 	var fromUnicode = ..string.fromUnicode;
+  	var toUnicode = ..string.toUnicode;
+  	
+  	VALUE_UNIT_TYPE = { 
+  		"em";"ex";"pr";"sp";"";"";"px";"in";"cm";"mm";"pt";"pc";"dip";"";"color";"url";"symbol";
+  		 ["in"]=8;pr=3;["%"]=3;sp=4;["%%"]=4;reserved3=14;em=1;cm=9;px=7;color=15;ex=2;symbol=65535;url=16;dip=13;pc=12;pt=11;mm=10
+  	};
+  	
+	_metaProperty = ..util.metaProperty(
+		_tonumber = function(){
+			return tonumber( owner.value );
+		}
+		_tostring = function(){
+			var val = owner.clone(); 
+			val.scriptIsolate();
+			val.stringify();
+			var str = val.getString();
+			val.clear();
+			return str;
+		}
+		_eq = function(val){
+			return ::Sciter.ValueCompare(owner,val);
+		} 
+		clone = function(){
+			var val = valueObject_t();
+			::Sciter.ValueCopy(val,owner);
+			return val;
+		}
+		clear = function(){
+			if(owner.data) 
+				::Sciter.ValueClear(owner);
+		};
+		getString = function(){ 
+			var re,p, n = ::Sciter.ValueStringData(owner, null, 0);
+			if( re==0/*_HL_HV_OK*/  ){
+				return (( p && n) ? fromUnicode(p,,true) : "") ;
+			}
+		}
+		setString = function( v ){
+			v = toUnicode(v); 
+			return ::Sciter.ValueStringDataSet(owner, v, #v/2, 0)==0/*_HL_HV_OK*/  ;  
+		};
+		getBinary = function(){
+			var re,p,n = ::Sciter.ValueBinaryData(owner,null,0)
+			if(re==0/*_HL_HV_OK*/){
+				return ..raw.tostring(p,1,n) ;
+			} 
+		};
+		setBinary = function(bin,len){
+			::Sciter.ValueBinaryDataSet(owner,bin,len || #bin,0xC/*_HL_T_BYTES*/,0)   
+		};
+		getEle = function(){
+			var re,p,n = ::Sciter.ValueBinaryData(owner,null,0)
+			if(re==0/*_HL_HV_OK*/ && p){
+				return ..web.sciter.element(p) ;
+			}
+		};
+		getNumber = function(){ 
+			var re,v = ::Sciter.ValueFloatData(owner, 0); 
+			if(re==0/*_HL_HV_OK*/)return v;
+		}
+		setNumber = function( v,units = 0 ){
+			::Sciter.ValueFloatDataSet(owner, v, 4/*_HL_T_FLOAT*/, units);
+		};
+		getInt32 = function(){ 
+			var re,v = ::Sciter.ValueIntData(owner, 0); 
+			if(re==0/*_HL_HV_OK*/)return v;
+		}
+		setInt32 = function( v,units = 0 ){
+			::Sciter.ValueIntDataSet(owner, v, 3/*_HL_T_INT*/, units );
+		};
+		getLong64 = function(){ 
+			var re,v = ::Sciter.ValueInt64Data(owner, 0); 
+			if(re==0/*_HL_HV_OK*/)return v;
+		}
+		setLong64= function( v,units = 0 ){
+			::Sciter.ValueInt64DataSet(owner, v, 7/*_HL_T_CURRENCY*/, units); 
+		};  
+		getType = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			if( 0 == re ) return ht;
+		}
+		isDomObject = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xE/*_HL_T_DOM_OBJECT*/;
+		};
+		isArray = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 9/*_HL_T_ARRAY*/;
+		};
+		isMap = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xA/*_HL_T_MAP*/;
+		};
+		isScriptValue = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/;
+		};
+		isScriptArray = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 0;
+		};
+		isScriptObject = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 1;
+		};
+		isScriptClass = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 2;
+		};
+		isScriptNative = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 3;
+		};
+		isScriptFunction = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 4;
+		};
+		isScriptError= function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 0xD/*_HL_T_OBJECT*/ && units == 5;
+		}; 
+		isErrorString = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 5/*_HL_T_STRING*/ && units == 1/*UT_STRING_ERROR*/;
+		}; 
+		isSymbolString = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+			return ( 0 == re ) && ht == 5/*_HL_T_STRING*/ && units == 0xffff/*UT_STRING_SYMBOL*/;
+		}; 
+		isNativeFunctor = function(){
+			return ::Sciter.ValueIsNativeFunctor( owner );  
+		}; 
+		scriptIsolate = function(){
+			::Sciter.ValueIsolate(owner);
+		};
+		getValue = function(){
+			var re,ht,units= ::Sciter.ValueType( owner,0,0 ); 
+      		unitName = VALUE_UNIT_TYPE[units]; 
+      		
+      		if( ht = 5/*_HL_T_STRING*/ ){
+				return owner.getString();
+			}
+			elseif( ht = 4/*_HL_T_FLOAT*/ || ht == 8/*_HL_T_LENGTH*/){
+				return owner.getNumber(),unitName;
+			} 
+			elseif( ht = 3/*_HL_T_INT*/ ){
+				return owner.getInt32(),unitName; 
+			}
+			elseif( ht = 2/*_HL_T_BOOL*/ ){
+				return !!owner.getInt32();
+			}
+			elseif( ht = 0xE/*_HL_T_DOM_OBJECT*/ ){
+				return owner.getEle();
+			}
+			elseif( ht = 7/*_HL_T_CURRENCY*/ ){
+				return owner.getLong64(),unitName;
+			}
+			elseif( ht = 6/*_HL_T_DATE*/ ){
+				return owner.getTime();
+			}
+			elseif( ht = 0xA/*_HL_T_MAP*/ ){ 
+				var m = {};
+				owner.enum( 
+    				function(k,v ){
+    					m[k.getValue()] = v.getValue();
+    				}
+    			) 
+    			return m;
+			}
+			elseif( ht = 9/*_HL_T_ARRAY*/ ){ 
+				var m = {};
+				var value = valueObject_t();
+				for(i=1;owner.length;1){
+					if( ::Sciter.ValueNthElementValue(owner,i-1,value) == 0/*_HL_HV_OK*/ )
+						m[i] = value.getValue(); 
+				} 
+    			return m;
+			}
+			elseif( ht = 0xD/*_HL_T_OBJECT*/ ) {
+				return owner;
+			}
+			elseif( ht = 0xF ) {
+				return owner;
+			}
+			
+		}
+		setValue = function(v,units,dataType){  
+      		var ta = type(v); 
+      		if( ta == type.string ){
+      			owner.setString(v);
+      		}
+      		elseif( ta == type.number ){
+      			if( type(units) == type.string ){
+      				units = VALUE_UNIT_TYPE[units];
+      			}; 
+      			if( ! ( units && dataType) ){
+      				var re,oldType,oldUnits= ::Sciter.ValueType( owner,0,0 );
+      				if(!units) units = oldUnits : 0;
+      				
+      				
+      				if(!dataType){
+      					if( oldType )
+      						dataType = oldType;
+      					else{
+      						var n,f = ..math.modf(v);
+      						dataType = f ? 4/*_HL_T_FLOAT*/ : 3/*_HL_T_INT*/; 
+      					}
+      				}
+      			}
+
+      			if( dataType == 3/*_HL_T_INT*/ ){
+      				owner.setInt32(v,units)
+      			}
+      			elseif( dataType == 4/*_HL_T_FLOAT*/){
+      				owner.setNumber(v,units)
+      			}
+      			else{
+      				owner.setLong64(v,units)
+      			} 
+      		}
+      		elseif( ta == type.boolean ){
+      			::Sciter.ValueIntDataSet(owner, v?1:0, 2/*_HL_T_BOOL*/, 0); 
+      		}
+      		elseif( ta ==  type.table ){ 
+      			
+      			if( ( v@ == _metaProperty ) && ( v._struct == owner._struct ) ){
+      				::Sciter.ValueCopy(owner,v);
+      			}
+      			elseif( ..time.istime(v) ){
+      				owner.setTime( v );
+      			}
+      			else{
+      				if( #v ){
+      					for(i=1;#v;1){
+      						::Sciter.ValueNthElementValueSet( owner,i-1,valueObject_t( v[i] ) );
+      					} 
+      				}
+      				else {
+      					for name,value in ..table.eachName(v){
+      						::Sciter.ValueSetValueToKey(owner,valueObject_t(name),valueObject_t(value)); 
+      					}
+      				}
+      				
+      				//error("错误的参数类型",2);
+      			}
+      		}
+      		elseif( ta ==  type.null ){ 
+      			::Sciter.ValueClear(owner);
+      		}
+      		elseif( ta == type.function ){
+      			ValueNativeFunctorSet(owner,v);
+      		}
+      		else {
+      			error("错误的参数类型",2)
+      		};
+      	};
+      	value = {
+      		_get = function(){
+      			return owner.getValue()
+      		}
+      		_set = function(v){
+      			owner.setValue(v)
+      		} 
+      	}; 
+		stringify = function(){
+			::Sciter.ValueToString(owner,0/*_HL_CVT_SIMPLE*/);
+			return owner.getString();
+		}
+		parse = function(str){
+			str = toUnicode(str);
+			return 0 == ::Sciter.ValueFromString(owner,str,#str-2,0/*_HL_CVT_SIMPLE*/); 
+		};
+		jsonParse = function(str){
+			str = toUnicode(str);
+			return 0 == ::Sciter.ValueFromString(owner,str,#str-2,1/*_HL_CVT_JSON_LITERAL*/);
+		}
+		jsonStringify = function(){
+			::Sciter.ValueToString(owner,1/*_HL_CVT_JSON_LITERAL*/);
+			return owner.getString();
+		};
+		length = {
+			_get = function(){
+				var ret,len = ::Sciter.ValueElementsCount(owner,0);
+				if( ret==0/*_HL_HV_OK*/)return len;
+			} 
+		};
+		getItem = function(key){
+			var retVal = valueObject_t();
+			if(type(key)==type.number){
+				if( ::Sciter.ValueNthElementValue(owner,key-1,retVal) == 0/*_HL_HV_OK*/ ){
+					return retVal;
+				}
+			}
+			else {
+				if( ::Sciter.ValueGetValueOfKey(owner,valueObject_t(key),retVal) == 0/*_HL_HV_OK*/ ){
+					return retVal;
+				}
+			} 
+		};
+		setItem = function(key,...){
+			var val = valueObject_t(...);
+			if(type(key)==type.number){
+				return ( ::Sciter.ValueNthElementValueSet(owner,key-1,val) == 0/*_HL_HV_OK*/ ) 
+			}
+			else {
+				return ( ::Sciter.ValueSetValueToKey(owner,valueObject_t(key),val) == 0/*_HL_HV_OK*/ ) 
+			} 
+		}; 
+		enum = function(proc){
+			var convert = ..raw.convert;
+			var proc_c = ..raw.tostdcall(
+				function(param,key,val){
+					key = convert(key,valueObject_t() );
+					val = convert(val,valueObject_t() );
+					var ret = proc( key,val ); 
+					return ret === null : ret;
+				} ,"bool(pointer param,pointer key,pointer val)")
+			::Sciter.ValueEnumElements(owner,proc_c);
+		}
+	);
+	var _metaProperty = _metaProperty;
+	
+ 	__nativeRegistry = ..util.registry()
+ 	__nativeFunctor = ..raw.tocdecl(function(tag,argc,argv,retval){
+			var native = __nativeRegistry[tag];
+			var valueObjectLite = ..web.sciter.valueObjectLite;
+			
+			if( argc ){
+				var offset = 0; 
+				var tArgs = {};
+				for(i=1;argc;1){
+					var v = valueObjectLite();
+					..raw.convert(argv,v,offset); 
+					
+					offset += 16/*..raw.sizeof( valueObjectLite_t() )*/ 
+					v = v.getValue();
+					tArgs[i] = v;
+				}
+				callOk,callRet = call( native, ,..table.unpack(tArgs,1,argc) ) 
+			}
+			else {
+				callOk,callRet = call( native )
+			}
+			
+			if( callOk ){
+				if( ( callRet !== null ) && retval) {
+					var value = valueObjectLite();
+					value.setValue(callRet);
+					..raw.convert(value,retval);
+				}
+			}
+			elseif( callRet ){
+				errput(callRet)
+			}
+	},"void(addr tag,INT argc,ptr argv,ptr retval")
+		
+	__nativeRelease = ..raw.tocdecl( function(tag){
+			__nativeRegistry.unReg(tag);
+	},"void(addr tag)")
+		
+		
+	ValueNativeFunctorSet = function(value,func){
+		return ::Sciter.ValueNativeFunctorSet(value,__nativeFunctor,__nativeRelease,__nativeRegistry.reg(func)); 
+	}
+	
+} 
+ 
+var __valueObject_struct = valueObject.__valueObject_struct;
+var _metaProperty = valueObject._metaProperty;
+
+class valueObjectLite{
+	ctor () {
+		this = __valueObject_struct(); 
+		this@ = _metaProperty;  
+	}; 
+	clear = "disabled";
+}
+
+isValueObject = function(v){
+	return v@ == _metaProperty
+}
+
+ /**intellisense()
+web.sciter.valueObjectLite() = 无GC值对象,避免自动释放,\n!web_sciter_value.
+web.sciter.valueObject(.(初始值,单位,类型) = 创建并返回动态值类型,\n所有参数可选
+web.sciter.valueObject() = !web_sciter_value.
+web.sciter.isValueObject(__) = 检测一个值是否web.sciter.valueObject对象
+!web_sciter_value.getType() = 返回值类型 _HL_T_ 前缀常量表示
+!web_sciter_value.clone() = 复制值\n!web_sciter_value.
+!web_sciter_value.addRef() = 添加引用计数
+!web_sciter_value.clear() = 清空值 
+!web_sciter_value.isDomObject() = 是否节点对象,\n使用 getEle()函数转换为节点对象
+!web_sciter_value.isArray() = 是否数组对象
+!web_sciter_value.isMap() = 是否键值表对象
+!web_sciter_value.isErrorString() = 值是错误信息
+!web_sciter_value.isSymbolString() = 值是符号
+!web_sciter_value.isScriptValue() =  值是脚本返回的对象\n所有脚本类型都返回 true
+!web_sciter_value.isScriptArray() = 值是脚本返回的数组对象
+!web_sciter_value.isScriptObject() = 值是脚本返回的对象
+!web_sciter_value.isScriptClass() = 值是脚本返回的类对象
+!web_sciter_value.isScriptNative() = 值是脚本返回的本地函数对象
+!web_sciter_value.isScriptFunction() = 值是脚本返回的函数对象
+!web_sciter_value.isScriptError() = 脚本类型错误
+!web_sciter_value.scriptIsolate() = 脚本对象转换为MAP,或ARRAY类型
+!web_sciter_value.getEle() = 返回节点对象,\n注意:节点类型只能读取不能写入
+!web_sciter_value.getString() = 返回字符串值\n如果值类型字符串值,取值返回空\n使用 tostring() 函数可强制返回数值
+!web_sciter_value.setString(__/*字符串值*/) = 写入字符串值
+!web_sciter_value.getTime() = 返回时间值\n如果值类型不是时间值,取值返回空
+!web_sciter_value.setTime(__/*时间值*/) = 写入时间值
+!web_sciter_value.getNumber() = 返回浮点数值\n如果值类型不是浮点数,取值返回空\n使用 tonumber() 函数可强制返回数值
+!web_sciter_value.setNumber(__/*数值*/) = 写入浮点数值
+!web_sciter_value.getInt32() = 返回整型数值\n如果值类型不是整型值,取值返回空
+!web_sciter_value.setInt32(__/*数值*/) = 写入整型数值
+!web_sciter_value.getLong64() = 返回长整型数值\n如果值类型不是长整型数值,取值返回空
+!web_sciter_value.setLong64(__/*数值*/) = 写入长整型数值 
+!web_sciter_value.getValue() = 返回字符串值、数值、时间值
+!web_sciter_value.setValue(.(值,单位,类型) = 写入字符串值、数值、时间值\n参数2,参数3为可选参数
+!web_sciter_value.length = 数组长度
+!web_sciter_value.value = 读取或写入字符串值、数值、时间值
+!web_sciter_value.stringify() = 转换并返回字符串
+!web_sciter_value.parse(.("10pt") = 解析字符串
+!web_sciter_value.jsonStringify() = 转换并返回JSON字符串
+!web_sciter_value.jsonParse(.('{ k:"v" }') = 解析JSON字符串
+!web_sciter_value.getItem(.(索引) = 获取成员
+!web_sciter_value.setItem(.(索引,值) = 设置成员值
+!web_sciter_value.getItem() = !web_sciter_value.
+!web_sciter_value.enum(枚举函数) = @.enum( \n	function(k,v ){\n		io.print( k,v ) \n	}\n)
+_HL_CVT_SIMPLE=@0/*_HL_CVT_SIMPLE*/
+_HL_CVT_JSON_LITERAL=@1/*_HL_CVT_JSON_LITERAL*/
+_HL_CVT_JSON_MAP=@2/*_HL_CVT_JSON_MAP*/
+end intellisense**/

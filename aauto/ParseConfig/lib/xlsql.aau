@@ -1,0 +1,263 @@
+//xlsql Excel数据库
+/******************************
+Excel 数据库 Sql使用封装
+Author		: carl 被田雨春楊借花献佛
+Time		: 2013.1.2
+version		: 0.1
+******************************/
+
+import com;
+
+namespace xlsql{}
+import string;
+var push = ..table.push;
+
+xlsql=class {
+	ctor( dbname){
+		this.conn = ..com.CreateObject("adodb.connection");
+		this.conn.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;
+						 			  Persist Security Info=False;
+						 			  Data Source=" ++ ..io.fullpath(dbname)++";
+						 			  Extended Properties='Excel 8.0;HDR=Yes'";//HDR ( HeaDer Row )设置 若指定值为Yes，代表 Excel 档中的工作表第一行是标题栏 若指定值为 No，代表 Excel 档中的工作表第一行就是数据了，沒有标题栏
+		try{
+			this.conn.Open();//打开数据库
+			this.rs = ..com.CreateObject("ADODB.RecordSet");
+			this.status = true;
+		}
+		catch(e){
+			error(e,2)
+		}
+		
+		//自动关闭资源
+		
+		/*this._gcdata = ..gcdata(
+			_gc = function(){
+				this.close();
+			}
+		)*/
+	};
+	close=function(){
+		if (this[["status"]]) {
+			this.rs = null;
+			this.conn.close();
+			this.conn = null;
+			this.status = null;
+			this.openStatus = null;
+		}
+	};
+	//获得excel中所有的worksheet
+	getWorkSheetNames=function(){
+		var tab = {};//这个作用域很重要啊 fck
+		if (true) {
+			try{
+				var rsos = this.conn.OpenSchema(20);
+				
+        		var i =1;
+        		
+        		while(not rsos.eof){
+            		var str = rsos(2).value; 
+            		//if (..string.find(str, "@@$")) {
+            			str = ..string.left(str,..string.len(str)-1,true);
+            			tab[i] = str;
+            			i++;
+         				rsos.MoveNext();
+            		//} else {
+            			..win.msgbox(str);
+            		//}
+     			}
+     			rsos.Close();	
+     			//return 123;//在这return 外面调用是不能获得的。
+			}catch(e){
+				..error(e,2)
+			}
+		} else {
+			..win.msgbox("test else status");
+		}
+		return tab;
+		
+	};
+	
+	//获得excel中单个的worksheet中所有的field名称
+	getSingleWorkSheetFields=function(){
+		var tab = {};//这个作用域很重要啊 fck
+		if (this[["status"]]) {
+			try{
+				var rsos = this.conn.OpenSchema(20);
+				
+        		var i =1;
+        		while(not rsos.eof){
+            		var str = rsos(2).value; 
+            		str = ..string.left(str,..string.len(str)-1,true);
+            		tab[i] = str;
+            		i++;
+         			rsos.MoveNext();
+     			}
+     			rsos.Close();	
+     			//return 123;//在这return 外面调用是不能获得的。
+			}catch(e){
+				..error(e,2)
+			}
+		} else {
+			..win.msgbox("test else status");
+		}
+		return tab;
+		
+	};
+	
+	
+	free=function(){
+		if(this[["openStatus"]])
+			this.rs.close();
+			this.openStatus = null;
+	};
+	
+	open=function(sql,a=3,b=3){
+	..win.msgbox(sql);
+		if (this[["status"]]) {
+			this.rs.Open(sql, this.conn,a,b);
+			this.openStatus = true;
+		}
+	};
+	
+	fields = function(){
+		var field = {};
+		for(i = 0; this.rs.fields.count - 1; 1){
+			push(field,this.rs.fields(i).name);
+		}
+		return field; 
+	};
+	
+	rows = function(t){
+		var row = {};
+		for(k,v in t){
+			row[ v ] = this.rs(v).Value;	
+		}
+		return row; 
+	};
+	
+	getFields = function(tabname){
+		var sql = "select * from [" ++ tabname ++"]";
+		this.open(sql);
+		var field = this.fields();
+		this.free();
+		return field;
+	};
+	
+	exec=function(sql){
+		try{
+			this.conn.Execute(sql);
+		}catch(e){
+			error(e,2)
+		}		
+	};
+		
+	each = function(sql){
+		var i;
+		this.open(sql);
+		var field = this.fields();
+		return function(){
+			i := 0;
+			if(i)
+				this.rs.movenext();
+			if(this.rs.eof)
+				return;
+				
+			i++;
+			return i,this.rows(field);			
+		},this.free
+	};
+	
+	getTable = function(sql){
+		var tab = {};
+		this.open(sql);
+		var field = this.fields();
+		while(not this.rs.eof){
+			push(tab,this.rows(field));
+			this.rs.movenext();
+		}
+		this.free();
+		return tab; 
+	};
+	
+	getInsertSql=function(tabname,tab){
+		var sql ="insert into " + tabname + "(";
+		for(k,v in tab){
+			if(type(k) == type.string)
+				sql +=k ++ ",";
+		}
+		sql=..string.trimright(sql,",") ++ ")values(";
+		for(k,v in tab){
+			if(type(k) == type.string){
+				if(type(v) == type.string){
+					if(..string.lower(v) == "getdate()"){
+						sql ++= v ++ ",";
+					}else {
+						sql += "'" + ..string.replace(v,"'","''") + "',";
+					}
+				}elseif(type(v) == type.number)
+					sql ++= v ++ ",";
+			}
+		}
+		sql=..string.trimright(sql,",") ++ ")";	
+		return sql; 
+	};
+	
+	getUpdateSql=function(tabname,tab,where){
+		var sql="update " + tabname + " set ";
+		for(k,v in tab){
+			if(type(k) == type.string){
+				if(type(v) == type.string){
+					if(..string.lower(v) == "getdate()"){
+						sql += k ++ "=" ++ v ++ ",";
+					}else {
+						sql += k + "='" ++ ..string.replace(v,"'","''") + "',";
+					}
+				}elseif(type(v) == type.number)
+					sql += k ++ "=" ++ v ++ ",";
+			}
+		}
+		sql =..string.trimright(sql,",") ++ " where " ++ where;
+		return sql;
+	};
+	
+	exec_insert=function(tabname,tab,flags=false){
+		this.exec(this.getInsertSql(tabname,tab));
+		if(flags)
+			return this.getIDENTITY();
+	};
+	
+	exec_update=function(tabname,tab,where){
+		this.exec(this.getUpdateSql(tabname,tab,where));
+	};
+		
+	exec_insert_update=function(tabname,tab,where,flags){
+		var sql="select count(*) as num from " + tabname + " where " + where;
+		if(this.getTable(sql)[1]["num"]){
+			if(flags){
+				this.exec_update(tabname,tab,where);
+				return null,true; 
+			}
+		}else {
+			this.exec_insert(tabname,tab);
+			return true; 
+		}
+	}
+	
+}
+
+/**intellisense()
+xlsql=Excel数据库类
+xlsql("__") = 连接ExcelL数据库.参数数据库名称dbname,可使用相对路径.
+!xlsql.close() = 关闭数据库连接
+!xlsql.exec(sql) = 执行SQL语句, 参数:sql语句,无返回值
+!xlsql.getFields(tabname) = 返回表中字段名称,参数:表名,返回值table对像
+!xlsql.getTable = @//返回查询数据集,参数:sql语句,返回值table对像 \n\ntab = ??.getTable(sql);\nfor(i,rows in tab){\n	io.print(i,rows["字段名"],rows["字段名2"]);\n}
+!xlsql.each = @//迭代查询数据表,参数:sql语句\n\nfor i,rows in ??.each(sql) {\n	io.print(i, rows["字段名"],rows["字段名2"] )\n}
+!xlsql.getInsertSql(tabname,tab) = 返回插入SQL语句:insert into 表名()values()\n参数:表名,字段和值table对像
+!xlsql.getUpdateSql(tabname,tab,where) = 返回更新SQL语句:update 表名 set ... where ...\n参数:表名,字段和值table对像,条件语句
+!xlsql.exec_insert(tabname,tab) = 执行插入\n参数:表名,字段和值table对像,是否返回自增ID
+!xlsql.exec_update(tabname,tab,where) = 执行更新
+!xlsql.exec_insert_update(tabname,tab,where) = 执行插入或更新,\n参数:表名,字段和值table对像,条件语句,是否更新(记录存在是否更新)
+!xlsql.getWorkSheetNames() = 获得数据库所有的表名,参数:无,返回值table对像
+?xlsql = !xlsql.
+end intellisense**/

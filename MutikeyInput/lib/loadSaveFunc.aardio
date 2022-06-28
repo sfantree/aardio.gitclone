@@ -1,0 +1,79 @@
+﻿import win;
+import web.json;
+
+namespace loadSaveFunc;
+
+	//载入配置文件和略码文件
+function loadJson(fileName, abbrFileName) {
+	var cfgJson = "";
+	try {
+		cfgJson =..string.load(fileName);//键位配置.json		
+	}
+	catch(e) {
+		..win.msgboxErr('载入“键位配置.json”文件时发生错误：\r\n' ++ e, "错误")		
+	};
+	
+	var abbrJson = "";	
+	try {
+		abbrJson =..string.load(abbrFileName);//略码.json"		
+	}
+	catch(e) {
+		..win.msgboxErr('载入“键位配置.json”文件时发生错误：\r\n' ++ e, "错误")		
+	};
+	return cfgJson, abbrJson;//返回字符串	
+}
+
+	//解析json字符串，返回表
+var function jsonPaser(strJson,strPrompt){
+    	var tbl = {};
+		try{
+			tbl = ..web.json.parse(strJson)
+			}
+		catch(e){
+			var str = '解析“' ++ strPrompt ++ '”文件时发生错误：\r\n' ++ e;
+			..win.msgboxErr(str, "错误")
+		};
+		return tbl; 
+}
+
+/*---------------------构造用于窗体显示的表--------------------*/
+
+	//生成用于窗体显示的表
+function dtForShow(cfgStr, abbrStr){
+	var cfg = jsonPaser(cfgStr, "键位配置.json");
+	var abb = jsonPaser(abbrStr, "略码.json");
+	
+	var ifo = cfg.Info;//配置信息
+	var par = cfg.ParSchemes;//并击方案集合
+	var fr = cfg.FreeKey;//自由键表
+	
+	return ifo, par, fr, abb;	
+}
+
+
+/*--------------------构造基础表，用于生成查询输出的表------------------*/
+
+	//生成tbInfo、tbLeft、tbRight、tbFreeKey、tbAbbr表
+function cfgData(cfgStr, abbrStr){
+	var strJson = ..string.replace(cfgStr, "@_", " ");//将"_"替换为空格
+	strJson = ..string.replace(strJson, "@\ ", "_");//将"\ "替换为_
+	//解析键位配置.json字符串
+	var tblConfig = jsonPaser(strJson, "键位配置.json");
+
+	strJson = ..string.replace(abbrStr, `"_(.*?)"\:`, `" \1":`);//将键开头的"_"替换为空格
+	strJson = ..string.replace(strJson, `"(.*?)_"\:`, `"\1 ":`);//将键结尾的"_"替换为空格
+	//解析略码.json字符串
+	var tblAbbr = jsonPaser(strJson, "略码.json");
+
+	var ifo = tblConfig.Info;//配置信息表
+	var par = tblConfig.ParSchemes;//并击方案集合
+	var lf = par[ifo.Schema].left;//方案左手键位表
+	var rt = par[ifo.Schema].right;//方案右手键位表
+	var fr = tblConfig.FreeKey;//自由键位表
+	var ab = tblAbbr;//略码表
+	return ifo, lf, rt, fr, ab;
+}
+	
+	
+	
+

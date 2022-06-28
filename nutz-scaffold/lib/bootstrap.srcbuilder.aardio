@@ -1,0 +1,25 @@
+﻿namespace bootstarp {
+	class srcbuilder {
+		ctor(path, packageName, projectName) {
+			this.path = path;
+			this.packageName = packageName;
+			this.projectName = projectName;
+		}
+		
+		build = function(){
+			this.mainModule();
+		}
+		
+		mainModule = function () {
+			import string.erb;
+			import string.utils;
+			
+			var template = string.erb(string.load("/res/templates/src/main/package/bootstrap_main_module.java.erb"));
+			var option = {
+				class_package = string.lower(this.packageName) + "." + string.lower(this.projectName);
+				java_style_project_name = projectName
+			};
+			string.save(this.path + "/MainModule.java", template.format(option));
+		}
+	}
+}

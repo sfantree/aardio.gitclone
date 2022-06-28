@@ -1,0 +1,29 @@
+import win.ui;
+import httpAgent;
+import console;
+/*DSG{{*/
+mainForm = win.form(text="HTTPAgent_demo";right=959;bottom=761)
+mainForm.add(
+tab={cls="tab";left=9;top=10;right=944;bottom=750;edge=1;z=1}
+)
+/*}}*/
+
+var httpForm = mainForm.tab.loadForm("dlg/http.aardio")
+var wsForm = mainForm.tab.loadForm("dlg/ws.aardio")
+
+client = httpAgent();
+if (!client) return win.msgbox("http代理创建失败","关键性错误",0x10/*_MB_ICONSTOP*/); 
+
+client.setHttpHeader({
+	["user-agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36";
+	["accept"] = "text/html,application/xhtml+xml,application/xml";
+	["accept-encoding"] = "gzip, deflate, br";
+	["accept-language"] = "zh-CN,zh;q=0.9";
+	["cache-control"] = "max-age=0"
+})
+
+httpForm.client = client;
+wsForm.client = client;
+
+mainForm.show();
+return win.loopMessage();

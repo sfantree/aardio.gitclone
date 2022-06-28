@@ -1,0 +1,69 @@
+﻿//page 分页查询
+import dbase;
+
+namespace dbase.page
+
+string = ..string;
+table = ..table;
+
+getWhereSql = function(tabRules){
+	var where = "";
+	for(i,t in tabRules){//{field: "BrandName", op: "eq", data: "1"}
+		if(type(t) != type.table) return false,"不是有效where条件"; 
+		var data = string.trim(t.data:"");
+		data = string.replace(data,"'","''");		
+		if(!#t.field || t.field == "search" || !#data || string.find(t.field,"\p")) continue ;
+		var prefix = #t.prefix ? (t.prefix ++ ".") : "";//前缀	
+		var fieldName = prefix ++ t.field;
+		if(t.op == "eq" || !#t.op){
+			where += " and " ++ fieldName ++ "='" ++ data ++ "'";//相等
+		}
+		elseif(t.op == "cn"){
+			where += " and " ++ fieldName ++ " like '%" ++ data ++ "%'";
+		}
+		elseif(t.op == "ne"){
+			where += " and " ++ fieldName ++ "!='" ++ data ++ "'";//不等于
+		}
+		elseif(t.op == "bw"){
+			var date1 = string.match(t.data:"","(\d+\-\d+\-\d+)");
+			var date2 = string.match(t.extradata:"","(\d+\-\d+\-\d+)");
+			if(date1 && date2){
+				date2 += " 23:59:59";
+				where += " and " ++ fieldName ++ " between '" ++ date1 ++ "' and '" ++ date2 ++ "'";
+			}
+		}
+	}
+	return where; 
+}
+
+getPageList = function(tabPage,mainSql,orderby,where,dbconfig){
+	var wheresql = "where ";
+	wheresql += #where ? where : "1=1";
+	var tabRules = tabPage[["filters"]][["rules"]];
+	var str,err = getWhereSql(tabRules);
+	if(!str) return null,err;
+	
+	wheresql += str;
+	var currentPage = tabPage.page : 1;
+	var pageSize = tabPage.rows : 20;
+	var driver = dbconfig.driver;
+	var sql;
+	if(driver == "mysql" || driver == "sqlite"){
+		sql = ..carl.sql.my.getPageSql(mainSql + " " + wheresql, currentPage, pageSize, orderby);
+	}
+	elseif(driver == "mssql"){
+		sql = ..carl.sql.ms.getPageSql(mainSql + " " + wheresql, currentPage, pageSize, orderby);
+	}
+	else {
+		return null,"请指定分页查询数据库类型dbconfig"; 
+	}
+	var tab,err = ..dbase.getTable(dbconfig,sql);
+	if(tab){
+		var tabReslut = {}
+		tabReslut["total"] = #tab ? tab[1]["rowCount"] : #tab;
+		tabReslut["rows"] = tab;
+		return tabReslut;
+	}else {
+		return null,err,sql; 
+	}
+}

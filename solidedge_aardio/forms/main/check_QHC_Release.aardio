@@ -1,0 +1,73 @@
+import fonts.fontAwesome;
+var pd = ... ;
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="QHC开发图纸下发记录";right=759;bottom=469)
+winform.add(
+button={cls="button";text="查找";left=224;top=56;right=296;bottom=88;dl=1;dt=1;z=3};
+button2={cls="button";text='\uF0E2';left=8;top=432;right=40;bottom=464;db=1;dl=1;font=LOGFONT(name='FontAwesome');z=5};
+edit={cls="edit";left=48;top=56;right=200;bottom=88;dl=1;dt=1;edge=1;z=2};
+edit2={cls="edit";left=696;top=64;right=736;bottom=88;dr=1;dt=1;edge=1;z=4};
+listview={cls="listview";left=0;top=112;right=760;bottom=432;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;items={};z=1}
+)
+/*}}*/
+
+import config;
+/*sqliteDB{{*/
+import sqlite;
+var db,err = sqlite(config.dbServer.path + "qhc_dw_rel_list.db");	//打开数据库连接
+if (err) error(err)
+/*}}*/
+	//import console
+	//console.open()
+/*searchSapDB{{*/
+var searchQHCDB = function(pcode){
+	var userinput = string.trim(pcode);
+	if !userinput return null ; 	
+    if !(string.startWith(userinput,"H",true)) userinput = "H" ++ userinput;
+	var t = db.getTable("SELECT * FROM [qhc_dw_rel_list]", { 物料号码 = userinput } );
+	//console.dumpTable(t)
+	return t;
+}
+/*}}*/
+
+var getLatestVer = function(pcode){
+	tab := searchQHCDB(pcode);
+	return #tab>0 ? tab[#tab].图纸版次 : ""; 
+}
+
+
+import win.ui.grid;
+var grid = win.ui.grid(winform.listview);//创建数据视图
+var tab;
+
+
+winform.button.oncommand = function(id,event){
+	winform.edit.text = string.upper(winform.edit.text);
+	tab = searchQHCDB(winform.edit.text)
+	for(i=1;#tab){
+		tab[i].图纸下发时间 = time(tab[i].图纸下发时间,"%Y/%m/%d");
+	}
+	
+  	grid.setTable(tab);
+  	winform.edit2.text = #tab ? tab[#tab].图纸版次 : ""
+}
+
+
+
+winform.show();
+if(pd){
+    winform.edit.text = pd;
+	winform.button.oncommand();  	
+}
+
+winform.button2.oncommand = function(id,event){
+    _dw_path = "\\ccnqia05\开发部共享文件-\01.2022Y图纸&技术通知及BOM\2022年开发部图纸下发台账-以此为准.xlsx";
+	if !io.exist(_dw_path) return error("找不到开发部共享文件: " ++ _dw_path);
+	loadcodex("\forms\Excel\refresh_QHC_Drawing_Release_List.aardio", _dw_path );
+}
+
+
+win.loopMessage();
+return winform;

@@ -1,0 +1,30 @@
+﻿import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="成绩查询";right=800;bottom=600;parent=...)
+winform.add(
+listview={cls="listview";left=20;top=10;right=782;bottom=581;ah=1;aw=1;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;z=1}
+)
+/*}}*/
+
+//初始化listview控件
+winform.listview.insertColumn("准考证号",100);
+winform.listview.insertColumn("考试时间",150);
+winform.listview.insertColumn("科目",150);
+winform.listview.insertColumn("成绩",100);
+winform.listview.adjust = function(cx,cy){
+    winform.listview.fillParent(3);
+}
+
+import ssexam.db;
+
+var dt=ssexam.db.查询成绩();
+for(i=1;#dt;1){
+	winform.listview.addItem({dt[i].exam_number;dt[i].exam_time;dt[i].subject;dt[i].score});
+}
+
+
+
+
+winform.show() 
+win.loopMessage();
+return winform;

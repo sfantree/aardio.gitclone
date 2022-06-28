@@ -1,0 +1,150 @@
+﻿//textInput 输入框
+namespace hge.interFace;
+import win.clip;
+textInput = class {
+	ctor( game,w,h,mode = 0){
+		this = game.gdiFont(w,h,1);
+		this.font.lineAlign = 2;
+        this.allowBack = true //允许退格
+        this.allowSpece = true
+        this.allowPaste = true;
+        this.focus = false;
+        this.nFlickerTime = 500 //闪烁时间毫秒
+        this.nFrameColor = -1; //边框色
+        this.nOnfocusFmCor = -16711681 /*_PGE_COLOR_Green2*/ //焦点状态边框色
+        this.nCursorColor = -1 //光标颜色
+        this.length_limit = 0 //长度限制 0 为不限制
+        this.charLenLimit = 0 //字符长度限制0 为不限制
+        this.nCursorPosNum = 0
+        this.nCursorPos = 0
+        this.sMaskStr = "*"
+        this.mode = mode;
+        this.bShowCursorPos = true
+        this.allowImeChar = true
+        this.code = ""
+        this.type = "textInput";
+        this.enbaleMouseEvent = true;
+        ..table.push(inputs,this)
+	};
+	
+
+	delText = function (str) {
+        var pos = this.nCursorPosNum;
+        if(this.mode = 0) {
+            this.text = ..string.sub(this.text, 1, pos - 1, true)++..string.sub(this.text, pos + 1, ..string.len(this.text), true)
+        }
+        elseif(this.mode = 1) {
+            this.code = ..string.sub(this.code, 1, pos - 1, true)++..string.sub(this.code, pos + 1, ..string.len(this.code), true)
+            this.text = ..string.left(this.text, ..string.len(this.text) - 1, true)
+        }
+        if(this.nCursorPosNum <= 0) {
+            this.nCursorPosNum = 0
+        } else {
+            this.nCursorPosNum--;
+        }
+		this.flush();
+    }
+	setFocus = function () {
+        for(k,v in inputs) v.focus = false;
+		this.focus = true;
+    }
+
+    append = function (str) {
+        if(this.charLenLimit !== 0 ? #this.font.text >= this.charLenLimit) {
+            return false;
+        }
+        var pos = this.nCursorPosNum;
+        if(this.mode = 0) {
+            this.text = ..string.concat(
+                ..string.sub(this.text, 1, pos, true),
+                str,
+                ..string.sub(this.text, pos + 1, ..string.len(this.text), true)
+            )
+        }
+        elseif(this.mode = 1) {
+            var t = ""
+            this.code = ..string.concat(
+                ..string.sub(this.code, 1, pos, true),
+                str,
+                ..string.sub(this.code, pos + 1, ..string.len(this.code), true)
+            )
+            for(i = 1;..string.len(str); 1) t += this.sMaskStr;
+            this.text = ..string.concat(this.text,t)
+        }
+
+        this.nCursorPosNum += ..string.len(str);
+		this.flush();
+    }
+    
+	(function(){
+		this.on(7/*_hge_event_mouseup*/,function(param){
+			this.setFocus();
+		})
+		this.on(12/*_hge_event_char*/,function(param){
+			if(!this.focus) return ; 
+			var wParam = param.wParam;
+			select(param.message) {
+				case 0x102/*_WM_CHAR*/ {
+					if(wParam >161) return ;
+					select(wParam) {
+						case '\b'# { //退格
+                            if(this.allowBack) {
+                                this.delText(this.nCursorPosNum);
+                            }
+                        }
+                        case '\r'# { //回车
+                            if(this.allowEnter) {
+                                this.append('\n\r');
+                            }
+
+                        }
+                        case '\t'# { //tab
+                            if(this.allowTab) {
+                                this.append('\t');
+                            }
+
+                        }
+                        case ' '# { //空格
+                            if(this.allowSpece) {
+                                this.append(' ')
+                            }
+
+                        }
+                        case 3 { //复制
+                            if(this.allowCopy) {
+
+                            }
+                        }
+                        case 22 { //粘贴
+                            if(this.allowPaste) {
+                                this.append(..win.clip.read(): "")
+                            }
+
+                        }
+                        case 1 { //全选
+                            if(this.allowSelectAll) {
+
+                            }
+                        } else {
+                            this.append(..string.pack(wParam));
+                        }
+					}
+				
+				}
+				case 0x286/*_WM_IME_CHAR*/ {
+					this.append(..string.pack(::HIBYTE(wParam), ::LOBYTE(wParam)))
+				}
+			}
+		})
+		
+		
+	}
+	)()
+	
+}
+
+namespace textInput{
+	inputs = {};
+	
+	
+}

@@ -1,0 +1,198 @@
+/*
+ **************************
+ *
+ * 豆瓣FM 播放历史列表窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.tabs;
+
+var autoForm = ..win.form(
+	parent=...;
+	text="自动加红心 / 自动屏蔽 - "++_app;
+	border="none";
+	right=450;
+	bottom=400;
+	exmode="toolwindow");
+	
+autoForm.transparent(true); // 透明窗体
+wbLayout_auto = web.layout(autoForm,0xFFFF/*_HL_HANDLE_ALL*/); // 接受onkeydown事件
+wbLayout_auto.go("/res/auto.html");
+
+
+
+
+/* 
+ * 确认事件
+ */
+function onConfirm() {
+	autoForm.close();
+	var inputs = wbLayout_auto.queryEles(".auto");
+	var values = {};
+	var temp;
+	for(i=1;#inputs;1) {
+		temp = inputs[i].value;
+		temp = string.trim(temp,",") ++ ",";
+		temp = string.replace(temp,"@@，",",");
+		temp = string.replace(temp,"@@,,",",");
+		temp = string.replace(temp,"@@,,，",",");			
+		inputs[i].value = temp;
+	}
+	
+	likeTitle = wbLayout_auto.queryEle("#likeSongTitle").value;
+	if(wbLayout_auto.queryEle("#isLikeByTitle").value=="checked") isLikeByTitle = 1;
+	else isLikeByTitle = 0;
+
+	likeArtist = wbLayout_auto.queryEle("#likeSongArtist").value;
+	if(wbLayout_auto.queryEle("#isLikeByArtist").value=="checked") isLikeByArtist = 1;
+	else isLikeByArtist = 0;
+
+	likeAlbum = wbLayout_auto.queryEle("#likeSongAlbum").value;
+	if(wbLayout_auto.queryEle("#isLikeByAlbum").value=="checked") isLikeByAlbum = 1;
+	else isLikeByAlbum = 0;
+
+	delTitle = wbLayout_auto.queryEle("#delSongTitle").value;
+	if(wbLayout_auto.queryEle("#isDelByTitle").value=="checked") isDelByTitle = 1;
+	else isDelByTitle = 0;
+
+	delArtist = wbLayout_auto.queryEle("#delSongArtist").value;
+	if(wbLayout_auto.queryEle("#isDelByArtist").value=="checked") isDelByArtist = 1;
+	else isDelByArtist = 0;
+
+	delAlbum = wbLayout_auto.queryEle("#delSongAlbum").value;
+	if(wbLayout_auto.queryEle("#isDelByAlbum").value=="checked") isDelByAlbum = 1;
+	else isDelByAlbum = 0;
+
+	if(wbLayout_auto.queryEle("#isDelEnglish").value=="checked") isDelEnglish = 1;
+	else isDelEnglish = 0;
+		
+	binFM.db.saveAuto();
+}
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_auto.onButtonClick = {
+	// =============================
+	// 显示红心兆赫歌曲按钮
+	// =============================
+	isLikeByTitle = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") wbLayout_auto.queryEle("#likeSongTitle").disabled = null;
+		else wbLayout_auto.queryEle("#likeSongTitle").disabled = "disabled";
+	}
+	isLikeByArtist = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") { 
+			wbLayout_auto.queryEle("#likeSongArtist").disabled = null;
+			binFM.ui.menuToggle("#likeByArtist","normal");
+		}
+		else {
+			wbLayout_auto.queryEle("#likeSongArtist").disabled = "disabled";
+			binFM.ui.menuToggle("#likeByArtist","disabled2");
+		}
+	}
+	isLikeByAlbum = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") {
+			wbLayout_auto.queryEle("#likeSongAlbum").disabled = null;
+			binFM.ui.menuToggle("#likeByAlbum","normal");
+		}
+		else {
+			wbLayout_auto.queryEle("#likeSongAlbum").disabled = "disabled";
+			binFM.ui.menuToggle("#likeByAlbum","disabled2");
+		}
+	}
+	isDelByTitle = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") wbLayout_auto.queryEle("#delSongTitle").disabled = null;
+		else wbLayout_auto.queryEle("#delSongTitle").disabled = "disabled";
+	}
+	isDelByArtist = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") {
+			wbLayout_auto.queryEle("#delSongArtist").disabled = null;
+			binFM.ui.menuToggle("#delByArtist","normal");
+		}
+		else {
+			wbLayout_auto.queryEle("#delSongArtist").disabled = "disabled";
+			binFM.ui.menuToggle("#delByArtist","disabled2");
+		}
+	}
+	isDelByAlbum = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") {
+			wbLayout_auto.queryEle("#delSongAlbum").disabled = null;
+			binFM.ui.menuToggle("#delByAlbum","normal");
+		}
+		else {
+			wbLayout_auto.queryEle("#delSongAlbum").disabled = "disabled";
+			binFM.ui.menuToggle("#delByAlbum","disabled2");
+		}
+	}
+	isDelEnglish = function (layoutEle,reason,behaviorParams) { 
+		binFM.auto.addDelEnglish("form");
+	}
+	autoAddLikeArtist = function (layoutEle,reason,behaviorParams) { 
+		binFM.auto.addLikeArtist();
+	}
+	autoAddLikeAlbum = function (layoutEle,reason,behaviorParams) { 
+		binFM.auto.addLikeAlbum();
+	}
+	autoAddDelArtist = function (layoutEle,reason,behaviorParams) { 
+		binFM.auto.addDelArtist();
+	}
+	autoAddDelAlbum = function (layoutEle,reason,behaviorParams) { 
+		binFM.auto.addDelAlbum();
+	}
+ 	auto_close = function (layoutEle,reason,behaviorParams) { 
+		onConfirm();
+		autoLikeChecked = false;
+		binFM.auto.checkLike(true);
+		binFM.auto.checkDel(true);
+	}
+ 	auto_close2 = function (layoutEle,reason,behaviorParams) { // cancel
+		autoForm.close();
+		autoLikeChecked = false;
+		binFM.auto.checkLike(false);
+		binFM.auto.checkDel(false);
+	}
+ 
+}
+
+
+
+
+/*
+ * 回车键事件
+ */
+wbLayout_auto.onKeyDown = function (ltTarget,ltEle,keyCode, altState, ltKeyParams) {
+    if( keyCode == 0xD/*_VK_RETURN*/ ){
+		onConfirm();
+    }
+}
+
+
+
+
+/*
+ * 窗体事件
+ */
+autoForm.wndproc = {
+	[0x10/*0x10/*_WM_CLOSE*/] = function(hwnd,message,wParam,lParam) {
+		// 当窗体关闭时
+		autoForm.show(false);
+		autoFormShown = false;
+		return "noclose";
+	}
+}
+
+//autoForm.show();
+
+
+win.loopMessage();
+
+return autoForm;

@@ -1,0 +1,145 @@
+
+//业层服务层,业务逻辑实现,原则这层不写sql语句
+namespace svc.web.webPostSvc
+
+import dbase.mysql.webPostDB;
+import dbase.mysql.webCategoryDB;
+import svc.web.webCategorySvc;
+
+string = ..string;
+table = ..table;
+
+var webPostDB = dbase.mysql.webPostDB;
+var webCategoryDB = dbase.mysql.webCategoryDB;
+var webCategorySvc = svc.web.webCategorySvc;
+
+getPageList = function(tabPage){
+	var mainSql = "select * from web_post";
+	var where = "1=1 ";
+	var txt = tabPage.search;
+	if( #txt ){
+		txt = string.replace(txt,"'","''");
+		//where += "and (ShopName+Address) like '%" ++ txt ++ "%'";//mssql
+		//where += "and CONCAT(SystemUserName,' ',LoginAccount) like '%" ++ txt ++ "%'";//mysql
+	}
+	//where = webPostDB.formatSqlParameters(where);
+	var orderby = "PostId desc";
+	return webPostDB.getPageList(tabPage, mainSql, orderby, where);
+}
+
+//返回分页数据
+getWebPageList = function(page,rows,status,userId){
+	var tabPage = {}
+	tabPage.filters = {}
+	tabPage.page = page;
+	tabPage.rows = rows;
+	
+	var rules = {};
+	if(userId) table.push(rules,{field="userId";op="eq";data=userId;prefix="p"});
+	
+	select(status) {
+		case "unsolved" {//未结帖
+			table.push(rules,{field="IsAdopt";op="eq";data="0";prefix="p"});
+		}
+		case "solved" {//已采纳
+			table.push(rules,{field="IsAdopt";op="eq";data="1";prefix="p"});
+		}
+		case "wonderful" {//精帖
+			table.push(rules,{field="IsFine";op="eq";data="1";prefix="p"});
+		}
+	}
+	
+	tabPage.filters.rules = rules;
+	var tab,err = webPostDB.getWebPageList(tabPage);
+	if(!tab) return false,err;
+	for(i=1;#tab.rows;1){
+		var row = tab.rows[i];
+	
+	}
+	tab.pages = ..math.ceil(tab.total/rows);//总页数
+	tab.curr = page;//当前页
+	tab = ..carl.mvc.common.proxy(tab);
+	return tab; 
+}
+
+save = function(tpost){
+	var ok,err;
+	var postId = tpost.postId;
+	if( #postId ){
+		ok,err = webPostDB.update(tpost,"postId=@postId",{postId=postId}); 
+	}
+	else {
+		ok,err = webPostDB.insert(tpost); 
+	}
+	return ok,err; 
+}
+
+getInfo = function(postId){
+	var tab,err = webPostDB.getFirstList("postId=@postId",{postId=postId});
+	if(!tab) return null,err;
+	if( !table.count(tab) ) return null,"无记录";
+	return tab;
+}
+
+//用户发帖保存
+userSavePost = function(title,content,categoryId,postId,userId,isAdmin){
+	var tab,err = webCategorySvc.getInfo(categoryId)
+	if(!tab) return false,"无效分类";
+	var nowTime = ..common.getNowTime();
+	var tpost = {}	
+	tpost.PostContent = content;
+	tpost.CategoryId = categoryId;
+	tpost.UserId = userId;
+	if(postId){
+		var limit,err = getLimit(postId,userId,isAdmin);//修改权限
+		if(limit == -1) return false,err;
+		if(limit != 2) tpost.PostTitle = title;
+		tpost.UpdateTime = nowTime;
+		var ok,err = webPostDB.update(tpost, "postId=@postId", {postId=postId});
+		if(!ok) return false,"修改失败";
+	}
+	else {
+		postId,err = webPostDB.getAutoId();
+		if(!postId){
+			..carl.mvc.common.saveErrorLog("postId主键错误" ++ (err:""))
+			return false,"主键错误";
+		}
+		tpost.PostTitle = title;
+		tpost.PostId = postId;
+		tpost.IsTop = "0";//是否置顶 0=否,1=是
+		tpost.IsFine = "0";//是否精贴 0=否,1=是
+		tpost.IsAdopt = "0";//是否采纳 0=未结贴,1=已采纳
+		tpost.ViewCount = 0;
+		tpost.ReplyCount = 0;
+		tpost.LikeCount = 0;
+		tpost.SortId = 100;
+		tpost.PostStatus = "1";//贴子状态 0=禁用,1=启用
+		tpost.PostTime = nowTime;
+		var ok,err = webPostDB.insert(tpost);
+		if(!ok) return false,"发布失败";
+	}
+	return postId;
+}
+
+//返回贴子详情
+getPostDetail = function(postId){
+	var tab,err = webPostDB.getWebPostDetail(postId);
+	if(!tab) return false,err; 
+	tab = ..carl.mvc.common.proxy(tab);
+	return tab; 
+}
+
+//判断帖子是否有权限编辑
+getLimit = function(postId,userId,isAdmin){
+	if(isAdmin == "1" || isAdmin == "2"){//管理员,社区之光
+		return 1; //标题和内容都可以编辑
+	}
+	var sql = "select UserId,PostStatus,ReplyCount from web_post where postId=@postId";
+	var tab,err = webPostDB.getTableFirst(sql,{postId=postId})
+	if(!tab) return -1,err;
+	if( table.count(tab) == 0 ) return -1,"无记录"; 
+	if( tab.UserId != userId ) return -1,"无权限";
+	if( tab.PostStatus != "1" ) return -1,"帖子已被锁定";
+	if( tab.ReplyCount > 0) return 2,"有回复,标题不可修改"; 
+	return 1;
+}

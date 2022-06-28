@@ -1,0 +1,388 @@
+//table 表对象
+namespace preload;
+self.table = global.table;
+
+namespace table{
+	find = function(t,f){ 
+		if(type(f)==="function"){ for(k,v in t) if( f( v,k,t ) ) return k,v; } 
+		for(k,v in t){ if( v === f ) return k; } 
+	}; 
+	findAll = function(t,f){
+		var a = {}
+		if(type(f)==="function")for(k,v in t){ if( f( v,k,t ) ) push(a,k) } 
+		else for(k,v in t){ if( v === f ) push(a,k) }
+		return a;
+	}; 
+	indexOf = function(a,v,from){
+		if(from===null) from = 1;
+		if(from<0) from = #a + from + 1;
+		for(i=from;#a) { if( a[i] === v ) return i; }
+	};
+	lastIndexOf = function(a,v,from){
+		if(from===null) from = 1;
+		if(from<0) from = #a + from + 1;
+		for(i=#a;from;-1) { if( a[i] === v ) return i; }
+	};
+	shift = function(t,n=1){
+		if(!t) error("无效参数@1",2)
+		if(#t) return unpack( splice(t,1,n) );
+	};
+	unshift = function(t,...){
+		if(!t) error("无效参数@1",2)
+		if( #t) splice(t,1,0,...); 
+		else push(t,...);
+		return #t;
+	};
+	unpackArgs = function(t){
+		var b,e = range(t)
+		return unpack( t,1,e);
+	};
+	spliceArgs = function(t,i,l,a,b,e){
+		var b2,e2 = range(a);
+		return splice(t,i,l,unpack(a,b:b2,e:e2));
+	};
+	eachArgs = function(t){
+		var a,b = range(t);a=0;
+		return function(){ if( a < b ){ a++; return a,t[a] } } ;
+	};
+	clear = function(t){
+		if(#t) splice(t,1,#t); 
+		for(k,v in t) t[k] = null; 
+	};
+	assignDeep = function(a,b,...){
+		if(a===null) a = {}; 
+		for(k,v in b) if( ( a[[k]] === null ) || (type(k)!="string") || (k[1]!='_'#) ) {
+			if( type(v) == "table" ){
+				if( (type(a[k]) == "table" ) && ((a[k])!=v) ) assignDeep( a[k],v )
+				else  a[k] = clone(v);
+			}
+			else a[k] = v; 
+		}
+		if(!...) return a;   
+		return assignDeep(a,...); 
+	}; 
+	assign = function(a,b,...){
+		if(a===null) a = {};
+		for(k,v in b) if( ( a[[k]] === null ) || (type(k)!="string") || (k[1]!='_'#) ) a[k] = v; 
+		if(!...) return a;   
+		return assign(a,...); 
+	};  
+	mix = function(a,b,...){
+		if(a===null) a = {};
+		for(k,v in b) if( a[[k]] === null){ a[k] = v}; 
+		if(!...) return a;   
+		return mix(a,...);
+	};
+	array = function(l,v,...){ 
+		var r = {@{_type="array"}}
+		var t = type(v);
+	
+		if( type(l) == "function" ){
+			while( var i;  i = { l(v,...) }; i[1]) { push( r,i); }
+		}
+		elseif( t == "function" || t == "class" ) {
+			if( l ){
+				for(i=1;l) r[i]= v(...);
+			}
+			else {
+				while( var i = v(...) ) { push( r,i); }
+			}
+		}
+		elseif( t == "table" ) 
+			for(i=1;l) r[i]= assign({},v); 
+		else {
+			if( (... !== null) && ( t == "number") ) {
+				for(i=1;l )  r[i]=array(v,...); 
+			}
+			elseif(v!==null) {
+				for(i=1;l) r[i]= v; 
+			}
+		} 
+	
+		return r;
+	}; 
+	flat = function(a,d = 1) {
+   		return d ? reduce(a,lambda(r,v) append(r,isArray(v) ? flat(v,d-1):{v}),{}) : a
+  	};
+  	getByNamespace = function(k,t){
+		if(!t){ t = ..global; }
+		var p,m = ..string.match(k,"\.*(.+)(%\[\])$");
+		if( m )
+			m = eval(..string.trim(m,"[]")); 
+		else
+			p,m = ..string.match(k,"\.*(.+)\.([^.]+)$");
+		if( m!==null ){ t = getByNamespace(p,t); if(t){ return t[m],t; } }
+		else{ return t[k],t };
+	};
+	var setByNamespace_;
+	setByNamespace_ = function(k,v,t,n=0){  
+		var p,m = ..string.match(k,"\.*(.+)(%\[\])$");
+		if( m ){
+			t = setByNamespace_(p,,t,n+1);
+			k = eval(..string.trim(m,"[]"))
+			if(k===null)k=#t+1;
+		}
+		else{
+			p,m = ..string.match(k,"\.*(.+)\.([^.]+)$"); 
+			if( m!==null ){ t = setByNamespace_(p,,t,n+1); k = m }
+		}
+		
+		if( n ){
+			if( t[k]===null ) t[k] = (v===null) ? {} : v ;
+		}
+		else{
+			t[k] = v;
+		} 
+		return t[k];
+	};
+	setByNamespace = function(k,v,t){
+		if(!t){ t = ..global }
+		return setByNamespace_(k,v,t,0)
+	};
+	self.namespace = function(ns){
+		if( call(loadcodex,,"namespace " + ns)) return eval(ns); 
+	};
+	define = function(t,...){
+		if(!t@)t@={}
+		if(!t@._defined)t@._defined = {};
+		if(...)push(t@._defined,...);
+		else {clear(t@._defined)} 
+	};
+	keys = function(t,f,n){
+		var d = {};
+		var keys = {};
+		var pred = {};
+		if(n){
+			var k;
+			for(i=1;#n){
+				k = n[i] ; d[k] = t[k];
+				if( d[k] !== null ){ push(pred,k); } 
+			}
+		}
+
+		var mkeys = t@[["_keys"]]
+		if( mkeys ){
+			if( type(mkeys) == type.function ) mkeys = invoke(mkeys,t);
+			for i,k in mkeys if( ( d[k] === null )  && type(k)=="string" ) { push(keys, k); d[k] = true; }
+		}
+		else{
+			for k in t if( ( d[k] === null )  && type(k)=="string" && k != "_struct") { push(keys, k); d[k] = true; }
+		}
+    	sort(keys, f);
+
+    	if( n ){
+    		if(#keys){
+    			append(pred,keys)  
+    		}
+    		keys=pred; 
+    	} 
+
+    	var defined = t@[["_defined"]]
+    	if( defined ){ 
+    		if( type(defined) == type.function ) defined = invoke(defined,t);
+			for(i,k in defined){
+				if( d[k] === null ) { push(keys, k); d[k] = true; }; 
+			}
+		}
+		return keys;		
+	};
+	eachName = function(t,f,n){ 
+		var keys = keys(t,f,n); 
+    	var i,k; 
+    	return function () { 
+    		i,k = next(keys,i)
+        	if(k) return k, t[k];
+    	} 
+	};
+	eachValue = function(t,f){ 
+		var keys = {}
+		for(k,v in t) push(keys,k);
+		sort(keys,function(b){
+			if( f ) return invoke(f,t,t[owner],t[b]);
+			return t[owner] < t[b];
+		});
+		 
+    	var i,k; 
+    	return function () { 
+    		i,k = next(keys,i)
+        	if(k!==null) return k, t[k];
+    	} 
+	};
+	len = function(a){
+		var lm,lf,la = a@[["length"]] || a@[["len"]],a.length || a.Length,#a; 
+		if( type(lm) == "function") lm = invoke(lm,a);
+		if( type(lm) == "number") la = ..math.max(lm,la);
+		if( ( lf !== null ) && (type(lf)=="number")) la = ..math.max(lf,la);  
+		return la;
+	};
+	eachIndex = function(t){
+		var len = len(t);
+		var startIndex = t@[["_startIndex"]];
+		if( startIndex === null ) startIndex = 1;
+		len = len + startIndex - 1;
+		 
+		var v;
+		return function(){
+			if(startIndex<=len){
+				startIndex++;
+			 	return startIndex-1,t[startIndex-1];
+			}
+		}
+	};
+	count = function(t){
+		var i = 0;
+		for(k,v in t){i++};
+		return i;
+	};
+	shuffle = function(t){
+    	var r,i = ..math.random;
+    	for(c=#t;2;-1){
+    		i = r(1,c);
+        	t[i],t[c] = t[c],t[i]; 
+    	} 
+    	return t;	
+	};
+	map = function(t,f){
+    	var r = {}; 
+    	for(k,v in t) { v = f(v,k,r);if(v!==null)r[k]=v;} 
+    	return r;  
+	};
+	mapDeep = function(t,f){
+    	var r = {}; 
+    	for(k,v in t)  r[k] = (type(v) == "table") ? mapDeep(v,f) : f(v,k,r);
+    	return r;  
+	};
+	filter = function(a,f){
+		var r = {}
+		for(i=1;#a) if( f( a[i],i ) ) push(r,a[i]);
+		return r;
+	};
+	every = function(t,f){
+		for(k,v in t) if( !f( v,k ) ) return;
+		return true;
+	};
+	some = function(t,f){
+		for(k,v in t) if( f( v,k ) ) return true; 
+	};
+	removeByValue = function(t,v,m){
+		var len,_ = #t;
+		if( v === null ) {
+			_,len = range(t);
+			if(m === null) m = true;
+			if(t@[["length"]]){t@[["length"]]=null;} 
+		}
+
+		if(!m) {
+			for(i=1;#t;1)if(t[i]===v){remove(t,i);return i;}  
+		}
+		else {
+			for(i=len;1;-1) if(t[i]===v) remove(t,i);
+		}
+	};
+	self.type = function(v){
+		if( type(v) != "table" ) return;
+		var t = v@[["_type"]];
+		if( t == "object" ) return "object";
+		if( t == "array" ) return "array";
+		if( ( v@[["_keys"]] !== null ) || (v[["_struct"]]) ) return "object";
+		if( v@[["_safearray_type"]] !== null ) return "array";
+		if( v@[["length"]] !== null ) return "array";
+		if( ( type(v.length) == "number" ) && (v[["length"]]===null) ) return "array";
+		if( #v ) return "array";
+		return "object";
+	};
+	isArray = function(v){
+		return self.type(v) == "array"; 
+	};
+	gc = function(o,gc){
+		var gd = ..raw.buffer(1);
+		gd@ = { _gc = function(){ call( type(gc)=="string"?o[gc]:gc,o);} }
+		o[["_gc"]] = gd;
+		return o;
+	}; 
+	gcOnly = function(func){
+		var d;
+		d = ..gcdata(_gc = function(){d = false; });
+		
+		return function(){
+			if(d!==false) return;
+			invoke(func,owner);
+		}
+	};
+	create = function(p,...){
+		return assign( p ? { @{_get=p} } : {},...);
+	};
+	cache = function(get,kv){
+		if(kv) kv,get = get,kv;
+		return {@{_weak=kv:"kv";_get=get?function(k){ var v = get(k);owner[[k]]=v;return v;} }}
+	};
+	
+	mixin = assign; // 废弃
+	mixr = assignDeep; // 废弃
+	mapr = mapDeep; // 废弃
+	delegate = create;//废弃
+	add_gc = gc;//废弃	
+}  
+
+/**intellisense(table)
+cache() = 创建并返回弱引用缓存表,\n弱引用指的是加入表中的键或值不会增加引用计数,\n不会阻止对象被回收,\n返回的弱引用表适合用于缓存对象
+cache(.(getter) = 创建并返回弱引用缓存表,\n可选用参数 @getter 指定读取值函数,\n该函数的参数为当前读取的键,函数应返回对应的值,\n在返回读取值以前,该值会被临时存入缓存表
+cache(.(kv,getter) = 创建并返回弱引用缓存表,\n可选用参数 @kv 指定弱引用类型,\n参数@1为字符串 "k" 时仅弱引用键,为 "v" 仅弱引用值,\n不指定刚默认为 "kv", 指弱引用键与值。\n可选用参数 @getter 指定读取值函数,\n该函数的参数为当前读取的键,函数应返回对应的值,\n在返回读取值以前,该值会被临时存入缓存表
+type(__) = 检测传入值的表类型\n如果不是一个表返回null，\n如果表的_type元属性声明了"object"或"array"的值返回该值，\n如果表在元表中定义了 length 属性或 length 元属性,返回"array"，\n如果使用#操作符取数组长度返回值不是0,返回"array"，\n其他一律返回"object"\n\nweb.json使用此函数区分对象的类型，\n并且在解析JSON以后会通过_type元属性设置"aaray"或"object"的值
+isArray(__) = 检查传入参数是否一个数组，\n可传入任何数据类型参数，\n\n如果参数对象不是table类型返回false,\n参数的_type元属性为"object"返回false,\n参数对象的_type元属性为"array"返回true,\n参数对象指定了length元属性或length属性返回true,\n参数对象包含数组成员返回true,\n其他情况返回false\n\n使用table.array函数可以创建一个符合此检测条件的数组
+len(.(数组) = 获取数组长度\n在数组本身的长度,数组的length属性,以及数组的元表length属性中取最大值返回\nweb.json调用此函数以支持定长数组
+define(.(表对象,->->->) = 预定义一个或多个键名\n即使对应键的值为null,仍然在eachName迭代器中显示出来\n注意该迭代器的预定排序对null值无效,\n此函数在对象的元表中_define元属性添加键名,如果_define已经定义为函数对象则会失败\ntable.eachName,webs.json等自动支持_define元属性
+define(.(表对象) = 清空预定义键名
+keys(.(表对象,排序函数,优先前排键名) = 获取表中的所有字符串类型的键名,不包含_struct\n\n如果元表中定义了_keys元方法,则调用该方法获取全部自定义键名取代表本身的键名列表\n_keys元方法可以是一个键名数组，或者是返回键名数组的函数,\n\n如果元表中定义了_defined元方法,则使用该方法获取允许为null的键值,\n_defined可以是一个键名数组，或者是返回键名数组的函数,_defined返回的键,\n名数组不会覆盖表本身的键名数组或者_keys元方法定义的数组,仅起到键名占位的作用,\n\n可选指定键名排序函数,如果不指定则使用默认字典序排序,\n可选使用参数@3预定优先排序在最前面的键名数组
+eachIndex(数组) = @for i,v in table.eachIndex(__/*指定数组对象\n按数组索引大小顺序遍历数组\n支持使用表对象的 length 属性,_length 元方法确定数组的长度,\n支持表对象使用 _startIndex 元属性自定义下标\n如果是普通的纯数组不需要用到这些功能,\n改用计数 for 循环会更快*/){
+	
+}
+eachName(表对象,排序函数,预定定前排键名) = @for k,v in ??.eachName(__/*使用表中的键排序并遍历所有键值对\n参数: @1表对象, @2排序函数, @3排序表\n调用table.keys获取排序后的键名,支持_keys,_defined元方法\n所有参数用法与table.keys相同*/){
+	
+}
+eachValue(表对象,排序值函数) = @for k,v in table.eachValue(__/*使用表中的值排序并遍历所有键值对,\n默认值最小的排在前面,可选在后面指定排序函数，\n排序函数的v,v2参数为正在比较的成员值,owner参数为表自身,\n如果要v排在前面返回true,请用<或>比较,不要用>=或<=\n省略排序值的函数则值小的排在前面*/,lambda(a,b) a > b ){\n	\n}
+find(.(表,查找值) = 使用恒等操作符查找表中是否存在某个值并返回对应的键,\n无任何匹配值时返回null
+find(.(表,回调函数) = 遍历表中所有的值,\n并调用参数@2指定的回调函数，直到该函数返回true时返回匹配的键,值\n回调函数参数为（当前值,当前键,表对象）
+findAll(.(表,查找值) = 使用恒等操作符查找表中是否存在某个值并返回对应的键数组\n找不到返回空数组,可使用#操作符检测长度
+findAll(.(表,回调函数) = 遍历表中所有的非函数值，\n并调用参数@2指定的回调函数，该函数返回true时对应的键添加到返回值中,\n回调函数参数为（当前值,当前键,表对象）\n返回值为所有匹配键组成的数组,无任何匹配值返回空数组
+lastIndexOf(.(表,查找值,开始索引) = 在数组中自后向前查找参数@2指定的值并返回对应的数组索引,\n开始索引省略时默认值为1，可用负数表示自尾部开始的倒计数索引值,\n无任何匹配值时返回null，有匹配值时返回大于或等于1的索引值
+indexOf(.(表,查找值,开始索引) = 在数组中自前向后查找参数@2指定的值并返回对应的数组索引,,\n开始索引省略时默认值为1，可用负数表示自尾部开始的倒计数索引值,\n无任何匹配值时返回null，有匹配值时返回大于或等于1的索引值
+array( = 创建数组，参数可以为空,\n数组元表中添加_type="array"，,\n例如table.isArray,web.json.stringify等函数\n会将此类数组对象视为数组而不是普通的表对象
+array(.(任意个数组长度,默认值) = 可使用不定个数长度参数指定多维数组长度, 例：\n table.array(3,5,{} ); \n如果默认值是table对象使用浅拷贝复制,不复制嵌套包含的表\n默认值嵌套包含子表时应使用类对象作为参数
+array(.(任意个数组长度,取值函数或类,任意个调用参数) = 可使用不定个数长度参数指定多维数组长度,\n最后一个参数可以是创建默认值的函数或类,并在后面指定调用参数
+array(.(取值函数或类,任意个调用参数) = 如果参数@1是函数或类,\n这时候会循环调用参数@1直到函数返回null值,\n每次调用的所有返回值放到一个数组中,\n返回包含这些数组的数组,\n如果只想返回包含首个返回值的一维数组,\n请添加一个 null 参数,将参数@1移动到参数@2位置,\n\n参数@1不可使用无状态的迭代器,\n也不支持迭代器的 owner 参数与控制变量参数,
+array(.( ,取值函数或类,任意个调用参数) = 如果参数@1为空,且参数@2是函数或类,\n这时候会循环调用参数@2直到函数返回null值,\n每次取首个返回值放入数组,并返回该数组\n\n参数@2不可使用无状态的迭代器,\n也不支持迭代器的 owner 参数与控制变量参数,
+
+slice(.(数组,开始位置,结束位置) = 从指定位置截取并返回新数组,\n开始位置可选,默认为1\n结束位置可选,默认为数组长度,返回值包含结束位置元素,\n如果位置参数为负数,则自右侧反向计算
+assignDeep( = 递归式混入表、支持混入成员表,\n此函数不复制元表。
+assignDeep(.(对象,任意多个混入对象) = 参数@1为空则创建新表,\n使用后面的对象混入前面的对象,并返回该对象\n对表成员支持递归混入,覆盖已存在的键值,\n如果在子级成员遇到表对象,则继续使用table.mixr混入而不是替换\n使用深拷贝,请避免复制递归引用自身的对象
+assign( = 覆盖式混入表,\n支持覆盖已存在的值,不支持递归混入成员表,\n此函数不复制元表。\n\ntable.mix 函数混入表但不覆盖已存在的值\ntable.clone函数递归混入成员且复制元表
+assign(.(对象,任意多个混入对象) = 参数@1为空则创建新表,\n使用后面的对象混入前面的对象(浅拷贝),并返回该对象\n该函数仅修改第一个参数(混入目标) ,覆盖已存在的键值\n此函数不会覆盖已存在的只读成员
+mix( = 混入表但不覆盖已存在的值,\n此函数不复制元表
+mix(.(对象,任意多个混入对象) = 参数@1为空则创建新表,\n使用后面的对象补全前面的对象(浅拷贝),并返回该对象\n该函数仅修改第一个参数(混入目标),不覆盖已存在的键值.\n可用于设置表的默认值
+create(.(原型对象,任意多个混入对象) = 创建表对象,\n如果指定了原型表,则返回对象使用_get元方法指向该原型表,\n返回表对象可以共享原型表中的成员,但不会复制并存储原型表的成员\n\n如果指定了混入对象,则会将混入对象的成员实际复制到返回的表对象内,\n混入规则与table.minix一致,按参数顺序从前向后混入,\n忽略已存在的只读成员
+gc(.(table对象,析构函数)  = 指定析构函数,返回参数@1\n注意析构函数不应抛出异常,\n析构函数的 owner 参数为这里指定的 table 对象
+gc(.(table对象,"析构函数名") =  指定析构函数名,返回参数@1\n函数名可以是之后创建的成员函数,\n析构函数的 owner 参数为这里指定的 table 对象,\n如果指定的成员函数在析构时为逻辑false或null值,则忽略析构.\n注意析构函数不应抛出异常
+gc( = 添加对象在销毁前执行的析构函数\n按调用 table.gc 顺序的逆序析构对象,\n最后调用 table.gc 标记的对象会最先执行析构函数
+gcOnly( = 创建一个被保护的对象析构函数,\n此析构函数只会在对象被自动回收时自动触发,\n主动调用此析构函数将被忽略
+gcOnly(.(dtor) = @dtor 参数指定使用 table.gc 标记的析构对象的析构函数,\n此函数将返回一个新的用于覆盖原析构函数的函数,\n应将返回的析构函数重新赋值为对象的同名析构函数
+namespace(__) = 创建字符串参数@1指定的全局名字空间,\n查询或创建名字空间不会触发元方法，\n如果名字被非表对象占用导致名称冲突则返回 null，\n成功返回该名字空间\n\n此函数的作用与 namespace 语句相同，但不会改变当前名字空间
+getByNamespace(.("表内名字空间路径->名字[2]",表对象) = 返回两个值:名字路径指向对象,该对象所在的表.\n参数一为表内名字空间路径,参数二可选指定查找路径的表对象,\n默认在global全局对象内查找路径\n\n要注意此函数会触发表的元方法，\n而 namespace 语句以及 table.namespace 函数不会触发元方法
+setByNamespace(.("表内名字空间路径->名字[]",新值,表对象) = 参数一指定表内名字空间路径,如果不存在则则创建此表内名字空间,\n参数二指定需要设置的值,如果不指定则创建空表并赋值,\n参数三可选指定一个表对象,默认为global全局对象\n\n要注意此函数会触发表的元方法，\n而 namespace 语句以及 table.namespace 函数不会触发元方法
+unpackArgs(.(args) = 从索引1到最大索引返回所有元素值,包含中间的null值
+spliceArgs(.(数组,位置,删除长度,参数表) = 类似splice函数替换数组片段,\n从索引1到最大索引取参数表所有元素插入数组指定位置,\n返回包含删除元素的数组
+spliceArgs(.(数组,位置,删除长度,参数表,开始索引,结束索引) = 类似splice函数替换数组片段,\n从开始到结束索引取出参数表元素插入数组指定位置,\n返回包含删除元素的数组
+eachArgs(.(args) = 迭代器,\n从索引1到最大索引迭代所有元素值,包含中间的null值
+shuffle(__) = 对参数中指定的数组原地打乱顺序\n返回原数组
+map(tab,lambda) = @.map(__/*应用后面的 lambda 函数计算每个表成员的新值并返回新表,\n此函数不会修改参数中传入的表而是返回新表,\nlambda 函数的参数v为值,k为键\nnlambda 函数返回null时忽略不操作*/,lambda(v,k) v[1] )
+map(tab,function) = @.map(__/*应用后面的回调函数计算每个表成员的新值并返回新表,\n此函数不会修改参数中传入的表而是返回新表,\n回调函数的参数v为值,k为键,result为返回的表\n回调函数如果不返回值或返回null时忽略不操作\n因此可选通过result修改键值而不是返回新值*/,function(v,k,result){\n	\n})
+mapDeep(表) = @.mapDeep(__/*应用后面的回调函数计算新值并返回新表,\n此函数不会修改参数中传入的表而是返回新表,\n如果遇到成员值是一个表时,递归调用table.mapDeep函数处理成员表,\n回调函数的参数v为值,k为键,result为当前返回的表\n回调函数如果不返回值或返回null时忽略不操作\n因此可选通过result修改键值而不是返回新值*/,function(v,k,result){\n	\n})
+every(表) = @.every(__/*调用后面的回调函数计算表的每个值是否符合条件*/,function(v,k){\n	\n})
+some(表) = @.some(__/*调用后面的回调函数计算表的任意某个值是否符合条件*/,function(v,k){\n	\n})
+filter(数组) = @.filter(__/*调用后面的回调函数筛选并返回新数组\n回调函数返回真值时添加该值到新数组中*/,function(v,index){\n	\n})
+removeByValue( = 在数组中查找指定值并移除指定值,\n此函数无返回值,直接修改参数传入的数组。
+removeByValue(.(数组,值) = 在数组中查找指定值,\n并移除第一个找到的非null值,\n如果移除了元素则返回移除元素的索引,\n\n如果参数@2为null，则清除所有null值。\n\n此函数无返回值。
+removeByValue(.(数组,值,true) = 在数组中查找指定值并将找到的值全部移除,\n如果参数@2为 null，则使用 table.range 函数取最大索引，\n这会导致最大索引前的所有null值都作为数组元素处理，\n建议查看此函数源码以避免错误使用导致性能降低。\n\n此函数无返回值。
+clear() = 清空表中的所有值
+flat(.(array,depth) = 展开@array 参数指定的数组中嵌套的数组并返回新数组,\n此函数不会修改传入参数而是返回新数组,\n可选用 @depth 参数指定要允许展开的嵌套深度,默认值为1
+end intellisense**/

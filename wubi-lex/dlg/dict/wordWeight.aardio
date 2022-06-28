@@ -1,0 +1,100 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="wubilex 码表编辑 - 重新计算权重";right=651;bottom=335;bgcolor=16777215;border="none";exmode="none";max=false;min=false;mode="popup")
+winform.add(
+bk={cls="bk";left=0;top=0;right=653;bottom=29;bgcolor=12632256;z=5};
+btnOpenFile={cls="plus";text='\uF115';left=540;top=87;right=577;bottom=106;color=2960685;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=3};
+btnUpdate={cls="plus";text="重新计算权重";left=320;top=266;right=484;bottom=302;align="left";bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=15}};iconText='\uF0C7';notify=1;tabstop=1;textPadding={left=39};z=7};
+chkFixedSingleChar={cls="plus";text="同一编码首个候选词为单字时不重新排序";left=151;top=216;right=530;bottom=249;align="left";dl=1;dr=1;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome')};iconText='\uF0C8 ';notify=1;textPadding={left=24};z=11};
+chkReorder={cls="plus";text="允许重新计算同一编码内候选词顺序";left=151;top=159;right=530;bottom=192;align="left";dl=1;dr=1;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome')};iconText='\uF0C8 ';notify=1;textPadding={left=24};z=2};
+editFilePath={cls="plus";left=154;top=78;right=533;bottom=109;align="left";border={bottom=1;color=-16744448};dl=1;dr=1;editable=1;font=LOGFONT(h=-15);tabstop=1;textPadding={top=8;bottom=1};z=1};
+plusCodeTable={cls="plus";left=154;top=42;right=533;bottom=73;align="left";border={bottom=1;color=-16744448};color=10789024;dl=1;dr=1;font=LOGFONT(h=-15);tabstop=1;textPadding={top=8;bottom=1};z=10};
+static={cls="static";text="词频文件请使用UTF-8编码，每行一个词条，前面是词，后面是权重(1到65535之间的数值，权重越小排序越前)，中间使用制表符分开。";left=154;top=124;right=586;bottom=163;color=5921370;transparent=1;z=6};
+static2={cls="static";text="词频文件:";left=45;top=87;right=145;bottom=112;align="right";dl=1;font=LOGFONT(h=-15);transparent=1;z=4};
+static3={cls="static";text="不勾选则持单个编码内候选词顺序不变，否则使用新的权重重新排序。";left=154;top=193;right=567;bottom=238;color=5921370;transparent=1;z=8};
+static4={cls="static";text="当前码表:";left=45;top=51;right=145;bottom=76;align="right";dl=1;font=LOGFONT(h=-15);transparent=1;z=9}
+)
+/*}}*/
+
+import style;
+winform.btnUpdate.skin(style.primaryButton)
+winform.btnOpenFile.skin(style.plainButton)
+winform.chkReorder.skin(style.checkBox)
+winform.chkFixedSingleChar.skin(style.checkBox)
+winform.chkFixedSingleChar.checked = true;
+
+import win.ui.simpleWindow;
+win.ui.simpleWindow( winform );
+
+winform.setLexTitle = function(name){
+	winform.plusCodeTable.text = name ;
+} 
+
+winform.editFilePath.setCueBannerText("微软词频文件")
+winform.btnUpdate.oncommand = function(id,event){
+	thread.invoke( 
+		function(winform){
+			winform.btnUpdate.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'}
+			
+			var weightFilePath = string.trim( winform.editFilePath.text );
+			if(!#weightFilePath){
+				import wubi.weightData;
+				var err;
+				weightFilePath,err = wubi.weightData.getPath();
+				if(!weightFilePath){ 
+					winform.btnUpdate.disabledText = null;
+					winform.msgErr(err);
+					return; 
+				} 
+				
+				winform.editFilePath.text = weightFilePath;	
+			}
+
+			
+			import wubi.lexFile;
+			var wubiLex; 
+			if(winform.lexTextData){
+				wubiLex = wubi.lexFile( "" );
+				wubiLex.addText(winform.lexTextData);
+				wubiLex.loadWordWeight(weightFilePath,winform.chkReorder.checked,winform.chkFixedSingleChar.checked) 
+				winform.btnUpdate.disabledText = null;
+				winform.endModal(wubiLex.tostring())
+			}
+			elseif(winform.lexFilePath) {
+				if(!io.exist(winform.lexFilePath)){
+					winform.btnOpenFile.disabledText = null;
+					winform.msgErr("错误的码表文件")
+					return;	
+				}
+				wubiLex = wubi.lexFile( winform.lexFilePath ); 
+				wubiLex.loadWordWeight(weightFilePath,winform.chkReorder.checked,winform.chkFixedSingleChar.checked)
+				wubiLex.saveLex( winform.lexFilePath );
+				winform.btnUpdate.disabledText = null;
+				winform.endModal(true)
+			} 
+			else {
+				winform.btnUpdate.disabledText = null;
+				winform.msgErr("码表参数错误")
+			}
+			
+		},winform
+	)
+}
+
+import fsys.dlg;
+winform.btnOpenFile.oncommand = function(id,event){
+    var dir;
+    if(io.exist(winform.editFilePath.text)){
+    	dir = io.splitpath(winform.editFilePath.text).dir;
+    }
+	var path = fsys.dlg.open("词频文件(*.txt)|*.txt|","请选择词频文件(UTF-8编码)",dir,winform);
+	if(path){
+		winform.editFilePath.text = path;
+	}
+}
+
+winform.enableDpiScaling();
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,236 @@
+import win.ui;
+import console;
+import time;
+import config;
+/*DSG{{*/
+var winform = win.form(text="采购单(入库)";right=790;bottom=457)
+winform.add(
+button={cls="button";text="选择商品";left=507;top=5;right=685;bottom=63;dr=1;dt=1;z=8};
+button2={cls="button";text="全部清空";left=699;top=101;right=783;bottom=132;z=9};
+button3={cls="button";text="删除选中";left=699;top=152;right=783;bottom=183;z=10};
+button5={cls="button";text="生成采购单";left=575;top=418;right=662;bottom=448;z=14};
+comboOrg={cls="combobox";left=72;top=42;right=199;bottom=63;edge=1;items={};mode="dropdown";z=15};
+comboStore={cls="combobox";left=245;top=12;right=379;bottom=32;edge=1;items={};mode="dropdown";z=4};
+comboSupplier={cls="combobox";left=72;top=12;right=202;bottom=32;edge=1;items={};mode="dropdown";z=2};
+editApplier={cls="edit";left=269;top=40;right=399;bottom=62;edge=1;z=13};
+editNote={cls="edit";left=72;top=69;right=481;bottom=92;edge=1;z=6};
+listview={cls="listview";left=13;top=101;right=685;bottom=399;edge=1;fullRow=1;gridLines=1;vscroll=1;z=7};
+static={cls="static";text="供应商";left=12;top=11;right=67;bottom=31;transparent=1;z=1};
+static2={cls="static";text="仓库";left=208;top=11;right=237;bottom=32;transparent=1;z=3};
+static3={cls="static";text="备注";left=11;top=72;right=66;bottom=92;transparent=1;z=5};
+static4={cls="static";text="部门处室";left=11;top=43;right=66;bottom=63;transparent=1;z=11};
+static5={cls="static";text="申请人";left=208;top=42;right=259;bottom=62;transparent=1;z=12}
+)
+/*}}*/
+
+/*winform_reset_listview{{*/
+winform.reset_listview = function(model, items, fields){
+
+	//如果获取了数据, 那么清空listview
+	if(#items!=0){
+		winform.listview.clear();
+	}else {
+		winform.listview.clear();
+		return
+	}
+
+	var n = winform.listview.columnCount;
+	for(i=1;n;1){
+		winform.listview.delColumn(n+1-i);//从倒数开始删除, 以免删除前面的, 后面的索引都变了.
+	}
+
+	var display_fields;
+
+	if(fields != null and type(fields) == "table" and #fields > 0 ){
+		display_fields = fields;
+	}else {
+		display_fields = model.display_fields;
+	}
+
+	for(i=1;#display_fields;1){
+		var k = display_fields[i]
+		var caption = model.headers[k]
+		winform.listview.insertColumn(caption, 140, i);
+	}
+
+	n = winform.listview.columnCount;
+	winform.listview.insertColumn("采购数量", 140, n+1);
+
+	n = winform.listview.columnCount;
+	if(n>=3){
+		winform.listview.setColumn({cx=30},1)
+		winform.listview.setColumn({cx=180},2)
+		winform.listview.setColumn({cx=80},3)
+	}
+
+	for(i=1;#items;1){
+			var item = {}//每一行的数据
+			for(j=1;#display_fields;1){
+				k = display_fields[j];
+				//if(k=="id"){
+				//	table.push(data, tostring(i))
+				//	continue
+				//}
+				//console.log('k', k);
+				if(items[i][k]!=null){
+					table.push(item, items[i][k])
+				}else {
+					table.push(item, "")
+				}
+			}
+			table.push(item, "1");//采购数量默认为1
+			//
+			//console.varDump(items[i])
+			//
+
+			winform.listview.addItem({
+				text = item
+			});
+	}
+
+
+}
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+	var frmChild = winform.loadForm("\dlg\goods_select.aardio");
+	var goods_ids = frmChild.doModal();
+
+	//var sql = "select from ["+winform.+"]"
+	var model = modGoods
+	if(#goods_ids){
+		var sql = string.format("select * from [%s] where id in (%s)", model.tablename, string.join(goods_ids,","))
+		var items = model.getTable(sql);
+
+	/*
+		var user_define_fields = model.display_fields
+		table.removeByValue(user_define_fields, "created_at")
+		table.removeByValue(user_define_fields, "updated_at")
+	*/
+
+		var user_define_fields = {"id"; "name"; "specs"; "unit"}
+		winform.reset_listview(model, items, user_define_fields)
+	}
+}
+
+
+
+
+winform.init = function(){
+	//调用mainForm中的全局变量
+	var suppliers = table.map(modSupplier.search(),function(v,k,result){
+		if(type(k)== "number"){
+			table.push(result, string.format("%s|%s", v.id, v.name))
+		}
+	})
+
+	var stores = table.map(modStore.search(),function(v,k,result){
+		if(type(k)== "number"){
+			table.push(result, string.format("%s|%s", v.id, v.name))
+		}
+	})
+
+
+	for(i=1;#suppliers;1){
+		winform.comboSupplier.add(suppliers[i])
+	}
+
+	for(i=1;#stores;1){
+		winform.comboStore.add(stores[i])
+	}
+
+
+	var edit_Orgs = config.settings.edit_Orgs;
+
+	if(edit_Orgs != null){
+		var items = string.split(edit_Orgs, "<;>")
+		for(i=1;#items;1){
+			winform.comboOrg.add(string.trim(items[i]))
+		}
+
+	}
+
+
+}
+
+winform.comboSupplier.onEditChange = function(){
+	var text = winform.comboSupplier.text;
+	var items = table.filter( winform.comboSupplier.items, lambda(v) string.startWith(v,text) );
+	winform.comboSupplier.autoComplete(items);
+}
+
+winform.comboStore.onEditChange = function(){
+	var text = winform.comboStore.text;
+	var items = table.filter( winform.comboStore.items, lambda(v) string.startWith(v,text) );
+	winform.comboStore.autoComplete(items);
+}
+
+winform.button2.oncommand = function(id,event){
+	winform.listview.clear();
+}
+
+
+winform.listview.onnotify = function(id,code,ptr){
+	if(code = 0xFFFFFFFE/*_NM_CLICK*/ ){
+
+		var nm = winform.listview.getNotifyMessage(code,ptr);
+		if( ! nm.iItem && nm.iSubItem ) return true;//不允许编辑项
+
+		//一点击就出现编辑框, 不用先点一下, 再点一下
+		//winform.listview.editLabel(nm.iItem, nm.iSubItem);
+		//上面这一行只能编辑第一列, 第2列和后面的都不能编辑, 看了源码,不行
+		var nCols = winform.listview.columnCount;
+		if(nm.iSubItem<nCols){
+			return true; //不允许编辑其他列, 除了最后一列
+		}
+
+		var edit = winform.listview.editlable;
+		if(!edit){
+			winform.listview.addCtrl(
+				editlable = {
+					cls="edit";font = LOGFONT( h = 11 );left = 0;top = 0;
+					right = 50;bottom = 50;autoResize = false ;hide = 1;edge = 1;
+					wndproc = function( hwnd, message, wParam, lParam ){
+						if( ( message = 0x8/*_WM_KILLFOCUS*/)
+							|| message == 0x101/*_WM_KEYUP*/ && wParam == 0xD/*_VK_RETURN*/){
+							// 按下了回车键或失去焦点，更新listview数据
+							if(..string.match(owner.text,"^\d+$")){
+								owner.parent.setItemText(owner.text
+									, owner.listViewNotifyMessage.iItem
+									, owner.listViewNotifyMessage.iSubItem );
+							}else {
+
+							}
+							owner.show(false);
+						}
+					}
+				}
+			)
+			edit = winform.listview.editlable;
+		}
+		edit.listViewNotifyMessage = nm;
+		edit.text=winform.listview.getItemText(nm.iItem, nm.iSubItem);
+		var rc=winform.listview.getItemRect(nm.iItem, nm.iSubItem, , 2/*_LVIR_LABEL*/ )
+		//rc.right += 5;
+		//rc.bottom += 5;
+		edit.setRect(rc);
+		edit.show();
+		edit.setFocus();// 获取焦点
+		edit.selectAll();
+	}
+}
+
+winform.button3.oncommand = function(id,event){
+	var  sel = winform.listview.getSelection();
+	if(sel!=0){
+		winform.listview.delItem(sel)
+	}
+
+}
+
+
+
+winform.init();
+winform.show();
+win.loopMessage();
+return winform;

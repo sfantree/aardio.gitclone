@@ -1,0 +1,327 @@
+import win.ui;
+import console
+import process
+/*DSG{{*/
+mainForm = win.form(text="yt-gui";right=711;bottom=439)
+mainForm.add(
+P1080={cls="checkbox";text="1080p";left=120;top=288;right=176;bottom=304;z=9};
+P360={cls="checkbox";text="360p";left=272;top=288;right=320;bottom=312;z=13};
+P720={cls="checkbox";text="720p";left=200;top=288;right=248;bottom=312;z=8};
+bili_xz={cls="button";text="bilibili下载";left=440;top=168;right=536;bottom=224;z=12};
+button={cls="button";text="清空网址";left=568;top=168;right=664;bottom=224;z=20};
+ck_fbl={cls="button";text="查看分辨率";left=568;top=80;right=664;bottom=136;z=11};
+groupbox={cls="groupbox";text="yt";left=64;top=272;right=431;bottom=320;edge=1;z=4};
+groupbox2={cls="groupbox";text="ph";left=64;top=336;right=352;bottom=384;edge=1;z=14};
+groupbox3={cls="groupbox";text="批量下载-文件名";left=208;top=160;right=438;bottom=264;edge=1;z=3};
+groupbox4={cls="groupbox";text="代理";left=55;top=160;right=200;bottom=264;edge=1;z=2};
+groupbox5={cls="groupbox";text="输入 网址";left=55;top=8;right=438;bottom=157;edge=1;z=1};
+m4a={cls="checkbox";text="m4a";left=351;top=284;right=399;bottom=308;z=22};
+ph_1080P={cls="checkbox";text="1080P";left=216;top=352;right=312;bottom=368;z=19};
+ph_720p={cls="checkbox";text="720/480P";left=120;top=352;right=192;bottom=368;z=15};
+ph_xz={cls="button";text="ph下载";left=440;top=248;right=536;bottom=304;z=17};
+plxz={cls="checkbox";text="开启批量下载";left=224;top=176;right=320;bottom=192;z=16};
+plxz_txt={cls="edit";text="ytxz.txt";left=216;top=208;right=336;bottom=248;edge=1;multiline=1;z=18};
+plxz_xr={cls="button";text="写入批量网址";left=343;top=208;right=434;bottom=247;z=21};
+sock5_wz={cls="edit";text="127.0.0.1:1200";left=80;top=208;right=192;bottom=248;edge=1;multiline=1;z=7};
+sock_on={cls="checkbox";text="开启代理";left=96;top=176;right=176;bottom=208;z=10};
+static={cls="static";text="2021.12.6";left=498;top=24;right=625;bottom=47;transparent=1;z=23};
+wz3={cls="edit";left=67;top=24;right=433;bottom=139;edge=1;multiline=1;z=5};
+xz3={cls="button";text="下载";left=440;top=80;right=536;bottom=136;z=6}
+)
+/*}}*/
+
+//2021年12月6日
+//默认 exe 是x64
+
+ytml = "youtube-dl"
+
+//保存 代理 配置
+import config;
+mainForm.bindConfig( config.mainForm,{
+	
+    //绑定edit控件的text属性值到配置文件
+	sock5_wz = "text";
+	sock_on = "checked";
+	
+	wz3 = "text"
+	
+	
+} );
+
+
+mainForm.xz3.oncommand = function(id,event){
+	
+	//下载视频
+	
+	 
+	 ytexe = "yt-dlp.exe "
+	 
+	 	 
+
+		 
+	//生成 代理 命令
+	 if(mainForm.sock_on.checked == true){
+	 	
+	 	cmd1 = " --proxy  socks5://" ++ mainForm.sock5_wz.text ++ '/'
+	 	
+	 }	 
+	 
+	 
+	 //加入 yt分辨率 命令
+	 var xzfbl = fblv()
+	 
+	 
+	 //判断 批量下载
+	 if(mainForm.plxz.checked == true){
+	 	
+	 	//批量 下载
+	 	ph_wz = " -a " ++ mainForm.plxz_txt.text
+	 	
+	 }
+	 else {
+	 	
+	 	//下载网址 加 “ ”
+	 	wz1 = ' \"' ++ mainForm.wz3.text ++ '\"'
+	 
+	 }
+	 
+	 
+	 //合成 所有 命令
+	 
+	 mjm1 = ' -o \"%(title).80s.%(ext)s\"'
+	 
+	 cmd1 =cmd1 + xzfbl + mjm1 + wz1
+	 
+	 mainForm.wz3.text = cmd1
+	 	
+	//运行 cmds			
+
+	io.open()
+	execute(ytexe ++ cmd1);
+	
+	execute("pause") //按任意键继续
+    io.close();//关闭控制台
+
+}
+
+
+fblv=function(){
+
+	//yt分辨率 
+	
+	 if(mainForm.P1080.checked == true){
+	 	
+	 	//1080p
+	 	fbl = "  -f 137"
+	 	
+	 }
+
+	 if(mainForm.P720.checked == true){
+	 	
+	 	//720p
+	 	fbl = "  -f 22"
+	 	
+	 }
+
+	 if(mainForm.P360.checked == true){
+	 	
+	 	//360p
+	 	fbl = "  -f 18"
+	 	
+	 }
+	 
+	 
+	 if(mainForm.m4a.checked == true){
+	 	
+	 	//m4a medium
+	 	fbl = "  -f 140"
+	 	
+	 }
+	 	 
+	 if(mainForm.P720.checked == true and mainForm.P360.checked == true){
+	 	
+	 	//720/360p
+	 	fbl = "  -f 22/18"
+	 	
+	 }	 
+		 
+	 if(mainForm.P1080.checked == true and mainForm.P720.checked == true){
+	 	
+	 	//1080/720p
+	 	fbl = "  -f 137/22"
+	 	
+	 }
+	 
+	 return  fbl; 	
+}
+
+
+
+
+mainForm.ck_fbl.oncommand = function(id,event){
+	
+	 //查看  视频 分辨率
+	 
+	 ytexe = "yt-dlp_x86.exe"
+	 dl1 = ''
+	 
+	 //生成 代理 命令
+	 if(mainForm.sock_on.checked == true){
+	 	
+	 	dl1 = " --proxy  socks5://" ++ mainForm.sock5_wz.text ++ '/'
+	 	
+	 }	 
+	 
+	 cmd1 =  dl1 ++ ' -F ' ++ mainForm.wz3.text 
+	 
+	 
+
+	
+	cmd1 = string.format(cmd1);
+	
+	//mainForm.wz3.text = cmd1
+	
+	
+	
+	
+	io.open()
+	execute(ytexe ++ cmd1);
+	
+	execute("pause") //按任意键继续
+    io.close();//关闭控制台
+	
+}
+
+mainForm.bili_xz.oncommand = function(id,event){
+
+	 //bilibili 下载
+	 
+	 ytexe = "yt-dlp_x86.exe"
+	 
+
+	 a2c = ' --external-downloader aria2c --external-downloader-args \"-j 10 -x 2 -s 2 \" '
+	 a2c = ''
+	 
+	 cmd1 = ' -f 0 ' ++ a2c ++ '\"' ++ mainForm.wz3.text ++ '\"'
+
+
+	
+	cmd = string.format(cmd1);
+	
+	//运行 cmds			
+
+	
+	io.open()
+	execute(ytexe ++ cmd1);
+	
+	execute("pause") //按任意键继续
+    io.close();//关闭控制台	
+
+}
+
+mainForm.ph_xz.oncommand = function(id,event){
+	
+		//下载 ph 视频
+	
+	 var ph_wz = ""
+	 
+
+	 ytexe = "yt-dlp_x86.exe "
+	 
+	//生成 代理 命令
+	 if(mainForm.sock_on.checked == true){
+	 	
+	 	dl1 = " --proxy  socks5://" ++ mainForm.sock5_wz.text ++ '/'
+	 	
+	 }	 
+	 
+	 
+	 //加入 PH分辨率 命令
+	 var xzfbl = phxz()
+	 
+	 
+	 //判断 批量下载
+	 if(mainForm.plxz.checked == true){
+	 	
+	 	//批量 下载
+	 	ph_wz = " -a " ++ mainForm.plxz_txt.text
+	 	
+	 }
+	 else {
+	 	
+	 	//下载网址 加 “ ”
+	 	wz1 = ' \"' ++ mainForm.wz3.text ++ '\"'
+	 	 	
+	 	ph_wz =wz1
+	 
+	 }
+	 
+	 
+	 
+	
+	
+	 //合成 所有 命令
+	 cmd1 = dl1 ++ xzfbl  ++ ph_wz
+	 
+	 //显示 下载 命令
+	 //mainForm.wz3.text = cmd1
+	 	
+	
+	//运行 cmds			
+	
+
+	io.open()
+	execute(ytexe ++ cmd1);
+	
+	execute("pause") //按任意键继续
+    io.close();//关闭控制台
+
+}
+
+
+
+
+phxz=function(){
+
+	//ph 视频 分辨率 
+	
+	
+	
+	if(mainForm.ph_720p.checked == true){
+		
+		//720/480p
+		return  " -f 720p/480p ";
+	}
+	 
+	if(mainForm.ph_1080P.checked == true){
+		
+		//1080p
+		return  " -f hls-2408-0 ";
+	}
+	  	
+}
+
+mainForm.sock5_wz.oncommand = function(id,event){
+	
+}
+
+mainForm.button.oncommand = function(id,event){
+	
+	//清空 网址
+	mainForm.wz3.text =  ""
+	
+}
+
+mainForm.plxz_xr.oncommand = function(id,event){
+
+  //写入 批量 下载 网址
+  file = io.open("ytxz.txt","w+");
+
+  file.write(mainForm.wz3.text); 
+  
+  file.close()
+  
+}
+
+mainForm.show();
+return win.loopMessage();

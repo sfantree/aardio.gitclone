@@ -1,0 +1,28 @@
+﻿import util.metaProperty;
+import aaz.libhpsocket.ssl.component.properties.httpAgent;
+
+namespace aaz.libhpsocket.ssl.component;
+var _dll = ..aaz.libhpsocket._dll;
+
+class httpAgent{
+	ctor(listener, pAgent){
+		if(pAgent){
+			this.pAgent = pAgent;
+		}
+		elseif(listener){
+			this.pAgent = _dll.Create_HP_HttpsAgentP(listener);
+			..table.gc(this, "destroy");
+		}
+		else {
+			error("请指定参数@1 listener 或参数@2 pSocket", 2);
+		}
+	};	
+	destroy = function(){
+		if(this.pAgent){
+			_dll.Destroy_HP_HttpsAgent(this.pAgent);
+			this.pAgent = null;
+		}
+	};	
+	@_metaProperty;
+}
+httpAgent._metaProperty = ..util.metaProperty(..aaz.libhpsocket.ssl.component.properties.httpAgent);

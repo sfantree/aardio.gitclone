@@ -1,0 +1,376 @@
+import win.ui;
+import fsys.ini;
+import win.clip;
+/*DSG{{*/
+mainForm = win.form(text="Halcon2AAR转换工具";right=959;bottom=505)
+mainForm.add(
+Halconclassname={cls="edit";text="HOperatorSetX";left=506;top=9;right=764;bottom=50;align="center";autohscroll=false;autovscroll=false;bgcolor=0;color=65280;dr=1;dt=1;edge=1;font=LOGFONT(h=-21);multiline=1;z=3};
+["aar代码"]={cls="richedit";left=0;top=331;right=960;bottom=506;db=1;dl=1;dr=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=8};
+button={cls="button";text="生成匹配文件";left=778;top=4;right=953;bottom=50;dr=1;dt=1;font=LOGFONT(h=-24);z=2};
+button2={cls="button";text='\u2193\u2193\u2193Halcon代码转换到Aardio代码\u2193\u2193\u2193';left=0;top=249;right=960;bottom=292;db=1;dl=1;dr=1;font=LOGFONT(h=-20);z=6};
+button3={cls="button";text='\u2193清空';left=146;top=62;right=263;bottom=94;z=11};
+button4={cls="button";text='\u2193清空';left=144;top=295;right=261;bottom=327;z=12};
+button5={cls="button";text='\u2193黏贴剪切板内文本';left=292;top=62;right=433;bottom=94;z=13};
+button6={cls="button";text='\u2193复制文本到剪切板';left=286;top=295;right=427;bottom=327;z=14};
+comEdit={cls="edit";text="{6ebd90e2-d219-11d2-ade5-0000c00f4ef9}";left=129;top=9;right=350;bottom=48;align="center";autohscroll=false;autovscroll=false;bgcolor=0;color=65280;dl=1;dt=1;edge=1;font=LOGFONT(h=-21);z=1};
+["halcon代码"]={cls="richedit";left=0;top=99;right=960;bottom=249;dl=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=7};
+static={cls="static";text="控件GUID:";left=0;top=0;right=125;bottom=60;center=1;dl=1;dt=1;font=LOGFONT(h=-24);transparent=1;z=4};
+static2={cls="static";text="控件对象名:";left=363;top=0;right=504;bottom=60;center=1;dl=1;dr=1;dt=1;font=LOGFONT(h=-24);transparent=1;z=5};
+static3={cls="static";text='Halcon代码\u2193';left=7;top=65;right=228;bottom=99;dl=1;dt=1;font=LOGFONT(h=-20);transparent=1;z=9};
+static4={cls="static";text='Aardio代码\u2193';left=0;top=300;right=221;bottom=334;db=1;dl=1;font=LOGFONT(h=-20);transparent=1;z=10}
+)
+/*}}*/
+ 
+var path;
+   
+var loadFunc = function( comMsg ){
+   path =  io.exist("/"++mainForm.Halconclassname.text++".ini")
+   if(path){
+         io.remove("/"++mainForm.Halconclassname.text++".ini");
+   }
+   import com;
+    //调用COM组件
+    obj = com.CreateObject( comMsg ); 
+    //获取COM组件类型库信息
+    var typeinfo = com.GetTypeInfo(obj)
+    //准备存储获取到的类型库信息
+    var funcTab = {};
+    //下面直接调用函数总数目不准确,因为有写com组件里有空函数
+    //winform.funcEdit.log("共有函数: "++typeinfo.GetTypeAttr().Funcs ++ " 个!",'\r\n');
+    for(i=8;typeinfo.GetTypeAttr().Funcs;1){ 
+        table.push(funcTab,table.clone(typeinfo.GetFuncDesc(i) )); 
+    }
+    //添加注释头部
+    string.save("/"++mainForm.Halconclassname.text++".ini","["++mainForm.Halconclassname.text++"]"++'\r\n',true);
+   for(i=1;#funcTab;1){
+       var funcPara = "";//参数合成
+       var headTab = "";
+       if(funcTab[i].Params != null){
+           //console.dump(funcTab[i]);
+           //总共几个变量参数
+           for(j=1;funcTab[i].Params;1){
+               var parametersTab = (funcTab[i].parameters)[j];
+               if( parametersTab != null ){
+                   //console.dump(parametersTab);
+                   if(j==1){
+                       //funcPara = string.concat(funcPara,parametersTab._com_type," ",parametersTab.name);
+                       if( string.indexOf(parametersTab.type,"&") ){
+                             headTab = string.concat(headTab,"1");
+                             funcPara = string.concat(funcPara,"0");
+                       }else {
+                             funcPara = string.concat(funcPara,"1");
+                       }
+                          
+                          
+                          
+                   }else {
+                       //funcPara = string.concat(funcPara,',',parametersTab._com_type," ",parametersTab.name);
+                       if( string.indexOf(parametersTab.type,"&") ){
+                           if(headTab != ""){
+                                 headTab = string.concat(headTab,",","1");
+                                    
+                           }else {
+                                 headTab = string.concat(headTab,"1");
+                           }
+                              
+                           if(funcPara != ""){
+                                 funcPara = string.concat(funcPara,",","0");
+                           }else {
+                                 funcPara = string.concat(funcPara,"0");   
+                           }
+                              
+                                
+                       }else {
+                           if(funcPara != ""){
+                                 funcPara = string.concat(funcPara,",","1");
+                           }else {
+                                 funcPara = string.concat(funcPara,"1");   
+                           }
+                              
+                                
+                       }
+                          
+                   }
+                       
+               }
+               
+           }
+              
+        if(funcPara != ""){
+            string.save("/"++mainForm.Halconclassname.text++".ini",string.concat(funcTab[i].name ,"=",funcPara ,'\r\n') ,true);
+        }
+     
+       }
+   }
+      
+ }
+        
+            
+mainForm.button.oncommand = function(id,event){
+    loadFunc(mainForm.comEdit.text);
+    mainForm.msgbox("生成完成!")
+        
+}
+   
+   
+  
+var halcon2AAR = function( str ){
+    var FuncList = fsys.ini(path)
+    var ListFun = FuncList.getSection("HOperatorSetX");
+       
+    var replaceStr = function(s){
+          
+        var ret = string.split(s,",");
+        var retStr;    
+        if(#ret>1){
+            for(i=1;#ret;1){
+                ret[i] = string.replace(ret[i],"@[","{");
+                ret[i] = string.replace(ret[i],"@]","}");
+                if(retStr == null){
+                    retStr = string.concat(retStr,ret[i]);    
+                }else {
+                    retStr = string.concat(retStr,";",ret[i]);
+                }   
+            }
+        }else {
+            var retss = string.replace(ret[1]," ","");
+            if(retss=="[]"){
+                return "{}";
+            }else {
+                return s;
+            }
+        }
+        return retStr; 
+    }
+  
+  
+       
+    //替换规则
+    var replaceFun = function(strr){
+        strr = string.replace(strr,"@:=","=");
+          
+        for s in string.gmatch( strr, "%\[\]" ){
+            var ret = replaceStr(s);
+            strr = string.replace(strr,"@"++s,ret);
+        }
+          
+        strr = string.replace(strr,"()mean(%())","HOperatorSetX.TupleMean\2");
+        strr = string.replace(strr,"()rad(%())","math.rad\2");
+        strr = string.replace(strr,"()sin(%())","math.sin\2");
+        strr = string.replace(strr,"()cos(%())","math.cos\2");
+        strr = string.replace(strr,"()tan(%())","math.tan\2");
+        strr = string.replace(strr,"()asin(%())","math.asin\2");
+        strr = string.replace(strr,"()acos(%())","math.acos\2");
+        strr = string.replace(strr,"()atan(%())","math.atan\2");
+        strr = string.replace(strr,"()atan2(%())","math.atan2\2");
+        strr = string.replace(strr,"()sinh(%())","math.sinh\2");
+        strr = string.replace(strr,"()cosh(%())","math.cosh\2");
+        strr = string.replace(strr,"()tanh(%())","math.tanh\2");
+        strr = string.replace(strr,"()exp(%())","math.exp\2");
+        strr = string.replace(strr,"()log(%())","math.log\2");
+        strr = string.replace(strr,"()pow(%())","HOperatorSetX.TuplePow\2");
+        strr = string.replace(strr,"()subset(%())","HOperatorSetX.TupleSelect\2");
+        strr = string.replace(strr,"()firstn(%())","HOperatorSetX.TupleFirstN\2");
+        strr = string.replace(strr,"()lastn(%())","HOperatorSetX.TupleLastN\2");
+        strr = string.replace(strr,"()select_mask(%())","HOperatorSetX.TupleSelectMask\2");
+        strr = string.replace(strr,"()remove(%())","HOperatorSetX.TupleRemove\2");
+        strr = string.replace(strr,"()find(%())","HOperatorSetX.TupleFind\2");
+        strr = string.replace(strr,"()replace(%())","HOperatorSetX.TupleReplace\2");
+        strr = string.replace(strr,"()find_first(%())","HOperatorSetX.TupleFindFirst\2");
+        strr = string.replace(strr,"()find_last(%())","HOperatorSetX.TupleFindLast\2");
+        strr = string.replace(strr,"()uniq(%())","HOperatorSetX.TupleUniq\2");
+        strr = string.replace(strr,"()gen_tuple_const(%())","HOperatorSetX.TupleGenTupleConst\2");
+        strr = string.replace(strr,"()lsh(%())","HOperatorSetX.TupleLsh\2");
+        strr = string.replace(strr,"()rsh(%())","HOperatorSetX.TupleRsh\2");
+        strr = string.replace(strr,"()strchr(%())","HOperatorSetX.TupleStrchr\2");
+        strr = string.replace(strr,"()strrchr(%())","HOperatorSetX.TupleStrrchr\2");
+        strr = string.replace(strr,"()strstr(%())","HOperatorSetX.TupleStrstr\2");
+        strr = string.replace(strr,"()strrstr(%())","HOperatorSetX.TupleStrrstr\2");
+        strr = string.replace(strr,"()strlen(%())","HOperatorSetX.TupleStrlen\2");
+        strr = string.replace(strr,"()split(%())","HOperatorSetX.TupleSplit\2");
+        strr = string.replace(strr,"()difference(%())","HOperatorSetX.TupleDifference\2");
+        strr = string.replace(strr,"()intersection(%())","HOperatorSetX.TupleIntersection\2");
+        strr = string.replace(strr,"()symmdiff(%())","HOperatorSetX.TupleSymmdiff\2");
+        strr = string.replace(strr,"()union(%())","HOperatorSetX.TupleUnion\2");
+        strr = string.replace(strr,"()sum(%())","HOperatorSetX.TupleSum\2");
+         
+        strr = string.replace(strr,"^\s*dev_display\s*\((.*)\)","HOperatorSetX.DispObj(\1 , WindowHandle );",1); 
+        strr = string.replace(strr,"^\s*dev_set_color\s*\((.*)\)","HOperatorSetX.SetColor( WindowHandle , \1 );",1); 
+        strr = string.replace(strr,"^\s*dev_set_colored\s*\((.*)\)","HOperatorSetX.SetColored( WindowHandle , \1 );",1); 
+        strr = string.replace(strr,"^\s*dev_set_draw\s*\((.*)\)","HOperatorSetX.SetDraw( WindowHandle , \1 );",1); 
+        strr = string.replace(strr,"^\s*dev_set_line_width\s*\((.*)\)","HOperatorSetX.SetLineWidth( WindowHandle , \1 );",1); 
+        strr = string.replace(strr,"^\s*dev_clear_obj\s*\((.*)\)","HOperatorSetX.ClearObj( \1 );",1); 
+        strr = string.replace(strr,"^\s*dev_set_shape\s*\((.*)\)","HOperatorSetX.SetShape( WindowHandle ,\1 );",1); 
+        strr = string.replace(strr,"^\s*dev_disp_text\s*\((.*)\)","HOperatorSetX.DispText( WindowHandle ,\1);"); 
+         
+        strr = string.replace(strr,"^\s*dev_.*?%()","//\1",1);
+         
+        strr = string.replace(strr,"()set_display_font\s*(%())","//set_display_font\2");
+ 
+        strr = string.replace(strr,"^\s*disp_message\s*\((.*),(.*),(.*),(.*),(.*),(.*),(.*)\)","HOperatorSetX.DispText(\1,\2,\3,\4,\5,\6,'shadow',\7);",1);
+        strr = string.replace(strr,"()disp_continue_message\s*(%())","//disp_continue_message\2");
+        strr = string.replace(strr,"()stop\s*(%())","//stop\2");
+          
+        strr = string.replace(strr,"^\s*\*\s*","//");
+          
+        strr = string.replace(strr,"()(%\|\|)","HOperatorSetX.TupleLength(\2)");
+        strr = string.replace(strr,"@(|","(");
+        strr = string.replace(strr,"@|)",")");
+             
+        strr = string.replace(strr,"^\s*for(.*)<=>(.*)to(.*)by\s*(\d+)","for\(\1=\2;\3;\4\)\{",1);
+        strr = string.replace(strr,"endfor","}"); 
+         
+        strr = string.replace(strr,"^\s*if\s*%()","\1\{");  
+        strr = string.replace(strr,"^\s*elseif\s*%()","\1\{");
+        strr = string.replace(strr,"^\s*else\s+","\1\{");  
+        strr = string.replace(strr,"endif","}");
+         
+          
+        return strr;
+    }
+       
+    //匹配括号
+    var ss = string.match(str,"%()");
+    if(!ss){
+        //不是设定的函数
+        str = replaceFun(str);
+        return str; 
+    }
+    //取函数名称
+    var funcName = string.trim(string.replace(str,"@"++ss,""));
+    //转换函数名 
+    var strP = string.split(funcName,"_");
+    var retName;
+    for(i=1;#strP;1){
+        var sstr = string.split(strP[i])
+        for(i=1;#sstr;1){
+            if(i==1){
+                retName = string.concat(retName,string.upper(sstr[1]));
+            }else {
+                retName = string.concat(retName,sstr[i]);
+            }
+        }
+    }
+    retName = string.trim(retName);
+    //取出参数部分
+    var leftss = string.left(ss,#ss-1,true );
+    var retSS = string.right(leftss,#leftss-1,true)
+      
+      
+    var returnPlace={};
+    var i =1;
+    for s in string.gmatch( retSS, "%\[\]" ){
+        returnPlace[i] = replaceStr(s);
+        retSS = string.replace(retSS,"@"++s,"SSSSYYSSSS");
+        i++;
+    }
+      
+      
+    var ssP = string.split(retSS,",");
+    for(i=1;#ssP;1){
+        ssP[i] = replaceFun(ssP[i]);
+    }
+       
+    //匹配转换规则
+    var guize = ListFun[retName];
+    if(guize){
+        var guizeP = string.split(guize,",");
+        var retStr = "";
+        var header = "";
+        var tailer = "";
+        for(i=1;#guizeP;1){
+            if(guizeP[i] == 0){
+                if(header == ""){
+                    header = string.concat(header,ssP[i])
+                }else {
+                    header = string.concat(header,",",ssP[i])
+                }   
+            }else {
+                if(tailer == ""){
+                    tailer = string.concat(tailer,ssP[i])
+                }else {
+                    tailer = string.concat(tailer,",",ssP[i])
+                }
+                  
+  
+                  
+                  
+            }
+        }
+        if(header == ""){
+            retStr = string.concat(retStr,"HOperatorSetX.",retName,"( ",tailer," );");
+        }else {
+            retStr = string.concat(retStr,"var ",header," = HOperatorSetX.",retName,"( ",tailer," );");
+        }
+          
+        if(#returnPlace){
+            var j=1;
+               for m in string.gmatch(retStr ,"SSSSYYSSSS") { 
+                   retStr = string.replace(retStr,"SSSSYYSSSS",returnPlace[j],1);
+                   j++;
+               }
+        }
+        return retStr;
+    }else {
+        //不是设定的函数
+        str = replaceFun(str);
+        return str; 
+    }
+}
+//示例代码
+mainForm.halcon代码.text=/****
+read_image (Image, 'progres')
+get_image_size (Image, Width, Height)
+dev_close_window ()
+dev_open_window (0, 0, Width, Height, 'white', WindowID)
+dev_set_color ('red')
+gen_rectangle1 (Rectangle, 260, 90, 360, 350)
+reduce_domain (Image, Rectangle, ImageReduced)
+threshold (ImageReduced, Dark, 0, 150)
+connection (Dark, ConnectedRegions)
+select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10, 100)
+elliptic_axis (SelectedRegions, Ra, Rb, Phi)
+area_center (SelectedRegions, Area, Row, Column)
+dev_set_draw ('margin')
+dev_display (Image)
+* dev_set_colored (12)
+dev_set_color ('green')
+dev_display (SelectedRegions)
+MeanRadius := sum(Ra) / |Ra|
+VarianceRadius := sum(Ra * Ra - MeanRadius * MeanRadius) / (|Ra| - 1)
+****/
+   
+mainForm.halcon代码.enablePopMenu();
+mainForm.aar代码.enablePopMenu();
+   
+mainForm.button2.oncommand = function(id,event){
+    path =  io.exist("/"++mainForm.Halconclassname.text++".ini")
+    if(!path){
+         mainForm.msgboxErr("匹配库文件不存在 , 请先点击头部按钮 , 生成匹配库文件!");
+         return;
+     }
+        
+    for line in mainForm.halcon代码.lines(true){ 
+        var str = halcon2AAR( line );
+        mainForm.aar代码.log(str ,'\r\n' )
+    }
+}
+  
+mainForm.button3.oncommand = function(id,event){
+    mainForm.halcon代码.text = "";
+}
+  
+mainForm.button4.oncommand = function(id,event){
+    mainForm.aar代码.text = "";
+}
+  
+mainForm.button5.oncommand = function(id,event){
+    mainForm.halcon代码.text = win.clip.read();
+}
+  
+mainForm.button6.oncommand = function(id,event){
+    win.clip.write( mainForm.aar代码.text )
+}
+  
+mainForm.show();
+return win.loopMessage();

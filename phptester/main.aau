@@ -1,0 +1,117 @@
+import win.ui;
+import fsys.ini;
+/*DSG{{*/
+var winform = ..win.form(text="PHPEdit";right=600;bottom=400;edge=1;parent=...)
+winform.add(
+clsBtn={cls="button";text="清空F4";left=88;top=368;right=142;bottom=395;db=1;dl=1;z=4};
+doBtn={cls="button";text="运行F5";left=8;top=368;right=62;bottom=395;db=1;dl=1;z=2};
+input={cls="richedit";text="print_r(range(1,10));";right=300;bottom=354;ah=1;aw=1;db=1;dl=1;dt=1;edge=1;hscroll=1;left=0;multiline=1;top=0;vscroll=1;z=1};
+output={cls="richedit";left=298;right=601;bottom=400;ah=1;aw=1;db=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;top=0;vscroll=1;z=3}
+)
+/*}}*/
+
+winform.output.wndproc = function(hwnd,message,wParam,lParam){
+	if (message == 0x100/*_WM_KEYDOWN*/) {
+		if (wParam == 0x73/*_VK_F4*/)
+			winform.clsBtn.oncommand();
+	}
+}
+
+winform.input.wndproc = function(hwnd,message,wParam,lParam){
+	if (message == 0x100/*_WM_KEYDOWN*/) {
+		if (wParam == 0x74/*_VK_F5*/)
+			winform.doBtn.oncommand();
+	}
+}
+
+winform.input.max = false;
+winform.input.resize = function(focus){
+	if(focus){
+		var wb_x,wb_y,wb_cx,wb_cy = winform.output.getPos()
+		var x,y,cx,cy = winform.input.getPos()
+		if(winform.input.max)
+			return;
+
+		winform.output.setPos(wb_x+wb_cx/2,wb_y,wb_cx/2,wb_cy); 
+	 	winform.input.setPos(x,y,cx+wb_cx/2,cy) 
+	 	winform.input.max = true;
+	}  
+	else{
+		var wb_x,wb_y,wb_cx,wb_cy = winform.output.getPos()
+		var x,y,cx,cy = winform.input.getPos()
+		if(!winform.input.max)
+			return;
+			
+		winform.output.setPos(wb_x-cx/2,wb_y,wb_cx+cx/2,wb_cy); 
+	 	winform.input.setPos(x,y,cx/2,cy) 	
+	 	winform.input.max = false
+	}
+}
+
+winform.input.oncommand = function(id,event){
+	if(event == 0x100/*_EN_SETFOCUS*/){
+		winform.input.resize(true)
+	}  
+	elseif(event == 0x200/*_EN_KILLFOCUS*/){
+		winform.input.resize(false)
+	}
+	
+}
+
+winform.doBtn.oncommand = function(id,event){
+	execPHP();
+}
+
+winform.clsBtn.oncommand = function(id,event){
+	winform.output.text = '';
+}
+
+execPHP = function(){
+	phpcode = winform.input.text;
+	import process.popen;
+	
+	path = io.fullpath( "/" );	
+	path = string.replace(path, "\\", "/");
+	ini = ..fsys.ini(path+"config.ini");
+	var php_dir = ini.read('php','dir');
+	var php_ini = ini.read('php','ini');
+	
+	//io.open();
+	//io.print("path:"+path);
+	//io.print(php_dir);
+	//io.print(php_ini);
+	//io.print("php_dir:" + php_dir);
+	//io.print("php_ini:" + php_ini);
+	
+	if(!php_ini){
+		win.msgbox('php.ini文件没有找到，确认是'+php_ini);
+		return
+	}
+	if(!php_dir){
+		win.msgbox('php-cgi文件没有找到，确认是'+php_dir);
+		return
+	}
+	
+
+	
+	php_file = path + 'test.php';
+	string.save(php_file,"<?php "+phpcode+"?>" );
+	prc = process.popen(
+    php_dir,
+    "-c "+php_ini,
+    {
+        environment = string.join({
+            "SystemRoot=C:\WINDOWS";
+            "SCRIPT_FILENAME=" + php_file;
+            "";
+        }, '\0');
+    }
+    );
+    tmp = prc.read(-1);
+    winform.output.text = tmp;
+    prc.close();
+}
+
+winform.show() 
+win.loopMessage();
+return winform;

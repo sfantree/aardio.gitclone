@@ -1,0 +1,12 @@
+CREATE TABLE "store" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"code" VARCHAR(32),  /*代码*/
+	"title" VARCHAR(32),  /*联系人*/
+	"cellphone" VARCHAR(32), /*手机号码*/
+	"tellphone" VARCHAR(32), /*电话号码*/
+	"position" VARCHAR(16), /*位置*/
+	"cate" VARCHAR(16), /*分类:库房,供应商,客户*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+);

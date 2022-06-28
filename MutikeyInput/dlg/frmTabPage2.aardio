@@ -1,0 +1,79 @@
+import win.ui;
+import yybCtrl;
+import frmDataFunc;
+/*DSG{{*/
+var frmTabPage2 = win.form(text="自由设置";right=764;bottom=499)
+frmTabPage2.add(
+listview={cls="listview";left=20;top=37;right=340;bottom=481;db=1;dl=1;dt=1;edge=1;font=LOGFONT(h=-15);msel=false;z=1};
+listview2={cls="listview";left=352;top=37;right=742;bottom=481;db=1;dl=1;dt=1;edge=1;font=LOGFONT(h=-15);msel=false;z=2};
+static={cls="static";text="自由键位";left=23;top=15;right=101;bottom=37;db=1;dl=1;dt=1;font=LOGFONT(h=-17);transparent=1;z=3};
+static2={cls="static";text="自定义略码";left=357;top=15;right=444;bottom=37;db=1;dl=1;dt=1;font=LOGFONT(h=-17);transparent=1;z=4}
+)
+/*}}*/
+
+var dtgrid1 = yybCtrl.dataGrid(frmTabPage2.listview);
+var dtgrid2 = yybCtrl.dataGrid(frmTabPage2.listview2);
+
+//将数据绑定到各个控件。定义为子窗体的成员函数，以便主窗体引用
+var function dataBind() {
+
+	frmDataFunc.dataShow(dtgrid1, frmDataFunc.free, 45, 90);//自由键位表
+	frmDataFunc.dataShow(dtgrid2, frmDataFunc.abb, 45, 90);//略码表
+
+}
+
+dataBind();//启动时执行一次
+
+//收到重新加载配置消息后，更新绑定控件数据
+subscribe("重新加载配置",function(){
+	dataBind();
+} )
+
+	//用于检查略码dtgrid数据，返回为表
+var function abbrCheck(dtgrid, name){
+	var tb = {};
+	var items = dtgrid.dtGetItems();
+	var k, v;
+	for(i=1; #items; 1) {
+    	k = ..string.trim(items[i][1]);
+    	if(..string.find(k, ":")) {
+    		..win.msgboxErr(name ++
+    					'\r\n输入：' ++ k ++ 
+    					'\r\n\r\n输入中不允许有汉字字符', "错误");
+    		return null;
+    	}
+		tb[k] = items[i][2];	
+  	}
+	return tb;
+}
+
+//收集控件数据，以备生成配置文件
+var function tbCtrlData(){
+    var free = frmDataFunc.dataCheck(dtgrid1, "自由键位表"); 
+    if(!free) {
+		return null;
+	}
+	
+	var abb = abbrCheck(dtgrid2, "略码表");  
+	if(!abb) {
+		return null;
+	} 
+
+    frmDataFunc.free = free;
+    frmDataFunc.abb = abb;
+    return true;
+}
+
+//收到保存消息后，收集控件数据
+subscribe("保存",function(){
+	if(tbCtrlData()){//如收集完毕，将frmDataFunc中的标记设置为真
+		frmDataFunc.frmDataReady.frm2Ready = true;	
+	};
+} );
+
+
+
+
+frmTabPage2.show();
+win.loopMessage();
+return frmTabPage2;

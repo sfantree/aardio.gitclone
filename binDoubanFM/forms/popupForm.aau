@@ -1,0 +1,67 @@
+/*
+ **************************
+ *
+ * 豆瓣FM 右下角弹出窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import web.layout;
+import web.layout.behavior.windowCommand;
+
+var popupForm = win.form(
+	text=_app;
+	border="none";
+	left=-2;
+	top=-2;
+	right=165;
+	bottom=222;
+	exmode="toolwindow";
+	topmost=1);
+	
+popupForm.transparent(true); // 透明窗体
+wbLayout_popup = web.layout(popupForm);
+wbLayout_popup.go("/res/popup.html");
+
+
+
+
+/*
+ * 响应按钮点击事件
+ */
+wbLayout_popup.onButtonClick = {
+	// =============================
+	// 单击通知窗体
+	// =============================	
+	wrapper = function (ltTarget,ltEle,reason,behaviorParams) {
+		win.setForeground(mainForm.hwnd);	
+	}
+}
+
+
+
+
+/*
+ * 窗体事件
+ */	
+popupForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+			popupForm.show(false);
+			popupShowing = false;
+			return "noclose";
+		}
+		else{
+			
+		}
+	}
+}
+
+
+//popupForm.show();
+
+win.loopMessage();
+return popupForm;  

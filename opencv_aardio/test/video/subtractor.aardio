@@ -1,0 +1,26 @@
+import cv2
+
+//示例视频下载地址 https://raw.githubusercontent.com/opencv/opencv/3.1.0/samples/data/768x576.avi
+cap = cv2.VideoCapture("./assets/images/768x576.avi")
+subtractor = cv2.createBackgroundSubtractorMOG2()
+//subtractor = cv2.createBackgroundSubtractorKNN()
+k = cv2.getStructuringElement( 1/*_CV2_MORPH_CROSS*/,::SIZE(3,3) )
+ok,img = cap.read()
+while(ok){
+	cv2.imshow("原图",img)
+	code = cv2.waitKey(50)
+	fmask = subtractor.apply(img)
+	ret,binary = cv2.threshold( fmask,220,255,0x0/*_CV2_THRESH_BINARY*/)
+	binary = cv2.morphologyEx( binary,2/*_CV2_MORPH_OPEN*/,k)
+	cv2.imshow("蒙版图",binary)
+	code = cv2.waitKey(50)
+	fmask.release()
+	binary.release()
+	if(code==0x1B/*_VK_ESC*/){
+		bk = subtractor.getBackgroundImage()
+		cv2.imshow("背景图",bk)
+		cv2.waitKey(0)
+        break
+    }
+    err,img = cap.read()
+}

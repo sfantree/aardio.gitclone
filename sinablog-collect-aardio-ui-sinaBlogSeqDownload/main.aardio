@@ -1,0 +1,211 @@
+import win.ui;
+import inet.http;
+import string.xml;
+import string;
+import win.ui.menu;
+import win.ui.atom;
+import process;
+/*DSG{{*/
+mainForm = win.form(text="新浪博客接龙下载工具 by bituplink.com";right=672;bottom=376)
+mainForm.add(
+btnDownload={cls="button";text="下载";left=551;top=54;right=629;bottom=81;z=2};
+comboboxSeq={cls="combobox";left=338;top=17;right=518;bottom=37;edge=1;items={};mode="dropdown";z=8};
+editBeginSite={cls="edit";left=36;top=54;right=522;bottom=81;edge=1;z=1};
+editResult={cls="edit";left=36;top=116;right=629;bottom=336;edge=1;multiline=1;vscroll=1;z=3};
+editTimeout={cls="edit";text="3";left=184;top=18;right=210;bottom=37;edge=1;z=5};
+spinTimeout={cls="spin";left=219;top=17;right=244;bottom=37;z=6};
+staticSeq={cls="static";text="下载顺序";left=275;top=19;right=325;bottom=37;transparent=1;z=7};
+staticTimeout={cls="static";text="超时时间（秒）";left=96;top=18;right=182;bottom=38;notify=1;transparent=1;z=4}
+)
+/*}}*/
+
+// 单实例运行功能
+var atom,hwndConflict = mainForm.atom("7AA8C478-550D-4702-94F0-5E684DBB8709");   
+if(!atom){  
+    /*为窗口设置原子值可以避免一个程序重复运行多个实例*/  
+    win.quitMessage();//程序退出  
+    return;  
+};
+
+var httpObj = inet.http();
+var isDefaultSeqFlag = true;
+var timeNow;
+var timeString;
+
+// 检查输入的url是否是新浪博客的地址，这里采用简单的判断，可以加上更多检查项
+
+function checkUrl(uncheckedUrl){
+    
+    var htmlCnt=httpObj.get(uncheckedUrl)
+    
+	htmlXmlObj=string.xml(htmlCnt);
+	
+	// 这里简单的通过判断一下界面存在前一篇和后一篇的方式，判读是不是具体的新浪博文界面
+	latererUrlEle=htmlXmlObj.queryEle(tagName = "span";innerText="后一篇：") 
+    formerUrlEle=htmlXmlObj.queryEle(tagName = "span";innerText="前一篇：")
+	
+    if((latererUrlEle!=null) or (formerUrlEle!=null)){
+        return true;
+    }
+    else{
+        return false;
+    }
+ }
+
+
+// 特殊字符存在不美观和windows路径不兼容的问题，可以替换为空或者全角字符
+function symbolHandle(strBefore){
+    
+    strBefore = string.replace(strBefore,"\:","：");
+    strBefore = string.replace(strBefore,'\"',"“");
+    strBefore = string.replace(strBefore,"&quot;","");
+    strBefore = string.replace(strBefore,"&nbsp;","");
+    strBefore = string.replace(strBefore,"&lt;","");
+    strBefore = string.replace(strBefore,"&gt;","");
+    
+    return strBefore
+}
+
+
+function downloadFile(blogUrl){
+
+    var htmlCnt=httpObj.get(blogUrl)
+	
+	htmlXmlObj=string.xml(htmlCnt);
+
+    var titleInfo = htmlXmlObj.queryEle(tagName = "title")[1].text;
+    
+    // 放在当前时间戳的目录下，确保每次下载文件的目录独立唯一
+	var filepath = "\" + timeString + "\" + titleInfo +".html";
+	
+	filepath = symbolHandle(filepath)
+	
+    string.save(filepath,htmlCnt);
+    mainForm.editResult.print("下载：" + titleInfo);
+
+    // 接龙，从当前页面获取另一篇的地址，用于后面的下载
+    if(isDefaultSeqFlag){
+		formerUrlEle=htmlXmlObj.queryEle(tagName = "span";innerText="前一篇：")
+	}else{
+		formerUrlEle=htmlXmlObj.queryEle(tagName = "span";innerText="后一篇：")
+	}
+    
+    if(formerUrlEle!=null){
+        previous_blog_url = formerUrlEle.getParent()[2].href;
+    }
+    else {
+        previous_blog_url = "";
+    }
+    
+    return previous_blog_url
+}
+
+
+// 点击下载按键开始从当前网址的新浪博客开始下载，获取上一篇继续下载
+mainForm.btnDownload.oncommand = function(id,event){
+    
+    // 字符串长度为零，没有输入，不处理
+	if(!(#mainForm.editBeginSite.text)){
+		return ; 
+	}
+	
+	var downloadUrl = mainForm.editBeginSite.text;
+	
+    var timeout_ms = mainForm.spinTimeout.pos * 1000;
+    
+    // 设置超时,以亳秒为单位(1秒为1000毫秒)
+    httpObj.setTimeouts (
+        timeout_ms,// 连接超时
+        timeout_ms,// 请求超时
+        timeout_ms // 接收超时
+    );
+    
+    // 选择非默认下载顺序，改为从旧往新下载
+    if(mainForm.comboboxSeq.selIndex == 2){
+        isDefaultSeqFlag = false;
+    }    
+    
+	var isOkFlag = true;
+	var isNetOkFlag = true;
+	
+	try{
+        isOkFlag = checkUrl(downloadUrl)
+	}
+	catch(e){
+        isNetOkFlag = false;
+	}
+	
+	// 此处虽然写的不优雅，主要是为了解决catch语句中无法return的问题
+	// 另外此处可能是inet.http组建的问题，有一定概率无法连接，用户可能需要多尝试点击下载
+	if(!isNetOkFlag){
+		mainForm.editResult.print("网络异常，无法下载请检查或者重试！");
+        return;
+    }
+	
+	if(!isOkFlag){
+	     mainForm.editResult.print("输入的地址不是正确的新浪博客文章地址，请重新输入！");
+	     return;
+	}else{
+		 mainForm.editResult.print("地址正确，开始下载...");
+	}
+    
+    timeNow =time.now() ; 
+    timeNow.format = "%Y%m%d%H%M%S";
+    timeString = tostring(timeNow);
+    
+    var fileCount = 1;
+    
+	// 开始下载
+    try{
+        while(true){
+        	downloadUrl = downloadFile(downloadUrl);
+        	
+        	if(!#downloadUrl){
+        		mainForm.editResult.print("下载完成！共下载新浪博文" + fileCount + "篇");
+        		break;
+        	}
+        	else{
+        		fileCount = fileCount + 1;
+        		continue;
+        	}	
+        }
+	}
+	catch(e){
+        mainForm.editResult.print("网络异常，无法下载请检查或者重试！" + e);
+	}
+}
+
+/*软件功能区菜单代码{{*/
+// 创建主菜单
+var menu = win.ui.menu(mainForm);
+
+// 弹出菜单
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+
+mainForm.popmenu.add('&使用说明',function(id){
+	process.execute("http://www.bituplink.com/sinaBlogSeqDownload");	
+});
+
+mainForm.popmenu.add('&代码开源',function(id){
+	process.execute("http://github.com/bituplink/sinablog-collect-aardio-ui-sinaBlogSeqDownload");	
+});
+
+mainForm.popmenu.add('&捐助',function(id){
+	process.execute("http://www.bituplink.com/donate");
+});
+
+menu.add('帮助', mainForm.popmenu)
+/*}}*/
+
+// 设置滚动控件的数值范围并绑定edit控件
+mainForm.spinTimeout.setRange(1,20);
+mainForm.spinTimeout.buddy = mainForm.editTimeout; 
+
+mainForm.comboboxSeq.add("获取前一篇，从新往旧下载",1)
+mainForm.comboboxSeq.add("获取后一篇，从旧往新下载",2)
+mainForm.comboboxSeq.selIndex = 1;
+
+mainForm.enableDpiScaling();
+mainForm.show();
+
+return win.loopMessage();

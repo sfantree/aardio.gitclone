@@ -1,0 +1,77 @@
+//!/usr/bin/python3
+import util.Parser; var parser = util.Parser;
+import pandas; var DataFrame = pandas.DataFrame;
+
+//类定义
+class people {
+    //定义基本属性
+    name = '';
+    age = 0;
+    //定义私有属性,私有属性在类外部无法直接进行访问
+    __weight = 0;
+    //定义构造方法
+    ctor(n,a,w) {
+        assert(a > 0, "年龄不能是负数");
+        assert(n > '', '姓名不能为空');
+        assert(w > 0 );    // 没有错误信息
+        this.name = n;
+        this.age = a;
+        this.__weight = w;
+    }
+    speak = function() {
+        console.log(string.format("%s 说: 我 %d 岁。", this.name,this.age));
+    }
+}
+
+//单继承示例
+class student {
+    this = people(...);// 继承的父类 <--请把这行移入类的构造函数 ctor 内! {
+    grade = '';
+    ctor(n,a,w,g) {
+        //调用父类的构函
+        people.__init__(this,n,a,w);
+        assert(g > 0);
+        this.grade = g;  // 子类的新增成员: 年级
+    }
+    //覆写父类的方法
+    speak = function() {
+        console.log(string.format("%s 说: 我 %d 岁了，我在读 %d 年级", this.name,this.age,this.grade));
+    }
+    //带有类型注解的函数声明
+    age = function(b/*:bool*/, c/*:pd.UInt_16*/)/*-> int*/ {
+        // do something...
+        return this.age;
+    }
+}
+
+if (owner == null) {
+    console.log("单元测试(Unit Test) in main module");
+    // 测试 del 语句
+    a = 0;
+    b = 1;
+    try {
+        a  = null;   // 删除变量
+        b = null;
+        aDf["file"]  = null;   // 删除元素
+        df[2] = null;
+    } catch(e) {
+        console.log(e);
+    }
+
+    /*
+    创建类的实例,并调用类的方法
+    */
+    s = student('Ken', 10, 60, 3);
+    s.speak();
+    // 测试 getattr, setattr, hasattr
+    n = s['name'];  // 不带默认属性
+    n = s['name'] or  'default';  // 带默认属性
+    n = s['name'] or  '(test)';   // 带默认属性
+    s["age"] or  setattr(s, "age", 18); // 若age属性不存在，则设置该属性
+    ag = 'age';
+    if (s[ag]) {
+        s[ag] =  20;
+    }
+
+    console.log("main module end");
+}

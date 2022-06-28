@@ -1,0 +1,529 @@
+import fonts.fontAwesome;
+import win.ui;
+import win.ui.grid;
+import win.ui.menu;
+import win.ui.accelerator;
+import win.cur;
+import win.clip;
+import win.clip.file;
+import sqlite;
+import fsys;
+import fsys.file;
+import config;
+import process;
+/*
+import console;
+console.open();
+*/
+/*DSG{{*/
+winform = win.form(text="QHC物料查询";right=638;bottom=502;image=$"\res\SE BG.jpg";bkBottom=0;bkLeft=0;bkRight=0;bkTop=0)
+winform.add(
+button={cls="button";text='\uF002  查询SAP';left=520;top=8;right=619;bottom=38;default=1;dr=1;dt=1;font=LOGFONT(name='FontAwesome');tabstop=1;z=2};
+button2={cls="button";text='\uF03C 过滤';left=0;top=464;right=56;bottom=504;db=1;dl=1;flat=1;font=LOGFONT(h=-14;name='FontAwesome');z=9};
+button3={cls="button";text='\uF053 ';left=9;top=7;right=44;bottom=41;font=LOGFONT(h=-16;name='FontAwesome');hide=1;z=3};
+button4={cls="button";text='\uF085 ';left=192;top=8;right=227;bottom=42;dl=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');hide=1;z=11};
+buttonD={cls="button";text='\uF142';left=235;top=10;right=249;bottom=40;color=8421504;dl=1;dt=1;flat=1;font=LOGFONT(h=-13;name='FontAwesome');z=4};
+chkDisabled={cls="checkbox";text="不显示禁用件";left=72;top=472;right=192;bottom=488;bgcolor=16777215;checked=1;db=1;dl=1;hide=1;z=8};
+chkHideUnknown={cls="checkbox";text="不显示没查到的";left=344;top=472;right=472;bottom=488;bgcolor=16777215;db=1;dl=1;hide=1;z=10};
+chkPaint={cls="checkbox";text="不显示已喷粉件";left=200;top=472;right=304;bottom=488;bgcolor=16777215;db=1;dl=1;hide=1;z=7};
+clLegacyType={cls="listbox";left=16;top=88;right=80;bottom=424;clipch=1;cp=1;db=1;disabled=1;dl=1;font=LOGFONT(h=-13);hide=1;items={"BG";"01";"02";"03";"04";"05";"06";"07";"08";"09";"10";"14";"15";"16";"40";"53";"75"};msel=1;tabstop=1;z=14};
+clOrderType={cls="listbox";left=80;top=272;right=144;bottom=400;clipch=1;cp=1;db=1;dl=1;font=LOGFONT(h=-13);hide=1;items={"HALB";"ROH";"KMAT";"FERT"};msel=1;tabstop=1;z=16};
+clSapType={cls="listbox";left=152;top=88;right=224;bottom=448;clipch=1;db=1;dl=1;font=LOGFONT(h=-13);fullRow=1;gridLines=1;hide=1;items={"SA";"SB";"SC";"SD";"SE";"SG";"SH";"SI";"R01";"R02";"R03";"R04";"R15";"R05";"R06";"R07";"R08";"R10";"R14";"R40"};msel=1;tabstop=1;z=18};
+clUnit={cls="listbox";left=80;top=88;right=136;bottom=216;clipch=1;cp=1;db=1;dl=1;font=LOGFONT(h=-13);hide=1;items={"ZA";"KG";"M";"BOT";"L"};msel=1;tabstop=1;z=15};
+edit2={cls="edit";left=56;top=12;right=176;bottom=36;aw=1;dl=1;dt=1;font=LOGFONT(h=-13);hide=1;readonly=1;z=17};
+editUser3={cls="plus";left=255;top=10;right=520;bottom=40;align="left";autohscroll=false;aw=1;border={color=-16777216;radius=2;width=1};dl=1;dr=1;dt=1;editable=1;font=LOGFONT(h=-15);iconStyle={align="right";font=LOGFONT(h=-11;name='FontAwesome');padding={right=2;bottom=2};valign="bottom"};iconText='\uF078';paddingRight=20;wrap=1;z=20};
+listview={cls="listview";left=1;top=53;right=638;bottom=464;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;fullRow=1;z=1};
+rdAsm={cls="radiobutton";text="仅查询组件: 08,09";left=272;top=352;right=400;bottom=368;db=1;dl=1;hide=1;z=6};
+rdBG={cls="radiobutton";text="仅查询成品: BG";left=272;top=320;right=384;bottom=336;db=1;dl=1;group=1;hide=1;z=5};
+rdPart={cls="radiobutton";text="仅查询物料: 01,02, ......";left=272;top=288;right=416;bottom=304;checked=1;db=1;dl=1;hide=1;z=12};
+static={cls="syslink";text="<a>清空选择</a>";left=16;top=432;right=72;bottom=448;db=1;dl=1;hide=1;notify=1;z=19};
+static2={cls="static";text="筛选条件 (按CTRL多选)";left=8;top=64;right=232;bottom=456;bgcolor=16777215;db=1;disabled=1;dl=1;edge=1;frame=1;hide=1;z=13}
+)
+/*}}*/
+
+/*orphanWindow{{*/
+winform.clSapType.orphanWindow();
+winform.clUnit.orphanWindow();
+winform.clOrderType.orphanWindow();
+winform.clLegacyType.orphanWindow();
+winform.static.orphanWindow();
+winform.static2.orphanWindow();
+/*}}*/
+
+var grid = win.ui.grid(winform.listview); //创建数据视图
+
+var sapTab;
+/*sqliteDB{{*/
+var sapdb = config.dbServer.path + "\qhcsap.db";
+if !io.exist(sapdb) 
+	win.msgboxErr("无法访问数据库!");
+var db,err = sqlite(sapdb);	//打开数据库连接
+
+if (err) error(err)
+/*}}*/
+/*读取设置{{*/
+var logInput,setting;
+winform.popmenu = win.ui.popmenu(winform);//创建弹出菜单
+
+var updatePopmenu = function(){
+    winform.popmenu = win.ui.popmenu(winform)
+	winform.popmenu.add("输入历史:");
+	winform.popmenu.add();//分隔线
+	for (i=1; #config.qTipLog){
+    	winform.popmenu.add(
+    		text = config.qTipLog[i];
+    		proc = function(id){
+    			winform.editUser3.text = config.qTipLog[i];
+    			winform.editUser3.setFocus();
+    		}
+    	);
+	}
+}
+var saveInputList = function(str){
+    if !(table.find(config.qTipLog, str)){
+    	table.unshift(config.qTipLog, str);
+    	if ( #config.qTipLog>15 ) table.pop(config.qTipLog);
+    	config.qTipLog.save();
+    };
+    updatePopmenu();
+};
+
+updatePopmenu();
+/*}}*/
+/*调整列宽{{*/
+var formatListView = function(){
+	winform.listview.clear(true)
+	grid.setTable( sapTab );
+	grid.readonlyColums = {
+    	[1] = true;[2] = true;[3] = true;[4] = true;[5] = true;
+    }
+	winform.listview.setColumn({cx=90 ;fmt=0x2/*_LVCFMT_CENTER*/},1);
+//	winform.listview.setColumn({cx=350;fmt=0x0/*_LVCFMT_LEFT*/},  2);
+	winform.listview.setColumn({cx=60 ;fmt=0x2/*_LVCFMT_CENTER*/},3);
+	winform.listview.setColumn({cx=60 ;fmt=0x2/*_LVCFMT_CENTER*/},4);
+	winform.listview.setColumn({cx=50 ;fmt=0x2/*_LVCFMT_CENTER*/},5);
+	winform.listview.setColumn({cx=50 ;fmt=0x2/*_LVCFMT_CENTER*/},6);
+	winform.listview.adjust = function(cx,cy){
+    	winform.listview.fillParent(2);
+	} 	
+}
+/*}}*/
+/*searchSapDB{{*/
+var getSelectedText = function(listCtrl){
+	var t = {}
+	for index, text in listCtrl.eachSelected()
+		table.unshift(t, text);
+	return t; 
+}
+var searchSapDB = function(userinput){
+    userinput := winform.editUser3.text;
+    winform.button3.hide=true;
+    winform.listview.tag=1;
+    winform.listview.clear(true);
+    winform.listview.insertColumn("正在搜索数据库, 请稍等...",300,1)
+    userinput = string.replace(userinput,`、`,'\r\n');
+    var userinputArr = string.split(userinput, '\r\n');
+    userinputArr = table.unique(userinputArr);
+    
+    if (#userinputArr == 1) saveInputList(userinputArr[1]);
+ 	table.clear(sapTab);
+	sapTab={};
+	
+    for (i=1; #userinputArr; 1){
+        if string.indexOf(userinputArr[i], '\t') userinputArr[i] = table.pop(string.split(userinputArr[i],'\t'));
+		userinput = string.trim(userinputArr[i]);
+		if (string.len(userinput)==0 ) continue;
+    	if (string.startWith(userinput,"008",true)) userinput="H" ++ userinput;
+    	userinput=string.replace(userinput,"@%","\%");
+    	userinput=string.replace(userinput,"@_","\_");
+    	userinput=string.replace(userinput,"@*","%");
+    	userinput=string.replace(userinput,"@?","_");
+
+		sapTab.fields = {[1]="物料";[2]="物料描述";[3]="单位";[4]="类型";[5]="物料组";[6]="价格";[7]="配置";[8]="禁用"}
+		var sqlstr = "SELECT `物料`, `物料描述`,`Bun` AS `单位`, `MTyp` AS `类型`,`物料组`,`价格`,`物料是可配置的` AS `配置`, `禁用` FROM `所有物料` WHERE ??" ;
+
+    	var searchField = {};	
+    	if (string.startWith(userinput,"H00",true) || string.startWith(userinput,"BG",true)) 
+			table.assign(searchField, {物料 = userinput});
+		else {
+			table.assign (searchField, {物料描述 = userinput});
+
+/*
+    	if (string.startWith(userinput,"BG",true) || table.indexOf(winform.clLegacyType.checked,"BG")){
+			sqlstr = sqlstr ++ " AND [MTyp] = 'FERT'" ++ " AND LENGTH([物料])=11"
+		}
+		
+*/
+
+		//直接搜索物料时忽略filter
+			if #winform.clSapType.selected
+				table.assign(searchField, {物料组 = getSelectedText(winform.clSapType)});
+			if #winform.clUnit.selected
+				table.assign(searchField, {单位 = getSelectedText(winform.clUnit)});
+			if #winform.clOrderType.selected
+				table.assign(searchField, {类型 = getSelectedText(winform.clOrderType)});
+		}		
+/*
+		if #winform.clLegacyType.checked
+			sqlstr +=  " AND [物料] LIKE `H008`";
+*/
+
+		sqlstr = sqlite.format(sqlstr, {searchField});
+
+		var quickSearch = !string.indexOf(userinput,"%");
+		if !quickSearch sqlstr = string.replace(sqlstr,"=","LIKE");
+		
+		if (winform.chkDisabled.checked)	sqlstr += " AND `禁用` IS NULL";
+		if table.indexOf(getSelectedText(winform.clOrderType),"FERT") sqlstr += " AND LENGTH(`物料`)=11";
+
+		var t = quickSearch ? {[1] = db.stepQuery(sqlstr)} : db.getTable(sqlstr);
+
+		if (#t==0)
+			if ( ! winform.chkHideUnknown.checked) 
+				table.push(t,{物料=userinput;物料描述="没找到SAP物料, 双击可继续查找图纸";物料类型="";价格=""/*;禁用=""*/});
+		sapTab = table.concat(sapTab,t);
+		
+		import tarray;
+		sapTab = tarray.uniqueCol(sapTab, 1);
+	}
+	if (#sapTab==0) {
+		if ( ! winform.chkHideUnknown.checked) 
+			table.push(sapTab,{物料=userinputArr[1];物料描述="没找到SAP物料, 双击可继续查找图纸";物料类型=""/*;禁用=""*/})
+	}
+	else {
+
+	}
+	formatListView();
+}
+/*}}*/
+/*查找图纸{{*/
+var searchDocument = function (filenumber){
+    filenumber :=  winform.editUser3.text;
+
+	winform.edit2.text = "";
+    winform.listview.tag = 2;
+    winform.listview.clear(true);
+    
+    if !#filenumber return ; 
+    
+    winform.listview.insertColumn("正在查找图纸, 请稍等...",300,1);
+	var searchFor = string.trimleft(filenumber,"H");
+
+	var fileTab = table.create(,{fields={[1]="文件名";[2]="路径";[3]="日期";[4]="版本"}});
+	var flistDB = sqlite(config.dbServer.path + "\drawing_lists.db");	//打开数据库连接
+	var sql = "SELECT `文件名`, `路径` FROM `Lib` WHERE ??";
+	sql = sqlite.format(sql, {[1]={文件名 = "%" + searchFor + "%"}});
+	sql = string.replace(sql, "=", "LIKE");
+	
+	var flist = flistDB.getTable(sql);
+	if (#flist == 0){
+		var maptab = flistDB.getTable("SELECT * FROM `Map`", { 专用号  =  searchFor });
+		if (#maptab > 0) {
+			if #maptab[1].图号 winform.edit2.text = maptab[1].图号;
+			winform.edit2.hide = !(#maptab[1].图号);
+			sql = string.replace(sql, searchFor, maptab[1].图号);
+			flist = flistDB.getTable(sql);
+		}
+	}
+	if (#flist > 0) fileTab = table.concat(fileTab, flist);	
+	winform.listview.clear(true);
+	grid.setTable(fileTab);
+	grid.readonlyColums = {
+    	[1] = true; [2] = true; [3] = true; [4] = true;
+    };
+//调整列宽		
+	winform.listview.setColumn({cx=100;fmt=0x2/*_LVCFMT_CENTER*/}, 1);
+	winform.listview.setColumn({cx=350;fmt=0x0/*_LVCFMT_LEFT*/},   2);
+	winform.listview.setColumn({cx=100;fmt=0x2/*_LVCFMT_CENTER*/}, 3);
+	winform.listview.setColumn({cx=50 ;fmt=0x2/*_LVCFMT_CENTER*/}, 4);
+	winform.listview.adjust = function(cx,cy){
+    	winform.listview.fillParent(1);
+    	winform.listview.fillParent(3);
+	} 	
+}
+/*}}*/
+/*搜索按钮事件{{*/
+winform.button.oncommand = function(id,event){
+	//owner.disabledText = {"✶";"✸";"✹";"✺";"✹";"✷";text="搜索中..."};
+	if winform.button2.tag winform.button2.oncommand();
+	
+	if (winform.button3.hide){		
+		searchSapDB();
+	}else{
+		searchDocument();		
+	}
+
+	//owner.disabledText = null;
+}
+/*}}*/
+var downloadbom = function(){
+    var tab=table.array();
+    for (k, v in winform.listview.selected){
+        var bg = winform.listview.getItemText(v, 1);
+        if string.startWith(bg,"BG")
+            table.push(tab,  bg);
+    }  
+    if !#tab return ;
+	import SAP.session;
+	var session = SAP.session();
+	session.downloadBOM(winform, tab);
+}
+/*双击打开事件{{*/
+winform.listview.onnotify = function(id,code,ptr){
+    var selectedRow = owner.getSelection();
+    if !selectedRow return ; 
+    var pcode = owner.getItemText(selectedRow,1);
+    select(code) {
+    	case 0xFFFFFFFD/*_NM_DBLCLK*/ {
+    		if (owner.tag == 1) {
+    			winform.button3.hide = false;
+				winform.button3.tag  = selectedRow;
+				searchDocument(pcode); 
+				winform.button.text = '\uF002  搜索图纸';
+			}else{
+				var fullName = owner.getItemText(selectedRow, 2) ++ pcode;
+				if io.exist(fullName) {
+					process.execute(fullName);
+				}
+			}
+    	}
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  {
+			var x,y = win.getMessagePos();
+			//var hItem,tvht = winform.listview.hitTest(x,y,true);
+			var menu = win.ui.popmenu(winform);
+			if string.startWith(pcode,"BG",true)
+				menu.add("下载BOM", downloadbom);
+			else 
+				menu.add("详细信息...", λ() loadcodex("\forms\SAP\sap-query.aardio", pcode));
+			menu.popup(x,y,true);
+    	}
+    }
+}
+
+
+/*}}*/
+/*CTRLC复制模块{{*/
+winform.listview.translateAccelerator = function( msg ){ 
+    var ctrl = ::GetKeyState(0x11/*_VK_CTRL*/);
+//    var shift =  ::GetKeyState(0x10/*_VK_SHIFT*/);
+//    var alt = ::GetKeyState(0x12/*_VK_ALT*/);
+//    var selectedRow = owner.getSelection();
+    var vk = msg.wParam ;    
+    if( ( vk == 'C'# ) && ctrl  ){
+        if (owner.tag==1) {
+            var tab=table.array();
+            for (i=1;#owner.selected;1){
+                table.push(tab,string.join(owner.items[owner.selected[i]],'\t'))
+            }           
+			win.clip.write(string.join(tab,'\n'))
+		}else{
+			var tab = table.array();
+			for (i=1; owner.count; 1){
+
+				if (table.find(owner.selected,i)){
+					table.push(tab, owner.getItemText(i, 2) ++ owner.getItemText(i, 1));
+				}
+			}
+
+			
+/*
+import dotNet; 
+var appDomain = dotNet.appDomain();
+var system = appDomain.load("System");
+var Clipboard = system.import("Clipboard")
+var FileCollection = system.new("System.Collections.Specialized.StringCollection");
+
+var tab = {
+	[1] = "D:\users\CCL100100\workspaces\E6\0080291071.dft";
+	[2] = "D:\users\CCL100100\workspaces\E6\ccaabbcc.txt";
+}
+for (k,v in tab) {
+	FileCollection.Add(tab[k]);
+}
+
+
+Clipboard.SetFileDropList(FileCollection);
+*/
+
+			
+			if io.exist(tab[[1]])
+				win.clip.file.write(tab[[1]],"copy")	//TODO: 多文件copy
+		}
+        return true;
+    }
+}
+/*}}*/
+/*onclose{{*/
+winform.onClose = function(hwnd,message,wParam,lParam){
+	if (db) db.close();	
+}
+/*}}*/
+/*后退返回搜索结果{{*/
+winform.button3.oncommand = function(id,event){
+    formatListView();
+	winform.listview.setSelected(owner.tag)
+	winform.listview.tag=1;
+	owner.hide=true;
+	winform.edit2.text = "";
+	winform.edit2.hide = true;
+	winform.button.text = '\uF002  查询SAP';
+}
+/*}}*/
+
+
+/*弹出历史记录菜单{{*/
+winform.buttonD.oncommand = function(id,event){
+		    var pt = ::POINT();
+			::User32.GetCursorPos(pt);
+	    	//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+	    	if !winform.popmenu return ; 
+	    	win.setForeground(winform.hwnd)
+	    	winform.popmenu.popup(pt.x,pt.y,true )
+}
+/*}}*/
+var updateColor = function(btCtrl){
+	var t = #winform.clSapType.selected + #winform.clUnit.selected + #winform.clOrderType.selected;
+	btCtrl.bgcolor = t ? color.rgb(124,252,0) : null;
+	btCtrl.redraw();
+}
+winform.button2.tag = false;
+winform.button2.oncommand = function(id,event){
+	owner.tag = !owner.tag;
+	
+	winform.chkDisabled.hide = !winform.chkDisabled.hide
+	winform.chkPaint.hide = !winform.chkPaint.hide
+	winform.chkHideUnknown.hide = !winform.chkHideUnknown.hide
+	
+
+/*
+	winform.rdBG.hide = !winform.rdBG.hide
+	winform.rdPart.hide = !winform.rdPart.hide
+	winform.rdAsm.hide = !winform.rdAsm.hide
+	winform.listbox.hide = !winform.listbox.hide
+	winform.button6.hide = !winform.button6.hide
+	
+*/
+	winform.static2.hide = !winform.static2.hide
+	winform.clLegacyType.hide = !winform.clLegacyType.hide
+	winform.clUnit.hide = !winform.clUnit.hide
+	winform.clOrderType.hide = !winform.clOrderType.hide
+	winform.clSapType.hide = !winform.clSapType.hide
+	winform.static.hide = !winform.static.hide
+	updateColor(winform.button2);	
+}
+
+subscribe("main_window_hide",function(...){	//orphanWindow随主窗口隐藏
+	if (winform.button2.tag) winform.button2.oncommand();
+} )
+
+subscribe("dok",function(...){
+	//winform.button6.disabledText = null;
+	win.delay(3*1000);
+	var ftab = ...
+	if ftab {
+		import com.excel;
+		var excel = com.excel(false);
+		
+		for(i = excel.WorkBooks.Count; 1; -1) // 反向
+			if table.indexOf(ftab, excel.WorkBooks(i).Name) {
+				excel.WorkBooks(i).Activate();
+				try{
+					excel.Run("initExportedBom"); //调用宏格式化样式
+				}
+		 		excel.WorkBooks(i).close(true /* _save_changes */);
+			}
+	}
+
+} )
+
+
+
+
+subscribe("refresh",function(){
+	//	winform.redraw();
+		if !winform.editUser3 or !winform.listview {
+			win.msgbox("控件丢失");
+			winform.publish("控件丢失",3);
+		}
+	}
+);
+
+
+winform.static.onHyperlinkClick = function(nmSysLink,url,id){
+	winform.clLegacyType.selected = null;
+	winform.clUnit.selected = null;
+	winform.clOrderType.selected = null;
+	winform.clSapType.selected = null;
+	updateColor(winform.button2);	
+}
+import color;
+
+
+winform.clUnit.onSelChange = function(){
+	updateColor(winform.button2);	
+}
+winform.clOrderType.onSelChange = function(){
+	updateColor(winform.button2);	
+}
+winform.clSapType.onSelChange = function(){
+	updateColor(winform.button2);	
+}
+// 禁止共享编辑框外观状态(focus状态除外)
+winform.editUser3.editState = false;
+
+winform.editUser3.skin({
+	//background = { hover = 0xFFF78987 }
+	checked = { 
+		iconText = '\uF077';
+		iconColor = {
+			//active=0xFFE69417;
+			default=0xFF0000FF;
+			//disabled=0xFF666666;
+			//hover=0xFFFF9A00
+		};
+	}
+	
+})
+
+// 显示弹出菜单，弹出菜单会自动修改winform.dropdown的checked属性为菜单打开状态
+winform.editUser3.oncommand = function(id,event){ 
+	var t = owner.text;
+	
+	if (owner.checked){
+		winform.listview.top += 60;
+		owner.height += 60;
+		owner.paddingBottom = 15;
+		owner.paddingRight = 1;
+		owner.paddingTop = 2;
+
+		owner.createEditBox(  //richtext
+			vscroll = true; 
+			hscroll = false; 
+			multiline = true;
+		);
+		owner.text = t;	
+
+	}else{
+		winform.listview.top -= 60;
+		owner.height -= 60;
+		owner.paddingBottom = 0;
+		owner.paddingRight = 20;
+		owner.paddingTop = 0;
+		owner.createEditBox(  //richtext
+			vscroll = false; 
+			hscroll = false; 
+			multiline = false;
+		);
+		owner.text = string.split(t,'\n\r')[[1]];	
+	}
+
+}
+//右键点击快速取消筛选
+winform.button2.wndproc = function(hwnd,message,wParam,lParam){
+	if message == 0x205/*_WM_RBUTTONUP*/ winform.static.onHyperlinkClick();
+}
+
+
+winform.show();
+winform.editUser3.setFocus();
+win.loopMessage();

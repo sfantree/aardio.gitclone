@@ -1,0 +1,427 @@
+import win.ui;
+import console;
+import winex; 
+import winex.key;
+import key;
+import process;
+import com.excel;
+/*DSG{{*/
+var mainForm = win.form(text="航线数据分析";right=520;bottom=593)
+mainForm.add(
+button={cls="button";text="Button";left=327;top=14;right=390;bottom=71;z=7};
+button_SendCMD={cls="button";text="发送指令";left=178;top=52;right=280;bottom=76;dl=1;dt=1;z=3};
+button_Start={cls="button";text="打开表格";left=178;top=12;right=280;bottom=36;dl=1;dt=1;z=1};
+edit_CMD={cls="edit";text="FLR:CKGPEK/./F";left=8;top=52;right=160;bottom=76;dl=1;dt=1;edge=1;z=4};
+edit_Console={cls="edit";text="Edit";left=6;top=89;right=514;bottom=586;ah=1;aw=1;bgcolor=0;color=65280;db=1;dl=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=6};
+edit_FileName={cls="edit";text="CKGPEK";left=8;top=12;right=119;bottom=36;dl=1;dt=1;edge=1;z=2};
+static={cls="static";text=".xlsx";left=126;top=12;right=160;bottom=36;dl=1;dt=1;transparent=1;z=5}
+)
+/*}}*/
+
+mainForm.enableDpiScaling();
+winex.waitTimeout = 2000;
+var excel,book,sh1,sh2,sh3;
+var logFile = null;
+var colStart = 0; //第一行舱位百分数开始的列
+var tabClasses = {}; //各公司舱位字符表
+var tabFltStops = {}; //经停航班每日客座数修正数据
+mainForm.edit_FileName.text = "CKGPEK";
+
+var hwnd,,pID = winex.find(,"^eTerm 3 .");
+if(hwnd == null || pID == null){
+	mainForm.msgboxErr("eTerm 3未运行！");
+	mainForm.close();
+	return;
+}
+
+var logPath = process.getPath(pID);
+logPath = io.splitpath(logPath).dir + "eTerm3.log";
+if(!io.exist(logPath)){
+	mainForm.msgboxErr("日志文件" ++ logPath ++ "不存在，请检查eTerm设置。");
+	mainForm.close();
+	return;
+}
+logFile = io.open (logPath,"r")
+
+console_log =function(str1,str2,str3,str4,str5,str6,str7,str8){
+    var str = "";
+    if(str1 != null){str = str1}
+    if(str2 != null){str += " " ++ str2}
+    if(str3 != null){str += " " ++ str3}
+    if(str4 != null){str += " " ++ str4}
+    if(str5 != null){str += " " ++ str5}
+    if(str6 != null){str += " " ++ str6}
+    if(str7 != null){str += " " ++ str7}
+    if(str8 != null){str += " " ++ str8}
+    str = string.replace(str,'([^\r])\n',"\1" ++ '\r\n');
+	mainForm.edit_Console.selLine = 1;
+	mainForm.edit_Console.selText = str ++ '\r\n';
+	mainForm.edit_Console.selLine = 1;
+}
+
+cmdPN = function(){ //翻页函数
+    var strOut = "";
+	hwnd = winex.find(,"^eTerm 3 .");
+	try{
+		win.setForeground(hwnd);	
+	}
+	hwnd = winex.waitActive(hwnd);
+	hwnd = winex.findEx(hwnd,,"^AfxFrameOrView.","");
+	hwnd = winex.getFocus(hwnd);
+	//key.combine("CTRL","A");
+	var fileLen = logFile.seek("end");	
+	winex.say("PN",hwnd);
+	winex.key.click(hwnd,"F12" );
+	for(i=1;5;1){
+		if((logFile.seek("end") - fileLen) > 80){
+			break;
+		}
+		sleep(1000);
+	}
+	logFile.seek("set", fileLen);
+	strOut = logFile.read(-1);
+	return strOut; 
+}
+
+eTermOut = function(strCMD){ //eTerm输入输出函数
+    var strOut = "";
+	hwnd = winex.find(,"^eTerm 3 .");
+	try{
+		win.setForeground(hwnd);	
+	}
+	hwnd = winex.waitActive(hwnd);
+	hwnd = winex.findEx(hwnd,,"^AfxFrameOrView.","");
+	hwnd = winex.getFocus(hwnd);
+	key.combine("CTRL","A");
+	var fileLen = logFile.seek("end"); //记录日志文件初始指针位置
+	winex.say(strCMD,hwnd);
+	winex.key.click(hwnd,"F12" );
+	for(i=1;5;1){ //每隔1秒检测日志文件的大小
+		if((logFile.seek("end") - fileLen) > 80){
+			break;
+		}
+		sleep(1000);
+	}
+	logFile.seek("set", fileLen);
+	strOut = logFile.read(-1); //从之前的指针位置读取到文件末尾
+	while(string.match(strOut,"\+\n\s{80}\n\n$")){ //如果末尾有+号，需要翻页
+		strOut += cmdPN();
+	}
+	//console.log(strOut);
+	strOut = string.fromto(strOut,936,65001);
+	return strOut;
+}
+
+eTermAV = function(strDate){ //eTerm输入输出函数
+    var strOut = "";
+	hwnd = winex.find(,"^eTerm 3 .");
+	try{
+		win.setForeground(hwnd);	
+	}
+	hwnd = winex.waitActive(hwnd);
+	hwnd = winex.findEx(hwnd,,"^AfxFrameOrView.","");
+	hwnd = winex.getFocus(hwnd);
+	key.combine("CTRL","A");
+	var fileLen = logFile.seek("end"); //记录日志文件初始指针位置
+	winex.say("AV:LO/CKGPEK/" ++ strDate ++ "/D",hwnd);
+	winex.key.click(hwnd,"F12" );
+	for(i=1;5;1){ //每隔1秒检测日志文件的大小
+		if((logFile.seek("end") - fileLen) > 80){
+			break;
+		}
+		sleep(1000);
+	}
+	logFile.seek("set", fileLen);
+	strOut = logFile.read(-1); //从之前的指针位置读取到文件末尾
+	strDate = string.match(strDate,"^([0-9]{1,2}[A-Za-z]{3})[0-9]{2}$");
+	strDate = string.upper(strDate);
+	strPN = cmdPN();
+	var strRE = "\>PN\n\s" ++ strDate;
+	while(string.match(strPN,strRE)){ //如果能匹配到PN加当前日期，需要翻页
+		strOut += strPN;
+		strPN = cmdPN();
+	}
+	return strOut; 
+}
+
+insertToSheet = function(strRow,strCol,data,colorIndex,reWrite){
+    console_log("插入数据：",strRow,strCol,data);
+	var intRow = 0; //插入到的行数
+	var intCol = 0; //插入到的列数
+	for(i=2;100;1){ //从第二行开始读取第一列
+		var strFltNo = sh3.Cells(i,1).getValue2();
+		if(strFltNo == strRow || strFltNo == null){ //如果找到该航班号或者遇到空格
+			intRow = i;
+			//sh3.Cells(i,1).NumberFormatLocal = "@";
+			sh3.Cells(i,1).setValue2(strRow);
+			break;
+		}
+	}
+	for(i=2;30;1){ //从第二行开始读取第一列
+		var strDate = sh3.Cells(1,i).getValue2();
+		if(strDate == strCol || strDate == null){ //如果找到该日期或者遇到空格
+			intCol = i;
+			sh3.Cells(1,i).setValue2(strCol);
+			break;
+		}
+	}
+	if(intRow != 0 && intCol != 0){
+		if(reWrite == false){ //覆写模式
+			var strCel = sh3.Cells(intRow,intCol).getValue2();
+			if(strCel != null){
+				data = strCel ++ " " ++ data;
+			}
+		}
+		sh3.Cells(intRow,intCol).setValue2(data);
+		if(colorIndex == null){
+			colorIndex = 0;
+		}
+		sh3.Cells(intRow,intCol).Interior.ColorIndex = colorIndex;
+	}
+}
+
+getLF = function(col,date){ //获取某一个日期的所有航班号的客座率
+    var strGetLF = eTermOut("FLR:CKGPEK/" ++ date ++ "/F");
+	for(i=2;100;1){
+		var strFltNo = sh2.Cells(i,1).getValue2(); //航班号
+		var intAdj = tonumber(sh2.Cells(i,col).getValue2()); //补舱或罚舱座位数
+		if(intAdj == null){
+			intAdj = 0;
+		}
+		var intSeatStop = 0;
+		try{
+			intSeatStop = tabFltStops[strFltNo][date];
+		}
+		if(intSeatStop == null){
+			intSeatStop = 0;
+		}
+		if(strFltNo != null && string.match(strFltNo,"^[A-Za-z0-9]{5,6}$")){
+			var strRE = strFltNo ++ "\s+[A-Za-z0-9]{3}\s+([0-9]+)\s+([0-9]+)\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+([0-9]+)\s+";
+			var strRCNFRM,strNRCFRM,strCAP = string.match(strGetLF,strRE);
+			var strLF = "无";
+			if(strRCNFRM != null && strNRCFRM != null && strCAP != null){
+				strLF = tostring(math.floor((tonumber(strRCNFRM) + tonumber(strNRCFRM) + intAdj + intSeatStop) * 100 / tonumber(strCAP))) ++ "%";
+			}
+			insertToSheet(strFltNo,date,strLF,0,true);
+		}else {
+			break;
+		}
+	}
+}
+
+getMinClass = function(strFltNo,intLF){ //获取当前客座率对应的最低舱位
+	var strGetMinClass = null;
+	var iRow = 0;
+	for(i=2;100;1){ //从第二行开始读取第一列
+		var strCel = sh2.Cells(i,1).getValue2();
+		if(strCel == null){
+			console_log("找不到航班号：",strFltNo);
+			return strGetMinClass; 
+			break;
+		}elseif(strCel == strFltNo){ //如果找到该航班号
+			iRow = i;
+			break;
+		}
+	}
+	for(i=colStart;50;1){
+		var strMinLF = sh2.Cells(1,i).getValue2();
+		var strMinClass = sh2.Cells(iRow,i).getValue2();
+		if(strMinLF != null && string.match(strMinLF,"^[0-9]{1,3}\%$")){
+			var intMinLF = tonumber(string.match(strMinLF,"^([0-9]{1,3})\%$"));
+			if(intLF >= intMinLF && strMinClass != null && string.match(strMinClass,"^\w$")){
+				strGetMinClass = strMinClass;
+			}
+		}else {
+			break;
+		}
+	}
+	return strGetMinClass;
+}
+
+getAV = function(col,date){ //检查某一个日期的所有航班号的客座率
+	var strAV = eTermAV(date);
+	for(i=2;100;1){
+		var strFltNo = sh3.Cells(i,1).getValue2(); //航班号
+		if(strFltNo != null && string.match(strFltNo,"^[A-Za-z0-9]{5,6}$")){
+			var strLF = sh3.Cells(i,col).getValue2(); //汇总表前一步生成的客座率
+			if(strLF != null && string.match(strLF,"^[0-9]{1,3}\%$")){
+				strLF = string.match(strLF,"^([0-9]{1,3})\%$");
+				var strClasses = ""; //某一个公司的舱位字符串
+				try{
+					strClasses = tabClasses[string.left(strFltNo,2)];
+				}
+				var strMinClass = getMinClass(strFltNo,tonumber(strLF));
+				console_log(date,strFltNo,strLF,strMinClass)
+				if(strMinClass != null){
+					var indexMinClass = string.indexAny(strClasses,strMinClass) - 1;
+					strClasses = string.left(strClasses,indexMinClass);
+					var tabStrClasses = string.split(strClasses);
+					var strRE = strFltNo ++ "\s{6}(.{1,40})\s{2}.{1,40}\n\>\s{15}(.{1,50})\s{2}";
+					var strFltAV1,strFltAV2 = string.match(strAV,strRE);
+					if(strFltAV1 == null){
+						strFltAV1 = "";
+					}
+					if(strFltAV2 == null){
+						strFltAV2 = "";
+					}
+					var strFltAV = strFltAV1 ++ " " ++ strFltAV2;
+					var strInvalid = "";
+					for(j=1;table.len(tabStrClasses);1){
+						var strMatch = string.match(strFltAV,"(" ++ tabStrClasses[j] ++ "[0-9A]\s)");
+						if(strMatch != null){
+							strInvalid += strMatch;
+						}
+					}
+					if(strInvalid != ""){
+						insertToSheet(strFltNo,date,strInvalid,3,false);
+					}
+				}
+			}		
+		}else {
+			break;
+		}
+	}
+}
+
+getFltStops = function(strFltNo,strFltStop){ //获取经停航班的客座数修正值
+	tabFltStops[strFltNo] = {};
+	for(i=3;30;1){
+		var strDate = sh2.Cells(1,i).getValue2();
+		if(strDate != null && string.match(strDate,"^[0-9]{1,2}[A-Za-z]{3}[0-9]{2}$")){
+			var strGetFLP = eTermOut("FLP:" ++ strFltNo ++ "/" ++ strDate);
+			var strRE = strFltStop ++ "\s+TOTAL\s+=\s+([0-9]+)\s+";
+			var strSeatStop = string.match(strGetFLP,strRE);
+			tabFltStops[strFltNo][strDate] = tonumber(strSeatStop);
+		}else {
+			break;
+		}
+	}
+}
+
+readExcel = function(){
+	excel = com.excel();
+	excel.Visible = true;
+	//excel.alerts = false; //关闭所有操作提示
+	win.setForeground(excel.hwnd);//excel窗口前置
+	book = excel.WorkBooks.Open(..io.fullpath("\CKGPEK.xlsx"));
+	sh1 = book.Worksheets("舱位");
+	sh2 = book.Worksheets("航班");
+	sh3 = book.Worksheets("汇总");
+
+	sh1.Select();
+	for(i=1;20;1){ //读取舱位字符串
+		var strAirLines = sh1.Cells(i,1).getValue2();
+		if(strAirLines != null && string.match(strAirLines,"^[A-Za-z0-9]{2}$")){
+			var strClasses = sh1.Cells(i,2).getValue2();
+			if(strClasses != null && string.match(strClasses,"^[A-Za-z]+$")){
+				tabClasses[strAirLines] = strClasses;
+			}
+		}else {
+			break;
+		}
+	}
+
+	sh2.Select();
+	for(i=2;100;1){
+		var strFltNo = sh2.Cells(i,1).getValue2(); //航班号
+		var strFltStop = sh2.Cells(i,2).getValue2(); //经停航段
+		if(strFltNo != null && string.match(strFltNo,"^[A-Za-z0-9]{5,6}$")){
+			if(strFltStop == null){
+				continue;
+			}
+			getFltStops(strFltNo,strFltStop);
+		}else {
+			break;
+		}
+	}
+	
+	sh3.Select();
+	sh3.Rows("1:100").NumberFormatLocal = "@";
+	for(i=3;30;1){
+		var strDate = sh2.Cells(1,i).getValue2();
+		if(strDate != null && string.match(strDate,"^[0-9]{1,2}[A-Za-z]{3}[0-9]{2}$")){
+			strDate = string.upper(strDate);
+			getLF(i,strDate);
+		}else {
+			break;
+		}
+	}
+	
+	for(i=3;30;1){
+		var strCel = sh2.Cells(1,i).getValue2();
+		if(strCel != null && string.match(strCel,"^[0-9]{1,3}\%$")){
+			colStart = i;
+			break;
+		}
+	}
+	
+	for(i=2;30;1){
+		var strDate = sh3.Cells(1,i).getValue2();
+		if(strDate != null && string.match(strDate,"^[0-9]{1,2}[A-Za-z]{3}[0-9]{2}$")){
+			strDate = string.upper(strDate);
+			getAV(i,strDate);
+		}else {
+			break;
+		}
+	}	
+		
+	book.save();
+	book.close();
+	sh1 = null;
+	sh2 = null;
+	sh3 = null;
+	book = null;
+	excel.application.quit();
+	com.Release(excel);
+	sleep(2000);
+	excel = null;
+}
+
+mainForm.button_Start.oncommand = function(id,event){
+	console_log("正在打开CKGPEK.xlsx");
+	readExcel();
+	console_log("完成!");
+}
+
+mainForm.button_SendCMD.oncommand = function(id,event){
+	console_log(eTermOut(mainForm.edit_CMD.text));
+}
+
+mainForm.beforeDestroy = function(){
+    if(logFile != null){
+    	logFile.close();
+    	logFile = null;
+    }
+    if(excel != null){
+    	excel.application.quit();
+		com.Release(excel);
+		sleep(2000);
+		excel = null;	
+    }
+}
+
+mainForm.onDestroy = function(){
+    if(logFile != null){
+    	logFile.close();
+    	logFile = null;
+    }
+    if(excel != null){
+    	excel.application.quit();
+		com.Release(excel);
+		sleep(2000);
+		excel = null;
+    }
+}
+
+mainForm.button.oncommand = function(id,event){
+    logFile = io.open ("\test.log","r");
+    var str = logFile.read(-1);
+    str = string.fromto(str,936,65001);
+    str = string.replace(str,'([^\r])\n',"\1" ++ '\r\n');
+    console_log(str);
+	logFile.close();
+	logFile = null
+}
+
+mainForm.show();
+return win.loopMessage();

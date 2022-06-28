@@ -1,0 +1,8 @@
+﻿import ide;
+import fsys;
+var publisDir = ide.getPublisDir();
+var libPath,libDir = io.libpath("hge");
+var dllPath = libDir++".res\bass.dll";
+if(!io.exist(publisDir++"bass.dll")){
+	fsys.copy(dllPath,publisDir)
+}

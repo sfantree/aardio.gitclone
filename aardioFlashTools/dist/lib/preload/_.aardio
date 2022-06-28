@@ -1,0 +1,241 @@
+namespace preload {};  
+
+__getApiExceptionMessage = function(code,address){
+	var msg = {
+		[0xC0000005] = "EXCEPTION_ACCESS_VIOLATION 存储保护异常";
+		[0x80000002] = "EXCEPTION_DATATYPE_MISALIGNMENT 数据类型未对齐异常";
+		[0x80000003] = "EXCEPTION_BREAKPOINT 中断异常";
+		[0x80000002] = "EXCEPTION_SINGLE_STE 单步中断异常";
+		[0xC000008C] = "EXCEPTION_ARRAY_BOUNDS_EXCEEDED 数组越界异常";
+		[0xC000008D] = "EXCEPTION_FLT_DENORMAL_OPERAND 浮点数计算异常";
+		[0xC000008E] = "EXCEPTION_FLT_DIVIDE_BY_ZERO 浮点数计算异常";
+		[0xC000008F] = "EXCEPTION_FLT_INEXACT_RESULT 浮点数计算异常";
+		[0xC0000090] = "EXCEPTION_FLT_INVALID_OPERATIO 浮点数计算异常";
+		[0xC0000091] = "EXCEPTION_FLT_OVERFLOW 浮点数计算异常";
+		[0xC0000092] = "EXCEPTION_FLT_STACK_CHECK 浮点数计算异常";
+		[0xC0000093] = "EXCEPTION_FLT_UNDERFLO 浮点数计算异常";
+		[0xC0000094] = "EXCEPTION_INT_DIVIDE_BY_ZERO 除0异常";
+		[0xC0000095] = "EXCEPTION_INT_OVERFLOW 数据溢出异常";
+		[0xC0000006] = "EXCEPTION_IN_PAGE_ERROR 页错误异常";
+		[0xC000001D] = "EXCEPTION_ILLEGAL_INSTRUCTION 非法指令异常";
+		[0xC00000FD] = "EXCEPTION_STACK_OVERFLOW 堆栈溢出异常";
+		[0xC0000008] = "EXCEPTION_INVALID_HANDLE 无效句病异常"; 
+	} 
+	return string.format('%s,发生错误的内存地址：0x%08X 错误代码：0x%X\n'
+		, msg[code] or (  code & (1<<29) ? "自定义异常" : "未知异常" ),address,code ) 
+	    
+}
+
+var u = raw.loadDll("User32.dll");
+var k = raw.loadDll("Kernel32.dll");
+
+::Kernel32 = k;
+::User32 = u; 
+
+::GlobalAlloc = k.api("GlobalAlloc","ptr(INT,INT)" ) ;
+::GlobalReAlloc = k.api("GlobalReAlloc","ptr(PTR hMem,ADDR,INT)" ) ;
+::GlobalLock = k.api("GlobalLock","ptr(PTR)" ) ;
+::GlobalUnlock = k.api("GlobalUnlock","bool(PTR)" ) 
+::GlobalSize = k.api("GlobalSize","ADDR(PTR)" ) 
+::GlobalFree = k.api("GlobalFree","ptr(PTR)" )
+::GetModuleHandle = k.api( "GetModuleHandle", "pointer(string)");
+::CopyMemory = k.api("RtlMoveMemory","void(POINTER dst,pointer src,INT size)" ) ;
+::CopyMemoryByStruct = k.api("RtlMoveMemory","void(POINTER dst,struct src,INT size)" ) ;
+
+_HINSTANSE = ::GetModuleHandle();
+_INVALID_HANDLE_VALUE = topointer(-1); 
+
+::MSG = null;
+::FILETIME = class { 
+	INT dwLowDateTime ;
+	INT dwHighDateTime ;
+} 
+
+::Ntdll = raw.loadDll("ntdll.dll");
+if( ::Ntdll.wine_get_version ){
+	_WINE = raw.str( ::Ntdll.wine_get_versionP() );
+} 
+_WINXP = !::Kernel32.api("QueryFullProcessImageNameW");
+_WIN7_LATER = !!::Kernel32.api("SetThreadErrorMode");
+_WIN10_LATER = !!::Kernel32.api("GetSystemCpuSetInformation");
+
+{
+	var w = {bool v}
+	if( ::Kernel32.IsWow64Process( ::Kernel32.GetCurrentProcessP() ,w) ) _WIN_64 = w.v; 
+	
+	major,minor,build = {INT v},{INT v},{INT v};
+	::Ntdll.RtlGetNtVersionNumbers(major,minor,build);
+	_WIN_VER_MAJOR,_WIN_VER_MINOR,_WIN_VER_BUILD = major.v,minor.v,build.v & 0xFFFF;
+}
+
+/*intellisense(::)*/
+::LOWORD = function(l) {return l & 0xffff }
+::HIWORD = function(l) {return  (l >> 16) & 0xffff }
+::MAKELONG = function(a,b){ return ( ( (b & 0xFFFF) << 16) | (a & 0xFFFF) ) & 0xFFFFFFFF } 
+::LOBYTE = function(l) {return l  & 0xff }
+::HIBYTE = function(l) {return   (l   >> 8) & 0xff  }
+::MAKEWORD = function (a,b){ return ( ( ( b & 0xFF) << 8) | ( a & 0xFF) ) & 0xFFFF  } 
+/*end intellisense*/ 
+
+import preload.struct;
+import preload.string;
+import preload.table;
+import preload.raw;
+import preload.math;
+import preload.thread;
+import preload.io;
+
+gcdata = function(t){
+	var d = ..raw.buffer(1);d@ = t;
+	return d;
+}; 
+ 
+::GetLastError = k.api( "GetLastError", "int()"); 
+var formatMessage = k.api("FormatMessage","INT(INT dwFlags,pointer source,INT id,INT lang,utf& buf,INT size,pointer &arg )");
+lasterr  = function(err,where){
+	err := GetLastError(); 
+	if(err){ 
+		var len,str =  formatMessage( 0x1200 /*_FORMAT_MESSAGE_FROM_SYSTEM  |  _FORMAT_MESSAGE_IGNORE_INSERTS */
+			,null, err,1024/*默认语言*/,256, 256 ); 
+
+		return ..string.concat(str: "未知错误" ,where ," ERROR CODE:",err) ,err;
+	}
+}; 
+
+::assert2 = function(leverl,ok,...){
+	if(ok) return ...; else error(...,leverl+1);
+}
+
+namespace fiber{
+	generator = function(v,...){
+		var fib = v; 
+		var t = type(v);
+		if( t!="fiber"  ) {
+			if( t!="function"  ) error("参数@1必须是函数",2);
+			fib = create(v); 
+		}
+    	var result = { assert2( 2,resume (fib,...) ); }
+    	return function(){
+        	if( status(fib) === "dead" ) return;
+        	if( result ){ var r = result; result = null; return ..table.unpackArgs(r) }
+        	return assert2( 2,resume (fib) ); 
+    	} 
+	} 
+}
+
+var topics = {}; 
+publish = function(name,...){
+	var q = topics[name];
+	for(i=1;#q) q[i](...);
+} 
+subscribe = function(name,proc,before){
+	var q = topics[name];
+	if(!q) q = {};topics[name] = q; 
+	
+	for(i=1;#q;1) if( q[i] == proc ) ..table.remove(q,i);  
+	if(before) ..table.unshift(q,proc) else ..table.push(q,proc); 
+	
+	return { 
+		remove = function() 
+			for(i=1;#q;1) if( q[i] == proc ) ..table.remove(q,i); 
+	}
+}
+
+var wb;
+print = function(s,...){
+	
+	global.import("web.form");
+	if( s!==null ){  
+		if(!wb) {
+			wb = web.form( win.form(text="aardio - webform";right=759;bottom=469;maxmize=1),,,,true );
+			wb.go("about:blank");
+			wb.TitleChange = function( text ) { wb._form.text = text; };
+			wb.document.open();
+		}
+		wb.document.write( tostring(s) ); 
+		if(...!==null) return print(...);
+	}
+	elseif(wb){ wb.document.close(); wb._form.doModal(); wb = null };
+}
+
+__beforeUnload =  function(){
+	publish("beforeUnload");
+	if(beforeUnload) beforeUnload();
+	
+	if( type( win[['form']] ) == "class" ){ 
+		for(hwnd,winform in win._form._forms){
+			::DestroyWindow(hwnd); 
+		}; 
+	}
+}
+
+time.gmt = function(t,f){
+    if( time.istime(t) ) t = t.utc(true);
+	var tm = time(t,f:"!%a, %d %b %Y %H:%M:%S GMT","enu");	
+	if( tm.endstr ){
+		var h,m;
+		if(#tm.endstr<4) h = tm.endstr;
+		else h,m =  ..string.match(tm.endstr,"([+-]\d\d?)\:?(\d\d)$");
+
+		if( h ){
+			h = tonumber(h,10) * 60;
+			if(m){
+				m = tonumber(m,10);
+				h = h + ( (h<0)?-m:m )
+			}
+			tm.addminute(-h);
+			tm.endstr = null;
+		}
+	}
+	return tm;
+}
+
+time.iso8601 = function(t){
+	return time.gmt (t,"!%Y-%m-%dT%H:%M:%SZ");
+}
+
+def λ = lambda;
+
+_IMPORTURL = {};
+
+type.callable = function(v){
+	var t = type(v);
+	return t == "function" || t == "class" || !!( v@ ? v@._call )
+}
+/**intellisense(::)
+::Ntdll = 默认已加载的系统DLL组件ntdll.dll\n!dllmodule.
+::Kernel32 = 默认已加载的Kernel32.dll模块对象\nKernel32.dll是Windows内核库,提供很多常用API
+::Kernel32.gethandle() = 返回句柄
+::Kernel32.SetDllDirectory(.("DLL搜索目录") = 设置加载DLL的默认目录
+::Kernel32.SetDllDirectory(.(null)= 恢复DLL默认搜索目录
+::Kernel32.RtlMoveMemory(.(目标内存地址,源数据,源数据长度) = 复制内存\n此函数支持所有API兼容指针类型参数，直接操作内存请小心使用
+::Kernel32.LocalFree(.(hMem) = 一些API返回的内存句柄需要使用此函数释放，\n@hMem参数指定内存句柄
+::Kernel32.RtlMoveMemory(.(目标内存地址,源数据,源数据长度) = 源数据可以是字符串、内存指针、或结构体
+::Kernel32.GetACP() = 返回当前ANSI代码页
+::Kernel32.SetErrorMode(0) = 显示所有系统错误对话框
+::Kernel32.api("__/*输入函数名字*/","void()" ) = 声明Kernel32 API函数
+::User32 = 默认已加载的User32.dll模块对象\nUser32.dll提供Windows用户界面相关API
+::User32.api("__/*输入函数名字*/","void()" ) = 声明Kernel32 API函数
+::User32.SendMessage( = 发送消息，并等待返回
+::User32.SendMessage(.(hwnd,message,wParam,lParam) = 发送消息\n参数@2为消息ID，多数_WM_开头的常量\n一定要指定4个参数,省略参数输入null或0不可省略
+::User32.PostMessage( = 发送消息,不等待返回
+::User32.PostMessage(.(hwnd,message,wParam,lParam) = 发送消息\n参数@2为消息ID，多数_WM_开头的常量\n一定要指定4个参数,省略参数输入null或0不可省略
+::User32.GetCursorPos() = 返回鼠标当前位置,参数应当是一个::POINT结构体\n成功返回非零值
+::User32.SetCursorPos(.(x,y) = 设置鼠标当前位置,参数指定x,y坐标\n成功返回非零值
+::User32.SystemParametersInfo(.(uiAction,uiParam,pvParam,fWinIni) = 设置或获取系统参数,\n失败返回0,成功返回非零值,\n\n参数@1指定 _SPI_ 前缀常量,@pvParam 为指针或结构体指针,\n其他参数都为无符号32位整数。参数 @4 设为 3 也即 \n_SPIF_UPDATEINIFILE | _SPIF_SENDWININICHANGE \n用于刷新配置,读取值时参数 @4 设为 0 即可\n\n这个函数的设置项非常多,细节请参考该 API 文档
+::User32.GetSystemMetrics(__) =  返回系统系统与数值有关的设置,宽高有关的数值以像素为单位,\n参数以 _SM_ 前缀的常量指定要获取的设置索引
+::User32.? = 可不用声明直接在此输入函数名并调用API函数\n\n一、传入参数规则：\n1、null参数不可省略\n2、32位整数类型，小于32位的整数、以及枚举类型都可以直接在API参数中写数值。\n3、对于任何数值类型的指针（输出参数）一律使用结构体表示，例如double * v 表示为{ double v }\n4、数组使用结构体表示\n5、所有结构体传给API的都是指针地址，都是输出参数并增加返回值\n\n二、返回值规则：\n1、返回值默认为int类型,可用 >>> 0 强制转为无符号数,\n2、可以使用[API尾标]改变返回值为其他类型\n\n三、所有可用的【API尾标】:\n::User32.ApiNameW() 切换到Unicode版本，字符串UTF8-UTF16双向转换\n::User32.ApiNameA() 切换到ANSI版本,字符串不作任何转换\n::User32.ApiNameL() 返回值为64位LONG类型\n::User32.ApiNameP() 返回值为指针类型\n::User32.ApiNameD() 返回值为double浮点数\n::User32.ApiNameF() 返回值为float浮点数\n::User32.ApiNameB() 返回值为C++中的8位bool类型\n注意【尾标】前必须是小写字母
+::Kernel32.? = 可不用声明直接在此输入函数名并调用API函数\n\n一、传入参数规则：\n1、null参数不可省略\n2、32位整数类型，小于32位的整数、以及枚举类型都可以直接在API参数中写数值。\n3、对于任何数值类型的指针（输出参数）一律使用结构体表示，例如double * v 表示为{ double v }\n4、数组使用结构体表示\n5、所有结构体传给API的都是指针地址，都是输出参数并增加返回值\n\n二、返回值规则：\n1、返回值默认为int类型,可用 >>> 0 强制转为无符号数,\n2、可以使用[API尾标]改变返回值为其他类型\n\n三、所有可用的【API尾标】:\n::Kernel32.ApiNameW() 切换到Unicode版本，字符串UTF8-UTF16双向转换\n::Kernel32.ApiNameA() 切换到ANSI版本,字符串不作任何转换\n::Kernel32.ApiNameL() 返回值为64位LONG类型\n::Kernel32.ApiNameP() 返回值为指针类型\n::Kernel32.ApiNameD() 返回值为double浮点数\n::Kernel32.ApiNameF() 返回值为float浮点数\n::Kernel32.ApiNameB() 返回值为C++中的8位bool类型\n注意【尾标】前必须是小写字母
+::FILETIME() = 该结构的64位值,\n表示从1601年1月1日开始的以100纳秒为间隔的值
+::GetModuleHandle(__/*模块名*/) = 返回动态链接库的模块句柄 
+::GlobalAlloc(.(分配选项,内存长度) = 在进程堆上分配内存,\n分配选项可选参数如下:\n\n0x40/*_GPTR*/ 返回指针,内存数据初始化为零\n0x42/*_GHND*/ 返回句柄,内存数据初始化为零,\n0x0/*_GMEM_FIXED*/ 返回指针\n0x2/*_GMEM_MOVEABLE*/ 返回句柄\n内存句柄需要调用 ::GlobalLock 函数转换为内存指针
+::GlobalReAlloc(.(内存句柄,新的长度,分配选项) = 改变GlobalAlloc函数申请的内存大小\n分配选项参考 GlobalAlloc() 说明
+::GlobalLock(__/*内存句柄*/) = 锁定::GlobalAlloc(0x2/*_GMEM_MOVEABLE*/)创建的内存句柄,\n并返回内存指针指针
+::GlobalUnlock(__/*内存句柄*/) = 解锁::GlobalAlloc(0x2/*_GMEM_MOVEABLE*/)创建的内存句柄,\n成功返回true
+::GlobalFree(__/*内存句柄*/) = 释放::GlobalAlloc()分配的内存\n如果成功返回null,否则返回传入句柄
+::GlobalSize(__/*内存句柄*/) = 获取内存长度
+::CopyMemory(.(目标内存地址,源地址,源数据长度) = 复制内存\n此函数调用::Kernel32.RtlMoveMemory
+::CopyMemoryByStruct(.(目标内存地址,源结构体,源结构体长度) = 复制结构体到目标内存\n此函数调用::Kernel32.RtlMoveMemory
+::GetLastError() = 返回系统错误代码
+::Ucrtbase = UCRT 运行时，\nWindows 10 以及之后的系统已经自带了 UCRT。\n\n加载此 DLL 的代码如下：\n::Ucrtbase := ..raw.loadDll("ucrtbase.dll",,"cdecl");\n注意等号前必须加冒号。\n!dllmodule.
+end intellisense**/

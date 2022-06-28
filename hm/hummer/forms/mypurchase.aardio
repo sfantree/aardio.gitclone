@@ -1,0 +1,163 @@
+import win.ui;
+import sqlite;
+import time;
+import web.form.sockpuppet;
+import formtool;
+import debug.log4a;
+
+debug.log4a.init("mypurchase", "/log/mypurchase");
+var db = sqlite("/hummer.dll");//打开数据库连接
+/*DSG{{*/
+var winform = win.form(text="我的抢购";right=836;bottom=478)
+winform.add(
+buttonCreate={cls="button";text="新建";left=312;top=192;right=422;bottom=222;z=15};
+buttonDelete={cls="button";text="删除";left=580;top=192;right=690;bottom=222;z=16};
+buttonQuery={cls="button";text="查询";left=372;top=121;right=482;bottom=151;z=9};
+buttonReset={cls="button";text="重置";left=522;top=120;right=632;bottom=150;z=10};
+buttonUpdate={cls="button";text="修改";left=449;top=192;right=559;bottom=222;z=17};
+comboboxPurchaseStatus={cls="combobox";left=97;top=68;right=223;bottom=94;edge=1;items={"全部";"未执行";"成功";"失败"};mode="dropdown";z=4};
+customWeb={cls="custom";left=37;top=25;right=38;bottom=26;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;hide=1;repeat="center";z=18};
+datetimeBegin={cls="datetimepick";left=372;top=22;right=497;bottom=48;edge=1;z=6};
+datetimeEnd={cls="datetimepick";left=522;top=21;right=647;bottom=47;edge=1;z=7};
+editPurchaseId={cls="edit";left=96;top=23;right=223;bottom=49;edge=1;z=13};
+groupbox2={cls="groupbox";text="操作";left=4;top=165;right=835;bottom=226;edge=1;z=14};
+groupboxQuery={cls="groupbox";text="查询";left=4;top=1;right=835;bottom=164;edge=1;z=1};
+listview={cls="listview";left=2;top=233;right=834;bottom=478;edge=1;z=2};
+static={cls="static";text="Static";left=122;top=136;right=123;bottom=137;transparent=1;z=11};
+static2={cls="static";text="-";left=506;top=24;right=518;bottom=44;transparent=1;z=8};
+staticPurchase={cls="static";text="编号:";left=56;top=27;right=90;bottom=53;transparent=1;z=12};
+staticPurchaseStatus={cls="static";text="状态:";left=52;top=73;right=86;bottom=99;transparent=1;z=3};
+staticPurchaseTime={cls="static";text="起止时间:";left=304;top=22;right=369;bottom=53;transparent=1;z=5}
+)
+/*}}*/
+
+winform.datetimeBegin.setFormat("yyyy-MM-dd");
+winform.datetimeEnd.setFormat("yyyy-MM-dd");
+
+//动态表格
+winform.listview.insertColumn("编号",86);
+winform.listview.insertColumn("抢购时间",120);
+winform.listview.insertColumn("平台",40);
+winform.listview.insertColumn("状态",50);
+winform.listview.insertColumn("备注",150);
+winform.datetimeBegin.time = time.now().addday(-30);
+winform.datetimeEnd.time = time.now();
+
+winform.listview.setExtended(0x4/*_LVS_EX_CHECKBOXES*/);
+winform.listview.setExtended(0x20/*_LVS_EX_FULLROWSELECT*/);
+winform.listview.setExtended(0x8000000/*_LVS_EX_AUTOCHECKSELECT*/);
+
+//创建web窗体
+var wb = web.form.sockpuppet( winform.customWeb 
+     ,0x8/*_UIFLAG_SCROLL_NO 禁用滚动条*/
+     ,//可输入_DLCTL_ 前缀的常量以控制下载行为
+     ,//"USER AGENT"
+     );
+wb.noScriptErr=true;
+
+//关闭窗口
+winform.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {//判断消息类型
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+            debug.log4a.close();
+        }   
+    }
+    //无返回值则继续调用默认回调函数
+}
+
+//查询登录用户信息
+queryPurchaseInfo = function(queryParam){
+    winform.listview.clear();
+    sqlStr = "SELECT purchase_id, platform, user_id, status, purchase_time, remark from purchase_info where 1=1";
+    if(queryParam["user_id"]){
+        sqlStr = string.concat(sqlStr," and user_id='",queryParam["user_id"],"'");
+    }
+    if(queryParam["status"]){
+        sqlStr = string.concat(sqlStr," and status='",queryParam["status"],"'");
+    }
+    if(queryParam["datetimeBegin"]){
+        sqlStr = string.concat(sqlStr," and purchase_time>='",queryParam["datetimeBegin"]," 00:00:00'");
+    }
+    if(queryParam["datetimeEnd"]){
+        sqlStr = string.concat(sqlStr," and purchase_time<='",queryParam["datetimeEnd"]," 23:59:59'");
+    }
+    sqlStr = string.concat(sqlStr," ORDER BY purchase_time DESC");
+
+    //console.debug(sqlStr);
+    //console.pause();
+    
+    //db.getTable(sqlStr);
+     
+    //迭代方式查询数据 
+	for purchase_id, platform, user_id, status, purchase_time, remark in db.each(sqlStr) {
+	  var statusDesc = (status=="0"?"未执行": (status=="1"?"成功":"失败"));
+      winform.listview.addItem({purchase_id; purchase_time; platform; statusDesc; remark});
+	}
+
+	//分页大小 
+	//var pagesize = 10;
+	//for( page=1;10 ){
+    //    	for(rs,fields in db.each("select * from (
+    //            	select top " + pagesize + " * from (select top " + pagesize * page + " * from tbl order by id desc) order by id
+    //            	) order by id desc") ){ 
+    //            	console.log( rs("id").value,rs("comment").value )  
+    //            	console.more( 10 ) //分页显示
+    //    	} 
+	//}
+
+
+}
+queryPurchaseInfo({});
+
+//查询
+winform.buttonQuery.oncommand = function(id,event){
+    debug.log4a.debug("winform.buttonQuery.oncommand:"+mainForm.staticUserName.text);
+    var queryParam = {};
+    queryParam["user_id"] = mainForm.staticUserName.text;
+    if(""!=string.trim(winform.editPurchaseId.text)){
+       queryParam["purchase_id"] = winform.editPurchaseId.text;
+    }
+    if(""!=winform.comboboxPurchaseStatus.text && "全部"!=winform.comboboxPurchaseStatus.text){
+       var status = (winform.comboboxPurchaseStatus.text=="未执行"?"0": 
+       (winform.comboboxPurchaseStatus.text=="成功"?"1":"2"));
+       queryParam["status"] = status;  
+    } 
+    if(""!=string.trim(winform.datetimeBegin.text)){
+       queryParam["datetimeBegin"] = winform.datetimeBegin.text;
+    }
+    if(""!=string.trim(winform.datetimeEnd.text)){
+       queryParam["datetimeEnd"] = winform.datetimeEnd.text;
+    }
+    debug.log4a.debug("winform.buttonQuery.oncommand:"+queryParam);
+    
+    //判断查询开始日期不能大于结束日期
+    if(queryParam["datetimeBegin"] && queryParam["datetimeEnd"]){
+        if(time(queryParam["datetimeBegin"])>time(queryParam["datetimeEnd"])){
+           winform.msgbox("开始日期不能大于结束日期");
+           return;
+        }
+    }
+	queryPurchaseInfo(queryParam);
+}
+
+//重置
+winform.buttonReset.oncommand = function(id,event){
+	winform.editPurchaseId.text = "";
+	winform.datetimeBegin.text = "";
+	winform.datetimeEnd.text = "";
+}
+
+//新建
+winform.buttonCreate.oncommand = function(id,event){
+	purchasEeditForm=winform.loadForm("\forms\purchaseedit.aardio");  
+	purchasEeditForm.show(); 
+	result = purchasEeditForm.doModal(winform.hwnd);   
+}
+
+//修改
+winform.buttonUpdate.oncommand = function(id,event){
+	
+}
+winform.show();
+win.loopMessage();
+return winform;

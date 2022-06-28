@@ -1,0 +1,18 @@
+import console; 
+import cv2
+img = cv2.imread("D:\workspace\gitee.com\ocr\crnn.gluon\tools\61548\images\312_824141.jpg",0)
+cv2.imshow("img",img )
+//img = cv2.gaussianBlur(img,::SIZE(1,1) )
+//img = cv2.blur(img,::SIZE(3,3))
+//dst = cv2.cvtColor( img,6/*_CV2_COLOR_BGR2GRAY*/)
+dst = cv2.adaptiveThreshold( img,255,1,0x2/*0x0/*_CV2_THRESH_BINARY*/,21,7)
+ 
+cv2.imshow( "dst0",dst )
+kenrel = cv2.getStructuringElement(,::SIZE(1,4))
+kenrel2 = cv2.getStructuringElement(,::SIZE(4,1))
+dst = cv2.threshold( dst,230,255 )
+dst = cv2.dilate( dst,kenrel,2 )
+dst = cv2.erode( dst,kenrel2,2 )
+cv2.imshow("dst",dst )
+cv2.waitKey(0)
+//console.pause(true);

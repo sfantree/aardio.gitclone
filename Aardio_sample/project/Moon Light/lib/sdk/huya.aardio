@@ -1,0 +1,69 @@
+﻿import web.json;    
+import inet.http;
+import crypt;
+
+namespace sdk;
+class huya{
+	ctor(url){
+		var http = ..inet.http();
+		http.disableCache();
+	};
+	getStreamInfo = function(){
+		var html = http.get( url )
+		if( !html ){
+			return null, "网络连接有误"; 
+		}
+		var roomData = ..string.match( html, "<@TT_ROOM_DATA =@>(.+?\})\;" )	
+		var profileData = ..string.match( html, "<@TT_PROFILE_INFO =@>(.+?\})\;" ) 
+		var playerConfig = ..string.match( html , "<@hyPlayerConfig =@>(.+?\})\;" )  
+		if( !(roomData ? profileData) ){
+			return null, "网址数据已更新，暂时不支持"; 
+		}
+		var room = ..web.json.parse( roomData );
+		var profile = ..web.json.parse( profileData );
+		var player = ..web.json.parse( playerConfig )
+			
+		var streamUrl;
+		if( room.isOn ){
+			header = {
+    			['Content-Type'] = 'application/x-www-form-urlencoded';
+    			['User-Agent'] = 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Mobile Safari/537.36';
+   		 	};
+   		 	html = http.get(url, header, "");
+   		 	streamUrl = ..string.match(html, "hasvedio\: '(.+\.m3u8)");
+   		 	streamUrl ?= ..string.replace(streamUrl, "_.*\.m3u8", "\.m3u8");
+   		 	streamUrl ?= "https:" ++ streamUrl;
+			//var gameStreamInfo = player.stream.data[1].gameStreamInfoList[1]
+			//streamUrl = gameStreamInfo.sFlvUrl ++ "/" ++ gameStreamInfo.sStreamName ++ ".flv" ++ "?" ++ gameStreamInfo.sFlvAntiCode
+		}
+		return {
+			website = "huya";
+			roomUrl = url;
+			roomId = profile.profileRoom;
+			ownerName = profile.nick;
+			roomName = room.introduction;
+			isLive = !!room.isOn;
+			streamUrl = streamUrl;
+			avatarUrl = profile.avatar;
+			aid = profile.aid;
+			yyid = profile.yyid;
+		} 
+	}
+}
+namespace huya{
+    info = {
+        name = "虎牙";
+        url = "http://www.huya.com/";
+    }
+    
+ 	canHandle = function(url){
+		return ..string.match( url, "<@www.huya.com/@>(\w+)" ); 
+	}      	
+}
+
+/*
+import console;
+console.open()
+console.dump(huya("https://www.huya.com/20427769").getStreamInfo());
+execute("pause")
+*/

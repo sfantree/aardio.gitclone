@@ -1,0 +1,92 @@
+//多线程实例
+import win.ui;
+import math;
+import thread;
+import thread.manage;
+import time;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=703;bottom=599)
+mainForm.add(
+button={cls="button";text="invoke";left=18;top=485;right=122;bottom=545;z=1};
+button2={cls="button";text="manage+waitOne";left=157;top=485;right=261;bottom=545;z=3};
+button3={cls="button";text="manage";left=296;top=485;right=400;bottom=545;z=4};
+button4={cls="button";text="clear";left=575;top=485;right=679;bottom=545;z=5};
+button5={cls="button";text="thread";left=436;top=485;right=540;bottom=545;z=6};
+listview={cls="listview";left=16;top=10;right=688;bottom=456;ah=1;aw=1;edge=1;z=2}
+)
+/*}}*/
+
+//mainForm.button4.hwnd()
+mainForm.button4.oncommand = function(id,event){
+	mainForm.listview.clear()
+}
+
+math.randomize()
+mainForm.listview.insertColumn("test1",300);
+mainForm.listview.insertColumn("test2",200);
+mainForm.listview.insertColumn("test3",-1);
+
+mainForm.button.oncommand = function(id,event){
+	ss=time.tick()
+	for(i=1;10;1){
+		win.invoke(test,i,"invoke",mainForm.listview.hwnd)
+	}	
+	ee=time.tick()	
+	mainForm.listview.addItem({"======";"====";"@总用时:"+ee-ss})
+}
+
+mainForm.button2.oncommand = function(id,event){
+	ss=time.tick()
+	manage = thread.manage(10)
+	for(i=1;10;1){
+		manage.waitOne()
+		manage.create(test,i,"manage+waitOne",mainForm.listview.hwnd)
+	}
+	manage.waitClose()
+	ee=time.tick()	
+	mainForm.listview.addItem({"======";"====";"@总用时:"+ee-ss})
+}
+
+mainForm.button3.oncommand = function(id,event){
+	ss=time.tick()
+	manage = thread.manage(10)
+	for(i=1;10;1){
+		manage.create(test,i,"manage",mainForm.listview.hwnd)
+	}
+	manage.waitClose()
+	ee=time.tick()	
+	mainForm.listview.addItem({"======";"====";"@总用时:"+ee-ss})
+}
+
+mainForm.button5.oncommand = function(id,event){
+	ss=time.tick()
+	for(i=1;10;1){
+		var th = thread.create(test,i,"thread",mainForm.listview.hwnd)//另一种方式
+		raw.closehandle(th)
+		//sleep(1000)
+	}	
+	ee=time.tick()	
+	mainForm.listview.addItem({"======";"====";"@总用时:"+ee-ss})
+}
+
+test = function(i,name,hwnd){
+	import win;
+	import win.ui.ctrl.listview;
+	import console;
+	
+	listview=win.ui.ctrl.listview()
+	listview.hwnd = hwnd;
+	
+	thread.lock("插入listview")	
+	s=time.tick()
+	for(j=1;10;1){
+		listview.addItem({"线程："+i;name;"循环："+j})
+	}
+	e=time.tick()	
+	sleep(1000)
+	listview.addItem({"@线程："+i;"---------";"@用时:"+e-s})
+	thread.unlock("插入listview");
+}
+
+mainForm.show() 
+return win.loopMessage(); 

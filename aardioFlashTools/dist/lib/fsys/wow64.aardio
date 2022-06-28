@@ -1,0 +1,43 @@
+//wow64 重定位
+import process;
+namespace fsys.wow64;
+
+disableRedirection = function(proc,...){
+    return proc( ... ) 
+}
+
+disableRedirectionEx = function(cb){
+	return cb
+}
+
+try{	
+	if( _WIN_64 && ::Kernel32.api("Wow64DisableWow64FsRedirection") ){
+    	var wow64DisableWow64FsRedirection = ::Kernel32.api( "Wow64DisableWow64FsRedirection", "bool(pointer &OldValue)");
+    	var wow64RevertWow64FsRedirection = ::Kernel32.api( "Wow64RevertWow64FsRedirection", "bool(pointer oldValue)"); 
+    	disableRedirection = function(proc,...){
+        	var ret,oldValue = wow64DisableWow64FsRedirection();
+        	var a = proc( ... );
+        	wow64RevertWow64FsRedirection(oldValue)	
+        	return a; 
+    	}
+    	
+    	disableRedirectionEx = function(cb){
+			return lambda(...) disableRedirection(cb,...);
+		}
+    }
+}
+
+process = function(...){
+	return disableRedirection(lambda(...)..process(...),...)
+}
+
+/**intellisense(fsys)
+wow64 = 64位文件与注册表重定位管理
+wow64.disableRedirection( 回调函数 ) = @.disableRedirection(\n    function(){\n        __/*如果运行于64位暂时禁用文件与注册表重定向\n此函数兼容32位系统\n返回回调函数的首个返回值*/\n    }\n)	
+wow64.process( = 禁用64位文件重定向并运行执行文件或关联文档，兼容32位系统,\n失败则返回 null,错误信息,错误代码\n成功返回进程对象
+wow64.process(.( ,系统命令行) = 如果省略第一个参数,并仅指定命令行,则作为系统命令行启动运行
+wow64.process(.(执行文件,命令行参数,更多命令行参数,->->->) = 命令行参数可以是一个数组或多个字符串参数\n如果命令行参数有多个,则以空格分隔自动合并,\n合并时遇到需要转义的参数则进行转义处理并且首尾添加双引号\n首尾已经有引号的参数不作转义处理,\n命令参数最大长度为8191/0x1FFFF个字符
+wow64.process(.(执行文件,参数,STARTUPINFO) = STARTUPINFO参数为process.STARTUPINFO()结构体,可选参数\n如果该参数是普通table对象.将自动创建为STARTUPINFO结构体
+wow64.process() = !process.
+wow64.disableRedirectionEx( 回调函数 ) = 返回一个调用回调函数并与回调函数拥有相同功能的新函数,\n执行返回函数时禁用文件与注册表重定向
+end intellisense**/

@@ -1,0 +1,39 @@
+//简单数据视图 
+import win.ui;
+import web.form.sockpuppet;
+import web.json;
+import console;
+import zz;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=939;bottom=772;bgcolor=16777215)
+winform.add(
+customWeb={cls="custom";left=36;top=84;right=981;bottom=716;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;repeat="center";z=1};
+edit={cls="edit";left=86;top=27;right=256;bottom=59;edge=1;multiline=1;z=2}
+)
+/*}}*/
+
+//创建web窗体
+var loginWeb = web.form.sockpuppet( winform.customWeb 
+     ,0x8/*_UIFLAG_SCROLL_NO 禁用滚动条*/
+     ,//可输入_DLCTL_ 前缀的常量以控制下载行为
+     ,//"USER AGENT"
+     );
+loginWeb.noScriptErr=true; 
+loginWeb.go("https://www.taobao.com/");
+loginWeb.wait(,4000);
+
+a1 = (string.match(loginWeb.document.cookie,"lgc=([^;]+);"));
+
+               
+console.varDump(a1);
+//console.pause();
+
+
+zz.trace("asdfdsf",1,true);
+// var cookieUserName = loginWeb..get("dnk");
+//console.log("cookieUserName:" + cookieUserName);
+winform.edit.text = loginUserName;
+ 
+winform.show() 
+win.loopMessage();
+return winform;

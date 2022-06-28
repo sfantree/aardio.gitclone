@@ -1,0 +1,58 @@
+﻿//CSS压缩库
+namespace csscompressor;
+
+io = ..io
+fsys = ..fsys
+table = ..table
+string = ..string
+
+var swapfolder = global.swapfolder
+
+purifier = function( filecontent ) {  
+	var replace = string.replace;
+	filecontent = replace(filecontent,'\r',''); //删除回车符
+	filecontent = replace(filecontent,'[\n\t]',' '); //替换为空格(不删除是怕出错)
+	filecontent = replace(filecontent,"/\*.*?\*/"," "); //删除注释
+	filecontent = replace(filecontent,"\s*([\{\}\(\)\;\:\,\!])\s*","\1");//清除符号前后空格
+	filecontent = replace(filecontent,";\s*;",";"); //删除多余的分号
+	filecontent = replace(filecontent,'  +',' '); //多空格替换成单空格
+	filecontent = replace(filecontent,'\,[\s\.\#\d]*\{',"{") //容错处理
+	return string.trim(filecontent); //删除前后空格并返回
+}
+
+pack = function(purifylist){
+	for(n,filepath in purifylist){
+		filename = io.splitpath(filepath).file
+		string.save(
+			swapfolder++"/codepack/"++filename, /*输出到目标文件*/
+			purifier( string.load(filepath) ) /*读取源文件并压缩*/
+		) //保存到临时目录中
+	}
+	return mergeCodeFile("css") //调用返回函数
+}
+
+
+mergeCodeFile = function( filetype ){
+	var compress_content = "" //保存压缩成单文件后的最终内容
+	
+	if( global.mainForm.combo_compress_flag.selIndex==1 ){ //「忽略」操作，不用管顺序
+		fsys.enum( swapfolder++"/codepack/", tostring("*."++filetype),
+			function(dir,filename,fullpath,findData){ 
+				if(filename){
+					compress_content ++= (string.load(fullpath) ++ '\n')
+				}
+			}
+		);
+	} else { //「包含」操作，需要按顺序合并
+		for(n,cssfile in (string.split(global.mainForm.edit_compress_filter.text,"|"))){
+			if(string.trim(cssfile)==""){break} //空文件名（连续的分号）则跳过
+			compress_content ++= ( string.load(swapfolder++"/codepack/"++cssfile) ++ '\n')
+		}
+	}
+	
+	compress_content = string.replace(compress_content,'\r','')
+	compress_content = string.replace(compress_content,'\n\n+','\n')
+	//import console; console.varDump(compress_content)
+	return compress_content; //返回最终压缩内容
+}
+

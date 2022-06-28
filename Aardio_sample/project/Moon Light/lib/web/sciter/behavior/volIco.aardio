@@ -1,0 +1,11 @@
+﻿//volIco 音量图标
+import web.sciter.behavior;
+import web.sciter.behavior.player;
+
+var mpv = web.sciter.behavior.player.mpv;
+
+namespace web.sciter.behavior.volIco{
+	onButtonStateChanged = function (scTarget,scOwner,reason,behaviorParams) {
+		mpv.mute( !scOwner.state.checked )
+	}	
+}

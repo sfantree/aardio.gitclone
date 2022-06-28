@@ -1,0 +1,13 @@
+import console; 
+import raw.pefile
+
+pe = raw.pefile("/lib/cv2/.res/OpenCvSharpExtern.dll" )
+
+info = pe.getExportDirectory()
+f = io.open("export.txt","w+")
+for(k,v in info.names){
+    console.log(v)
+	f.write(v,'\n')
+}
+
+console.pause(true);

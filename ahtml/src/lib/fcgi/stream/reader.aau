@@ -1,0 +1,31 @@
+namespace fcgi.stream;
+
+reader = class {
+	ctor (f) {
+		this._file = f;
+	}
+	
+	readHeader = function () {
+		var header = ..fcgi.FCGI_Header();
+		this._file.read(header);
+		return header;
+	}
+	
+	read = function (...) {
+		return this._file.read(...);
+	}
+	
+	readByte = function () {
+		return this._file.read({ BYTE byte }).byte;
+	}
+	
+	readLength = function () {
+		var len = this.readByte();
+		if (len >> 7 == 0) return len;
+		len = (len & 0x7f) << 24;
+		len += (this.readByte() << 16);
+		len += (this.readByte() << 8);
+		len += (this.readByte());
+		return len;
+	}
+}

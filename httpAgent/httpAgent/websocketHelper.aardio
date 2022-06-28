@@ -1,0 +1,62 @@
+﻿import httpAgent.websocketTask;
+
+namespace httpAgent;
+
+class websocketHelper{
+	ctor(  ){
+		this.count = 0;
+		this.connIdList = {
+			tcpList = {};
+			sslList = {};
+			["add"] = function(isSSL,connId,task){
+				if (!connId && !task) return ; 
+				owner[isSSL?"sslList":"tcpList"][tostring(connId)] = task; 
+				this.count += 1;
+			}
+			["destory"] = function(isSSL,connId){
+				if !connId return ;
+				owner[isSSL?"sslList":"tcpList"][tostring(connId)] = null;
+				this.count -= 1;
+			}
+			["find"] = function(isSSL,connId){
+				return owner[isSSL?"sslList":"tcpList"][tostring(connId)];
+			};
+		}
+	};
+	newConnId = function(socket,connId, url){
+		if (!connId) or (!socket) return ; 
+		var wsTask = ..httpAgent.websocketTask(socket,connId, url)
+		this.connIdList.add(url.ssl,connId,wsTask);
+		return wsTask; 
+	}
+	isChild = function(isSSL,connId){
+		return ( owner.connIdList.find(isSSL,connId) )?true:false; 
+	}
+	exist = function(url){
+		for k,j in owner.connIdList[ (url.ssl)?"sslList":"tcpList" ]{
+			if ( (j.url.scheme == url.scheme) &&
+					(j.url.host == url.host) &&
+					(j.url.port == url.port) &&
+					(j.url.uri  == url.uri) ) return true,j; 
+		}
+		return false; 
+	}
+	onWsMessageComplete = function(isSSL,connId,message){
+		if (!owner.isChild(isSSL,connId)) return null;
+		var task = owner.connIdList.find(isSSL,connId);
+		if (!task) return null; 
+		if (task.onWsMessage){ task.onWsMessage(message);}
+	}
+	onClose = function(isSSL,connId,enOperation,errCode){
+		if (!owner.isChild(isSSL,connId)) return null;
+		
+		var task = owner.connIdList.find(isSSL,connId);
+		if (!task) return null; 
+		
+		if (task.onClose){ task.onClose(enOperation,errCode) };
+		owner.closeConnId(isSSL,connId);
+	}
+	closeConnId = function(isSSL,connId){
+		owner.connIdList.destory(isSSL,connId);
+	}
+}

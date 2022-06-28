@@ -1,0 +1,57 @@
+
+//业层服务层,业务逻辑实现,原则这层不写sql语句
+namespace svc.web.webCategorySvc
+
+import common.jsTree;
+import dbase.mysql.webCategoryDB;
+
+string = ..string;
+table = ..table;
+
+var webCategoryDB = dbase.mysql.webCategoryDB;
+
+getPageList = function(tabPage){
+	var mainSql = "select * from category";
+	var where = "1=1 ";
+	var txt = tabPage.search;
+	if( #txt ){
+		txt = string.replace(txt,"'","''");
+		//where += "and (ShopName+Address) like '%" ++ txt ++ "%'";//mssql
+		//where += "and CONCAT(SystemUserName,' ',LoginAccount) like '%" ++ txt ++ "%'";//mysql
+	}
+	//where = webCategoryDB.formatSqlParameters(where);
+	var orderby = "categoryId desc";
+	return webCategoryDB.getPageList(tabPage, mainSql, orderby, where);
+}
+
+save = function(tpost){
+	var tabAdminLogin = ..carl.session.get("tabAdminLogin");
+	var ok,err;
+	var categoryId = tpost.categoryId;
+	if( #categoryId ){
+		tpost.TrTime = ..common.getNowTime();
+		tpost.TrUser = tabAdminLogin.SystemUserName;
+		ok,err = webCategoryDB.update(tpost,"categoryId=@categoryId",{categoryId=categoryId}); 
+	}
+	else {
+		tpost.CrTime = ..common.getNowTime();
+		tpost.CrUser = tabAdminLogin.SystemUserName;
+		ok,err = webCategoryDB.insert(tpost); 
+	}
+	return ok,err; 
+}
+
+getInfo = function(categoryId){
+	var tab,err = webCategoryDB.getFirstList("categoryId=@categoryId",{categoryId=categoryId});
+	if(!tab) return null,err;
+	if( !table.count(tab) ) return null,"无记录";
+	return tab;
+}
+
+getCategoryTree = function(){
+	var tab,err = webCategoryDB.getAllList("UseFlag='1' order by sortId");
+	if(!tab) return null,err;
+	var jsTree = common.jsTree(tab,"CategoryId","CategoryName","ParentId");
+	var tabTree = jsTree.toTreeList();
+	return tabTree;
+}

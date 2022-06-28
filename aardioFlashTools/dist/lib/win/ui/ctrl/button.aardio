@@ -1,0 +1,344 @@
+﻿//button 按钮
+import win.ui.ctrl.metaProperty;
+import com.picture;
+namespace win.ui.ctrl; 
+
+class button{
+    ctor(parent,tParam){ 
+    	if( tParam ){
+			if(tParam.flat) tParam.style |= 0x8000/*_BS_FLAT*/;
+			if(tParam.default) tParam.style |= 0x1/*_BS_DEFPUSHBUTTON*/;
+			if(tParam.edge) tParam.exstyle |= 0x20000/*_WS_EX_STATICEDGE*/;	
+			if(tParam.multiline ) tParam.style |= 0x2000/*_BS_MULTILINE*/
+			if(tParam.note){
+				var version = {
+  					INT cbSize = 20;
+  					INT major;
+  					INT minor;
+  					INT build;
+  					INT platformId;
+				} 
+				
+				if( (  ::Comctl32.DllGetVersion( version ) >=0/*_SUCCEEDED*/ )
+					&&  ( version.major >=6 && version.minor >= 10 ) ){
+					tParam.style |= 0xE/*_BS_COMMANDLINK*/; 
+				}
+				else {
+					tParam.note = null;	
+				}
+			}
+			
+			tParam.style |=  0x2000/*_BS_MULTILINE*/;
+			
+			if(tParam.ownerDraw) 
+				tParam.style |= 0xB/*_BS_OWNERDRAW*/
+				
+			select(tParam.align) {
+				case  "left"  
+	   			tParam.style |= 0x100/*_BS_LEFT*/;
+				case "right" 
+	   			tParam.style |= 0x200/*_BS_RIGHT*/; 
+				else 
+	   			tParam.style |= 0x300/*_BS_CENTER*/;  
+			}
+			
+			select(tParam.valign) {
+				case  "top"  
+	   			tParam.style |= 0x400/*_BS_TOP*/;
+				case "bottom" 
+	   			tParam.style |= 0x800/*_BS_BOTTOM*/; 
+				else 
+	   			tParam.style |= 0xC00/*_BS_VCENTER*/;  
+			} 
+		} 
+	}
+	@_metaProperty;
+}
+
+var loadIpicture = ..com.picture.load;
+button._metaProperty = metaProperty(
+	image = {
+		_get = function(){   
+			return topointer(  
+				::SendMessage(owner.hwnd, 0x00F6/*_BM_GETIMAGE*/,
+			    	..win.getStyle(owner.hwnd,0x80/*_BS_BITMAP*/)?0x173/*_STM_GETIMAGE*/: 0x171/*_STM_GETICON*/ 
+			    ) 
+			)
+		}
+		_set = function( v ){
+			if(type(v)==type.pointer)
+				return owner.setImage(h);
+				
+			var ipic = loadIpicture(v)
+			if(!ipic){
+				owner.modifyStyle( 0x3/*_SS_ICON*/  |  0xE/*_SS_BITMAP*/);
+				return;
+			}
+			
+			var hpic,imgtype = ipic.CopyHandle() ; 
+			if( imgtype ==0x1/*_IMAGE_ICON*/ )	{  
+			     owner.setIcon(hpic); 
+		    }
+		    else if( imgtype ==0x0/*_IMAGE_BITMAP*/ ){
+		        owner.setImage(hpic); 
+		    }
+		    ..com.Release(ipic)
+		} 	
+	}   
+	setImage = function(h,delPrev=true,bs=0x80/*_BS_BITMAP*/,tt=0/*_IMAGE_BITMAP*/){
+		owner.modifyStyle( 0x80 | 0x40 ,bs);
+		var retPrev = ::SendMessage(owner.hwnd,0xF7/*_BM_SETIMAGE*/, topointer(tt),h);
+		if(retPrev){
+			if(delPrev){
+				::DeleteObject(topointer(retPrev));
+				retPrev = true;
+			}
+		}
+		return retPrev;
+	} 
+	setIcon = function(h,delPrev=true){ 
+		return owner.setImage(h,delPrev,0x40/*_BS_ICON*/,0x1/*_IMAGE_ICON*/) 
+	}
+	note = {
+		_set = function( v ){
+			 ::User32.SendMessage(owner.hwnd,0x1609/*BCM_SETNOTE*/, 0,v );
+		}
+		_get = function(){
+			var ok,size,buffer =  ::User32.SendMessage(owner.hwnd,0x160A/*BCM_GETNOTE*/,{INT len = 128},{WORD str[128]} )
+			if(ok) return buffer.str; 
+		}	
+	}   
+)
+
+class radiobutton{
+    ctor(parent,tParam){ 
+       if( tParam ){
+       	tParam.style |= 0x9/*_BS_AUTORADIOBUTTON*/  //BS_RADIOBUTTON 
+       	tParam.cls = "button" 
+       	if(tParam.edge) tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/;
+       	if(tParam.ownerDraw) 
+				tParam.style |= 0xB/*_BS_OWNERDRAW*/
+       }
+    }
+	@_metaProperty;
+}
+radiobutton._metaProperty = metaProperty(
+
+	checked = {
+		_get = function(){ 
+			 return  ::SendMessage(owner.hwnd ,0xF0/*_BM_GETCHECK*/);
+		}
+		_set = function( v ){
+			::SendMessage(owner.hwnd ,0xF1/*_BM_SETCHECK*/,topointer(v?1:0));
+		} 	
+	}
+)
+ 
+
+class checkbox{
+    ctor(parent,tParam){ 
+       if( tParam ){
+		tParam.style |= 0x3/*_BS_AUTOCHECKBOX*/  
+		tParam.cls = "button" //这个类名仅用于创建窗口 
+		if(tParam.edge) tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/;
+		if(tParam.ownerDraw) 
+				tParam.style |= 0xB/*_BS_OWNERDRAW*/
+       }
+    }
+	@_metaProperty;
+}
+checkbox._metaProperty = metaProperty(
+
+	checked = {
+		_get = function(){ 
+			 return ::User32.SendMessageB(owner.hwnd ,0xF0/*_BM_GETCHECK*/,0,0);
+		}
+		_set = function( v ){
+			::User32.SendMessage(owner.hwnd ,0xF1/*_BM_SETCHECK*/,v?1:0,0);
+		} 	
+	}
+)
+  
+class groupbox{
+    ctor(parent,tParam){  
+    	if( tParam ){
+    		tParam.style |= 0x7/*_BS_GROUPBOX*/  
+    		tParam.cls = "button" //这个类名仅用于创建窗口 
+			if(tParam.edge) tParam.style |= 0x20000/*_WS_EX_STATICEDGE*/;
+		}	 
+    }
+    onCreated =  function(){
+    	this.translateCommand();
+    } 
+	@_metaProperty;
+}
+groupbox._metaProperty = metaProperty( )
+
+/***intellisense() 
+!button.cls = 设计时类名
+!button.className = 运行时类名
+!button.text = 按钮文本属性
+!button.disabledText = @.disabledText = {"✶";"✸";"✹";"✺";"✹";"✷"}__/*指定文本时,禁用此控件,并显示指定文本,\n指定为数组时,创建动画并在主文本前循环显示数组中的字符串,\n数组可选用 text 属性指定按钮禁用状态按钮主文本,\n指定为null时,启用此控件,并恢复控件之前的正常文本*/
+!button.note = 设置按钮附注\n必须在创建控件的初始化参数中也指定该属性,\n\n指定该属性会切换为「命令链接」样式,\n支持Vista,Win7 以及之后的系统,不支持 XP 系统\n「命令链接」样式忽略控件的字体设置
+!button.hwnd = 控件句柄
+!button.id = 控件ID 
+!button._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!button.getParent() = 返回父窗口\n!static.
+!button.setParent(__/*控件对象*/) = 改变父窗口  
+!button.hide = 控件是否隐藏
+!button.disabled = 是否禁用
+!button.left = 左侧坐标
+!button.right = 右侧坐标
+!button.top = 顶部坐标
+!button.bottom = 底部坐标
+!button.width = 宽度
+!button.height = 高度
+!button.redraw() = 刷新
+!button.show(true__) = 显示控件
+!button.getRect() = 控件区块位置(::RECT结构体)
+!button.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!button.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!button.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)  
+!button.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!button.getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+!button.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!button.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!button.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!button.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!button.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!button.capture = 是否捕获全局鼠标消息
+!button.close() = 关闭控件窗口
+!button.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!button.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!button.update() = 重绘invalidate函数指定的区块
+!button.setFocus() = 设置焦点 
+!button.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!button.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+!button.image = 按钮图片或图标\n赋值必须是图片文件路径或数据\n位图句柄由窗体负责销毁\n取值时返回位图句柄
+!button.setIcon(__/*图标句柄*/) = 设置图标\n成功返回true,自动销毁原来的位图
+!button.setImage(__/*图片句柄*/) = 设置图片\n成功返回true,自动销毁原来的位图
+!button.setIcon(__/*图标句柄*/,false) = 设置图标\n成功返回控件原来的位图句柄,\n必须调用::DeleteObject()函数销毁该句柄
+!button.setImage(__/*图片句柄*/,false) = 设置图片\n成功返回控件原来的位图句柄,\n必须调用::DeleteObject()函数销毁该句柄
+!button.saveScale() = 根据控件当前位置、缩放比例，更新控件的设计时位置参数。\n以避免下次窗口缩放自适应调整控件当前位置更改被清除，\n控件所有调整位置的属性或成员函数已自动调用此函数。
+!button.reloadScale() = 按设计时位置参数、重新调整控件位置以适应窗口当前缩放比例。\n父窗口缩放时会自动执行此操作。\n默认在启动窗口消息循环时会自适应调整所有控件。\n所以在启动消息循环前添加控件不必调用此函数。
+!button.threadCallable() = 开启此控件的跨线程调用功能
+!button.orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效\n此控件不建议指定参数
+!button.onMeasureItem(measureItem,dpiScaleX,dpiScaleY) = @.onMeasureItem = function(measureItem){
+	measureItem.itemHeight = 51;  
+	__/*控件属性里指定 ownerDraw 为 true 触发此事件\n在这里配置自绘控件项参数*/
+} 
+!button.onDrawItem(drawItem,dpiScaleX,dpiScaleY) = @.onDrawItem = function(drawItem){
+	__/*控件属性里指定 ownerDraw 为 true 触发此事件\n在这里自绘控件项*/	
+} 
+!button.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!button.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!button.publish("__/*发布消息名*/",) = 在窗口所在界面线程发布消息,\n运行界面线程所有所有调用subscribe函数订阅此消息的函数,\n可添加任意个触发参数
+!button._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+!button.dpiScaleX = 窗口当前使用的DPI横坐标缩放系数,\n该值由界面系统自动维护，任何情况下都不应手动修改,\n\n这是一个以小数表示百分比的数，例如 1.25 表示 125%,\n窗口未使用缩放或未完成缩放初始化时，值可能为 null，\n如果要获取屏幕缩放设置应改用 gdi.getDpiScale 函数
+!button.dpiScaleY = 窗口当前使用的DPI纵坐标缩放系数,\n该值由界面系统自动维护，任何情况下都不应手动修改,\n\n这是一个以小数表示百分比的数，例如 1.25 表示 125%,\n窗口未使用缩放或未完成缩放初始化时，值可能为 null，\n如果要获取屏幕缩放设置应改用 gdi.getDpiScale 函数
+?win.ui.ctrl.button  =!button. 
+win.ui.ctrl.button() = 控钮控件\ncheckbox.radiobutton 等控件继承自 button 控件,\nbutton 控件默认会忽略背景色、字体颜色属性,\n在创建参数中指定 note 属性时会切换为「命令链接」样式\n!button. 
+?win.ui.ctrl.groupbox  =!static. 
+win.ui.ctrl.groupbox() = 控钮控件\n!static.
+end intellisense***/
+
+/***intellisense()
+?win.ui.ctrl.checkbox  =!checkbox.
+win.ui.ctrl.checkbox() = 复选控钮控件\n!checkbox.
+!checkbox.checked = 复选框是否选中状态
+!checkbox.hwnd = 控件句柄
+!checkbox.id = 控件ID
+!checkbox._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!checkbox.getParent() = 返回父窗口\n!static.
+!checkbox.setParent(__/*控件对象*/) = 改变父窗口 
+!checkbox.hide = 控件是否隐藏
+!checkbox.disabled = 是否禁用
+!checkbox.left = 左侧坐标
+!checkbox.right = 右侧坐标
+!checkbox.top = 顶部坐标
+!checkbox.bottom = 底部坐标
+!checkbox.width = 宽度
+!checkbox.height = 高度
+!checkbox.redraw() = 刷新
+!checkbox.show(true__) = 显示控件
+!checkbox.getRect() = 控件区块位置(::RECT结构体)
+!checkbox.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!checkbox.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!checkbox.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体) 
+!checkbox.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!checkbox.getFont() = 控件字体(::LOGFONT结构体)\n!logfont\n!logfont.
+!checkbox.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!checkbox.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!checkbox.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!checkbox.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!checkbox.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!checkbox.capture = 是否捕获全局鼠标消息
+!checkbox.close() = 关闭控件窗口
+!checkbox.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!checkbox.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!checkbox.update() = 重绘invalidate函数指定的区块
+!checkbox.setFocus() = 设置焦点 
+!checkbox.threadCallable() = 开启此控件的跨线程调用功能
+!checkbox.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!checkbox.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+!checkbox.onMeasureItem(measureItem) = @.onMeasureItem = function(measureItem){
+	measureItem.itemHeight = 51;  
+} 
+!checkbox.onDrawItem(drawItem) = @.onDrawItem = function(drawItem){
+	
+} 
+!checkbox.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!checkbox.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!checkbox._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+end intellisense***/
+
+
+/***intellisense()
+?win.ui.ctrl.radiobutton  =!radiobutton.
+win.ui.ctrl.radiobutton() = 单选控钮控件\n!radiobutton.
+!radiobutton.checked = 单选按钮否选中状态
+!radiobutton.hwnd = 控件句柄
+!radiobutton.id = 控件ID
+!radiobutton._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!radiobutton.getParent() = 返回父窗口\n!static.
+!radiobutton.setParent(__/*控件对象*/) = 改变父窗口 
+!radiobutton.hide = 控件是否隐藏
+!radiobutton.disabled = 是否禁用
+!radiobutton.left = 左侧坐标
+!radiobutton.right = 右侧坐标
+!radiobutton.top = 顶部坐标
+!radiobutton.bottom = 底部坐标
+!radiobutton.width = 宽度
+!radiobutton.height = 高度
+!radiobutton.redraw() = 刷新
+!radiobutton.show(true__) = 显示控件
+!radiobutton.getRect() = 控件区块位置(::RECT结构体)
+!radiobutton.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!radiobutton.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!radiobutton.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体) 
+!radiobutton.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!radiobutton.getFont() = 控件字体(::LOGFONT结构体)\n!logfont\n!logfont. 
+!radiobutton.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!radiobutton.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!radiobutton.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!radiobutton.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!radiobutton.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!radiobutton.capture = 是否捕获全局鼠标消息
+!radiobutton.close() = 关闭控件窗
+!radiobutton.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!radiobutton.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!radiobutton.update() = 重绘invalidate函数指定的区块
+!radiobutton.setFocus() = 设置焦点 
+!radiobutton.threadCallable() = 开启此控件的跨线程调用功能
+!radiobutton.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!radiobutton.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+!radiobutton.onMeasureItem(measureItem) = @.onMeasureItem = function(measureItem){
+	measureItem.itemHeight = 51;  
+} 
+!radiobutton.onDrawItem(drawItem) = @.onDrawItem = function(drawItem){
+	
+} 
+!radiobutton.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!radiobutton.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!radiobutton._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+end intellisense***/

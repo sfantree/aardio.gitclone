@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="iframe-h">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="renderer" content="webkit">
+  		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title>网站后台管理模版</title>
+		<link rel="stylesheet" type="text/css" href="../../static/admin/layui/css/layui.css"/>
+		<link rel="stylesheet" type="text/css" href="../../static/admin/css/admin.css"/>
+	</head>
+	<body class="iframe-h">
+		<div class="email-write">
+		<form class="layui-form">
+			<div class="layui-form-item">
+					<input type="text" name="name" lay-verify="name" autocomplete="off" placeholder="请输入收件人" class="layui-input">
+			</div>
+			<div class="layui-form-item">
+					<input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入主题" class="layui-input">
+			</div>
+			<div class="layui-form-item layui-form-text">
+					<textarea class="layui-textarea layui-hide" name="content" lay-verify="content" id="LAY_demo_editor"></textarea>
+			</div>
+			<div class="layui-form-item">
+					<button class="layui-btn layui-btn-normal" lay-submit="" lay-filter="demo1"><i class="layui-icon">&#xe609;</i> 立即发送</button>
+					<button type="reset" class="layui-btn layui-btn-primary"><i class="layui-icon">&#x1006;</i> 放弃</button>
+					<button class="layui-btn layui-btn-primary "><i class="layui-icon">&#xe642;</i> 存为草稿</button>
+			</div>
+		</form>
+		</div>
+		<script src="../../static/admin/layui/layui.js" type="text/javascript" charset="utf-8"></script>
+		<script>
+			layui.use(['form', 'layedit', 'laydate'], function(){
+			  var form = layui.form()
+			  ,layer = layui.layer
+			  ,layedit = layui.layedit
+			  ,laydate = layui.laydate;
+			  
+			  //创建一个编辑器
+			  var editIndex = layedit.build('LAY_demo_editor');
+			  
+			  //监听提交
+			  form.on('submit(demo1)', function(data){
+			    layer.alert(JSON.stringify(data.field), {
+			      title: '最终的提交信息'
+			    })
+			    return false;
+			  });
+			  
+			  
+			});
+		</script>
+</body>
+</html>

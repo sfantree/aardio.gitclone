@@ -1,0 +1,97 @@
+
+var d = ... : {};
+
+owner.view.loadcode("web.common.header",...);
+
+?>
+<div class="main layui-clear">
+  <div class="fly-panel" pad20>
+    <h2 class="page-title"><?=d.title?></h2>
+    <? if(d.limit == -1){ ?>
+    <div class="fly-none"><?=d.msg?></div>
+    <? } else { ?>
+    <div class="layui-form layui-form-pane">
+      <form action="<?=mvcapp.urlAction("save","web.post")?>" method="post">
+        <div class="layui-form-item">
+          <label for="L_title" class="layui-form-label">标题</label>
+          <div class="layui-input-block">
+            <? if(d.edit){ ?>
+            <input type="text" id="L_title" name="title" required lay-verify="required" autocomplete="off" value="<?=d.detail.PostTitle?>" <?= (d.limit == 1 ? 'required ' : 'readonly ') ?> title="<?=d.msg?>" class="layui-input">
+            <input type="hidden" name="id" value="<?=d.detail.PostId?>">
+            <? } else { ?>
+            <input type="text" id="L_title" name="title" required lay-verify="required" autocomplete="off" class="layui-input">
+            <? } ?>
+          </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+          <div class="layui-input-block">
+            <textarea id="L_content" name="content" required lay-verify="required" placeholder="请输入内容" class="layui-textarea fly-editor" style="height: 260px;"><?=d.edit ? d.detail.PostContent : ''?></textarea>
+          </div>
+          <label for="L_content" class="layui-form-label" style="top: -2px;">描述</label>
+        </div>
+        <div class="layui-form-item">
+          <div class="layui-inline">
+            <label class="layui-form-label">所在类别</label>
+            <div class="layui-input-block">
+              <select lay-verify="required" name="categoryId">
+                <option></option>
+                <?
+                for(i=1;#d.tabCategory;1){
+                	var row = d.tabCategory[i];
+                	?>
+                	<optgroup label="<?=row.text?>">
+                	<?
+                	for(j=1;#row.children;1){
+                		var row2 = row.children[j];
+                 		?>
+                		<option value="<?= row2.id ?>" <?=(d.edit && d.detail.CategoryId == row2.id) ? 'selected' : ''?>><?= row2.text ?></option>
+                 		<?
+                	}
+                	?>
+                	</optgroup>
+                	<?
+                }
+                ?>
+              </select>
+            </div>
+          </div>
+          <!--
+          <div class="layui-inline">
+            <label class="layui-form-label">悬赏飞吻</label>
+            <div class="layui-input-block">
+              <select name="experience">
+                <option value="5" <?=(d.edit && d.detail.experience == 5) ? 'selected' : ''?>>5</option>
+                <option value="20" <?=(d.edit && d.detail.experience == 20) ? 'selected' : ''?>>20</option>
+                <option value="50" <?=(d.edit && d.detail.experience == 50) ? 'selected' : ''?>>50</option>
+                <option value="100" <?=(d.edit && d.detail.experience == 100) ? 'selected' : ''?>>100</option>
+              </select>
+            </div>
+          </div>
+          -->
+        </div>
+        <div class="layui-form-item">
+          <label for="L_vercode" class="layui-form-label">验证码</label>
+          <div class="layui-input-inline">
+            <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="点击输入验证码" autocomplete="off" class="layui-input">
+          </div>
+          <div class="layui-form-mid">
+            <img id="img_vercode" style="cursor:pointer;" />
+          </div>
+        </div>
+        <div class="layui-form-item">
+          <button class="layui-btn" lay-filter="*" lay-submit>立即发布</button>
+        </div>
+      </form>
+    </div>
+    <? } ?>
+  </div>
+
+</div>
+
+<? 
+owner.view.loadcode("web.common.footer");
+owner.view.loadcode("web.common.code");
+?>
+
+</body>
+</html>

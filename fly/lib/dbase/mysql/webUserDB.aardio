@@ -1,0 +1,17 @@
+
+//数据库操作层,sql语句请写在本层
+import dbase.mysql;
+
+var tableName = "web_user";		//表名
+var tableKeyId = "UserId";	//主键字段名
+var tableKeyIdIsAuto = false;//主键是否自增,由数据库自增设为true,由自己管理主键设为false
+
+var database = ..dbase.mysql(tableName, tableKeyId, tableKeyIdIsAuto);
+dbase.mysql.webUserDB = database;
+
+namespace dbase.mysql.webUserDB
+
+string = ..string;
+table = ..table;
+
+//在这自定义数据库操作函数

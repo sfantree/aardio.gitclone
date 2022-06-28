@@ -1,0 +1,68 @@
+﻿/**
+
+**/
+namespace internationalData{
+	var languagePath = "/conf/language/language-data.ini";
+	var internationalPath = "/conf/language/international-data.ini";
+	
+	LanguageTable = {
+		[2057] = "en"; //英文
+        [2052] = "zh_CN";//中文（简体）
+	}
+
+	
+	getValue = function(key){
+		import fsys.ini;
+		import console;
+		ini=fsys.ini(internationalPath)
+		var value = ini.read(getLanguage(),key)
+		if(value==null){
+			return ""; 
+		}
+		return value; 
+	}
+	
+	getValueForLanguageAndKey = function(language,key){
+		import fsys.ini;
+		import console;
+		
+		if(language==null || language==''){
+			var id = ::Kernel32.GetUserDefaultUILanguage()
+			language = LanguageTable[id];
+			if(language == null){
+				language = "en"
+			}
+		}
+		ini=fsys.ini(internationalPath)
+		var value = ini.read(language,key)
+		if(value==null){
+			return ""; 
+		}
+		return value; 
+	}
+	
+	getLanguage = function(){
+		import fsys.ini;
+		import constant;
+		ini=fsys.ini(constant.getUserConfPath())
+		sec_ot = ini.getSection("other");
+		if(sec_ot.selectedLanguage == null || sec_ot.selectedLanguage == ""){
+			var id = ::Kernel32.GetUserDefaultUILanguage();
+			var nowLanguage = LanguageTable[id];
+			if(nowLanguage == null){
+				nowLanguage = "en"
+			}
+			sec_ot.selectedLanguage = nowLanguage;
+		}
+		return sec_ot.selectedLanguage; 
+	}
+	
+	
+	getLanguageList = function(){
+		import console;
+		import fsys.ini;
+		var ini=fsys.ini(languagePath)
+		var languageList = ini.getSection(getLanguage())
+		return languageList; 
+	}
+}

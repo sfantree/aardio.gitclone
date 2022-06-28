@@ -1,0 +1,48 @@
+﻿import aaz.libhpsocket.ssl;
+
+namespace aaz.libhpsocket.ssl.component.properties.agent;
+var _dll = ..aaz.libhpsocket._dll;
+
+setupSSLContext = function(verifyMode=0, pemCertFile, pemKeyFile, keyPassword, caPemCertFileOrPath){
+	return !!_dll.HP_SSLAgent_SetupSSLContextW(owner.pAgent, verifyMode, pemCertFile, pemKeyFile, keyPassword, caPemCertFileOrPath);
+}
+
+setupSSLContextByMemory = function(verifyMode, pemCert, pemKey, keyPassword, caPemCert){
+	return _dll.HP_SSLAgent_SetupSSLContextByMemoryB(owner.pAgent, verifyMode, pemCert, pemKey, keyPassword, caPemCert); 
+}
+
+cleanupSSLContext = function(){
+	return _dll.HP_SSLAgent_CleanupSSLContextB(owner.pAgent);
+}
+
+getSSLSessionInfo = function(connId, sslSessionInfo){
+	var info = {ptr value}
+	return _dll.HP_SSLAgent_GetSSLSessionInfoB(owner.pAgent, connId, sslSessionInfo, info), info.value; 
+}
+
+startSSLHandShake = function(connId){
+	return _dll.HP_SSLAgent_StartSSLHandShakeB(owner.pAgent, connId);
+}
+
+isSSLAutoHandShake = {
+    _get = function(){
+    	return _dll.HP_SSLAgent_IsSSLAutoHandShakeB(owner.pAgent); 
+    }
+    
+    _set = function(v){
+    	_dll.HP_SSLAgent_SetSSLAutoHandShake(owner.pAgent, v);
+    } 
+}
+
+sslCipherList = {
+    _get = function(){
+    	var p = _dll.HP_SSLAgent_GetSSLCipherList(owner.pAgent)
+    	if(p){
+    		return ..raw.str(p, true); 	
+    	}
+    }
+    
+    _set = function(v){
+    	_dll.HP_SSLAgent_SetSSLCipherListW(owner.pAgent, v); 
+    } 
+}

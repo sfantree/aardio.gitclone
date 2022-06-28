@@ -1,0 +1,68 @@
+﻿//Logger 日志类
+namespace log4j
+
+ class Logger {
+	ctor(loggerCategory = 'default' /*日志类别*/){
+		import log4j.appenders
+		this.config = log4j.config
+		this.loggerCategory = loggerCategory
+		this.callLevel = 'DEBUG'
+		this.defaultLevel = this.config.level
+		this.levels = log4j.levels
+	};
+	console = function(...){
+		for(k,categorie in this.config.categories){
+			var categorieLevel = categorie.level  || this.defaultLevel
+			var callLevel = this.getLevelNumber(this.callLevel);
+			var theLevel = this.getLevelNumber(categorieLevel)
+			if (callLevel < theLevel) continue
+			//..console.log('this.callLevel',this.callLevel,categorieLevel,callLevel,theLevel,callLevel < theLevel)
+			for(key,appenderKey in categorie.appenders){
+				//..console.dump(appenderKey)
+				var appender = this.config.appenders[appenderKey]	
+				var loggingEvent = {
+					loggerCategory = this.loggerCategory;
+					level = this.callLevel;
+					type =  appender.type;
+					fileName = appender.fileName;
+					layouts = appender.layouts;
+					appender = appender
+				}
+			..log4j.appenders[..string.lower(appender.type)](loggingEvent,...)
+			}
+		}
+	};
+	getLevelNumber = function(levelStr){
+        if(not  this.levels[levelStr]) error(..string.format("没有这个日志级别: %s", levelStr),2)
+    	return this.levels[..string.upper(levelStr)].level
+	};
+	@{
+    	_get = function(k){
+    		if(type(k) != type.string) return function(){}
+			if(not this.levels[..string.upper(k)]) return function(){};
+				this.callLevel = ..string.upper(k)
+            	return this.console
+    	}		
+    }
+
+    	
+}
+
+/**intellisense(log4j.Logger)
+Logger(loggerCategory) = !newLog4j
+Logger(loggerCategory) = 取得log4j实例 @loggerCategory = 'default' /*日志类别*/ ,config/*配置*/
+end intellisense**/
+
+
+/**intellisense(!newLog4j.)
+callLevel = 当前call的level级别
+loggerCategory = 日志类别
+getLevelNumber(levelStr) = 取当前日志级别数字
+trace(msg) = {level=2;color = 灰色}; \n @msg{string}
+debug(msg) = {level=3;color = 淡淡绿色}; \n @msg{string}
+info(msg) =  {level=4;color = 湖蓝色}; \n @msg{string}
+warn(msg) = {level=5;color = 淡黄色}; \n @msg{string}
+error(msg) = {level=6;color =红色}; \n @msg{string}
+fatal(msg) = {level=7;color = 淡绿色}; \n @msg{string}
+mark(msg) = {level=8;color = 蓝色}; \n @msg{string}
+end intellisense**/

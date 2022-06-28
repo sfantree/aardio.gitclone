@@ -1,0 +1,102 @@
+import win.ui;
+import gdip.fontAwesome;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=939;bottom=772;bgcolor=3947580;border="none")
+winform.add(
+custom2={cls="custom";left=121;top=43;right=939;bottom=773;bgcolor=8421376;db=1;dl=1;dr=1;dt=1;z=4};
+plus={cls="plus";text='\uF13B';left=0;top=0;right=120;bottom=43;bgcolor=16095795;color=16777215;dl=1;dt=1;font=LOGFONT(name='FontAwesome';h=-24);z=3};
+strip1={cls="plus";text='\uF015';left=0;top=48;right=118;bottom=142;bgcolor=3947580;clipch=1;color=16777215;dl=1;dt=1;font=LOGFONT(name='FontAwesome';h=-40);z=1};
+strip2={cls="plus";text='\uF290';left=0;top=142;right=118;bottom=236;bgcolor=3947580;clipch=1;color=16777215;dl=1;dt=1;font=LOGFONT(name='FontAwesome';h=-40);z=2}
+)
+/*}}*/
+
+//设置右上角最小化/最大化/关闭按钮图形
+import win.ui.simpleWindow;
+win.ui.simpleWindow(winform,17,47,43)
+
+//设置拖动窗体功能
+winform.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x201/*_WM_LBUTTONDOWN*/{
+			winform.hitCaption();
+		}
+	}
+}
+
+//创建高级选项卡
+import win.ui.tabs;
+
+//至少要添加2个创建好的选项卡(作为设计模板,创建成功后可清除)
+var tbs = win.ui.tabs(winform.strip2,winform.strip1);
+//指定选项卡的外观样式
+tbs.skin(
+     background = { 
+         disabled = 0xFF3C3C3C; 
+     }
+    color = {
+        hover = 0xFF3a9ff7; 
+    }
+    checked = {
+        color = {
+            hover = 0xFF3a9ff7; 
+            default = 0xFF3a9ff7; 
+        } 
+    } 
+)
+//设置的模版项也可以显示关闭按钮
+winform.strip2.hasCloseButton = true;
+//方式一:给模版项绑定加载的窗体
+//tbs.loadForm(1,"\res\aa.aardio");
+//tbs.loadForm(2,"\res\layuitable.aardio");
+
+//动态添加更多选项卡
+tbs.add({
+    text='\uf216';
+   }//,"\res\layui.aardio"  //方式二:直接绑定需要加载的窗体
+)
+
+//动态添加更多选项卡
+tbs.add(
+    text='\uf1c5'; 
+)
+
+//动态添加更多选项卡
+tbs.add({
+    	text='\uf008';
+    	hasCloseButton = true;//允许显示关闭按钮 
+	}//,"\res\set.aardio"
+)
+tbs.add(
+    text='\uf201'; 
+)
+
+//方式三: 后面追加形式绑定窗体
+//tbs.loadForm(6,"\res\test.aardio");
+
+//设置tabs选项卡默认选中项
+tbs.selIndex = 3;
+
+//也可以用下面的代码自定义关闭按钮的外观样式
+tbs.closeButton.skin(
+    background = { 
+        hover = 0xFFe35c51; 
+        active = 0xFF8f241b;
+        default = 0x99FFCC66; 
+    }
+    color = {
+        hover = 0xFFFFFFFF; 
+        active = 0xFFEEEEEE;
+        default = 0xCCFFFFFF; 
+    } 
+)
+
+//可以自定义关闭按钮在选项卡上的显示位
+tbs.beforeShowCloseButton = function(strip,rcStrip,rcCloseButton){
+    return rcStrip.left + 5, rcStrip.top + ( rcStrip.height() - rcCloseButton.height() )/2;
+}
+
+import win.ui.shadow;
+win.ui.shadow(winform,,10);
+
+winform.show();
+win.loopMessage();

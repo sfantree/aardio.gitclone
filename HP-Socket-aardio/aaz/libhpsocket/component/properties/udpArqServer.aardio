@@ -1,0 +1,121 @@
+﻿import aaz.libhpsocket.component.properties.udpServer;
+
+namespace aaz.libhpsocket.component.properties.udpArqServer;
+..table.mix(self, ..aaz.libhpsocket.component.properties.udpServer);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+getWaitingSendMessageCount = function(connID){
+	var count = {int v}
+	return _dll.HP_UdpArqServer_GetWaitingSendMessageCount(owner.pSocket, connID, count), count.v; 
+}
+
+isNoDelay = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_IsNoDelayB(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetNoDelay(owner.pSocket, v);
+    } 	
+}
+
+isTurnoffCongestCtrl = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_IsTurnoffCongestCtrlB(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetTurnoffCongestCtrl(owner.pSocket, v);
+    } 	
+}
+
+flushInterval = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetFlushInterval(owner.pSocket);
+    }
+    
+    _set = function( v ){
+    	_dll.HP_UdpArqServer_SetFlushInterval(owner.pSocket, v);
+    } 	
+}
+
+resendByAcks = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetResendByAcks(owner.pSocket);
+    }
+    
+    _set = function(v ){
+    	_dll.HP_UdpArqServer_SetResendByAcks(owner.pSocket, v);
+    } 	
+}
+
+sendWndSize = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetSendWndSize( owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetSendWndSize(owner.pSocket, v);
+    } 	
+}
+
+recvWndSize = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetRecvWndSize(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetRecvWndSize(owner.pSocket, v);
+    } 	
+}
+
+setMinRto = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetMinRto( owner.pSocket );
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetMinRto(owner.pSocket, v);
+    } 	
+}
+
+fastLimit = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetFastLimit(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetFastLimit(owner.pSocket, v);
+    } 	
+}
+
+maxTransUnit = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetMaxTransUnit(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetMaxTransUnit(owner.pSocket, v);
+    } 	
+}
+
+maxTransUnit = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetMaxMessageSize(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetMaxMessageSize(owner.pSocket, v);
+    } 	
+}
+
+maxTransUnit = {
+    _get = function(){ 
+    	return _dll.HP_UdpArqServer_GetHandShakeTimeout(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpArqServer_SetHandShakeTimeout(owner.pSocket, v);
+    } 	
+}

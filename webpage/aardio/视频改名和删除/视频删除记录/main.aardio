@@ -1,0 +1,110 @@
+import win.ui;
+import fsys
+/*DSG{{*/
+mainForm = win.form(text="视频删除记录";right=605;bottom=339;acceptfiles=1)
+mainForm.add(
+button={cls="button";text="创建 video 文件夹";left=65;top=222;right=196;bottom=279;z=3};
+edit={cls="edit";left=84;top=106;right=328;bottom=160;edge=1;multiline=1;z=2};
+groupbox={cls="groupbox";text="删除文件路径";left=66;top=74;right=349;bottom=186;edge=1;z=1};
+static={cls="static";text="拖放文件到窗口，删除文件，新建txt占位文件";left=235;top=239;right=498;bottom=297;transparent=1;z=4}
+)
+/*}}*/
+
+//删除文件 -拖放文件 获取 路径
+droplj = ""
+
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+
+	//重命名 -获取 文件 拖放 函数
+	
+        select(message) { 
+
+        case 0x233/*_WM_DROPFILES*/{ 
+         
+                //清空 编辑框
+                mainForm.edit.text = "";
+                        
+                //获取 拖放文件 路径
+                mainForm.edit.text =  win.getDropFile(wParam )[1];  
+                
+                droplj = mainForm.edit.text
+                
+                //删除文件
+				rmfile(droplj)
+           
+                                                
+        } 
+
+    }
+}
+
+
+function rmfile(lj1){
+	
+	//删除 文件
+	fsys.delete(droplj)
+	
+	//拆分为目录名,文件名,后缀名,分区号
+	var tpath = io.splitpath(lj1)
+	
+	mainForm.edit.text = tpath.file
+	
+	wjm1 = "/video/" + tpath.file + ".txt"
+	
+	//新建 文件名
+	fl1 = io.open(wjm1,"w")
+	
+	tm = time.now(); 
+	//作用同上返回当前时间
+	
+	//改变格式化模式串
+	tm.format = "%Y年%m月%d日 %H时%M分%S秒";
+		
+	//从时间值   转 字符串
+	str = tostring(tm);
+	
+	fl1.write(str)
+	
+	fl1.close()
+	
+	//exe运行目录
+	
+	//io._exedir
+	
+	
+    
+    //io.open()
+}
+
+mainForm.button.oncommand = function(id,event){
+	
+	
+	//创建 video 文件夹
+	
+	//调试 打开  命令行
+	//io.open();
+	
+	//程序文件夹下 目录
+	lj3 = io._exedir + "video"
+	
+	io.print(lj3)
+	
+	// 是否 存在 文件夹
+	fullpath = io.exist( lj3  );
+
+		
+	io.print(fullpath)
+
+	if(fullpath = null ){
+
+		
+		io.print("文件不存在")
+		
+		//新建 文件夹
+		fsys.createDir(lj3)
+
+	}
+}
+
+mainForm.show();
+return win.loopMessage();

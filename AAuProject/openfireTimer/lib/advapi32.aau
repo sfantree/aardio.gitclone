@@ -1,0 +1,22 @@
+namespace advapi32{}
+
+::Advapi32 = ..raw.loadDll("Advapi32.dll");
+
+SERVICE_STATUS = class{
+    INT dwServiceType; 
+  	INT dwCurrentState; 
+  	INT dwControlsAccepted; 
+  	INT dwWin32ExitCode; 
+  	INT dwServiceSpecificExitCode; 
+  	INT dwCheckPoint; 
+  	INT dwWaitHint; 
+}
+
+OpenSCManager = ::Advapi32.api("OpenSCManager","pointer(string lpMachineName,string lpDatabaseName,int dwDesiredAccess )");
+OpenService = ::Advapi32.api("OpenService","pointer(pointer schSCManager,string lpServiceName,int dwDesiredAccess)" );
+QueryServiceStatus = ::Advapi32.api("QueryServiceStatus","boolean(pointer schService, table& lpServiceStatus)");
+StartService = ::Advapi32.api("StartService","boolean(pointer hService,int dwNumServiceArgs,pointer lpServiceArgVectors)" );
+ControlService = ::Advapi32.api("ControlService","boolean(pointer hService,int dwControl,table& lpServiceStatus )" );
+
+
+

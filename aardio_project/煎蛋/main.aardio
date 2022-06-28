@@ -1,0 +1,391 @@
+import crypt;
+import fsys;
+import win.ui;
+import win.clip; 
+import thread;
+import thread.command;
+import console;
+import string.xml;
+import process;
+import debug;
+import debug.log;
+/*DSG{{*/
+mainForm = win.form(text="煎蛋";right=543;bottom=431)
+mainForm.add(
+btn_left={cls="button";text="<";left=128;top=376;right=160;bottom=424;ah=1;aw=1;z=6};
+btn_right={cls="button";text=">";left=392;top=376;right=424;bottom=424;ah=1;aw=1;z=7};
+edit={cls="edit";text="http://jandan.net/girl";left=8;top=8;right=456;bottom=32;ah=1;aw=1;edge=1;font=LOGFONT(h=-13);multiline=1;z=1};
+listview2={cls="listview";left=8;top=40;right=536;bottom=368;ah=1;aw=1;edge=1;font=LOGFONT(h=-13);msel=false;z=3};
+发送={cls="button";text="发送";left=168;top=376;right=384;bottom=424;ah=1;aw=1;default=1;font=LOGFONT(h=-13);image=$"\res\1.bmp";z=4};
+彩蛋按钮={cls="static";left=8;top=376;right=120;bottom=424;notify=1;transparent=1;z=8};
+抓取图片={cls="button";text="抓取图片";left=464;top=8;right=536;bottom=32;ah=1;aw=1;font=LOGFONT(h=-13);z=2};
+清理={cls="button";text="清理";left=512;top=376;right=536;bottom=424;ah=1;aw=1;z=5}
+)
+/*}}*/
+
+debug.log.setPath("./log.txt");
+debug.log.checkSize(0x20000); //设置日志大小
+
+io.createDir(fsys.getTempDir()++"/jandan/");
+ 
+//代码显示名称
+import win.ui.atom;
+var atom,hwnd = mainForm.atom("6A99BEF6-4124-4737-9C43-7FE5BADCF5E3.jandan");
+if(!atom){ 
+    win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+
+var listener = thread.command();
+
+var website_key=_ARGV[1]:"test_key";  //需私信申请
+
+var meizi_host="https://114.96.68.255:10443/jandan";
+
+//var meizi_server = _ARGV[2]:'https://118.24.157.162/jandan/meizi/insert'; //提交图片的地址
+var meizi_server = _ARGV[2]:'https://114.96.68.255:10443/jandan/meizi/insert'; //提交图片的地址
+
+
+thread.set("User-Agent", "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; WOW64; Trident/5.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; .NET4.0C; .NET4.0E)" ) ; //http://bbs.aardio.com/forum.php?mod=viewthread&tid=13376&highlight=Agent
+thread.set("left_href",  ) ;
+thread.set("this_href",  ) ;
+thread.set("right_href",  ) ;
+thread.set("website_key",website_key ) ;
+thread.set("meizi_server",meizi_server  ) ;
+thread.set("meizi_website","sinaimg.cn"  ) ; //应该是根据imgSrc去获取的,这里偷懒了
+thread.set("meizi_param", 
+	string.format("meizi.key=%s&meizi.website=%s&meizi.note=",
+		thread.get("website_key"),thread.get("meizi_website" ) ) ) ;
+
+listener.is_发送=function(deal){
+	//mainForm.发送.btn_left=deal;
+	mainForm.发送.disabled=deal;
+	//mainForm.发送.btn_right=deal;
+} 
+
+listener.disabled_抓取图片=function(deal){
+	mainForm.抓取图片.disabled=deal;
+	if(!!deal){ mainForm.listview2.clear();}
+} 
+/**
+<div class="comments">
+    <div class="cp-pagenavi"> 
+*    	<span class="current-comment-page">[136]</span>
+*       <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTM1#comments">135 </a>
+        <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTM0#comments">134 </a>
+        <a title="Older Comments" href="//jandan.net/ooxx/MjAyMDA4MDEtMTM1#comments" class="previous-comment-page">下一页</a>
+    </div>
+</div>
+
+<div class="comments">
+    <div class="cp-pagenavi"> 
+    	<a title="Newer Comments" href="//jandan.net/ooxx/MjAyMDA4MDEtMTM1#comments" class="next-comment-page">上一页</a>
+        <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTM2#comments">136 </a>
+*       <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTM1#comments">135 </a>
+*       <span class="current-comment-page">[134]</span>
+*       <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTMz#comments">133 </a>
+        <a href="//jandan.net/ooxx/MjAyMDA4MDEtMTMy#comments">132 </a>
+        <a title="Older Comments" href="//jandan.net/ooxx/MjAyMDA4MDEtMTMz#comments" class="previous-comment-page">下一页</a>
+    </div>
+</div>
+**/
+
+listener.get_left_and_right_href=function(html){
+	var tab={};
+	var xml = string.xml(html);
+	try{
+		var comments = xml.queryEle( ["class"]="comments");
+		var pagenavi = comments.queryEle( ["class"]="cp-pagenavi");	
+		for(index,tagName,childCount,xNode in pagenavi.eachChild() ){
+			var t={index=index;tagName=tagName;childCount=childCount;xNode=xNode}; 
+			table.push(tab,t);
+		}	
+		for(k,v in tab){
+			if("span"==v.tagName){   
+				var lhref,rhref="",""; 
+				var lv,rv=tab[k-1],tab[k+1];
+				if(lv){ lhref=lv.xNode.href; } 
+				if(rv){ rhref=rv.xNode.href; }  
+				if( #lhref && string.startWith(lhref,"//" ) ) lhref="http:"++lhref;
+				if( #rhref && string.startWith(rhref,"//" ) ) rhref="http:"++rhref;
+				thread.set("left_href",lhref ) ;
+				thread.set("right_href",rhref ) ;
+				break;
+			}
+		}
+	} catch(e){
+		win.msgboxErr("请重试..","错误",mainForm.hwnd);
+	}
+}
+
+listener.处理HTML=function(tempfile){
+    var match1 = '<@<img@>(.+?)<@referrerPolicy=@>';
+    var html=string.load(tempfile);
+    if(!#html)return;    
+    thread.command.post("get_left_and_right_href",html); 
+    //<img src="//wx4.sinaimg.cn/mw600/0076BSS5ly1gdhuk0sbphj30iz0sgk0e.jpg" referrerPolicy="no-referrer" />
+	var imgs = string.matches(html, match1);
+	if( #imgs) mainForm.listview2.clear();
+	var dosrc=function(img){
+		var start_str="src=""//";
+		if(string.startWith(img,start_str)) img=string.replace(img,start_str,"");
+		if(string.endWith(img,"""")) img=string.left(img,#img-1);
+		return 'http://'++img;
+	}	
+	for (i=1;#imgs;1){ 
+		var img=imgs[i][1]; 
+		var src=dosrc(string.trim(img));
+		if(string.indexOf(src,"add_img_loading_mask")){ }
+		else { mainForm.listview2.addItem( { text={ ""++i;src}  } ); }
+	}
+	mainForm.listview2.redraw();
+	mainForm.listview2.adjust();
+} 
+
+var getHtml=function(){
+    var url1=thread.get("this_href" ) ;
+    if(!#url1) return;
+	thread.invoke( 
+		function(url){
+			import win;
+			import crypt;
+			import fsys;
+			import fsys.file; 
+			import inet.http;
+			import thread.command; 
+			import console; //console.varDump(url);
+			thread.command.post("disabled_抓取图片",true); 
+    		var can_http_get=true;
+    		var tempfile=fsys.getTempDir()++"/jandan/"++ crypt.md5(string.lower(url))++".html";
+			if(io.exist(tempfile)){
+				var aaa=string.load(tempfile);
+				if(#aaa){
+					var realhtml =fsys.file(tempfile, "r");
+					var tnow = time.now().addhour(-1); //近1个小时.
+					var tttm = realhtml.getTime().write; 
+					if (tttm > tnow) {
+						can_http_get=false;
+					}
+				}
+			} 
+			if(can_http_get){
+				var htt=inet.http(thread.get("User-Agent"));
+				inet.clearCache();
+				var html=htt.get(url);
+				if(html) string.save(tempfile,html ) ;
+				htt.close();		
+			}
+			thread.command.post("disabled_抓取图片",false);
+			thread.command.post("处理HTML",tempfile);
+		}, url1 
+	)
+}
+
+var send=function(send_src_list){
+    thread.invoke( 
+    	function(meizi_server,send_src_list){
+			import thread.command; 
+			import inet.http; 
+			import console;
+			var htt=inet.http(thread.get("User-Agent"));
+			var get_param=function(src){ return thread.get("meizi_param")++"&meizi.url="++src ;}
+			var post=function(src){ /*var html,err,errCode =*/htt.post(meizi_server,get_param(src)); };	
+			thread.command.post("is_发送",true);			
+			for(i=1;#send_src_list;1){
+				var src=table.pop(send_src_list);					
+				if(src){
+				 	post(src);
+					sleep(100);
+				}
+			}			
+			thread.command.post("is_发送",false);
+    		
+    	},meizi_server,send_src_list
+    )
+	
+}
+
+mainForm.btn_left.oncommand = function(id,event){
+	var url=thread.get("left_href" ) ;
+	if(!#url) return;
+	mainForm.edit.text=url;
+	mainForm.抓取图片.oncommand();
+}
+
+mainForm.btn_right.oncommand = function(id,event){
+	var url=thread.get("right_href" ) ;
+	if(!#url) return;
+	mainForm.edit.text=url;
+	mainForm.抓取图片.oncommand();
+}
+
+mainForm.清理.oncommand = function(id,event){
+    var url=thread.get("this_href" ) ;
+    if(!#url) return;
+    var tempfile=fsys.getTempDir()++"/jandan/"++ crypt.md5(string.lower(url))++".html";
+	if(io.exist(tempfile)){ fsys.delete(tempfile) };
+	win.msgboxTimeout("清理缓存成功!","提示",2000,mainForm.hwnd);
+}
+
+mainForm.抓取图片.oncommand = function(id,event){	
+	var url=mainForm.edit.text;
+	url=string.trim(url); 
+	thread.set("this_href", url ) ;
+	getHtml();	
+}
+
+mainForm.发送.oncommand = function(id,event){
+    var send_src_list={};
+	var items=mainForm.listview2.items;
+	if(!#items) return;
+	for(i=1;#items;1){
+		var src=mainForm.listview2.getRowTable(i)[2];
+		table.insert(send_src_list,src);
+	}
+	if(#send_src_list){
+		send(send_src_list);
+	}
+}
+
+mainForm.listview2.modifyStyle(,0x4000/*_LVS_NOCOLUMNHEADER*/) ;//不要表头
+mainForm.listview2.insertColumn("",26,,0x3/*_LVCFMT_CENTER*/) 
+mainForm.listview2.insertColumn("",-1,,0x0/*_LVCFMT_LEFT*/)  ;
+mainForm.listview2.fullRow=true;
+mainForm.listview2.gridLines=true;
+
+mainForm.listview2.adjust = function(cx,cy){
+    mainForm.listview2.fillParent(2);
+}
+mainForm.listview2.getRowTable = function(idx){
+    return owner.items[idx]; 
+}
+mainForm.listview2.get_row_by_src=function(src){
+    var items=owner.items;
+	for(i=1;#items;1){
+		var row=mainForm.listview2.getRowTable(i);
+		if( ""==row[1]) continue;
+		if( src  == row[2] ) {
+			return row;
+		} 
+	}
+}
+
+//////////////////////////////////////////////////
+
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+mainForm.popmenu.add('删除',function(id){  
+	var v=mainForm.listview2.selIndex; 
+	mainForm.listview2.delItem(v);  
+	mainForm.listview2.redraw() ;
+});
+mainForm.popmenu.add();
+mainForm.popmenu.add('复制',function(id){  	
+	var v=mainForm.listview2.selIndex;
+	var str=mainForm.listview2.items[v][2];	
+	win.clip.write(str);	
+});
+
+var 展示图片=function(idx){
+	var src=mainForm.listview2.getRowTable(idx)[2];
+	thread.set("标志键_src", src);
+	var frmChild = mainForm.loadForm($"\dlg\展示图片2.aardio");
+	frmChild.doModal(mainForm.hwnd);
+}
+
+
+
+subscribe("选择上一张",function(src){
+    //debug.debug();
+    var thisrow = mainForm.listview2.get_row_by_src(src);
+    if(!thisrow) return;
+	var v=thisrow[1]; 	 
+	if(v){
+		for(i=1;10;1){
+			v=v-1;
+			if(v<1)v=1;
+			var row2=mainForm.listview2.getRowTable(v);
+			if(row2){
+				var src2=row2[2];
+				mainForm.listview2.selIndex=v;
+				thread.set("标志键_src", src2);
+				break;
+			}
+		}
+	}
+} )
+
+subscribe("选择下一张",function(src){
+    var thisrow = mainForm.listview2.get_row_by_src(src);
+    if(!thisrow) return;
+	var v=thisrow[1]; 
+	if(v){
+		var lv= #mainForm.listview2.items;
+		for(i=1;10;1){
+			v=v+1;
+			if(v>lv)v=lv;
+			var row2=mainForm.listview2.getRowTable(v);
+			if(row2){
+				var src2=row2[2];
+				mainForm.listview2.selIndex=v;
+				thread.set("标志键_src", src2);
+				break;
+			}
+		}
+	}	
+} )
+
+subscribe("删除图片",function(src){
+    var row = mainForm.listview2.get_row_by_src(src);
+    if(!row) return;
+	var v,src=row[1],row[2]; 
+	mainForm.listview2.delItem(v);  
+	mainForm.listview2.redraw() ;
+	mainForm.listview2.selIndex=v;
+	for(i=1;10;1){
+		row = mainForm.listview2.getRowTable(v);
+		if(row){
+			src=row[2];
+			publish("选择上一张",src);
+			break;
+		} else {
+			v=v-1;
+		}
+	}	
+} )
+
+mainForm.listview2.onnotify = function(id,code,ptr){     
+    select(code) { 
+    	case  0xFFFFFF9B/*_LVN_ITEMCHANGED*/ {  //选中ITEM
+    		var nm = mainForm.listview2.getNotifyMessage(code,ptr)
+    		if(mainForm.listview2.selIndex){
+        	}
+    	}
+    	case 0xFFFFFF94/*_LVN_COLUMNCLICK*/ { //表头点击
+    	}
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  {  //右键菜单    	 
+    		if(mainForm.listview2.selIndex){ 
+    			var x,y = win.getCursorPos();
+    			mainForm.popmenu.popup(x-2,y-2,true);//弹出菜单
+    		}
+    	}
+    	case 0xFFFFFFFD/*双击?*/  {  //左键双击   
+    		var v=mainForm.listview2.selIndex; 	
+    		if(v) 展示图片(v);
+    	} 
+    }    
+}
+
+mainForm.彩蛋按钮.wndproc = function(hwnd,message,wParam,lParam){
+	select(message) {
+	 	case 0x0203/*_WM_LBUTTONDBLCLK*/  { //双击
+	 		var t=win.msgboxTest(meizi_host,"欢迎",mainForm.hwnd);
+	 		if(t) win.clip.write(meizi_host);
+	 		if(t) process.explore(meizi_host);
+	 	}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+mainForm.show();
+return win.loopMessage();

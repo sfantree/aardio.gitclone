@@ -1,0 +1,147 @@
+// -*- coding: utf-8 -*-
+import re;
+import datetime; var datetime = datetime.datetime;
+import threading; var Thread = threading.Thread;
+
+import ez; var exceptions = ez.exceptions;
+import ez.follower; var BaseFollower = ez.follower.BaseFollower;
+import ez.log; var logger = ez.log.logger;
+
+
+class JoinQuantFollower {
+    this = BaseFollower(...);// 继承的父类 <--请把这行移入类的构造函数 ctor 内! {
+    LOGIN_PAGE = "https://www.joinquant.com";
+    LOGIN_API = "https://www.joinquant.com/user/login/doLogin?ajax=1";
+    TRANSACTION_API =(
+        "https://www.joinquant.com/algorithm/live/transactionDetail"
+    );
+    WEB_REFERER = "https://www.joinquant.com/user/login/index";
+    WEB_ORIGIN = "https://www.joinquant.com";
+
+    createLoginParams = function(user, password, **kwargs) {
+        params = {
+            "CyLoginForm[username]": user,
+            "CyLoginForm[pwd]": password,
+            "ajax": 1,
+        };
+        return params;
+    }
+
+    checkLoginSuccess = function(rep) {
+        setCookie = rep.headers["set-cookie"];
+        if (#(setCookie) < 50) {
+            error exceptions.NotLoginError("登录失败，请检查用户名和密码");
+        }
+        this.s.headers.update({"cookie": setCookie});
+    }
+
+    follow = function(
+        this,
+        users,
+        strategies,
+        trackInterval=1,
+        tradeCmdExpireSeconds=120,
+        cmdCache=true,
+        entrustProp="limit",
+        sendInterval=0,
+) {
+        /*跟踪joinquant对应的模拟交易，支持多用户多策略
+        :param users: 支持ez的用户对象，支持使用 [] 指定多个用户
+        :param strategies: joinquant 的模拟交易地址，支持使用 [] 指定多个模拟交易,
+            地址类似 https://www.joinquant.com/algorithm/live/index?backtestId=xxx
+        :param trackInterval: 轮训模拟交易时间，单位为秒
+        :param tradeCmdExpireSeconds: 交易指令过期时间, 单位为秒
+        :param cmdCache: 是否读取存储历史执行过的指令，防止重启时重复执行已经交易过的指令
+        :param entrustProp: 委托方式, 'limit' 为限价，'market' 为市价, 仅在银河实现
+        :param sendInterval: 交易发送间隔， 默认为0s。调大可防止卖出买入时卖出单没有及时成交导致的买入金额不足
+        */
+        users = this.warpList(users);
+        strategies = this.warpList(strategies);
+
+        if (cmdCache) {
+            this.loadExpiredCmdCache();
+        }
+
+        this.startTraderThread(
+            users, tradeCmdExpireSeconds, entrustProp, sendInterval
+        );
+
+        workers = {};
+        for (strategyUrl in strategies) {
+            try {
+                strategyId = this.extractStrategyId(strategyUrl);
+                strategyName = this.extractStrategyName(strategyUrl);
+            } catch(e) {
+                logger.error("抽取交易id和策略名失败, 无效的模拟交易url: %s", strategyUrl);
+                error;
+            }
+            strategyWorker = Thread(
+                target=this.trackStrategyWorker,
+                args= {strategyId, strategyName},
+                kwargs={"interval": trackInterval},
+            );
+            strategyWorker.start();
+            workers.append(strategyWorker);
+            logger.info("开始跟踪策略: %s", strategyName);
+        }
+        for (worker in workers) {
+            worker.join();
+        }
+    }
+
+    //@staticmethod;
+    extractStrategyId = function(strategyUrl) {
+        return re.search("(?<=backtestId=)\w+", strategyUrl).group();
+    }
+
+    extractStrategyName = function(strategyUrl) {
+        rep = this.s.get(strategyUrl);
+        return this.reFind('(?<=title="点击修改策略名称"\>).*(?=\</span)', rep.content.decode("utf8"));
+    }
+
+    createQueryTransactionParams = function(strategy) {
+        todayStr = datetime.today().strftime("%Y-%m-%d");
+        params = {"backtestId": strategy, "date": todayStr, "ajax": 1};
+        return params;
+    }
+
+    extractTransactions = function(history) {
+        transactions = history["data"]["transaction"];
+        return transactions;
+    }
+
+    //@staticmethod;
+    stockShuffleToPrefix = function(stock) {
+        assert(#(stock) == 11), string.format("stock {} must like 123456.XSHG or 123456.XSHE", stock);
+        code = stock[:6];
+        if (stock.find("XSHG") != -1) {
+            return "sh" + code;
+        }
+
+        if (stock.find("XSHE") != -1) {
+            return "sz" + code;
+        }
+        error TypeError(string.format("not valid stock code {}", code));
+    }
+
+    projectTransactions = function(transactions, **kwargs) {
+        for (transaction in transactions) {
+            transaction["amount"] = this.reFind(
+                "\d+", transaction["amount"], dtype=int
+            );
+
+            timeStr = string.format("{} {}", transaction["date"], transaction["time"]);
+            transaction["datetime"] = datetime.strptime(
+                timeStr, "%Y-%m-%d %H:%M"
+            );
+
+            stock = this.reFind("\d{6}\.\w{4}", transaction["stock"]);
+            transaction["stockCode"] = this.stockShuffleToPrefix(stock);
+
+            transaction["action"] =(
+                "buy" if transaction["transaction"] == "买" else "sell"
+            )
+
+        }
+    }
+}

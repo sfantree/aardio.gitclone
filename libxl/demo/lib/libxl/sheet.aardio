@@ -1,0 +1,1581 @@
+﻿import util.metaProperty;
+
+namespace libxl;
+
+var libxl32 = _dll;
+
+class Sheet{
+	ctor( hwnd,p_shformat ){
+		if !hwnd return null,"请指定工作表句柄"; 
+		this.hwnd		= hwnd; 
+		this.Cell		= Cell(this.hwnd);
+		this.Cell.owner = this;//确保可调用父对象
+		this.Column		= Column(this.hwnd);
+		this.Row		= Row(this.hwnd);
+		this.Range		= Range(this.hwnd);
+		this.Range.owner= this;//确保可调用父对象
+		this.Cells = {//特殊的取值方法
+			@{
+				_get = function(k){//取值
+					return this.Cell(k);  //转回
+				};
+				_call = function(...){//调用
+					return this.Cell(...); 
+				}
+			}
+		}
+		this.p_shformat = p_shformat;//格式对象
+	};
+	@_metaProperty;
+}
+
+namespace Sheet{
+	_metaProperty = ..util.metaProperty(
+		name = { //工作表名
+			_get = function(){   
+		    	return Name(owner.hwnd);
+			}
+			_set = function( v ){
+				return SetName(owner.hwnd,v); 
+			}
+		};
+		mergeCount = {
+			_get = function(){   
+		    	return MergeSize(owner.hwnd);
+			}
+		};
+		pictureCount = {
+			_get = function(){   
+		    	return PictureSize(owner.hwnd);
+			}
+		};
+		horPageBreakCount = {
+			_get = function(){   
+		    	return GetHorPageBreakSize(owner.hwnd);
+			}
+		};
+		verPageBreakCount = {
+			_get = function(){   
+		    	return GetVerPageBreakSize(owner.hwnd);
+			}
+		};
+		split = {
+			_get = function(){   
+				var int = 1
+		    	var ok,row,col = SplitInfo(owner.hwnd,int,int);
+		    	var cell = {row = row + 1; col = col + 1}
+		    	if ok return cell;
+		    	return null;  
+			}
+		};
+		groupSummaryBelow = {
+			_get = function(){   
+		    	return GroupSummaryBelow(owner.hwnd);
+			}
+			_set = function( v ){
+				return SetGroupSummaryBelow(owner.hwnd,tonumber(v)); 
+			}
+		};
+		groupSummaryRight = {
+			_get = function(){   
+		    	return groupSummaryRight(owner.hwnd);
+			}
+			_set = function( v ){
+				return SetGroupSummaryRight(owner.hwnd,tonumber(v)); 
+			}
+		};
+		firstRow = {
+			_get = function(){   
+		    	return FirstRow(owner.hwnd) + 1;
+			}
+		}
+		lastRow = {
+			_get = function(){   
+		    	return LastRow(owner.hwnd);
+			}
+		}
+		firstCol = {
+			_get = function(){   
+		    	return FirstCol(owner.hwnd) + 1;
+			}
+		}
+		lastCol = {
+			_get = function(){   
+		    	return LastCol(owner.hwnd);
+			}
+		}
+		displayGridlines = {
+			_get = function(){   
+		    	return DisplayGridlines(owner.hwnd);
+			}
+			_set = function( v ){
+				SetDisplayGridlines(owner.hwnd,tonumber(v)); 
+			}
+		};
+		printGridlines = {
+			_get = function(){   
+		    	return PrintGridlines(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPrintGridlines(owner.hwnd,tonumber(v)); 
+			};
+		};
+		zoom = {
+			_get = function(){   
+		    	return Zoom(owner.hwnd);
+			};
+			_set = function( v ){
+				SetZoom(owner.hwnd,v); 
+			};
+		};
+		printZoom = {
+			_get = function(){   
+		    	return PrintZoom(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPrintZoom(owner.hwnd,v); 
+			};
+		};
+		landscape = {
+			_get = function(){   
+		    	return Landscape(owner.hwnd);
+			};
+			_set = function( v ){
+				SetLandscape(owner.hwnd,tonumber(v)); 
+			};
+		};
+		paperSize = {
+			_get = function(){   
+		    	return Paper(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPaper(owner.hwnd,v); 
+			};
+		};
+		header = {
+			_get = function(){   
+		    	return Header(owner.hwnd);
+			};
+			_set = function( v ){
+				var hMargin = HeaderMargin(owner.hwnd)
+				return SetPaper(owner.hwnd,v,hMargin); 
+			};
+		};
+		headerMargin = {
+			_get = function(){   
+		    	return HeaderMargin(owner.hwnd);
+			};
+			_set = function( v ){
+				var hText = Header(owner.hwnd)
+				return SetPaper(owner.hwnd,hText,v); 
+			};
+		};
+		footer = {
+			_get = function(){   
+		    	return Footer(owner.hwnd);
+			};
+			_set = function( v ){
+				var hMargin = FooterMargin(owner.hwnd)
+				return SetFooter(owner.hwnd,v,hMargin); 
+			};
+		};
+		footerMargin = {
+			_get = function(){   
+		    	return FooterMargin(owner.hwnd);
+			};
+			_set = function( v ){
+				var hText = Footer(owner.hwnd)
+				return SetFooter(owner.hwnd,hText,v); 
+			};
+		};
+		hCenter = {
+			_get = function(){   
+		    	return HCenter(owner.hwnd);
+			};
+			_set = function( v ){
+				SetHCenter(owner.hwnd,tonumber(v)); 
+			};
+		};
+		vCenter = {
+			_get = function(){   
+		    	return VCenter(owner.hwnd);
+			};
+			_set = function( v ){
+				SetVCenter(owner.hwnd,tonumber(v)); 
+			};
+		};
+		marginLeft = {
+			_get = function(){   
+		    	return MarginLeft(owner.hwnd);
+			};
+			_set = function( v ){
+				SetMarginLeft(owner.hwnd,v); 
+			};
+		};
+		marginRight = {
+			_get = function(){   
+		    	return MarginRight(owner.hwnd);
+			};
+			_set = function( v ){
+				SetMarginRight(owner.hwnd,v); 
+			};
+		};
+		marginTop = {
+			_get = function(){   
+		    	return MarginTop(owner.hwnd);
+			};
+			_set = function( v ){
+				SetMarginTop(owner.hwnd,v); 
+			};
+		};
+		marginBottom = {
+			_get = function(){   
+		    	return MarginBottom(owner.hwnd);
+			};
+			_set = function( v ){
+				SetMarginBottom(owner.hwnd,v); 
+			};
+		};
+		printRowCol = {
+			_get = function(){   
+		    	return PrintRowCol(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPrintRowCol(owner.hwnd,tonumber(v)); 
+			};
+		};
+		namedRangeCount = {
+			_get = function(){   
+		    	return NamedRangeSize(owner.hwnd);
+			};
+		}
+		hyperlinkCount = {
+			_get = function(){   
+		    	return HyperlinkSize(owner.hwnd);
+			};
+		}
+		protect = {
+			_get = function(){   
+		    	if Protect(owner.hwnd) return true;
+		    	return false;  
+			};
+			_set = function( v ){
+				SetProtect(owner.hwnd,tonumber(v)); 
+			};
+		};
+		rightToLeft = {
+			_get = function(){   
+		    	return RightToLeft(owner.hwnd);
+			};
+			_set = function( v ){
+				SetRightToLeft(owner.hwnd,tonumber(v)); 
+			};
+		};
+		hidden = {
+			_get = function(){
+		    	return Hidden(owner.hwnd);
+			};
+			_set = function( v ){
+				return SetHidden(owner.hwnd,v);
+			};
+		};
+		merge = {
+			_set = function( v ){
+				if type(v) != type.table error("请使用cellRange对象填充数据")
+				SetMerge(owner.hwnd,v.iniRow -1,v.lastRow -1,v.iniCol -1,v.lastCol -1);
+			};
+		};
+		tableNum = {//table数量
+			_get = function(){
+				return TableSize(owner.hwnd); 
+			}
+			
+		}
+		tabColor = {
+			_set = function(v){
+				SetTabColor(owner.hwnd,v);
+			}
+		}
+		usedRange = {
+			_get = function(){
+				var cellRange = ..libxl.cellRange(owner.firstRow,owner.lastRow,owner.firstCol,owner.lastCol);
+				var address = ..string.concat(owner.rowColToAddr(cellRange.iniRow,cellRange.iniCol),":",owner.rowColToAddr(cellRange.lastRow,cellRange.lastCol));
+				return owner.Range(address); 
+			}
+		}
+		//函数方法
+		setMerge = function(iniRow,lastRow,iniCol,lastCol){
+			if iniRow && lastRow && iniCol && lastCol return SetMerge(owner.hwnd,iniRow-1,lastRow-1,iniCol-1,lastCol-1);
+			return false; 
+		};
+		delMerge = function(index){//delbyindex
+			return DelMergeByIndex(owner.hwnd,index - 1); 	
+		};
+		getMerge = function(index){
+			var int = 1
+			var result,iniRow,lastRow,iniCol,lastCol = Merge(owner.hwnd,index - 1,int,int,int,int);
+			if result == 0 return null; 
+			var mergeCells = ..libxl.cellRange();
+			mergeCells.iniCol 	= iniCol + 1;
+			mergeCells.lastCol	= lastCol + 1;
+			mergeCells.iniRow	= iniRow + 1;
+			mergeCells.lastRow	= lastRow + 1;
+			return mergeCells;
+		}
+		insertRow = function(row,rows = 0){
+			return InsertRow(owner.hwnd,row - 1,row + rows - 1);
+		};
+		deleteRow = function(row,rows = 0){
+			return RemoveRow(owner.hwnd,row - 1,row + rows - 1);
+		};
+		insertColumn = function(col,cols = 0){
+			return InsertCol(owner.hwnd,col - 1,col + cols - 1);
+		};
+		deleteColumn = function(col,cols = 0){
+			return RemoveCol(owner.hwnd,col - 1,col + cols - 1);
+		};
+		clearCell = function(topRow = 1,bottomRow = 1048576,leftCol = 1,rightCol = 16384){
+			Clear(owner.hwnd,topRow - 1,bottomRow - 1,leftCol - 1,rightCol -1);
+		};
+		getPicture = function(index){
+			var int = 1
+			var result,top,left,bottom,right,width,height, offset_x,offset_y = GetPicture(owner.hwnd,index - 1,int,int,int,int,int,int,int,int)
+			if result == -1 return null; 
+			var picturePos = ..libxl.picturePos(top,left,bottom,right,width,height, offset_x,offset_y)
+			return picturePos; 
+		};
+		setPicture = function(row,col,picId,sacle = 1.0,offset_x = 0, offset_y = 0){
+			SetPicture(owner.hwnd,row - 1,col - 1,picId - 1,sacle,offset_x, offset_y)
+		};
+		setPicture2 = function(row, col, picId, width = -1, height =-1, offset_x = 0, offset_y = 0){
+			SetPicture2(owner.hwnd,row - 1,col - 1,picId - 1,width, height, offset_x, offset_y)
+		};
+		horPageBreak = function(index){
+			return GetHorPageBreak(owner.hwnd,index-1); 
+		};
+		verPageBreak = function(index){
+			return GetVerPageBreak(owner.hwnd,index-1); 
+		};
+		setHorPageBreak = function(row,pageBreak = false){
+			return SetHorPageBreak(owner.hwnd,row-1,pageBreak); 
+		};
+		setVerPageBreak = function(col,pageBreak = false){
+			return SetVerPageBreak(owner.hwnd,col-1,pageBreak); 
+		};
+		setSplit = function(row = 0,col=0){
+			Split(owner.hwnd,row-1,col-1);
+		};
+		setGroupRows = function(rowFirst,rowLast,collapsed = true){
+			GroupRows(owner.hwnd,rowFirst-1,rowLast-1,collapsed);
+		};
+		setGroupCols = function(colFirst,colLast,collapsed = true){
+			GroupCols(owner.hwnd,colFirst-1,colLast-1,collapsed);
+		};
+		getPrintFit = function(){
+			var int = 1
+			var result,width,hight = GetPrintFit(owner.hwnd,int,int);
+			if !result return null; 
+			return width,hight; 
+		};
+		setPrintFit = function(widthPage,highPage){
+			SetPrintFit(owner.hwnd,widthPage,highPage);
+		};
+		printRepeatRows = function(){
+			var int = 1
+			var result,iniRow,lastRow = PrintRepeatRows(owner.hwnd,int,int);
+			if !result return null; 
+			iniRow -= 1;
+			lastRow -= 1;
+			return iniRow,lastRow; 
+		};
+		setPrintRepeatRows = function(iniRow,lastRow){
+			SetPrintRepeatRows(owner.hwnd,iniRow-1,lastRow-1);
+		};
+		printRepeatCols = function(){
+			var int = 1
+			var result,iniCol,lastCol = PrintRepeatCols(owner.hwnd,int,int);
+			if !result return null; 
+			iniCol += 1;
+			lastCol += 1;
+			return iniCol,lastCol; 
+		};
+		setPrintRepeatCols = function(iniCol,lastCol){
+			SetPrintRepeatCols(owner.hwnd,iniCol-1,lastCol-1);
+		};
+		printArea = function(){
+			var int = 1;
+			var result,iniRow,lastRow,iniCol,lastCol = PrintArea(owner.hwnd,int,int,int,int);
+			if !result return null; 
+			var cellRange = ..libxl.cellRange();
+			cellRange.iniCol 	= iniCol + 1;
+			cellRange.lastCol	= lastCol + 1;
+			cellRange.iniRow	= iniRow + 1;
+			cellRange.lastRow	= lastRow + 1;
+			return cellRange; 
+		};
+		setPrintArea = function(cellRange){
+			SetPrintRepeatCols(owner.hwnd,iniCol-1,lastCol-1);
+		};
+		clearPrintRepeats = function(){
+			ClearPrintRepeats(owner.hwnd);
+		};
+		clearPrintArea = function(){
+			ClearPrintArea(owner.hwnd);
+		};
+		getNamedRangeByIndex = function(index){
+			var int = 1;
+			var name,iniRow,lastRow,iniCol,lastCol,scopeID,hidden = NamedRange(owner.hwnd,index,int,int,int,int,int,int);
+			if !name return null; 
+			var nameRange = ..libxl.nameRange(name,iniRow +1,lastRow + 1,iniCol + 1,lastCol + 1,scopeID,hidden)
+			return nameRange; 
+		};
+		getNamedRangeByText = function(name,scopeID = 0){
+			var int = 1
+			var result,name,iniRow,lastRow,iniCol,lastCol,hidden = GetNamedRange(owner.hwnd,name,int,int,int,int,scopeID,int)
+			if !result return null; 
+			var nameRange = ..libxl.nameRange(name,iniRow +1,lastRow + 1,iniCol + 1,lastCol + 1,scopeID,hidden)
+			return nameRange; 
+		};
+		setNamedRange = function(name,iniRow,lastRow,iniCol,lastCol,scopeID = 0){
+			var int = 1
+			var result,name = GetNamedRange(owner.hwnd,name,iniRow -1,lastRow -1,iniCol -1,lastCol -1,scopeID)
+			if !result return null; 
+			return name; 
+		};
+		getHyperlinkByIndex = function(index){
+			var int = 1;
+			var hyperlink,iniRow,lastRow,iniCol,lastCol = NamedRange(owner.hwnd,index,int,int,int,int);
+			if !hyperlink return null; 
+			var cellRange = ..libxl.cellRange();
+			cellRange.iniCol 	= iniCol + 1;
+			cellRange.lastCol	= lastCol + 1;
+			cellRange.iniRow	= iniRow + 1;
+			cellRange.lastRow	= lastRow + 1;
+			cellRange.hyperlink = hyperlink;
+			return cellRange; 
+			
+		};
+		delHyperlink =  function(index){
+			return DelHyperlink(owner.hwnd,index); 
+		};
+		addHyperlink =  function(hyperlink,iniRow,lastRow,iniCol,lastCol){
+			return DelHyperlink(owner.hwnd,hyperlink,iniRow - 1,lastRow -1,iniCol - 1,lastCol -1); 
+		};
+		getTopLeftView = function(){
+			var int = 1;
+			var row,col = GetTopLeftView(owner.hwnd,int,int)
+			var cell = {row = row + 1; col = col + 1}
+			if row return cell;
+			return null;  
+		};
+		setTopLeftView = function(row,col){
+			SetTopLeftView(owner.hwnd,row - 1,col -1) ;
+		};
+		setAutoFitArea = function(iniRow,lastRow,iniCol,lastCol){
+			SetAutoFitArea(owner.hwnd,iniRow -1,iniCol -1,lastRow -1,lastCol -1);
+		};
+		addrToRowCol = function(str){
+			return ..libxl.Sheet.addrToRowCol(owner.hwnd,str); 
+		};
+		rowColToAddr = function(row,col,rowRelative = true,colRelative = true){
+			return RowColToAddr(owner.hwnd,row -1,col -1,rowRelative,colRelative); 
+		};
+		autoFilter = function(){
+			var hwnd = AutoFilter(owner.hwnd)
+			if !hwnd return hwnd; 
+			var s_autofilter = ..libxl.AutoFilter(hwnd,owner.hwnd)//由于子方法调用了一个Sheet中的方法，所以需要传递此hwnd
+		    return s_autofilter;//AutoFilterhandle
+		}
+		applyFilter = function(){
+			ApplyFilter(owner.hwnd);
+		}
+		removeFilter = function(){
+			RemoveFilter(owner.hwnd)
+		}
+		setProtect = function(v,pass,enhanceType){
+			if pass != null or enhanceType != null{
+				SetProtectEx(owner.hwnd,tonumber(v),pass,enhanceType);
+			}
+			else {
+				owner.protect = v;
+			}
+		}
+		setTabColor = function(colorType){ //API没有提供获取功能
+			if colorType != null SetTabColor(owner.hwnd,colorType);
+		}
+		setTabRgbColor = function(red,green,blue){
+			if red != null && green != null && blue != null SetTabRgbColor(owner.hwnd,red,green,blue);
+		}
+		getTableArea = function(index){
+			var name,rowFirst, rowLast, colFirst,colLast, headerRowCount, totalsRowCount = TableArea(owner.hwnd,index,0,0,0,0,0,0);
+			//待修改，需要返回cellRange
+			var cellRange = cellRange(rowFirst, rowLast, colFirst,colLast);
+			cellRange.headerRowCount = headerRowCount;
+			cellRange.totalsRowCount = totalsRowCount;
+			cellRange.name = name;
+			return cellRange; 
+		}
+		removeDataValidations = function(){
+			RemoveDataValidations(owner.hwnd);
+		}
+		
+	)
+	addrToRowCol = function(hwnd,str){ //不是属性，调用方法与实例不同
+		var int,bool = 1,false;
+		var row,col,rowRelative,colRelative = AddrToRowCol(hwnd,str,int,int,bool,bool)
+		var cell = {row = row + 1; col = col + 1;rowRelative = rowRelative;colRelative = colRelative}
+		if row >= 0 && col >=0 return cell;
+		return null;  
+	};
+	
+	//Column对象字段;
+	class Column{
+		ctor( hwnd,first=1,last ){
+			if !hwnd return null,"请指定本地句柄"; 
+			this.hwnd = hwnd;//仍然是SheetHwnd
+			this.first = first;
+			this.last = last;
+		}
+		@_metaProperty;
+	}
+	namespace Column{
+		_metaProperty = ..util.metaProperty(
+			_call = function(first,last){
+				owner.first = first;
+				owner.last = last;
+				return owner; 
+			};
+			width = {
+				_get = function(){
+		    		return ColWidth(owner.hwnd,owner.first - 1);
+				};
+				_set = function( v ){
+					var last,hidden = owner.last,ColHidden(owner.hwnd,owner.first - 1);
+					if !last last = owner.first;
+					if last != null last -= 1;
+					//..io.print(owner.first - 1,last,v)
+					return SetCol(owner.hwnd,owner.first - 1,last,v,,hidden);
+				}
+			}
+			hidden = {
+				_get = function(){
+		    		return ColHidden(owner.hwnd,owner.first - 1);
+				};
+				_set = function( v ){
+					return SetColHidden(owner.hwnd,owner.first - 1,tonumber(v));
+				}
+			}
+		)
+		
+		ColWidth		= libxl32.api("xlSheetColWidth","double(ptr SheetHandle, int col)")
+		SetCol			= libxl32.api("xlSheetSetCol","int(ptr SheetHandle, int colFirst, int colLast, double width,ptr FormatHandle, int hidden)")
+		ColHidden		= libxl32.api("xlSheetColHidden","int(ptr SheetHandle, int col)")
+		SetColHidden	= libxl32.api("xlSheetSetColHidden","int(ptr SheetHandle, int col, int hidden)")
+	}//Column声明结束
+	
+	//Column对象字段;
+	class Row{
+		ctor( hwnd,first=1,last ){
+			if !hwnd return null,"请指定本地句柄"; 
+			this.hwnd = hwnd;//仍然是SheetHwnd
+			this.first = first;
+			this.last = last;
+		}
+		@_metaProperty;
+	}
+	namespace Row{
+		_metaProperty = ..util.metaProperty(
+			_call = function(first,last){
+				owner.first = first;
+				owner.last = last;
+				return owner; 
+			};
+			height = {
+				_get = function(){
+		    		return RowHeight(owner.hwnd,owner.first - 1);
+				};
+				_set = function( v ){
+					var hidden = RowHidden(owner.hwnd,owner.first - 1);
+					SetRow(owner.hwnd,owner.first - 1,v,,hidden);
+				}
+			}
+			hidden = {
+				_get = function(){
+		    		return RowHidden(owner.hwnd,owner.first - 1);
+				};
+				_set = function( v ){
+					SetRowHidden(owner.hwnd,owner.first - 1,tonumber(v));
+				}
+			}
+		)
+		
+		RowHeight		= libxl32.api("xlSheetRowHeight","double(ptr SheetHandle, int row)")
+		SetRow			= libxl32.api("xlSheetSetRow","int(ptr SheetHandle, int row, double height, ptr FormatHandle, int hidden)")
+		RowHidden		= libxl32.api("xlSheetRowHidden","int(ptr SheetHandle, int row)")
+		SetRowHidden	= libxl32.api("xlSheetSetRowHidden","int(ptr SheetHandle, int row, int hidden)")
+	}//Row结束
+	//Range
+	class Range{
+		ctor( hwnd ){
+			if !hwnd return null,"请指定本地句柄"; 
+			this.hwnd = hwnd;//仍然是SheetHwnd
+			this.areastr = "";
+			this.area = {};//值为文本,如{"A1B2";"C3"}
+			this.areaSplit = {};//值为数值,如{[1] = {iniRow;iniCol;LastRow;LastCol};}
+			//-----------统一功能参数---------
+			this.method = "value";
+			this.setvalue = {};
+			this.setformat = {};
+			this.setformulat = {};
+		}
+		@_metaProperty;
+	}
+	namespace Range{
+		import preg;
+		_metaProperty = ..util.metaProperty(
+			_call = function(str){
+				//清空上次调用信息
+				owner.area = {};
+				owner.areaSplit = {}
+				//-----正常处理-------
+				owner.areastr = str;
+				owner.area[1] = str;
+				var area = ..string.split(str,",");//拆分区域
+				if type(area) == type.table owner.area = area;//拆对了就赋值，否则按原来的
+				owner.areaSplit = owner.getAreaPosition(owner.area);
+				return owner; 
+			};
+			//保留设取值/公式/格式/合并/Copyto功能; 2017-06-20,copyTo没有优化
+			value = {
+				_get = function(){//考虑多个区域
+					owner.method = "value";
+					return owner.getMetaFunction();
+				};
+				_set = function(v){//考虑多个区域
+					owner.method = "value";
+					owner.setMetaFunction(v,true);
+				}
+			};
+			format = { //格式
+				_get = function(){
+					owner.method = "format";
+					return owner.getMetaFunction();
+				};
+				_set = function( v ){
+					owner.method = "format";
+					v = owner.destructFormat(v);
+					owner.setMetaFunction(v,true);
+				}
+			}//format
+			formula = {
+				_get = function(){
+					owner.method = "formula";
+					return owner.getMetaFunction();
+				};
+				_set = function(v){
+					owner.method = "formula";
+					owner.setMetaFunction(v,true);
+				};
+			}
+			//以下不在!xlRange中提示，仅作为usedRange的功能
+			address = { 
+				_get = function(){
+					return owner.areastr;
+				};
+			}
+			
+			Rows = {
+				_get = function(){
+					var areaSplit = owner.areaSplit
+					var eachRange = areaSplit[1];
+					var rowcounts = (eachRange.lastRow - eachRange.iniRow)  + 1//数量应该是行数相减后加1
+					return {Count = rowcounts}; 
+				}
+			}
+			Columns = {
+				_get = function(){
+					var areaSplit = owner.areaSplit
+					var eachRange = areaSplit[1];
+					var colcounts = (eachRange.lastCol - eachRange.iniCol) + 1
+					return {Count = colcounts}; 
+				}
+			}
+
+			//函数段
+			getMetaFunction = function(returnMode = 1){//获取信息
+				var areaSplit,cur_Sheet,method = owner.areaSplit,owner.owner,owner.method;
+				var values,eachArea = {};
+				
+				if ( returnMode == 1 ){ //普通模式，不带定位，返回值，按数值定位
+					for i=1;#areaSplit;1{
+						eachArea = {};
+						var eachRange,eachRow,v = areaSplit[i];
+						for row = eachRange.iniRow;eachRange.lastRow;1{
+							eachRow = {};
+							for col = eachRange.iniCol;eachRange.lastCol;1{
+								v = cur_Sheet.Cell(row,col)[method];
+								eachRow[(col-eachRange.iniCol+1)] = v;//按位赋值，null值不影响
+							}
+							eachArea[(row - eachRange.iniRow +1)] = eachRow;//按行赋值,null行不影响
+						};
+						..table.push(values,eachArea);
+					}
+					if #areaSplit == 1 return values[1]; 
+				}
+				elseif( returnMode == 2){ //带区域描述的
+					for i=1;#areaSplit;1{
+						eachArea = {};
+						var eachRange,eachRow,v,pos = areaSplit[i];
+						for row = eachRange.iniRow;eachRange.lastRow;1{
+							for col = eachRange.iniCol;eachRange.lastCol;1{
+								v = cur_Sheet.Cell(row,col)[method];
+								pos = cur_Sheet.rowColToAddr(row,col);
+								eachArea[pos] = v;//按位赋值，null值不影响
+							};
+						};
+						..table.push(values,eachArea);
+					}
+					if #areaSplit == 1 return values[1]; 
+				}
+				return values; 
+			};
+			setMetaFunction = function(v,copymode = false,format){ //传值，及格式
+				var areaSplit,cur_Sheet,method = owner.areaSplit,owner.owner,owner.method;
+				var values,eachArea,eachRange,eachValue,rangeValues = {};
+				//----------将值赋予到values中，后续将按values逐一匹配，减少判断项目
+				if type(v) != type.table{//v为单值的时候，每个区域都写入单值v;
+					for i=1;#areaSplit;1{..table.push(values,v);};
+				}
+				else {;
+					
+					if #areaSplit == 1 v = {v};//解决range.value = range.value 的问题；
+					
+					for i=1;#areaSplit;1{
+						eachRange = areaSplit[i];
+						rangeValues = v[i];//有可能为null，有可能为单值，有可能为table;
+						if type(rangeValues) != type.table{//null或单值时;
+							values[i] = rangeValues;
+						}
+						else {//同时存在一维数组及二维数组，即每行单值或者多值
+							//区域为一个单元格的时候
+							if eachRange.iniRow == eachRange.lastRow && eachRange.iniCol == eachRange.lastCol {
+								values[i] = rangeValues;//不做任何处理
+								continue ;
+							}
+							//标准情况
+							var formatValue,rowValue,rowIndex = {};//将一维数组扩展为二维
+							for row = eachRange.iniRow;eachRange.lastRow;1{
+								rowIndex = (row - eachRange.iniRow + 1)
+								rowValue = rangeValues[ rowIndex ];
+								if type(rowValue) != type.table{//行为一个值的情况
+									formatValue[rowIndex] = {};
+									for col = eachRange.iniCol;eachRange.lastCol;1{
+										formatValue[rowIndex][col - eachRange.iniCol +1] = rowValue;
+									}
+								}
+								else {//行为数组的情况，有可能值会少于区域
+									var areaCols = eachRange.lastCol - eachRange.iniCol + 1
+									if ( #rowValue < areaCols ){//少的情况
+										formatValue[rowIndex] = {};
+										var count = 0;
+										for col = eachRange.iniCol;eachRange.lastCol;1{
+											count += 1;
+											formatValue[rowIndex][col - eachRange.iniCol +1] = rowValue[count];
+											if count >= areaCols {
+												if copymode { count = 0; continue };//复制模式时，重置count
+												break ;//否则跳出
+											};
+										};
+									};
+									else {//相等或多的情况
+										formatValue[rowIndex] = rowValue;
+									};
+								}
+							}
+							values[i] = formatValue;
+						}
+					};
+				};
+				//..console.log("value",owner.method,values)
+				//开始赋值操作;
+				for i=1;#areaSplit;1{
+					eachRange = areaSplit[i];
+					rangeValues = values[i];
+					//区域为一个单元格的时候
+					if eachRange.iniRow == eachRange.lastRow && eachRange.iniCol == eachRange.lastCol {
+						if type(rangeValues) != type.table{//单值的时候就直接调用cell就好了
+							cur_Sheet.Cell(eachRange.iniRow,eachRange.iniCol)[method] = rangeValues;
+						}
+						else {
+							for row = 1;#rangeValues;1{
+								if type(rangeValues[row]) != type.table { //行里是单值的时候
+									cur_Sheet.Cell(eachRange.iniRow + row - 1,eachRange.iniCol)[method] = rangeValues[row];
+								}
+								else {
+									for col = 1;#rangeValues[row];1{
+										cur_Sheet.Cell(eachRange.iniRow + row - 1,eachRange.iniCol + col - 1)[method] = rangeValues[row][col];
+									}
+								}
+							}
+						}
+						continue ;
+					}
+					//标准情况
+					for row = eachRange.iniRow;eachRange.lastRow;1{
+						if type(rangeValues) != type.table{ //单值的情况
+							for col = eachRange.iniCol;eachRange.lastCol;1{
+								cur_Sheet.Cell(row,col)[method] = rangeValues;
+							}
+						}
+						else {
+							rowIndex = (row - eachRange.iniRow + 1)
+							rowValue = rangeValues[ rowIndex ];
+							for col = eachRange.iniCol;eachRange.lastCol;1{
+								cur_Sheet.Cell(row,col)[method] = rowValue[( col - eachRange.iniCol + 1)];
+							}
+						};
+					};
+				}
+				if format { //格式的话，就拆开处理，速度慢些，但减轻代码复杂度
+					owner.method = "format";
+					v = owner.destructFormat(format);
+					owner.setMetaFunction(v,true);
+				}
+			};
+			destructFormat = function(v){ //解构Format对象，只传递句柄,方便统一调用
+				var values = {};
+				for k,j in v{
+					if type(j) == type.table {
+						if j.hwnd {
+							values[k] = j.hwnd;
+						}
+						else {
+							values[k] = owner.destructFormat(j);
+						}
+					}
+					else {
+						values[k] = j
+					}
+				}
+				return values; 
+			};
+			getAreaPosition = function(sourceArea){
+				var areaS,cellRange = {}	
+				for areaIndex = 1;#sourceArea;1{
+					cellRange = reCalcuCellRange(owner.hwnd,sourceArea[areaIndex]);
+					..table.push(areaS,cellRange);//加入区域
+				}
+				return areaS; 
+			}
+			setValue = function(data,format,copyMode = true){
+				owner.method = "value";
+				owner.setMetaFunction(v,copyMode,format);
+			}//setValue;
+			getValue = function(mode=2){
+				owner.method = "value";
+				return owner.getMetaFunction(mode);
+			}//自定义返回是否是区域模式
+			setFormula = function(data,format){
+				owner.method = "formula";
+				owner.setMetaFunction(v,copyMode,format);
+			}//setFormat
+			copyTo = function(cell,setFormat = false){//待改进，应该用CopyTo方法
+				var data,format = owner.value,{};
+				if setFormat format = owner.format;
+				owner.owner.Range(cell).value = data;
+				if setFormat owner.owner.Range(cell).format = format;
+			}//copyTo
+			merge = function(){
+				var areaSplit,eachRange = owner.areaSplit;
+				for i=1;#areaSplit;1{
+					eachRange = areaSplit[i];
+					owner.owner.setMerge(eachRange.iniRow,eachRange.lastRow,eachRange.iniCol,eachRange.lastCol);
+				};
+			}
+			ignoreError = function(errorType){
+				var areaSplit,eachRange = owner.areaSplit;
+				for i=1;#areaSplit;1{
+					eachRange = areaSplit[i];
+					owner.owner.AddIgnoredError(owner.hwnd,eachRange.iniRow,eachRange.iniCol,eachRange.lastRow,eachRange.lastCol,errorType)
+				}
+			}
+			dataValidation = function(dataType,operaType,value_op,value_between,blank = true,hideDropdown = false,
+							inputMsg = true,errorMsg = true,proTitle = "",proText ="",errorTitle ="",errorText = "",errorType = 0){
+				//原函数分四个版本，分别是str和double，正常与Ex，这里直接调用Ex
+				var func;
+				if type(value_op) == type.number && type(value_between) == type.number{
+					func = owner.owner.AddDataValidationDoubleEx
+				}
+				else {
+					func = owner.owner.AddDataValidationEx
+					if type(value_op) != type.string 		value_op = tostring(value_op);
+					if type(value_between) != type.string 	value_between = tostring(value_between);
+				}
+				var areaSplit,eachRange = owner.areaSplit;
+				for i=1;#areaSplit;1{
+					eachRange = areaSplit[i];
+					func(dataType,operaType,eachRange.iniRow,eachRange.iniCol,eachRange.lastRow,eachRange.lastCol,
+						)
+				}
+			}
+			
+		)//属性结束
+		getAreaFromStr = function(str){
+			var regex = preg("(\w{1,}?\d{1,})");
+			var area = {};
+			for m in regex.gmatch( str) { 
+				..table.push(area,m);
+			};
+			return area; 
+		}
+		reCalcuCellRange = function(hwnd,srcArea){ //非实例化的方法，所以需要传递hwnd
+			var areaRange = {iniRow = 0;iniCol = 0;lastRow = 0;lastCol = 0;};
+			var areaSplit = getAreaFromStr(srcArea)
+			var cells = {};
+			for i=1;#areaSplit;1{
+				var cell = ..libxl.Sheet.addrToRowCol(hwnd,areaSplit[i]) //成功返回cell,失败为null
+				..table.push(cells,cell);
+			}
+			if #cells = 1 ..table.push(cells,cells[1]); //只有一个时，补全
+			//---------转换区域为数值数组----------
+			var cellRange = ..table.clone(areaRange);
+			cellRange.iniRow = cells[1].row;
+			cellRange.iniCol = cells[1].col;
+			cellRange.lastRow = cells[2].row;
+			cellRange.lastCol = cells[2].col;
+			//---------重排区域-------------------
+			if cellRange.iniRow > cellRange.lastRow{
+				cellRange.iniRow = cells[2].row;
+				cellRange.lastRow = cells[1].row;
+			};
+			if cellRange.iniCol > cellRange.lastCol{
+				cellRange.iniCol = cells[2].col;
+				cellRange.lastCol = cells[1].col;
+			};
+			return cellRange; 
+		}
+		
+	}//Range结束
+	//Cell对象字段;
+	class Cell{
+		ctor( hwnd,x=1,y=1 ){
+			if !hwnd return null,"请指定本地句柄"; 
+			this.hwnd = hwnd;//仍然是SheetHwnd
+			this.x = x
+			this.y = y
+		}
+		@_metaProperty;
+	}
+	namespace Cell{
+		_metaProperty = ..util.metaProperty(
+			_call = function(row,col){
+				if type(row) = type.string{
+				
+					var areaSplit = ..libxl.Sheet.Range.getAreaFromStr(row);
+					if #areaSplit > 1 return owner.owner.Range(row); 
+					
+					var cell = owner.owner.addrToRowCol(row)
+					owner.x = cell.row;
+					owner.y = cell.col;
+					return owner; 
+				}
+				if type(row) = type.number{
+					owner.x = row;
+					owner.y = col;
+					return owner; 
+				}
+				return null; 
+			};
+			delMerge = function(){//删除合并单元格
+				return DelMerge(owner.hwnd,owner.x-1,owner.y-1); 
+			};
+			copyTo = function(row,col){
+				return CopyCell(owner.hwnd,owner.x-1,owner.y-1,row-1,col-1)
+			}
+			setValue = function(value,format){
+				if type(format) == type.table format = format.hwnd
+				select(type(value)) {
+					case type.number {
+						WriteNum(owner.hwnd,owner.x-1,owner.y-1,value,format);
+					}
+					case type.string {
+						WriteStr(owner.hwnd,owner.x-1,owner.y-1,value,format);
+					}
+					case type.boolean {
+						WriteBool(owner.hwnd,owner.x-1,owner.y-1,tonumber(value),format);
+					}
+					case type.null{
+						WriteStr(owner.hwnd,owner.x-1,owner.y-1,"",format);
+					}
+					case type.table {
+						if value.year return WriteStr(owner.hwnd,owner.x-1,owner.y-1,tostring(value),format);//时间格式
+						owner.owner.Range(owner.owner.rowColToAddr(owner.x,owner.y)).setValue(value,format)//待测试
+					}
+				}
+			}
+			setFormula = function(str,cellvalue,format){
+				if type(format) == type.table format = format.hwnd
+				if cellvalue{
+					select(type(cellvalue)) {
+						case type.number {
+							WriteFormulaNum(owner.hwnd,owner.x-1,owner.y-1,str,cellvalue,format)
+						}
+						case type.string {
+							WriteFormulaStr(owner.hwnd,owner.x-1,owner.y-1,str,cellvalue,format)
+						}
+						case type.boolean {
+							WriteFormulaBool(owner.hwnd,owner.x-1,owner.y-1,str,cellvalue,format)
+						}
+					}
+				}
+				else {
+					WriteFormula(owner.hwnd,owner.x-1,owner.y-1,str,format);
+				}
+			};
+			setError = function(errType,format){
+				if type(format) == type.table format = format.hwnd
+				WriteError(owner.hwnd,owner.x-1,owner.y-1,errType,format);
+			}
+			removeComment = function(){
+				RemoveComment(owner.hwnd,owner.x-1,owner.y-1);
+			}
+			value = {
+				_get = function(){  ;
+					var celltype = CellType(owner.hwnd,owner.x-1,owner.y-1)
+					select(celltype) {
+						case 1/*_CELLTYPE_NUMBER*/ {
+							return ReadNum(owner.hwnd,owner.x-1,owner.y-1);
+						}
+						case 2/*_CELLTYPE_STRING*/{
+							return ReadStr(owner.hwnd,owner.x-1,owner.y-1);
+						}
+						case 3/*_CELLTYPE_BOOLEAN*/ {
+							return ReadBool(owner.hwnd,owner.x-1,owner.y-1);
+						}
+						case 4/*_CELLTYPE_BLANK*/ {
+							return ; 
+						}
+						else {	//错误值应该由用户自己调用
+							return ; 
+						}
+					}
+				};
+				_set = function( v ){;
+					owner.setValue(v);
+				};
+			};
+			text = {
+				_get = function(){
+		    		return ReadStr(owner.hwnd,owner.x-1,owner.y-1);
+				};
+				_set = function( v ){
+					WriteStr(owner.hwnd,owner.x-1,owner.y-1,v);
+				};
+			};
+			num = {
+				_get = function(){ 
+		    		return ReadNum(owner.hwnd,owner.x-1,owner.y-1);
+				};
+				_set = function( v ){
+					WriteNum(owner.hwnd,owner.x-1,owner.y-1,v);
+				};
+			};
+			formula = {
+				_get = function(){
+		    		return ReadFormula(owner.hwnd,owner.x-1,owner.y-1);
+				};
+				_set = function( v ){
+					WriteFormula(owner.hwnd,owner.x-1,owner.y-1,v);
+				};
+			};
+			cellType = {
+				_get = function(){
+		    		return CellType(owner.hwnd,owner.x-1,owner.y-1);
+				};
+			}
+			format = { //格式
+				_get = function(){
+					var hwnd = CellFormat(owner.hwnd,owner.x-1,owner.y-1)
+					if !hwnd return hwnd; 
+					var s_format = owner.owner.p_shformat.Formats(hwnd,owner.owner.p_shformat)
+					return s_format; 
+				};
+				_set = function( format ){
+					var hFormat = format;
+					if type(format) == type.table hFormat = format.hwnd
+					if !owner.owner.p_shformat.Formats[tonumber(hFormat)]{
+						hFormat = owner.owner.p_shformat.book.addFormat(hFormat).hwnd
+					}	
+					SetCellFormat(owner.hwnd,owner.x-1,owner.y-1, hFormat);
+				}
+			}
+			comment = {//注释，2003的才可以
+				_get = function(){
+		    		return ReadComment(owner.hwnd,owner.x-1,owner.y-1);
+				};
+				_set = function( v ){
+					if type(v) != type.table error("请使用cellComment对象填充数据")
+					WriteComment(owner.hwnd,owner.x-1,owner.y-1,v.value,v.author,v.width,v.height);
+				}
+			}
+			isFormula = {
+				_get = function(){
+		    		return IsFormula(owner.hwnd,owner.x-1,owner.y-1);
+				};
+			};
+			isDate = {
+				_get = function(){
+		    		return IsDate(owner.hwnd,owner.x-1,owner.y-1);
+				};
+			};
+			errType = {
+				_get = function(){
+		    		return ReadError(owner.hwnd,owner.x-1,owner.y-1);
+				};
+			}
+			merge = {
+				_get = function(){
+					var int = 1
+		    		var result,iniRow,lastRow,iniCol,lastCol = GetMerge(owner.hwnd,owner.x-1,owner.y-1,int,int,int,int);
+		    		if result == 0 return null; 
+		    		var mergeCells = ..libxl.cellRange();
+		    		mergeCells.iniCol 	= iniCol + 1;
+		    		mergeCells.lastCol	= lastCol + 1;
+		    		mergeCells.iniRow	= iniRow + 1;
+		    		mergeCells.lastRow	= lastRow + 1;
+		    		return mergeCells; 
+				};
+			}
+			blank = {
+				_get = function(){
+		    		var result,ptr ReadFormula(owner.hwnd,owner.x-1,owner.y-1);
+		    		return ptr; 
+				};
+				_set = function( hFormat ){
+					if type(hFormat) == type.table hFormat = hFormat.hwnd
+					WriteBlank(owner.hwnd,owner.x-1,owner.y-1,hFormat);
+				};
+			}
+			
+		)
+		ReadStr			= libxl32.api("xlSheetReadStr", "ustring(ptr SheetHandle, int row, int col, ptr FormatHandle)")
+		WriteStr		= libxl32.api("xlSheetWriteStr","int(ptr SheetHandle, int row, int col, ustring value, ptr FormatHandle)")
+		
+		ReadNum			= libxl32.api("xlSheetReadNum","double(ptr SheetHandle, int row, int col, ptr FormatHandle)")
+		WriteNum		= libxl32.api("xlSheetWriteNum","int(ptr SheetHandle, int row, int col, double value, ptr FormatHandle)")
+		
+		ReadBool		= libxl32.api("xlSheetReadBool","int(ptr SheetHandle, int row, int col, ptr FormatHandle)")
+		WriteBool		= libxl32.api("xlSheetWriteBool","int(ptr SheetHandle, int row, int col, int value, ptr FormatHandle)")
+		
+		ReadBlank		= libxl32.api("xlSheetReadBlank","int(ptr SheetHandle, int row, int col, ptr& FormatHandle)") //返回空单元格的格式
+		WriteBlank		= libxl32.api("xlSheetWriteBlank","int(ptr SheetHandle, int row, int col, ptr FormatHandle)")
+		
+		ReadFormula		= libxl32.api("xlSheetReadFormula","ustring(ptr SheetHandle, int row, int col, pointer FormatHandle)")
+		WriteFormula	= libxl32.api("xlSheetWriteFormula","int(ptr SheetHandle, int row, int col, ustring value, ptr FormatHandle)")
+		WriteFormulaNum = libxl32.api("xlSheetWriteFormulaNum","int(ptr SheetHandle, int row, int col, ustring expr, double value, ptr FormatHandle)");
+		WriteFormulaStr = libxl32.api("xlSheetWriteFormulaStr","int(ptr SheetHandle, int row, int col, ustring expr, ustring value, ptr FormatHandle)");
+		WriteFormulaBool = libxl32.api("xlSheetWriteFormulaBool","int(ptr SheetHandle, int row, int col, ustring expr, int value, ptr FormatHandle)");
+		
+		WriteError 		= libxl32.api("xlSheetWriteError","void(ptr SheetHandle, int row, int col, int error, ptr FormatHandle)");
+		CellType		= libxl32.api("xlSheetCellType","int(ptr SheetHandle, int row, int col)")
+		
+		ReadComment		= libxl32.api("xlSheetReadComment","ustring(ptr SheetHandle, int row, int col)")
+		WriteComment	= libxl32.api("xlSheetWriteComment","void(ptr SheetHandle, int row, int col, ustring& value, ustring& author, int width, int height)")
+		RemoveComment 	= libxl32.api("xlSheetRemoveComment","void(ptr SheetHandle, int row, int col)");
+	
+		IsFormula		= libxl32.api("xlSheetIsFormula","int(ptr SheetHandle, int row, int col)")
+		IsDate			= libxl32.api("xlSheetIsDate","int(ptr SheetHandle, int row, int col)")
+		
+		ReadError		= libxl32.api("xlSheetReadError","int(ptr SheetHandle, int row, int col)")
+		
+		GetMerge		= libxl32.api("xlSheetGetMerge","int(ptr SheetHandle, int row, int col, int& rowFirst, int& rowLast, int& colFirst, int& colLast)")
+		DelMerge		= libxl32.api("xlSheetDelMerge","int(ptr SheetHandle, int row, int col)")
+
+		CellFormat		= libxl32.api("xlSheetCellFormat","ptr(ptr SheetHandle, int row, int col)") //FormatHandle
+		SetCellFormat	= libxl32.api("xlSheetSetCellFormat","void(ptr SheetHandle, int row, int col, ptr FormatHandle)")
+		
+		CopyCell		= libxl32.api("xlSheetCopyCell","int(ptr SheetHandle, int rowSrc, int colSrc, int rowDst, int colDst)")
+
+	}//Cell 声明结束
+	
+	//Sheet函数
+	Name			= libxl32.api("xlSheetName","ustring(ptr SheetHandle)")
+	SetName			= libxl32.api("xlSheetSetName","void(ptr SheetHandle, ustring& name)")
+	
+	MergeSize		= libxl32.api("xlSheetMergeSize","int(ptr SheetHandle)")
+	DelMergeByIndex	= libxl32.api("xlSheetDelMergeByIndex","int(ptr SheetHandle, int index)")
+	Merge			= libxl32.api("xlSheetMerge","int(ptr SheetHandle, int index, int& rowFirst, int& rowLast, int& colFirst, int& colLast)")
+
+	InsertRow		= libxl32.api("xlSheetInsertRow","int(ptr SheetHandle, int rowFirst, int rowLast)")
+	RemoveRow		= libxl32.api("xlSheetRemoveRow","int(ptr SheetHandle, int rowFirst, int rowLast)")
+	
+	InsertCol		= libxl32.api("xlSheetInsertCol","int(ptr SheetHandle, int colFirst, int colLast)")
+	RemoveCol		= libxl32.api("xlSheetRemoveCol","int(ptr SheetHandle, int colFirst, int colLast)")
+	
+	Clear			= libxl32.api("xlSheetClear","void(ptr SheetHandle, int rowFirst, int rowLast, int colFirst, int colLast)")
+
+	PictureSize		= libxl32.api("xlSheetPictureSize","int(ptr SheetHandle)")
+	GetPicture		= libxl32.api("xlSheetGetPicture","int(ptr SheetHandle, int index, int& rowTop, int& colLeft, int& rowBottom, int& colRight, int& width, int& height, int& offset_x, int& offset_y)")
+	SetPicture		= libxl32.api("xlSheetSetPicture","void(ptr SheetHandle, int row, int col, int pictureId, double scale, int offset_x, int offset_y)")
+	SetPicture2		= libxl32.api("xlSheetSetPicture2","void(ptr SheetHandle, int row, int col, int pictureId, int width, int height, int offset_x, int offset_y)")
+	
+	GetHorPageBreak			= libxl32.api("xlSheetGetHorPageBreak","int(ptr SheetHandle, int index)")
+	GetHorPageBreakSize		= libxl32.api("xlSheetGetHorPageBreakSize","int(ptr SheetHandle)")
+	GetVerPageBreak			= libxl32.api("xlSheetGetVerPageBreak","int(ptr SheetHandle, int index)")
+	GetVerPageBreakSize		= libxl32.api("xlSheetGetVerPageBreakSize","int(ptr SheetHandle)")
+	
+	SetHorPageBreak			= libxl32.api("xlSheetSetHorPageBreak","int(ptr SheetHandle, int row, int pageBreak)")
+	SetVerPageBreak			= libxl32.api("xlSheetSetVerPageBreak","int(ptr SheetHandle, int col, int pageBreak)")
+	
+	Split			= libxl32.api("xlSheetSplit","void(ptr SheetHandle, int row, int col)")
+	SplitInfo		= libxl32.api("xlSheetSplitInfo","bool(ptr SheetHandle, int& row, int& col)")
+	
+	GroupRows		= libxl32.api("xlSheetGroupRows","int(ptr SheetHandle, int rowFirst, int rowLast, bool collapsed)")
+	GroupCols		= libxl32.api("xlSheetGroupCols","int(ptr SheetHandle, int colFirst, int colLast, bool collapsed)")
+	
+	GroupSummaryBelow		= libxl32.api("xlSheetGroupSummaryBelow","int(ptr SheetHandle)")
+	SetGroupSummaryBelow	= libxl32.api("xlSheetSetGroupSummaryBelow","void(ptr SheetHandle, int below)")
+	GroupSummaryRight		= libxl32.api("xlSheetGroupSummaryRight","int(ptr SheetHandle)")
+	SetGroupSummaryRight	= libxl32.api("xlSheetSetGroupSummaryRight","void(ptr SheetHandle, int right)")
+	
+	FirstRow		= libxl32.api("xlSheetFirstRow","int(ptr SheetHandle)")
+	LastRow			= libxl32.api("xlSheetLastRow","int(ptr SheetHandle)")
+	FirstCol		= libxl32.api("xlSheetFirstCol","int(ptr SheetHandle)")
+	LastCol			= libxl32.api("xlSheetLastCol","int(ptr SheetHandle)")
+	
+	DisplayGridlines		= libxl32.api("xlSheetDisplayGridlines","int(ptr SheetHandle)")
+	SetDisplayGridlines		= libxl32.api("xlSheetSetDisplayGridlines","void(ptr SheetHandle, int show)")
+	PrintGridlines			= libxl32.api("xlSheetPrintGridlines","int(ptr SheetHandle)")
+	SetPrintGridlines		= libxl32.api("xlSheetSetPrintGridlines","void(ptr SheetHandle, int print)")
+	
+	Zoom			= libxl32.api("xlSheetZoom","int(ptr SheetHandle)")
+	SetZoom			= libxl32.api("xlSheetSetZoom","void(ptr SheetHandle, int zoom)")
+	PrintZoom		= libxl32.api("xlSheetPrintZoom","int(ptr SheetHandle)")
+	SetPrintZoom	= libxl32.api("xlSheetSetPrintZoom","void(ptr SheetHandle, int zoom)")
+	
+	Landscape		= libxl32.api("xlSheetLandscape","int(ptr SheetHandle)")
+	SetLandscape	= libxl32.api("xlSheetSetLandscape","void(ptr SheetHandle, int landscape)")
+	
+	GetPrintFit		= libxl32.api("xlSheetGetPrintFit","int(ptr SheetHandle, int& wPages, int& hPages)")
+	SetPrintFit		= libxl32.api("xlSheetSetPrintFit","void(ptr SheetHandle, int wPages, int hPages)")
+	
+	Paper			= libxl32.api("xlSheetPaper","int(ptr SheetHandle)")
+	SetPaper		= libxl32.api("xlSheetSetPaper","void(ptr SheetHandle, int paper)")
+	
+	SetMerge		= libxl32.api("xlSheetSetMerge","int(ptr SheetHandle, int rowFirst, int rowLast, int colFirst, int colLast)")
+	
+	Header			= libxl32.api("xlSheetHeader","string(ptr SheetHandle)")
+	SetHeader		= libxl32.api("xlSheetSetHeader","int(ptr SheetHandle, ustring& header, double margin)")
+	HeaderMargin	= libxl32.api("xlSheetHeaderMargin","double(ptr SheetHandle)")
+	
+	Footer			= libxl32.api("xlSheetFooter","string(ptr SheetHandle)")
+	SetFooter		= libxl32.api("xlSheetSetFooter","int(ptr SheetHandle, ustring& footer, double margin)")
+	FooterMargin	= libxl32.api("xlSheetFooterMargin","double(ptr SheetHandle)")
+	
+	HCenter			= libxl32.api("xlSheetHCenter","int(ptr SheetHandle)")
+	SetHCenter		= libxl32.api("xlSheetSetHCenter","void(ptr SheetHandle, int hCenter)")
+	VCenter			= libxl32.api("xlSheetVCenter","int(ptr SheetHandle)")
+	SetVCenter		= libxl32.api("xlSheetSetVCenter","void(ptr SheetHandle, int vCenter)")
+	
+	MarginLeft		= libxl32.api("xlSheetMarginLeft","double(ptr SheetHandle)")
+	SetMarginLeft	= libxl32.api("xlSheetSetMarginLeft","void(ptr SheetHandle, double margin)")
+	MarginRight		= libxl32.api("xlSheetMarginRight","double(ptr SheetHandle)")
+	SetMarginRight	= libxl32.api("xlSheetSetMarginRight","void(ptr SheetHandle, double margin)")
+	MarginTop		= libxl32.api("xlSheetMarginTop","double(ptr SheetHandle)")
+	SetMarginTop	= libxl32.api("xlSheetSetMarginTop","void(ptr SheetHandle, double margin)")
+	MarginBottom	= libxl32.api("xlSheetMarginBottom","double(ptr SheetHandle)")
+	SetMarginBottom	= libxl32.api("xlSheetSetMarginBottom","void(ptr SheetHandle, double margin)")
+	
+	PrintRowCol		= libxl32.api("xlSheetPrintRowCol","int(ptr SheetHandle)")
+	SetPrintRowCol	= libxl32.api("xlSheetSetPrintRowCol","void(ptr SheetHandle, int print)")
+	
+	PrintRepeatRows	= libxl32.api("xlSheetPrintRepeatRows","int(ptr SheetHandle, int& rowFirst, int& rowLast)")
+	SetPrintRepeatRows		= libxl32.api("xlSheetSetPrintRepeatRows","void(ptr SheetHandle, int rowFirst, int rowLast)")
+	PrintRepeatCols			= libxl32.api("xlSheetPrintRepeatCols","int(ptr SheetHandle, int& colFirst, int& colLast)")
+	SetPrintRepeatCols		= libxl32.api("xlSheetSetPrintRepeatCols","void(ptr SheetHandle, int colFirst, int colLast)")
+	PrintArea		= libxl32.api("xlSheetPrintArea","int(ptr SheetHandle, int& rowFirst, int& rowLast, int& colFirst, int& colLast)")
+	SetPrintArea	= libxl32.api("xlSheetSetPrintArea","void(ptr SheetHandle, int rowFirst, int rowLast, int colFirst, int colLast)")
+	
+	ClearPrintRepeats		= libxl32.api("xlSheetClearPrintRepeats","void(ptr SheetHandle)")
+	ClearPrintArea	= libxl32.api("xlSheetClearPrintArea","void(ptr SheetHandle)")
+	
+	GetNamedRange	= libxl32.api("xlSheetGetNamedRange","int(ptr SheetHandle, ustring& name, int& rowFirst, int& rowLast, int& colFirst, int& colLast, int scopeId, int& hidden)")
+	SetNamedRange	= libxl32.api("xlSheetSetNamedRange","int(ptr SheetHandle, ustring& name, int rowFirst, int rowLast, int colFirst, int colLast, int scopeId)")
+	DelNamedRange	= libxl32.api("xlSheetDelNamedRange","int(ptr SheetHandle, ustring& name, int scopeId)")
+	NamedRangeSize	= libxl32.api("xlSheetNamedRangeSize","int(ptr SheetHandle)")
+	NamedRange		= libxl32.api("xlSheetNamedRange", "ustring(ptr SheetHandle, int index, int& rowFirst, int& rowLast, int& colFirst,int& colLast, int& scopeId, int& hidden)")
+	
+	HyperlinkSize	= libxl32.api("xlSheetHyperlinkSize","int(ptr SheetHandle)")
+	Hyperlink		= libxl32.api("xlSheetHyperlink", "ustring(ptr SheetHandle, int index, int& rowFirst, int& rowLast, int& colFirst, int& colLast)")
+	DelHyperlink	= libxl32.api("xlSheetDelHyperlink","int(ptr SheetHandle, int index)")
+	AddHyperlink	= libxl32.api("xlSheetAddHyperlink","void(ptr SheetHandle, ustring& hyperlink, int rowFirst, int rowLast, int colFirst, int colLast)")
+	
+	Protect			= libxl32.api("xlSheetProtect","int(ptr SheetHandle)")
+	SetProtect		= libxl32.api("xlSheetSetProtect","void(ptr SheetHandle, int protect)")
+	
+	RightToLeft		= libxl32.api("xlSheetRightToLeft","int(ptr SheetHandle)")
+	SetRightToLeft	= libxl32.api("xlSheetSetRightToLeft","void(ptr SheetHandle, int rightToLeft)")
+	
+	Hidden			= libxl32.api("xlSheetHidden","int(ptr SheetHandle)")
+	SetHidden		= libxl32.api("xlSheetSetHidden","int(ptr SheetHandle, int hidden)")
+	
+	GetTopLeftView	= libxl32.api("xlSheetGetTopLeftView","void(ptr SheetHandle, int& row, int& col)")
+	SetTopLeftView	= libxl32.api("xlSheetSetTopLeftView","void(ptr SheetHandle, int row, int col)")
+	
+	SetAutoFitArea	= libxl32.api("xlSheetSetAutoFitArea","void(ptr SheetHandle, int rowFirst, int colFirst, int rowLast, int colLast)")
+	
+	AddrToRowCol	= libxl32.api("xlSheetAddrToRowCol","void(ptr SheetHandle, ustring addr, int& row, int& col, bool& rowRelative, bool& colRelative)")
+	RowColToAddr	= libxl32.api("xlSheetRowColToAddr","ustring(ptr SheetHandle, int row, int col, bool rowRelative, bool colRelative)")
+	
+	AutoFilter 		= libxl32.api("xlSheetAutoFilter","ptr(ptr SheetHandle)");
+	ApplyFilter 	= libxl32.api("xlSheetApplyFilter","void(ptr SheetHandle)");
+	RemoveFilter 	= libxl32.api("xlSheetRemoveFilter","void(ptr SheetHandle)");
+		
+	AddIgnoredError = libxl32.api("xlSheetAddIgnoredError","int(ptr SheetHandle, int rowFirst, int colFirst, int rowLast, int colLast, int iError)");
+	SetProtectEx 	= libxl32.api("xlSheetSetProtectEx","void(ptr SheetHandle, int protect, ustring password, int enhancedProtection)");
+	
+	SetTabColor 	= libxl32.api("xlSheetSetTabColor","void(ptr SheetHandle, int color)");
+	SetTabRgbColor 	= libxl32.api("xlSheetSetTabRgbColor","void(ptr SheetHandle, int red, int green, int blue)");
+	
+	TableSize 		= libxl32.api("xlSheetTableSize","int(ptr SheetHandle)");
+	TableArea		= libxl32.api('xlSheetTable',"ustring(ptr SheetHandle, int index, int& rowFirst, int& rowLast, int& colFirst, int& colLast, int& headerRowCount, int& totalsRowCount)");
+	
+	//新增
+	AddDataValidation 		= libxl32.api("xlSheetAddDataValidation","void(ptr SheetHandle, int type, int op, int rowFirst, int rowLast, int colFirst, int colLast, ustring value1, ustring value2)");
+	AddDataValidationEx 	= libxl32.api("xlSheetAddDataValidationEx","void(ptr SheetHandle, int type, int op, int rowFirst, int rowLast, int colFirst, int colLast, ustring value1, ustring value2,
+										 bool allowBlank, bool hideDropDown, bool showInputMessage, bool showErrorMessage, ustring promptTitle, ustring prompt, ustring errorTitle, ustring error, int errorStyle)");
+	AddDataValidationDouble = libxl32.api("xlSheetAddDataValidationDouble","void(ptr SheetHandle, int type, int op, int rowFirst, int rowLast, int colFirst, int colLast, double value1, double value2)");
+	AddDataValidationDoubleEx = libxl32.api("xlSheetAddDataValidationDoubleEx","void(ptr SheetHandle, int type, int op, int rowFirst, int rowLast, int colFirst, int colLast, double value1, double value2,	
+										 bool allowBlank, bool hideDropDown, bool showInputMessage, bool showErrorMessage, ustring promptTitle, ustring prompt, ustring errorTitle, ustring error, int errorStyle)");
+	RemoveDataValidations = libxl32.api("xlSheetRemoveDataValidations","void(ptr SheetHandle)");											
+	
+	
+}
+
+/**intellisense()
+!libxl.Sheet() = !xlSheet.
+!xlSheet.name = 工作表名称
+!xlSheet.mergeCount = 合并单元格数量
+!xlSheet.pictureCount = 图片数量
+!xlSheet.horPageBreakCount = 行中断数量
+!xlSheet.verPageBreakCount = 列中断数量
+!xlSheet.split = 返回拆分单元格信息，Cell对象，row 和 col 分别代表行列。
+!xlSheet.groupSummaryBelow = 在下方返回合计数
+!xlSheet.groupSummaryRight = 在后侧返回合计数
+!xlSheet.firstRow = 工作表首行
+!xlSheet.lastRow = 工作表终止行
+!xlSheet.firstCol = 工作表首列
+!xlSheet.lastCol = 工作表终止列
+!xlSheet.displayGridlines = 显示网格线
+!xlSheet.printGridlines = 打印网格线
+!xlSheet.zoom = 缩放比例
+!xlSheet.printZoom = 打印时缩放比例
+!xlSheet.landscape = 是否为Landscape模式
+!xlSheet.paperSize = 纸张尺寸，_Paper_A4等
+!xlSheet.header = 页眉内容
+!xlSheet.headerMargin = 页眉边距
+!xlSheet.footer = 页脚内容
+!xlSheet.footerMargin = 页脚边距
+!xlSheet.hCenter = 打印时水平居中
+!xlSheet.vCenter = 打印时垂直居中
+!xlSheet.marginLeft = 左边距
+!xlSheet.marginRight = 右边距
+!xlSheet.marginTop = 上边距
+!xlSheet.marginBottom = 下边距
+!xlSheet.printRowCol = 打印时是否打印行列标签
+!xlSheet.namedRangeCount = 工作表命名空间数量
+!xlSheet.hyperlinkCount = 工作表超链接数量
+!xlSheet.protect = 是否保护工作表
+!xlSheet.usedRange = 返回使用区域对象
+!xlSheet.usedRange = !xlRange.
+!xlSheet.usedRange.Rows.Count = 返回已使用行数
+!xlSheet.usedRange.Columns.Count = 返回已使用列数
+!xlSheet.usedRange.address = 返回区域描述
+!xlSheet.rightToLeft = 是否启右对齐模式
+!xlSheet.hidden = 是否隐藏
+!xlSheet.tableNum = 获取区域数量
+!xlSheet.tabColor = 设置工作表名颜色(颜色序列)
+!xlSheet.delMerge(.(index) = 删除指定Index的合并单元格
+!xlSheet.getMerge(.(index) = 获取指定Index的合并单元格信息
+!xlSheet.setMerge(.(iniRow,lastRow,iniCol,lastCol) = 合并单元格
+!xlSheet.insertRow(.(row,rows = 0) = 插入行
+!xlSheet.deleteRow(.(row,rows = 0) = 删除行
+!xlSheet.insertColumn(.(col,cols = 0) = 插入列
+!xlSheet.deleteColumn(.(col,cols = 0) = 删除列
+!xlSheet.clearCell(.(topRow = 1,bottomRow = 1048576,leftCol = 1,rightCol = 16384) = 清除单元格内容
+!xlSheet.getPicture(.(index) = 获取指定Index的图片信息
+!xlSheet.setPicture(.(row,col,picId,sacle = 1.0,offset_x = 0, offset_y = 0) = 设置图片信息
+!xlSheet.setPicture2(.(row, col, picId, width = -1, height =-1, offset_x = 0, offset_y = 0) = 设置图片信息
+!xlSheet.horPageBreak(.(index) = 获取指定Index的水平中断
+!xlSheet.verPageBreak(.(index) = 获取指定Index的垂直中断
+!xlSheet.setHorPageBreak(.(row,pageBreak = false) = 设置水平中断
+!xlSheet.setVerPageBreak(.(col,pageBreak = false) = 设置垂直中断
+!xlSheet.setSplit(.(row = 0,col=0) = 设置拆分试图
+!xlSheet.setGroupRows(.(rowFirst,rowLast,collapsed = true) = 设置行组合
+!xlSheet.setGroupCols(.(colFirst,colLast,collapsed = true) = 设置列组合
+!xlSheet.getPrintFit(.() = 获取打印是否自动调整
+!xlSheet.setPrintFit(.(widthPage,highPage) = 设置打印时调整为几页长或宽
+!xlSheet.printRepeatRows(.() = 获取打印时是否重复行
+!xlSheet.setPrintRepeatRows(.(iniRow,lastRow) = 设置打印时重复行
+!xlSheet.printRepeatCols(.() = 获取打印时是否重复列
+!xlSheet.setPrintRepeatCols(.(iniCol,lastCol) = 设置打印时重复列
+!xlSheet.printArea(.() = 获取打印区域
+!xlSheet.autoFilter(.() = 获取或创建自动筛选区域
+!xlSheet.applyFilter(.() = 应用筛选设定
+!xlSheet.removeFilter(.() = 删除自动筛选
+!xlSheet.setPrintArea(.(cellRange) = 设置打印区域，使用cellRange对象
+!xlSheet.clearPrintRepeats(.() = 清除打印重复行、列
+!xlSheet.clearPrintArea(.() = 清楚打印区域
+!xlSheet.getNamedRangeByIndex(.(index) = 获取指定Index的命名空间信息
+!xlSheet.getNamedRangeByText(.(name,scopeID = 0) = 获取指定名称的命名空间信息
+!xlSheet.setNamedRange(.(name,iniRow,lastRow,iniCol,lastCol,scopeID = 0) = 设置命名空间
+!xlSheet.getHyperlinkByIndex(.(index) = 获取指定Index的超链接信息
+!xlSheet.delHyperlink(.(index) = 删除指定Index的超链接
+!xlSheet.addHyperlink(.(hyperlink,iniRow,lastRow,iniCol,lastCol) = 添加超链接
+!xlSheet.setProtect(.(是否保护,密码,保护类型) = 设置工作表保护
+!xlSheet.getTopLeftView(.() = 获取冻结单元格信息
+!xlSheet.setTopLeftView(.(row,col) = 设置冻结单元格
+!xlSheet.setAutoFitArea(.(iniRow,lastRow,iniCol,lastCol) = 设置自动对齐区域
+!xlSheet.addrToRowCol(.() = 将A1类型定位转为行列，返回cell结构
+!xlSheet.rowColToAddr(.(row,col,rowRelative,colRelative) = rowColToAddr
+!xlSheet.setTabColor(.(colorType) = 使用颜色序列设置工作表名
+!xlSheet.setTabRgbColor(.(red,green,blue) = 使用RGB颜色设置工作表名
+!xlSheet.removeDataValidations(.() = 
+!xlSheet.Cell(.(行,列) = 设置单元格对象
+!xlSheet.Cell(.(R1) = 设置单元格对象
+!xlSheet.Cells(.(行,列) = 设置单元格对象
+!xlSheet.Column(.(起始列,[终止列]) = 设置列对象
+!xlSheet.Row(.(起始行,[终止行]) = 设置行对象
+!xlSheet.Range(.("区域描述") = 设置区域对象
+!xlSheet.Range() = !xlRange.
+!xlRange.setValue(.(值或数组,[格式]) = 设置区域的值，并使用单一格式格式化单元格
+!xlRange.setFormula(.(值或数组,[格式]) = 设置区域的公式，并使用单一格式格式化单元格
+!xlRange.copyTo(.(单元格描述) = 复制区域的值到以指定单元格为起始的区域
+!xlRange.merge(.()) = 合并单元格
+!xlRange.ignoreError(.(错误类型)) = 忽略错误
+!xlRange.dataValidation(.(dataType,operaType,value_op,value_between,[允许空值=是],[隐藏下拉选项=否],[输入提示=是],[错误提示=是],[提示标题],[提示文本],[错误标题],[错误文本],[错误类型]) = 设置数据有效性
+!xlRange.value = 获取或设置区域的值
+!xlRange.formula = 获取或设置区域的公式
+!xlRange.format = 获取或设置区域的格式
+!xlSheet.Row() = !xlRow.
+!xlRow.height = 获取或设置行高
+!xlRow.hidden = 获取或设置隐藏行
+!xlSheet.Column() = !xlColumn.
+!xlColumn.width = 获取或设置列宽
+!xlColumn.hidden = 获取或设置隐藏列
+!xlSheet.Cell() = !xlCell.
+!xlSheet.Cells() = !xlCell.
+!xlCell.delMerge(.() = 删除合并单元格
+!xlCell.copyTo(.(行,列) = 复制单元格到指定单元格
+!xlCell.setValue(.(值,[格式]) = 设置单元格的值，并格式化单元格
+!xlCell.setFormula(.(值,[预计算值],[格式]) = 设置单元格的公式，并格式化单元格
+!xlCell.removeComment(.() = 删除注释
+!xlCell.value = 获取或设置单元格的值
+!xlCell.text = 获取或设置单元格的文本
+!xlCell.num = 获取或设置单元格的数值
+!xlCell.formula = 获取或设置单元格的公式
+!xlCell.cellType = 获取单元格的值类型
+!xlCell.format =  获取或设置单元格的格式
+!xlCell.format =  !xlFormat.
+!xlCell.isFormula = 获取单元格是否含公式
+!xlCell.isDate = 获取单元格是否是时间
+!xlCell.errType = 获取单元格的错误类型
+!xlCell.merge = 获取当前单元格所在的合并单元格信息，返回mergeCell对象
+!xlCell.blank = 获取或设置单元格是否为空
+_CELLTYPE_EMPTY=@0/*_CELLTYPE_EMPTY*/
+_CELLTYPE_NUMBER=@1/*_CELLTYPE_NUMBER*/
+_CELLTYPE_STRING=@2/*_CELLTYPE_STRING*/
+_CELLTYPE_BOOLEAN=@3/*_CELLTYPE_BOOLEAN*/
+_CELLTYPE_BLANK=@4/*_CELLTYPE_BLANK*/
+_CELLTYPE_ERROR=@5/*_CELLTYPE_ERROR*/
+_PAPER_DEFAULT=@0/*_PAPER_DEFAULT*/
+_PAPER_LETTER=@1/*_PAPER_LETTER*/
+_PAPER_LETTERSMALL=@2/*_PAPER_LETTERSMALL*/
+_PAPER_TABLOID=@3/*_PAPER_TABLOID*/
+_PAPER_LEDGER=@4/*_PAPER_LEDGER*/
+_PAPER_LEGAL=@5/*_PAPER_LEGAL*/
+_PAPER_STATEMENT=@6/*_PAPER_STATEMENT*/
+_PAPER_EXECUTIVE=@7/*_PAPER_EXECUTIVE*/
+_PAPER_A3=@8/*_PAPER_A3*/
+_PAPER_A4=@9/*_PAPER_A4*/
+_PAPER_A4SMALL=@10/*_PAPER_A4SMALL*/
+_PAPER_A5=@11/*_PAPER_A5*/
+_PAPER_B4=@12/*_PAPER_B4*/
+_PAPER_B5=@13/*_PAPER_B5*/
+_PAPER_FOLIO=@14/*_PAPER_FOLIO*/
+_PAPER_QUATRO=@15/*_PAPER_QUATRO*/
+_PAPER_10x14=@16/*_PAPER_10x14*/
+_PAPER_10x17=@17/*_PAPER_10x17*/
+_PAPER_NOTE=@18/*_PAPER_NOTE*/
+_PAPER_ENVELOPE_9=@19/*_PAPER_ENVELOPE_9*/
+_PAPER_ENVELOPE_10=@20/*_PAPER_ENVELOPE_10*/
+_PAPER_ENVELOPE_11=@21/*_PAPER_ENVELOPE_11*/
+_PAPER_ENVELOPE_12=@22/*_PAPER_ENVELOPE_12*/
+_PAPER_ENVELOPE_14=@23/*_PAPER_ENVELOPE_14*/
+_PAPER_C_SIZE=@24/*_PAPER_C_SIZE*/
+_PAPER_D_SIZE=@25/*_PAPER_D_SIZE*/
+_PAPER_E_SIZE=@26/*_PAPER_E_SIZE*/
+_PAPER_ENVELOPE_DL=@27/*_PAPER_ENVELOPE_DL*/
+_PAPER_ENVELOPE_C5=@28/*_PAPER_ENVELOPE_C5*/
+_PAPER_ENVELOPE_C3=@29/*_PAPER_ENVELOPE_C3*/
+_PAPER_ENVELOPE_C4=@30/*_PAPER_ENVELOPE_C4*/
+_PAPER_ENVELOPE_C6=@31/*_PAPER_ENVELOPE_C6*/
+_PAPER_ENVELOPE_C65=@32/*_PAPER_ENVELOPE_C65*/
+_PAPER_ENVELOPE_B4=@33/*_PAPER_ENVELOPE_B4*/
+_PAPER_ENVELOPE_B5=@34/*_PAPER_ENVELOPE_B5*/
+_PAPER_ENVELOPE_B6=@35/*_PAPER_ENVELOPE_B6*/
+_PAPER_ENVELOPE=@36/*_PAPER_ENVELOPE*/
+_PAPER_ENVELOPE_MONARCH=@37/*_PAPER_ENVELOPE_MONARCH*/
+_PAPER_US_ENVELOPE=@38/*_PAPER_US_ENVELOPE*/
+_PAPER_FANFOLD=@39/*_PAPER_FANFOLD*/
+_PAPER_GERMAN_STD_FANFOLD=@40/*_PAPER_GERMAN_STD_FANFOLD*/
+_PAPER_GERMAN_LEGAL_FANFOLD=@41/*_PAPER_GERMAN_LEGAL_FANFOLD*/
+_SHEETSTATE_VISIBLE=@0/*_SHEETSTATE_VISIBLE*/
+_SHEETSTATE_HIDDEN=@1/*_SHEETSTATE_HIDDEN*/
+_SHEETSTATE_VERYHIDDEN=@2/*_SHEETSTATE_VERYHIDDEN*/
+_IERR_NO_ERROR=@0/*_IERR_NO_ERROR*/
+_IERR_EVAL_ERROR=@1/*_IERR_EVAL_ERROR*/
+_IERR_EMPTY_CELLREF=@2/*_IERR_EMPTY_CELLREF*/
+_IERR_NUMBER_STORED_AS_TEXT=@4/*_IERR_NUMBER_STORED_AS_TEXT*/
+_IERR_INCONSIST_RANGE=@8/*_IERR_INCONSIST_RANGE*/
+_IERR_INCONSIST_FMLA=@16/*_IERR_INCONSIST_FMLA*/
+_IERR_TWODIG_TEXTYEAR=@32/*_IERR_TWODIG_TEXTYEAR*/
+_IERR_UNLOCK_FMLA=@64/*_IERR_UNLOCK_FMLA*/
+_IERR_DATA_VALIDATION=@128/*_IERR_DATA_VALIDATION*/
+_PROT_DEFAULT =@-1/*_PROT_DEFAULT */
+_PROT_ALL =@0/*_PROT_ALL */
+_PROT_OBJECTS =@1/*_PROT_OBJECTS */
+_PROT_SCENARIOS =@2/*_PROT_SCENARIOS */
+_PROT_FORMAT_CELLS =@4/*_PROT_FORMAT_CELLS */
+_PROT_FORMAT_COLUMNS =@8/*_PROT_FORMAT_COLUMNS */
+_PROT_FORMAT_ROWS =@16/*_PROT_FORMAT_ROWS */
+_PROT_INSERT_COLUMNS =@32/*_PROT_INSERT_COLUMNS */
+_PROT_INSERT_ROWS =@64/*_PROT_INSERT_ROWS */
+_PROT_INSERT_HYPERLINKS =@128/*_PROT_INSERT_HYPERLINKS */
+_PROT_DELETE_COLUMNS =@256/*_PROT_DELETE_COLUMNS */
+_PROT_DELETE_ROWS =@512/*_PROT_DELETE_ROWS */
+_PROT_SEL_LOCKED_CELLS =@1024/*_PROT_SEL_LOCKED_CELLS */
+_PROT_SORT =@2048/*_PROT_SORT */
+_PROT_AUTOFILTER =@4096/*_PROT_AUTOFILTER */
+_PROT_PIVOTTABLES =@8192/*_PROT_PIVOTTABLES */
+_PROT_SEL_UNLOCKED_CELLS =@16384/*_PROT_SEL_UNLOCKED_CELLS */
+_VALIDATION_TYPE_NONE=@0/*_VALIDATION_TYPE_NONE*/
+_VALIDATION_TYPE_WHOLE=@1/*_VALIDATION_TYPE_WHOLE*/
+_VALIDATION_TYPE_DECIMAL=@2/*_VALIDATION_TYPE_DECIMAL*/
+_VALIDATION_TYPE_LIST=@3/*_VALIDATION_TYPE_LIST*/
+_VALIDATION_TYPE_DATE=@4/*_VALIDATION_TYPE_DATE*/
+_VALIDATION_TYPE_TIME=@5/*_VALIDATION_TYPE_TIME*/
+_VALIDATION_TYPE_TEXTLENGTH=@6/*_VALIDATION_TYPE_TEXTLENGTH*/
+_VALIDATION_TYPE_CUSTOM =@7/*_VALIDATION_TYPE_CUSTOM */
+_VALIDATION_OP_BETWEEN=@0/*_VALIDATION_OP_BETWEEN*/
+_VALIDATION_OP_NOTBETWEEN=@1/*_VALIDATION_OP_NOTBETWEEN*/
+_VALIDATION_OP_EQUAL=@2/*_VALIDATION_OP_EQUAL*/
+_VALIDATION_OP_NOTEQUAL,=@3/*_VALIDATION_OP_NOTEQUAL,*/
+_VALIDATION_OP_LESSTHAN=@4/*_VALIDATION_OP_LESSTHAN*/
+_VALIDATION_OP_LESSTHANOREQUAL=@5/*_VALIDATION_OP_LESSTHANOREQUAL*/
+_VALIDATION_OP_GREATERTHAN=@6/*_VALIDATION_OP_GREATERTHAN*/
+_VALIDATION_OP_GREATERTHANOREQUAL =@7/*_VALIDATION_OP_GREATERTHANOREQUAL */
+_VALIDATION_ERRSTYLE_STOP=@0/*_VALIDATION_ERRSTYLE_STOP*/
+_VALIDATION_ERRSTYLE_WARNING=@1/*_VALIDATION_ERRSTYLE_WARNING*/
+_VALIDATION_ERRSTYLE_INFORMATION =@2/*_VALIDATION_ERRSTYLE_INFORMATION */
+end intellisense**/

@@ -1,0 +1,115 @@
+﻿import hpsocket.helper.headers;
+
+namespace httpAgent;
+
+class serverHelper{
+	ctor( socket, host, port, maxThread, isSSL){
+		this.socket = socket;
+		this.isSSL	= isSSL;
+		this.host	= host;
+		this.port	= port;
+		this.maxThread	= maxThread;
+		this.count	= 0;
+		this.delCount = 0;
+		//Header相关设定
+		this.headerStruct = null;
+		this.headerPathOnly = false;
+		
+		this.conns	= {
+			["new"] = function(index,connId){
+				owner[tostring(index)] = {
+					id = connId;
+					lock = true;
+					lastTime = tonumber(..time());
+					connType = 0;
+					upgradeType = 0;
+				}; 
+			};
+			["del"] = function(index){
+				owner[tostring(index)] = null;
+			}
+			["find"] = function(connId){
+				for index,conn in owner{
+					if ((type(conn) !== type.function) && (conn !== null)){
+						if (conn.id = connId) return conn,index; 
+					}
+				}
+			}
+		}
+	};
+	newConnId = function(){
+		this.count += 1;
+		var index = this.count;
+		var connId = owner.socket.connect(owner.host,owner.port);
+		if !connId return null,"无法启动线程";
+		
+		owner.conns.new(index,connId);
+		return connId,index; 
+	}
+	getFreeConnId = function(){ //返回时加锁
+		for index,conn in owner.conns{
+			if ((type(conn) !== type.function) && (conn !== null)){
+				if (!conn.lock) {
+					conn.lock = true;
+					owner.updateTime(conn);
+					
+					return conn.id,index,false; 
+				}
+			}	
+		}
+		if ((owner.count - owner.delCount) < owner.maxThread){
+			var connId,index = owner.newConnId()
+			return connId,index,true; //三个返回值
+		}
+	};
+	freeConnId = function(connId){//解锁
+		var conn,index = owner.conns.find(connId);
+		if (conn) {
+			conn.lock = false;
+			owner.updateTime(conn);
+		}
+	}
+	freeIndex = function(index){
+		var conn = owner.conns[tostring(index)];
+		if (conn) {
+			conn.lock = false;
+			owner.updateTime(conn)
+		}
+	}
+	destoryConnId = function(connId){//销毁
+		var conn,index = owner.conns.find(connId);
+		if (conn) {
+			owner.conns.del(index)
+			owner.delCount += 1;
+		}
+	}
+	destoryIndex = function(index){
+		owner.conns.del(index)
+		owner.delCount += 1;
+	}
+	updateTime = function(connId){//可以传connId或者conn对象
+		var conn = connId;
+		if (type(conn) != type.table) conn = owner.conns.find(connId);
+		if (conn) conn.lastTime = tonumber(..time());
+	}
+	upgradeConnId = function(connId,upgradeType){
+		var conn = owner.conns.find(connId);
+		if (conn) {
+			conn.upgradeType = upgradeType;
+			conn.lock	 = true;//设置对象不可用,lock 是一直上锁的
+			owner.delCount += 1;
+			owner.updateTime(conn);
+		}
+	}
+	setMaxThread = function(maxThread){
+		this.maxThread = maxThread:5;//默认5个
+	}
+	setHttpHeader = function(headers,pathOnly = false){
+		this.headerStruct = ..hpsocket.helper.headers(headers);
+		this.headerPathOnly = pathOnly;
+		return true; 
+	}
+	getHttpHeader = function(){
+		return this.headerStruct,this.headerPathOnly; 
+	}
+}

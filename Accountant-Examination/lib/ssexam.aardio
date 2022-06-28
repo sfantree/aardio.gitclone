@@ -1,0 +1,399 @@
+﻿//ssexam 通用函数
+namespace ssexam{
+import ssexam.db;
+
+import math;
+import fsys;
+import string.xxtea;
+import string.base64;
+import sys.volume;
+import win.reg;
+import console;
+
+jmstring = "DeemWkjQoN6l27rt0jyvNpfoFRmx3PovChcyCZYtoKlUVAbRyUwNQyiSAXXysDdf";
+HjVosDir = fsys.getWinDir();
+   生成机器码=function(){
+   	 //取windows目录驱动器逻辑卷号
+   	 
+
+		yhtzmInfo = {};
+		yhtzmInfo = sys.volume.getInfo(HjVosDir);
+		
+		//客户机特征码生成
+		//特征码生成过程：1、取共享程序驱动器逻辑卷号 2、进行xxtea加密 3、base64编码并划分为2段
+		yhtzms = yhtzmInfo.serial;
+		//io.print(yhtzms);
+		yhtzms1 = string.xxtea.encrypt(yhtzms ,jmstring);
+		yhtzms2 = string.base64.encode(yhtzms1);
+		return string.sub(yhtzms2,1,#yhtzms2 / 2) + "-" + string.sub(yhtzms2,(#yhtzms2 / 2)+1);
+   }
+   
+生成激活码=function(机器码){
+		//1、特征码还原
+		var jhm="";
+		try{
+		  		fwqyhtzmstab = string.split(机器码,'-');
+				fwqyhtzms = string.xxtea.decrypt(string.base64.decode(fwqyhtzmstab[1] + fwqyhtzmstab[2]) ,jmstring);
+				//io.print(fwqyhtzms);
+				//2、将加密字符串分解2段后重新组合 得到变形的激活码加密串
+				fwqyhtzmn = (tonumber(fwqyhtzms,16)) % 64;
+				jmstring1 = string.sub(jmstring,fwqyhtzmn) + string.sub(jmstring,1,fwqyhtzmn - 1);
+				//3、激活码第1段
+				fwqyhjhm1 = string.base64.encode(string.xxtea.encrypt(string.reverse(fwqyhtzms),jmstring1));
+				//4、激活码第2段
+				fwqyhjhm2 ="";
+				fwqyhtzmn1 = (tonumber(fwqyhtzms,16)) % 7;//此处的7可以在7~31之间的奇数质数中变化
+				for(i=1;#fwqyhtzms;1){
+					//变形特征码第i位=原特征码的第i位+变形加密串的第[(fwqyhtzmn + i * (fwqyhtzmn1+1))%64 + 1]位 的数值字符
+					fwqyhjhm2 = fwqyhjhm2 ++ string.pack((fwqyhtzms[i] + jmstring1[(fwqyhtzmn + i * (fwqyhtzmn1+1))%64 + 1]));
+				}
+				fwqyhjhm2 =string.base64.encode(string.xxtea.encrypt(fwqyhjhm2,jmstring1));
+				var yhjhm1=string.sub(fwqyhjhm1,1,#fwqyhjhm1 /2) + "-" + string.sub(fwqyhjhm1,(#fwqyhjhm1 /2)+1) + "-" + string.sub(fwqyhjhm2,1,#fwqyhjhm2 /2) + "-" + string.sub(fwqyhjhm2,(#fwqyhjhm2 /2)+1); 
+				jhm=string.sub(yhjhm1,1,8);	
+		}catch(e){
+		  
+		}
+		
+
+		return jhm; 
+   }
+   
+   是否注册=function(){
+
+      reg=ssexam.db.getRegCode();
+      //console.log(reg["value"]);
+      if(reg==null||reg["value"]==""){
+      	return false; 
+      }
+      return 激活码验证(reg["value"]); 
+      
+         
+   }
+   
+   
+   激活码验证=function(激活码){
+       var hasReg=false;
+       if(激活码==""){
+       	 return hasReg; 
+       }
+       try{
+       	   激活码=string.trim(激活码);
+   	    	//共享程序中激活码验证代码
+			var 生成激活码=生成激活码(生成机器码());
+			//console.dump(激活码)
+			for(i=1;#激活码;1){
+				if(激活码[i] != 生成激活码[i]){
+					//io.print("激活码1第", i ,"错误");
+					//winform.close();结束程序或留下验证错误标志
+					return false; 
+				}
+			}
+			//io.print("激活码1正确");
+
+		   hasReg=true;
+		   //console.log("pass");	
+
+       }catch(e){
+          //console.log(e);
+       }
+       
+       return hasReg;
+
+   }
+   
+   
+
+   注册=function(激活码){
+         激活码=string.trim(激活码);
+         //console.log(激活码验证(激活码));
+		 if(激活码验证(激活码)){
+		 	 //保存起来，指定注册表路径
+             //reg=win.reg("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft");
+             return ssexam.db.setRegCode(激活码);
+
+		 }
+         
+         return false; 
+		
+   }
+   
+
+
+	题型判断=function(i,试题数量){
+	  if(i>=1&&i<=试题数量.单选题){//单选题
+	   	   return "单选题";
+	    }elseif(i>=1+试题数量.单选题&&i<=试题数量.单选题+试题数量.多选题){
+	      //多选题
+	       return "多选题"; 
+	    }elseif(i>=1+试题数量.单选题+试题数量.多选题&&i<=试题数量.单选题+试题数量.多选题+试题数量.判断题){
+	       return "判断题";
+	    }elseif(试题数量.计算分析题){
+	       return "计算分析题";	
+	    }else{
+	       return "案例分析题"; 
+	    }
+	    
+	  }
+	
+	
+	  
+   formatTime=function(sec){
+   
+     ss = sec ;
+     hh = math.floor(ss / 3600);
+     mm = math.floor(ss % 3600 / 60);
+     ss = ss%60;
+    return hh + ":" + mm + ":" + ss;
+   }
+   
+   
+   
+   
+   下拉框=function(value,targetV){
+   	 return  value==targetV?"selected":"";
+   }
+   
+   
+ //保存
+保存用户答案及算分=function(){
+	 select(..试卷题目[..current_timu_index]["题型"]) {
+	    case "单选题"{
+	        for(j=1;4;1){
+	           if(..question_layout.getEle("q_"+j).value){
+	           	 ..试卷题目[..current_timu_index]["myAnswer"]=..question_layout.getEle("q_"+j).getAttribute("value");
+	           	 break ;
+	           }
+	        	
+	        
+	        }
+		    //得分
+		   ..试卷题目[..current_timu_index]["得分"]= ..试卷题目[..current_timu_index]["myAnswer"]== ..试卷题目[..current_timu_index]["STANDARDANSWER"]?1:0;
+
+	    }
+	    case "判断题"{
+	      	   
+	      	   for(j=1;2;1){
+	      	   	  if(..question_layout.getEle("q2_"+j).value){
+	           	    ..试卷题目[..current_timu_index]["myAnswer"]=..question_layout.getEle("q2_"+j).getAttribute("value");
+	             	 break ;
+	               }
+	      	   
+	      	   }
+			  
+		         //得分
+		         
+		       ..试卷题目[..current_timu_index]["得分"]= ..试卷题目[..current_timu_index]["myAnswer"]==..试卷题目[..current_timu_index]["STANDARDANSWER"]?1:-0.5;
+		       ..试卷题目[..current_timu_index]["得分"]= ..试卷题目[..current_timu_index]["myAnswer"]==""?0:..试卷题目[..current_timu_index]["得分"];
+	    
+	    }
+	    case "案例分析题"{
+       		//*********保存案例分析题答案
+	   		..试卷题目[..current_timu_index]["myAnswer"]="";
+
+	   		..试卷题目[..current_timu_index]["得分"]=0;
+	   		for(k=1;5;1){
+	   		    var tempAnswer="";
+	   			for(j=1;4;1){
+		    		if(..question_layout.getEle("q3"+k+"_"+j).value){
+		    				tempAnswer=tempAnswer+..question_layout.getEle("q3"+k+"_"+j).getAttribute("value");
+		    				 
+		    			}
+		    		
+	   			}
+	   			
+	   			if(..试卷题目[..current_timu_index]["SUBSTANDARDANSWER"+k]==tempAnswer)
+	   			   
+	   			   ..试卷题目[..current_timu_index]["得分"]=..试卷题目[..current_timu_index]["得分"]+1;
+	   			  // examForm.msgbox(..试卷题目[..current_timu_index]["得分"]);
+	   			..试卷题目[..current_timu_index]["myAnswer"]=..试卷题目[..current_timu_index]["myAnswer"]+""+tempAnswer+"|";
+	   			
+	   		
+	   		}
+	   		//examForm.msgbox(..试卷题目[..current_timu_index]["myAnswer"]);
+	 		//********************
+	    }
+	    
+	    case "多选题"{
+           ..试卷题目[..current_timu_index]["myAnswer"]="";
+            ..试卷题目[..current_timu_index]["得分"]=0;
+		    for(j=1;4;1){
+		    	if(..question_layout.getEle("q_"+j).value){
+		    		..试卷题目[..current_timu_index]["myAnswer"]=..试卷题目[..current_timu_index]["myAnswer"]+..question_layout.getEle("q_"+j).getAttribute("value");
+		    	}
+		    
+		    }
+		    //得分
+		    ..试卷题目[..current_timu_index]["得分"]=..试卷题目[..current_timu_index]["myAnswer"]==..试卷题目[..current_timu_index]["STANDARDANSWER"]?2:0;
+		    
+	    }
+	    
+	    
+	    
+	    case "计算分析题"{
+	       //..试卷题目[..current_timu_index]["myAnswer"]={{{};{}};{{};{}};{{};{}};{{};{}};""};
+	        ..试卷题目[..current_timu_index]["myAnswer"]={};
+	        ..试卷题目[..current_timu_index]["得分"]=0;
+	        
+	       for(j=1;5;1){
+	         var tempScore=1;
+	         if(j!=5) ..试卷题目[..current_timu_index]["myAnswer"][j]=..table.array(..line[j],3,{});
+	         else {
+	             ..试卷题目[..current_timu_index]["myAnswer"][j]={};
+	         }
+	         
+	         for(k=1;..line[j];1){
+	            if(j==5){
+	            	..试卷题目[..current_timu_index]["myAnswer"][j][k]=..question_layout.getEle("q4_"+j+"_"+k).value
+	            }else{
+	         		..试卷题目[..current_timu_index]["myAnswer"][j][k][1]=..question_layout.getEle("q4_"+j+"_"+k+"_1").value;
+	         		..试卷题目[..current_timu_index]["myAnswer"][j][k][2]=..question_layout.getEle("q4_"+j+"_"+k+"_2").value;
+	         		..试卷题目[..current_timu_index]["myAnswer"][j][k][3]=..question_layout.getEle("q4_"+j+"_"+k+"_3").value;
+	             	//examForm.msgbox(..question_layout.getEle("q4_"+j+"_"+k+"_1").value);
+	             }
+	         }
+	         
+	         
+	         if(j!=5) if(ssexam.db.计算分析题是否正确(..试卷题目[..current_timu_index].ID,j,..试卷题目[..current_timu_index]["myAnswer"][j]))
+	              ..试卷题目[..current_timu_index]["得分"]=..试卷题目[..current_timu_index]["得分"]+1;
+	       }
+	       
+	       
+	       var answer5="";
+	       if(#..试卷题目[..current_timu_index]["myAnswer"][5]==3){
+	          answer5=..试卷题目[..current_timu_index]["myAnswer"][5][1]+"|"+..试卷题目[..current_timu_index]["myAnswer"][5][2]+"|"+..试卷题目[..current_timu_index]["myAnswer"][5][3];
+	       }else {
+	          answer5=..试卷题目[..current_timu_index]["myAnswer"][5][1];
+	       }
+	       
+	       
+	       if(answer5==..试卷题目[..current_timu_index].AMOUNT5){
+	       	   ..试卷题目[..current_timu_index]["得分"]=..试卷题目[..current_timu_index]["得分"]+1;
+	       }
+	      
+	       //console.dump(试卷题目[..current_timu_index]["myAnswer"]);
+	    }
+	 
+	 }
+	 
+	 
+	 return true; 
+}
+   
+   
+   
+   //计算分析题 增加 删除行
+   行操作=function(line){
+    	for(i=1;5;1){
+		..question_layout.getEle("b4_"+i+"_1").onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+	    	..line[i]++;
+	    	if(i==5){
+	    		htmlTemp="
+	    		 <li style='width:99%;'>
+            		金额
+            		<input id='q4_5_"+line[i]+"' type='text'  value='0.00' style='text-align: right'/>
+        		</li>
+	    		
+	    		"
+	    	}else  htmlTemp="
+	            	<li style='width:99%;'>
+            	借/贷
+            	<select id='q4_"+i+"_"+line[i]+"_1'>
+                	<option value=' '></option>
+                	<option value='借'>借</option>
+                	<option value='贷'>贷</option>
+            	</select>
+            	科目
+            	<select id='q4_"+i+"_"+line[i]+"_2' >
+                	<option value=' '></option>
+                	"+会计科目列表("")+"
+            	</select>
+            	金额
+            	<input id='q4_"+i+"_"+line[i]+"_3' type='text'  value='0.00' style='text-align: right'/>
+        	</li>
+	    	";
+	    	
+	    	
+	    	
+			..question_layout.getEle("ul4_"+i).insertAdjacentHTML("beforeEnd",htmlTemp);
+			//.. question_layout.updateWindow();
+	
+		}
+		..question_layout.getEle("b4_"+i+"_2").onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+		    if(i==5){
+		       
+		        if(line[i]>1){
+		  	   ..question_layout.getEle("ul4_"+i).child(line[i]).delete();
+		  	   ..line[i]--;
+			   }
+		    }else{
+		       if(line[i]>2){
+		  	   ..question_layout.getEle("ul4_"+i).child(line[i]).delete();
+		  	   ..line[i]--;
+			  }
+			}
+	
+		}
+		
+      	..question_layout.getEle("b4_"+i+"_1").attachEventHandler();
+      	..question_layout.getEle("b4_"+i+"_2").attachEventHandler();
+    	}
+   
+   }
+   
+   
+    //会计科目option生成 <option value='1001' "+ssexam.下拉框(试卷题目[i]["myAnswer"][j][k][2],"1001")+">1001 库存现金</option>
+   会计科目列表=function(myAnswer){
+   	   var dt=ssexam.db.会计科目列表();
+   	   //console.dump(dt)
+   	   var options="";
+   	   for(i=1;#dt;1){
+   	      var selected=myAnswer==dt[i].code?"selected":"";
+   	   	  options=options+"<option value='"+dt[i].code+"' "+selected+">"+dt[i].code+""+dt[i].description+"</option>";
+   	   
+   	   }
+   	   
+   	   return options; 
+   	   
+   }
+   
+   
+   
+   //分数统计
+   分数统计=function(试卷题目){
+     var score=0;
+     var judgeScore=0;
+   	 for(i=1;#试卷题目;1){
+   	    if(试卷题目[i]["题型"]=="判断题"){
+   	    	judgeScore=judgeScore+试卷题目[i]["得分"];
+   	    }else score=score+试卷题目[i]["得分"];
+   	 }
+   	 
+   
+   	 if(judgeScore>0){
+   	 	score=score+judgeScore;
+   	 }
+   	 
+   	 return score;
+   	 
+   }
+   
+   
+   
+   //返回首页
+ 关闭返回首页=function(form){
+ 	form.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {   //判断消息类型
+        case 0x10/*_WM_CLOSE*/  //窗口关闭消息
+        {
+	         var indexForm = form.loadForm("\ui\index.aau");
+
+          
+        }
+    }
+}
+ }
+ 
+   
+    
+	
+}

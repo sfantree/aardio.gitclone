@@ -1,0 +1,185 @@
+﻿import fsys;
+import fsys.table;
+
+namespace getList{
+/*
+	saveFolderTable = function(){
+		_searchLoc = {
+			"\\ccnsia1a\separts\Cabinet\QHC图纸库2020";
+			"\\ccnsia1a\separts\Cabinet\PDF图纸库";
+			"\\ccnsia1a\separts\Cabinet\QHC图纸库";
+		};
+		var dlist = ..fsys.table("S:\temp\addon\qtip\drawing_lists.table");
+		dlist.load();
+		dlist.mixin(
+			a = ..fsys.list(_searchLoc[1],,"*.*");
+			b = ..fsys.list(_searchLoc[2],,"*.*");
+			c = ..fsys.list(_searchLoc[3],,"*.*")
+		);
+		dlist.save();
+	};
+*/
+	saveFolderDB = function(){
+		_searchLoc := {
+			"\\ccnsia1a\separts\Cabinet\PDF图纸库";
+			"\\ccnsia1a\separts\Cabinet\QHC图纸库";
+		};
+		import config;
+		import sqlite;
+		var db = sqlite(config.dbServer.path + "drawing_lists.db");
+		_libName := "Lib";
+		var flist={
+			[1] = ..fsys.list(_searchLoc[1],,"*.*");
+			[2] = ..fsys.list(_searchLoc[2],,"*.*");
+		};
+		if (db.existsTable(_libName)) db.exec("DROP TABLE [" ++ _libName ++ "];");
+		db.exec("CREATE TABLE '" ++ _libName ++ "'('文件名' TEXT, '路径' TEXT);");
+
+		var filname, fullpath;
+		for (j=1; #flist) {
+			db.beginTrans();	//批量事务处理
+			for(i=1; #flist[j]){
+				filename = flist[j][i];
+				fullpath = flist[j][filename];
+				filename = ..string.replace(filename, "'", "''"); /* 文件名里含有单引号 插入时报错, 提前replace成 '' */
+				fullpath = ..string.replace(fullpath, "'", "''");
+				fullpath = ..string.trimright(fullpath, filename); /* 仅保留文件夹 */
+				db.exec("INSERT INTO [" ++ _libName ++ "](文件名, 路径) VALUES('" ++ filename ++ "', '" ++ fullpath ++ "');");
+			}
+			db.commitTrans();
+		}	
+		db.close();
+	};
+	appendDrawingMapFromExcel = function(eFileLoc, shtName){
+		import com.excel;
+		import console;
+
+		console.open();
+/*codetrim{{*/
+		var codetrim =  function(str){
+			str = ..string.upper(str);
+			str = ..string.trim(str);
+			str = ..string.trimleft(str, "H");
+			return str; 
+		}
+/*}}*/
+		var xlApp = com.excel(true);
+		xlApp.Visible=false;
+
+		var xlWk = xlApp.Open(eFileLoc);
+		
+		var xlSht = xlWk.Sheets(shtName);
+		xlSht.Activate();
+		console.log(xlSht.name)
+		var xlRng = xlSht.Range("1:3");
+		var _s = 2;
+		var _c = xlRng.find("专用号").column;
+		var _d = xlRng.find("图号").column;
+		console.log("专用号所在列: "++_c, "图号所在列: " ++ _d)
+		import config;
+		import sqlite;
+		var db = sqlite(config.dbServer.path + "drawing_lists.db");
+		_mapName = "Map";
+		var dlist = db.getTable("SELECT * FROM [Map]");		
+		console.log("更新前数据行数:", #dlist);
+		console.log("----------");
+		console.log("开始分析当前sheet数据...");
+
+		
+		db.beginTrans();
+		for (i=_s; xlSht.UsedRange.Rows.Count; 1){
+			var pcell = xlSht.Cells(i, _c);
+			if (pcell.Mergecells) pcell = pcell.MergeArea.Cells(1,1);
+			var dcell = xlSht.Cells(i, _d);
+			if (dcell.Mergecells) dcell = dcell.MergeArea.Cells(1,1);
+			
+			var pcode = codetrim(pcell.text);
+			var dcode = codetrim(dcell.text);
+			
+			if (pcode==dcode) continue; //跳过专用号图号相同情况			
+			if !..string.startWith(pcode,"008") || !..string.startWith(dcode,"008")
+				continue;	//跳过非专用号的情况		
+			db.exec("REPLACE INTO [Map] (专用号, 图号) VALUES ('" ++ pcode ++ "', '" ++ dcode ++ "');")
+			console.log("Linking Part:",pcode, " to Drwing:", dcode)
+		};
+		db.commitTrans()
+		dlist = db.getTable("SELECT * FROM [Map]");
+		console.log("更新完成. 当前行数:", #dlist)
+		db.close();
+		xlWk.close(false);
+		xlApp.Quit();		
+		console.pause(true);
+	};
+	appendDrawingMapFromTable = function(drwNo, prtLists){
+
+		import console;
+		console.open();
+/*codetrim{{*/
+		var codetrim =  function(str){
+			str = ..string.upper(str);
+			str = ..string.trim(str);
+			str = ..string.trimleft(str, "H");
+			return str; 
+		}
+/*}}*/
+		import config;
+		import sqlite;
+		var db = sqlite(config.dbServer.path + "drawing_lists.db");
+		_mapName = "Map";		
+		var dlist = db.getTable("SELECT * FROM [Map]");		
+		console.log("更新前数据行数:", #dlist);
+		console.log("----------");
+		console.log("开始分析当前sheet数据...");
+	
+		db.beginTrans();
+		var dcode = codetrim(drwNo)
+		for (i=1; #prtLists){
+			var pcode = codetrim(prtLists[i]);
+			if (pcode==dcode) continue; //跳过专用号图号相同情况			
+			db.exec("REPLACE INTO [Map] (专用号, 图号) VALUES ('" ++ pcode ++ "', '" ++ dcode ++ "');")
+		};
+		db.commitTrans()
+		dlist = db.getTable("SELECT * FROM [Map]");
+		console.log("更新完成. 当前行数:", #dlist)
+		db.close();
+
+		console.pause(true);
+	};
+	appendDrawingMapFromQHC = function(){
+
+		import console;
+		console.open();
+/*codetrim{{*/
+		var codetrim =  function(str){
+			str = ..string.upper(str);
+			str = ..string.trim(str);
+			str = ..string.trimleft(str, "H");
+			return str; 
+		}
+/*}}*/
+		import config;
+		import sqlite;
+		var db = sqlite(config.dbServer.path + "drawing_lists.db");
+		//_libName = "Map";		
+		var dlist = db.getTable("SELECT * FROM [Map]");		
+		console.log("更新前数据行数:", #dlist);
+		console.log("----------");
+		console.log("开始分析当前sheet数据...");
+		var tar = sqlite(config.dbServer.path + "qhc_dw_rel_list.db");
+		var tarList = tar.getTable("SELECT DISTINCT 图纸号, 物料号码 FROM [qhc_dw_rel_list]")
+		db.beginTrans();
+
+		for (i=1; #tarList){
+			var dcode = codetrim(tarList[i].图纸号);
+			var pcode = codetrim(tarList[i].物料号码);
+			if (pcode==dcode) continue; //跳过专用号图号相同情况			
+			db.exec("REPLACE INTO [Map] (专用号, 图号) VALUES ('" ++ pcode ++ "', '" ++ dcode ++ "');")
+		};
+		db.commitTrans()
+		dlist = db.getTable("SELECT * FROM [Map]");
+		console.log("更新完成. 当前行数:", #dlist)
+		db.close();
+
+		console.pause(true);
+	};
+}

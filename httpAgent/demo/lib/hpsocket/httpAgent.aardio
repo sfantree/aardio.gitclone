@@ -1,0 +1,182 @@
+﻿import hpsocket;
+import hpsocket.socket.httpAgent;
+import hpsocket.listen.httpAgent;
+namespace hpsocket
+
+class httpAgent{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_HttpAgentListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_HttpAgent(pListener) );
+			this = ..hpsocket.listen.httpAgent(pListener,"httpAgent"); 
+		}
+		
+		this.pSocket = pSocket;
+		..hpsocket.socket.httpAgent(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_HttpAgent(this.pSocket);
+			::HPSocket.Destroy_HP_HttpAgentListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.httpAgent() = 创建HTTP Agent组件\n!hpHttpAgent.
+end intellisense**/
+ 
+/**intellisense(!hpHttpAgent)
+pSocket = 组件句柄
+start(.("ip",是否异步连接) = 启动连接\n省略参数@2时默认为使用异步连接
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+stop() = 关闭服务端通信组件\n成功返回true
+connect(.("ip",端口,是否异步连接) = 连接服务器\n连接成功后会触发onConnect,onHandShake 事件
+disconnect(connId,bForce) = 断开与某个客户端的连接
+disconnectLongConnections(.(时长,是否强制断开e) = 断开超过指定毫秒时长的连接
+disconnectSilenceConnections(.(时长,是否强制断开) = 断开超过指定毫秒时长的静默连接
+send(.(connId,buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(connId,buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+setConnectionExtra(connId,pExtra) = 对连接ID绑定指针\n如果使用了reallocString函数，不应再调用此函数
+getConnectionExtra(connId) = 返回连接ID绑定的指针\n如果使用了reallocString函数，返回的是动态指针
+getConnectionCount() = 获取客户端连接数 
+getAllConnectionIds() = 获取所有连接ID
+getConnectPeriod(connId) = 获取某个客户端连接时长,毫秒 
+getSilencePeriod(connId) = 获取某个连接静默时间,毫秒
+getListenAddress() = 获取监听 Socket 的地址,端口号\n注意有2个返回值
+getLocalAddress(connId) = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress(connId) = 获取某个连接的远程地址,端口号\n注意有2个返回值
+getRemoteHost(connId) = 获取某个连接的远程主机名 
+getPendingDataLength() = 获取连接中未发出数据的长度
+sendPolicy = 发送策略
+freeSocketObjLockTime = 缓存对象锁定时间，毫秒
+freeBufferObjPool = 设置内存块缓存池大小\n通常设置为 Socket 缓存池大小的 2 - 3 倍
+freeBufferObjHold = 设置内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+freeSocketObjPool = 设置 Socket 缓存池大小\n通常设置为平均并发连接数量的 1/3 - 1/2
+freeSocketObjHold = 设置 Socket 缓存池回收阀值\n通常设置为 Socket 缓存池大小的 3 倍
+maxConnectionCount = 设置最大连接数\n组件会根据设置值预分配内存，因此需要根据实际情况设置，不宜过大
+workerThreadCount = 设置工作线程数量\n通常设置为 2 * CPU + 2
+markSilence = 设置是否标记静默时间，默认：true\n设置为 true 时 disconnectSilenceConnections 和 getSilencePeriod 才有效
+setLocalVersion(__) = 设置本地协议版本
+getLocalVersion() = 获取本地协议版本
+getVersion() = 获取协议版本
+getWsMessageState(connId) =获取当前 WebSocket 消息状态，返回值为表对象
+getContentEncoding(connId) = 获取内容编码
+getTransferEncoding(connId) = 获取传输编码
+getContentType(connId) = 获取内容类型
+getContentLength(connId) =  获取内容长度
+isKeepAlive(connId)  =  检查是否有 Keep-Alive 标识
+isUpgrade(connId)  = 检查是否升级协议
+getParseErrorCode(connId)  = 获取解析错误代码
+getHeader(name) = 获取某个请求头\n单值
+getHeaders(name) = 获取某个请求头\n多值
+getAllHeaders(connId)  = 获取所有请求头
+getAllHeaders(connId)  = !hpsockethdrs.
+getAllHeaderNames(connId)  = 获取所有请求头名称
+getCookie(connId,name) = 获取 Cookie
+getAllCookies(connId)  = 获取所有 Cookie
+addCookie(.(connId,名字,值,是否替换) = 添加cookie
+deleteCookie(connId,name) 
+deleteAllCookies(connId)  
+getUpgradeType(connId)  = 获取协议升级类型
+sendGet(.(path,headers) = 发送GET请求\n参数：path -- 请求路径\nheaders -- 请求头，可选参数
+sendRequest(.(connId,body,path,headers,method) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头\nmethod -- 请求方法，默认为"GET"
+sendPost(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头 	
+sendPut(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头 
+sendPatch(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头  
+sendDelete(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头  
+sendHead(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头  
+sendTrace(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头  
+sendOptions(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头  
+sendConnect(.(connId,body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头
+sendLocalFile(.(connId,filename,method,path,headers) =  发送 4096 KB 以下的小文件\n返回布尔值\n参数：\nfilename -- 文件路径\npath -- 请求路径\nheaders 请求头
+sendWsMessage( = 向对端端发送 WebSocket消息
+sendWsMessage(.(connId,data,opCode,final,mask,bodyLen,reserved) = 向对端端发送 WebSocket消息\n返回布尔值\n消息参数：\n connId 连接 ID\ndata : 消息体数据缓冲区\nopCode -- 操作码：0x0 - 0xF0x0 - 0xF,可选参数默认为1\nfinal : 是否结束帧\nreserved 可选参数，RSV1/RSV2/RSV3 各 1 位\nmask 可选参数，数值掩码，\nbodyLen 可选参数，后续消息体长度\n后续消息体通过底层方法 send  函数发送
+reallocString(connId,__/*长度*/) = 预分配内存并将动态指针用setConnectionExtra函数绑定到指定连接\n长度为0时释放内存,使用此函数后不应再使用setConnectionExtra函数
+appendString(connId,pData,len) = 保存数据\n参数分别为连接ID,内存指针,内容长度\n该函数自动调用getConnectionExtra获取可用的动态指针\n使用reallocString函数分配动态指针给指定连接
+getString(connId) = 从指定连接绑定的动态指针中获取appendString函数保存的所有数据
+sslSetupContext(.(mode,certFile,keyFile,password,ca) = 初始化通信组件 SSL 环境参数\n仅SSL组件支持此函数接口
+sslCleanup() = 清理通信组件 SSL 运行环境\n仅SSL组件支持此函数接口
+startHttp(.(connId) = 手工启动 HTTP 通信，当通信组件设置为非自动启动时，需要调用本方法启动 HTTP 通信
+setHttpAutoStart(.(bAutoStart) = 设置 HTTP 通信启动方式（默认：TRUE，自动启动）
+isHttpAutoStart() = 获取 HTTP 通信启动方式
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareConnect = @.onPrepareConnect = function(hpHttpAgent,connId,soListen){
+	__/*准备建立连接前触发*/
+}
+onHandShake = @.onHandShake = function(hpHttpAgent,connId){
+	__/*握手完成触发*/
+}
+onConnect = @.onConnect = function(hpHttpAgent,connId){
+	__/*建立连接后触发*/
+}
+onSend = @.onSend = function(hpHttpAgent,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpHttpAgent,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*只有HTTP 隧道协议接收到数据时会触发此事件*/
+}
+onClose = @.onClose = function(hpHttpAgent,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpHttpAgent){
+	__/*关闭通信组件触发*/
+}
+onMessageBegin = @.onMessageBegin = function(hpHttpAgent,connId){
+	__/*开始解析数据,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onStatusLine = @.onStatusLine = function(hpHttpAgent,connId,statusCode,Desc){
+	__/*客户端状态行解析完成,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeader = @.onHeader = function(hpHttpAgent,connId,name,value){
+	__/*请求头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeadersComplete = @.onHeadersComplete = function(hpHttpAgent,connId){
+	__/*请求头完成事件,\n成功无返回值,返回1跳过当前请求BODY,返回2升级协议,\n出错返回-1停止解析断开连接*/
+}
+onBody = @.onBody = function(hpHttpAgent,connId,pData,len){
+	var str = ..raw.tostring(pData,1,len);
+	__/*BODY报文事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkHeader = @.onChunkHeader = function(hpHttpAgent,connId,len){
+	__/*Chunked报文头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkComplete = @.onChunkComplete = function(hpHttpAgent,connId){
+	__/*Chunked报文结束事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onMessageComplete = @.onMessageComplete = function(hpHttpAgent,connId){
+	__/*完成解析事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onUpgrade = @.onUpgrade = function(hpHttpAgent,connId,upgradeType){
+	__/*升级协议触发,\nupgradeType 1为Web Socket协议，2为HTTP 隧道协议\n完成升级后,HTTP 隧道触发onReceive而非HTTP事件\nWeb Socket协议触发onWs....事件而非HTTP事件\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onParseError = @.onParseError = function(hpHttpAgent,connId,errorCode,errorDesc){
+	__/*解析错误事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onWsMessageHeader = @.onWsMessageHeader = function(hpHttpAgent,connId,final,reserved,opCode,mask,bodyLen){
+	__/*WebSocket数据包头事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageBody = @.onWsMessageBody = function(hpHttpAgent,connId,pData,len){
+	__/*WebSocket数据包体事\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageComplete = @.onWsMessageComplete = function(hpHttpAgent,connId){
+	__/*WebSocket数据完成事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+end intellisense**/
+

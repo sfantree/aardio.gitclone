@@ -1,0 +1,16 @@
+﻿
+namespace styles{
+	
+	foreground={
+		active=0xFFFFFFFF;
+		default=0x00FFFFFF;
+		hover=0x38FFFFFF
+	};
+	color={
+		default=0xFFFFFFFF; 
+	};
+	checked={
+		foreground={default=0xFFFFFFFF;}; 
+		color={default=0xFF42A875;};
+	}
+}

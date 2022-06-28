@@ -1,0 +1,201 @@
+//dlg 文件对话框
+
+import fsys;
+namespace fsys.dlg;
+
+::Comdlg32 := ..raw.loadDll("comdlg32.dll");
+
+OPENFILENAME = class{
+	ctor( bufSize = 0x208/*_MAX_PATH_U16*/,defFile ){}
+	INT structSize = 0;
+	INT hwndOwner  = 0;
+	pointer instance ;
+	ustring filter;
+	pointer customFilter;
+	INT maxCustFilter = 0;
+	INT filterIndex = 1;
+	pointer file = ..raw.buffer(bufSize,..string.toUnicode(defFile):0 ); 
+	INT maxFile =  bufSize-1;
+	ustring fileTitle;
+	INT maxFileTitle = 0;
+	ustring initialDir;
+	ustring title;
+	INT flags = 0;
+	WORD fileOffset = 0;
+	WORD fileExtension = 0;
+	ustring defExt;
+	pointer lCustData;
+	pointer lpfnHook;
+	ustring lpTemplateName;
+	pointer pvReserved;
+	INT dwReserved = 0;
+	INT flagsEx = 0; 
+	
+	_prepare = function(){
+		this.structSize = ..raw.sizeof(this);  
+		this.initialDir =  ..io.exist(this.initialDir )  
+		
+		if(type(this.filter) == type.string){
+			this.filter = ..string.replace( ..string.fromUnicodeIf(this.filter),'@|','\0');
+			this.filter = ..string.trimright(this.filter,'\0');
+			this.filter = this.filter + '\0'u; 
+			
+			if( !this.defExt ){
+				this.defExt = ..string.match( this.filter,"\z.+?\.(\w+)");
+			};
+		}
+		else{
+			this.filter = '所有文件\0*.*\0'u; 
+		}
+
+		this.maxFileTitle = #(this.title);
+		if( type(this.customFilter) == type.string ){
+			this.customFilter = ..raw.buffer( 40 + #this.customFilter,this.customFilter); 
+		}
+		this.maxCustFilter = #(this.customFilter);  
+		
+		if(!this.hwndOwner){
+			this.hwndOwner = ::User32.GetActiveWindow();
+		}
+	};
+	_getFileName = function(){ 
+		var len = ..string.find(this.file,'\0\0\0\0');
+		if(len){ if( len%2) len = len - 1; } else len = #this.file;
+		file = ..string.fromUnicode(this.file,,len/2);
+			
+		if( this.flags & 0x200/*_OFN_ALLOWMULTISELECT*/){  
+			var rawFiles = ..string.split(file,'\0');
+			if(#rawFiles>1){
+				var dir = ..table.remove(rawFiles);
+				var files = {}
+				if( dir[#dir] != '\\'# )
+					dir += "\"
+				for( i,name in rawFiles){ 
+					files[i] = dir ++ name;
+				}
+				return files,rawFiles;
+				
+			}
+			return rawFiles;
+		}
+		return file;
+	};
+	open = function(){
+		this._prepare();
+		if( ::Comdlg32.GetOpenFileName(this) ){ 
+			return this._getFileName();
+		}
+	};
+	save = function(){
+		this._prepare();
+		if( ::Comdlg32.GetSaveFileName(this) ){
+			return this._getFileName();
+		}
+	} 
+} 
+ 
+openEx  = function(filter,title,initialDir,hwndOwner,flag = 0,bufSize = 52000,defFile){ 
+	ofn = OPENFILENAME( bufSize,defFile ); 
+  	ofn.initialDir = initialDir;
+  	ofn.filter = filter : '所有文件|*.*|'; 
+	ofn.title = title : "打开文件";
+	ofn.hwndOwner = hwndOwner[["hwnd"]] : hwndOwner; 
+	
+	ofn.flags = flag | 0x80000 /*_OFN_EXPLORER*/ | 0x200/*_OFN_ALLOWMULTISELECT*/; 
+	return ofn.open(); 
+}
+
+open  = function(filter,title,initialDir,hwndOwner,flag = 0,defFile){ 
+	ofn = OPENFILENAME(,defFile); 
+  	ofn.initialDir = initialDir;
+  	ofn.filter = filter : '所有文件|*.*||'; 
+	ofn.title = title : '打开文件' ;
+	ofn.hwndOwner = hwndOwner[["hwnd"]] : hwndOwner; 
+	 
+	ofn.flags = 0x80000 /*_OFN_EXPLORER*/ | flag; 
+	return ofn.open(); 
+}
+
+save  = function(filter,title,initialDir,hwndOwner,flag = 0,defFile){ 
+	ofn = OPENFILENAME( bufSize,defFile ); 
+  	ofn.initialDir = initialDir;
+  	ofn.filter = filter : '所有文件|*.*||'; 
+	ofn.title = title : '保存文件' ;
+	ofn.hwndOwner = hwndOwner[["hwnd"]] : hwndOwner; 
+	 
+	ofn.flags = 0x80000 /*_OFN_EXPLORER*/ | flag; 
+	return ofn.save();  
+}
+
+var BROWSEINFO = class {
+	int hwndOwner;
+	ptr pidlRoot;
+	ptr pszDisplayName;
+	ustring lpszTitle; 
+	INT ulFlags =  0xD5 ; //BIF_STATUSTEXT | BIF_NEWDIALOGSTYLE | BIF_EDITBOX | BIF_RETURNONLYFSDIRS | BIF_BROWSEINCLUDEURLS; 
+	ptr lpfn;
+	int lParam;
+	int iImage;
+}
+
+opendir = function(dir,hwndOwner,caption,title='请选择目录'u ){
+    dir = ..io.exist(dir) 
+
+	var browseCallbackProc = function( hwnd, uMsg, lp, pData) {  
+		select(uMsg) {
+			case 1/*_BFFM_INITIALIZED*/ {
+				if( dir ){
+					::User32.SendMessage(hwnd,0x467/*BFFM_SETSELECTIONW*/,1,dir);
+				}
+				if(caption){
+					::User32.SetWindowTextW(hwnd,caption );
+				}
+			}
+			case 2/*_BFFM_SELCHANGED*/ {
+				var path = ..fsys.pathFromIdList( lp ) 
+				if( #path ) ::User32.SendMessage(hwnd,0x0400+100/*BFFM_SETSTATUSTEXT*/,null,path); 
+			} 
+		}
+	}  
+	bi = BROWSEINFO();
+	bi.pszDisplayName = ..raw.buffer(0x208/*_MAX_PATH_U16*/);
+	bi.hwndOwner = hwndOwner[["hwnd"]] : hwndOwner;
+	bi.lpszTitle = title;
+	bi.lpfn = ..raw.tostdcall( browseCallbackProc ,"int(int,int,pointer,pointer)"); 
+	var path = ..fsys.pathFromIdList( topointer(::Shell32.SHBrowseForFolderW(bi)),true);
+	return path; 
+}
+
+/**intellisense(fsys.dlg)
+OPENFILENAME(.(缓冲区大小,默认文件名) = 创建OPENFILENAME结构体
+openEx(.(指定文件类型,对话框标题,默认目录,父窗口,选项参数,缓冲区大小) = 打开文件对话框框,支持多选,所有参数为可选参数\n文件类型以竖线分隔,并以坚线分隔类型说明与后缀名,例如\n"所有文件|*.*|文本文件|*.txt;*.md|"\n\n一个类型说明匹配多个后缀名应以分号分隔，\n第一个返回值为一个数组,包含一个或多个被选定的文件路径\n多选则会返回第二个数组值,包含被选目录路径以及多个文件名
+open(.(指定文件类型,对话框标题,默认目录,父窗口,选项参数,默认文件名) = 打开文件对话框框,所有参数为可选参数\n文件类型以竖线分隔,并以坚线分隔类型说明与后缀名,例如\n"所有文件|*.*|文本文件|*.txt;*.md|"\n\n一个类型说明匹配多个后缀名应以分号分隔
+save(.(指定文件类型,对话框标题,默认目录,父窗口,选项参数,默认文件名) = 显示保存文件对话框框,所有参数为可选参数\n文件类型以竖线分隔,并以坚线分隔类型说明与后缀名,例如\n"所有文件|*.*|文本文件|*.txt;*.md|"\n\n一个类型说明匹配多个后缀名应以分号分隔
+opendir(.(目录__,父窗口,标题,窗口标题) = 打开目录浏览对话框,\n所有参数都是可选参数,支持unicode字符串
+opendir(.() = 打开目录浏览对话框\n参数支持unicode字符串
+end intellisense**/
+
+/**intellisense()
+fsys.dlg.OPENFILENAME() = !OPENFILENAME.
+!OPENFILENAME.save() = 打开保存文件对话框,返回文件名
+!OPENFILENAME.open() = 打开文件对话框,返回文件名
+!OPENFILENAME.initialDir = 初始目录
+!OPENFILENAME.filter = 指定文件类型\n例如'所有文件|*.*|文本文件|*.txt|'u
+!OPENFILENAME.defExt = 默认后缀名
+!OPENFILENAME.title = 标题
+!OPENFILENAME.hwndOwner = 父窗口句柄
+!OPENFILENAME.flags = 一个或多个_OFN_前缀选项\n参考MSDN文档
+!OPENFILENAME.defaultFileName = 默认文件名
+_BIF_BROWSEFORCOMPUTER=@0x1000/*_BIF_BROWSEFORCOMPUTER*/
+_BIF_BROWSEFORPRINTER=@0x2000/*_BIF_BROWSEFORPRINTER*/
+_BIF_BROWSEINCLUDEFILES=@0x4000/*_BIF_BROWSEINCLUDEFILES*/
+_BIF_BROWSEINCLUDEURLS=@0x80/*_BIF_BROWSEINCLUDEURLS*/
+_BIF_DONTGOBELOWDOMAIN=@0x2/*_BIF_DONTGOBELOWDOMAIN*/
+_BIF_EDITBOX=@0x10/*_BIF_EDITBOX*/
+_BIF_RETURNFSANCESTORS=@0x8/*_BIF_RETURNFSANCESTORS*/
+_BIF_RETURNONLYFSDIRS=@0x1/*_BIF_RETURNONLYFSDIRS*/
+_BIF_SHAREABLE=@0x8000/*_BIF_SHAREABLE*/
+_BIF_STATUSTEXT=@0x4/*_BIF_STATUSTEXT*/
+_BIF_USENEWUI=@0x50/*_BIF_USENEWUI*/
+_BIF_VALIDATE=@0x20/*_BIF_VALIDATE*/
+end intellisense**/

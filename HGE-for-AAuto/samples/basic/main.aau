@@ -1,0 +1,96 @@
+ 
+//检测DirectX 运行库
+var d3dx9;
+try{
+	d3dx9 = raw.loadDll("/dll/D3DX9_43.dll")
+	/*
+	需要运行库 DirectX 9.0c Redist (June 2010) 请自行百度
+	http://www.onlinedown.net/soft/5288.htm
+	*/
+}
+if(!d3dx9) 
+	return;
+ 
+
+import hge;
+import game.config;
+import game.map;
+import game.character; 
+
+var engine = hge.createEngine(); 
+engine.loadSoundDll("/dll/bass.dll");
+engine.title = "我的游戏 - 按方向键移动人物";
+
+var map;
+var font;
+var character; 
+
+//设定帧函数
+engine.frame(
+	function () {
+		if (engine.inputGetKeyState(0x28/*_HGEK_DOWN*/))  
+			character.moveDown();
+		elseif (engine.inputGetKeyState(0x25/*_HGEK_LEFT*/))
+			character.moveLeft();
+		elseif (engine.inputGetKeyState(0x27/*_HGEK_RIGHT*/))
+			character.moveRight();
+		elseif (engine.inputGetKeyState(0x26/*_HGEK_UP*/))
+			character.moveUp();
+		else
+			character.stop(); 
+			 
+	} 
+);
+
+//设定绘图函数
+engine.render(
+	function () {
+		engine.gfxBeginScene();
+		engine.gfxClear(0);
+		
+		engine.textureFilter = false;
+		
+		map.draw();
+		
+		engine.textureFilter = true; 
+		
+		character.draw();
+		font.setScale(1);
+		font.setColor(0xFF000088);
+		font.render(640, 0, 1/*_HGETEXT_RIGHT*/, "AAuto Quicker");
+		font.setScale(0.8);
+		font.setColor(0xFFFFFFFF);
+		font.printfb(0, 0, 100, 480, 0/*_HGETEXT_LEFT*/ | 4/*_HGETEXT_BOTTOM*/, "This is a long sentence for test. This is a long sentence for test.");
+		engine.gfxEndScene(); 
+	}
+);
+ 
+//启动游戏 
+var sprite = {};
+
+engine.init(
+	function ( hwndEngine ) { 
+	
+		mapTexture = engine.textureLoad("/Data/Map.png");
+		if (mapTexture) { 
+			sprite.map = hge.sprite(mapTexture, 0, 0, 256, 576);
+			map  = game.map(sprite.map, game.config.map); 
+		}
+		characterTexture = engine.textureLoad("/Data/Character.png");
+		if (characterTexture) { 
+			sprite.character = hge.sprite(characterTexture, 0, 0, 128, 192);
+			character = game.character(sprite.character, 10, 5); 
+			character.setMap(map);
+		}
+		
+		font = hge.font("/Data/Font.fnt");
+	}
+);
+ 
+
+//关闭游戏
+engine.shutdown(
+	function () { 
+		font.release();
+	}
+);

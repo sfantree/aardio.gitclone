@@ -1,0 +1,369 @@
+import win.ui
+/*DSG{{*/
+iSwitch = win.form(text="iSwitch Pro";right=651;bottom=350)
+iSwitch.add()
+/*}}*/
+
+// 为窗口设置原子值可以避免一个程序重复运行多个实例
+import win.ui.atom
+// 冲突窗口的句柄,该函数会自动激活此窗口
+var atom, hwnd = iSwitch.atom("92ECAA4C-118E-43AD-8EDE-4A6A632F4CB3")
+if (!atom) {
+    // 如果不加这一句最小化到托盘区后不会显示
+    // TODO 恢复之后托盘区图标不知道怎么删除
+	win.show(hwnd, 9/*_SW_RESTORE*/)		
+	win.quitMessage()
+	return
+}
+
+
+import win.ui.menu
+import win.ui.statusbar
+import win.util.tray
+import fsys.config
+import web.rest.jsonClient
+import key
+
+// jsonClinet居然没办法设置超时....
+iSwitch.restClient = web.rest.jsonClient()
+iSwitch.restApi = null
+
+
+// var config = ..fsys.config("/").iconfig.load()
+// load config from local app data directory
+iSwitch.iconfig = fsys.config(fsys.getSpecial(0x1C, "iSwitch")).iconfig.load()	// 0x1C = _CSIDL_LOCAL_APPDATA
+
+
+// 配置窗口
+iSwitch.doConfig = function() {
+	var configWindow = iSwitch.loadForm("\res\config.aardio", parent = iSwitch)
+	// 模态窗口中点击确定返回true, 点击取消返回false
+	if (!configWindow.doModal()) {
+		return false
+	}
+
+	return true
+}
+
+
+// 状态栏
+iSwitch.setStatusBar = function() {
+	win.ui.statusbar(iSwitch).addItem("当前用户", 120)
+	iSwitch.statusbar.addItem("连接状态", 80)
+	iSwitch.statusbar.addItem("连接地址")
+}
+iSwitch.setStatusBar()
+ 
+ // 最小化到托盘区
+var tray = win.util.tray(iSwitch)
+iSwitch.wndproc = function(hwnd,message,wParam,lParam){ 
+	select(message) {
+		case (0x112) {					/* _WM_SYSCOMMAND */
+			if (wParam == 0xF020) {		/* _SC_MINIMIZE 最小化*/
+				tray = win.util.tray(iSwitch)
+				tray.tip = "NovaStat大屏幕场景切换工具"
+				
+				iSwitch.show(false)		/* 隐藏窗口 */
+				tray.message = 0xACCF	/* _WM_TRAYMESSAGE */
+				return true
+			}	
+		}
+		case (0xACCF) {					/* _WM_TRAYMESSAGE 点击了托盘图标 */
+			if (lParam = 0x203) {		/*_WM_LBUTTONDBLCLK 双击 */
+				iSwitch.show(true)
+				tray.delete()
+			}
+		}
+	}
+}
+
+
+// 网络访问
+iSwitch.login = function(addr, user, passwd) {
+
+	if (addr === null or user == null or passwd == null) {
+		return false, "请填写配置参数"
+	}
+	
+	var restApi = iSwitch.restClient.api(addr ++ "/api", "POST")
+
+	// TODO 放入线程中执行, 防止地址错误时界面卡死
+	var resp = restApi.user.login({
+		username = user,
+		password = passwd,
+		deviceId = 0
+	})
+
+	
+	// 无返回数据, 即地址错误
+	if (!resp) {
+		return false, "配置地址错误"
+	}
+	
+	// 有返回数据, 但状态码不为0, 返回出错信息
+	if (resp.status != 0) {
+		if (resp.status == 101) {
+			return false, "用户不存在"
+		} elseif (resp.status == 102) {
+			return false, "密码错误"
+		} else {
+			return false, resp.msg
+		}
+	}
+	
+	// 请求头中添加token
+	iSwitch.restClient.setHeaders(["token"] = resp.data.token)
+	iSwitch.restApi = restApi
+	
+	iSwitch.statusbar.setText("当前用户: " ++ user, 1)
+	iSwitch.statusbar.setText("已连接", 2)
+	iSwitch.statusbar.setText(addr, 3)
+	
+	return true, "登录成功"
+}
+
+// 启动时显示配置窗口
+iSwitch.autoLogin = true
+if (!iSwitch.doConfig()) { 
+    iSwitch.close()
+}
+iSwitch.autoLogin = null
+
+
+/*
+// 启动时登录
+var success, message = iSwitch.login(iSwitch.iconfig.addr,
+									 iSwitch.iconfig.username,
+									 iSwitch.iconfig.passwd)
+if (!success) {
+    if (!iSwitch.doConfig()) {		// 启动时在配置窗口点了取消
+    	iSwitch.close()				// 退出
+    }
+}
+*/
+
+function layout() {
+    // /api/preset/readList
+    var presetList = iSwitch.restApi.preset.readList({
+    	screenId = 0,
+    	deviceId = 0
+   	})
+ 
+    var presetCnt = #presetList.data.presets	// 预设的个数
+    var interval = 0.04							// 间距(百分比)
+    var spaces = interval * (presetCnt + 1) 	// 空白
+    var width = (1 - spaces) / presetCnt		// 单个按扭宽度
+    
+    var buttons = {}							// 所有button的集合
+    
+    for (i = 0; presetCnt - 1; 1) {
+        ml = interval * (i + 1) + width * i
+        mr = 1 - ((interval + width) * (i + 1))
+
+        table.insert(buttons, {
+            cls = "button"; 
+            text = presetList.data.presets[i + 1].name; 			// 显示的名称
+            presetId = presetList.data.presets[i + 1].presetId;
+            marginTop = 0.05; 
+            marginBottom = 0.12; 
+            marginLeft = ml; 
+            marginRight = mr; 
+            ah = 1; 
+            aw = 1; 
+            z = 1;
+            font=LOGFONT(h=-16);				// 字体大小
+            oncommand = function() {			// 按钮按下执行的函数 
+                iSwitch.restApi.preset.play({ 
+                    deviceId = 0, 
+                    screenId = 0, 
+                    presetId = owner.presetId 
+                })
+            }
+     	})
+	}
+	
+	// 创建按钮
+	iSwitch.buttons = iSwitch.add(buttons)
+	
+	// 根据配置文件给按钮设置快捷键
+	for (i = 1; #iSwitch.buttons; 1) {
+		var id = iSwitch.buttons[i].presetId
+		
+		// 设置默认值
+		if (!iSwitch.iconfig[id]) {
+			iSwitch.iconfig[id] = {}
+		}
+		if (!iSwitch.iconfig[id].hotkeyValue) {
+			iSwitch.iconfig[id].hotkeyValue = {}
+		}
+		
+		// 配置文件的快捷键键值读入
+		iSwitch.buttons[i].hotkeyValue = iSwitch.iconfig[id].hotkeyValue
+		
+		// 当hotkeyValue[2] == 0时证明只有控制键键值
+		var vk = iSwitch.buttons[i].hotkeyValue[2]
+		if (vk != null and vk != 0) {
+			// 设置快捷键
+			var hotkeyId = iSwitch.reghotkey(
+				function(id,mod,vk){
+					iSwitch.buttons[i].oncommand()				// 触发按钮按下事件
+				}, table.unpack(iSwitch.buttons[i].hotkeyValue)
+			)
+			
+			if (hotkeyId != null) {
+				iSwitch.buttons[i].hotkeyId = hotkeyId			// 登记注册成功的快捷键
+			} else {
+				iSwitch.msgbox(iSwitch.buttons[i].text ++ "的快捷键已被占用!")
+				// 快捷键注册失败时清空对应的值
+				iSwitch.buttons[i].hotkeyValue = {}
+				iSwitch.iconfig[id].hotkeyValue = {}
+			}
+		}
+	}	
+}
+layout()
+
+
+
+// value的值就是hotkey控件的hotkey.value
+iSwitch.hotkeyToString = function(value) {
+    var text = ""
+	
+    if (!value or !value[2]) {	
+    	return text
+    }
+    
+    var mod = value[1]
+	var vk = value[2]
+		
+	if (mod & 2/*_MOD_CONTROL*/) text += "Ctrl + "
+	if (mod & 4/*_MOD_SHIFT*/) text += "Shift + "
+	if (mod & 1/*_MOD_ALT*/) text += "Alt + "
+	
+	if (vk != 0)
+		text += key.getName(vk)
+	
+	return text
+}
+
+//创建弹出菜单
+var fileMenu = win.ui.popmenu(iSwitch)
+fileMenu.add('重新连接', function(id) {
+	
+})
+
+//分隔线
+fileMenu.add()
+fileMenu.add('退出', function(id) {
+	iSwitch.close() 
+})
+
+
+var settingMenu = win.ui.popmenu(iSwitch)
+settingMenu.add('配置', function(id) {
+	// 载入配置窗口
+	iSwitch.doConfig()
+})
+
+
+settingMenu.add()
+settingMenu.add('锁定快捷键', function(id) {
+    var pos = settingMenu.getPos(id)
+    // 菜单选择与反选
+    // settingMenu.check(pos, !settingMenu.checked(pos))
+    if (settingMenu.checked(pos)) {						// 被选中
+        settingMenu.check(pos, false)					// 反选
+        
+        for (i = 1; #iSwitch.buttons; 1) {
+            if (iSwitch.buttons[i].label) {
+                iSwitch.buttons[i].label[1].close()		// 关闭label
+            }
+            
+            // 当hotkeyValue[2] == 0时证明只有控制键键
+            var hotkeyValue = null 
+            var vk = iSwitch.buttons[i].hotkeyValue[2]
+            if (vk != null and vk != 0) {
+                hotkeyValue = iSwitch.buttons[i].hotkeyValue
+            }
+            
+            //	添加一个控件也要使用数组的方式
+			iSwitch.buttons[i].hotkey = iSwitch.buttons[i].addCtrl({
+				{
+					cls="hotkey"; 
+					marginTop=0.8; 
+					height=20; 
+					marginLeft=0.1; 
+					marginRight=0.1;
+					value=hotkeyValue;
+					wndproc = function(hwnd, message, wParam, lParam) {
+						select(message) {
+							case 0x101 /*_WM_KEYUP*/ {
+								// 按键抬起且vk值(即value[2])有效时设置系统快捷键
+								if (owner.value[2] != 0) {
+									iSwitch.unreghotkey(iSwitch.buttons[i].hotkeyId)	// 删除注册的快捷键(如果有)
+									var hotkeyId = iSwitch.reghotkey(
+										function(id,mod,vk){							// 快捷键按下时的动作
+											iSwitch.buttons[i].oncommand()
+										}, owner.gethotkey()
+									)
+									
+									if (hotkeyId != null) {
+										iSwitch.buttons[i].hotkeyId = hotkeyId			// 登记注册成功的快捷键
+										iSwitch.buttons[i].hotkeyValue = owner.value	// 记录键值 
+										// 将键值写入配置文件
+										iSwitch.iconfig[iSwitch.buttons[i].presetId].hotkeyValue = owner.value
+									} else {
+										iSwitch.msgbox("快捷键设置失败!")
+									}
+								}
+							}
+						}	
+					}				
+				}
+			})
+		}
+    } else {											// 取消选中
+    	settingMenu.check(pos, true)
+    	
+    	for (i = 1; #iSwitch.buttons; 1) {
+    		iSwitch.buttons[i].translateCommand()		// 否则static的transparent属性不起作用
+    		
+    		if (iSwitch.buttons[i].hotkey) {			// 存在hotkey控件, 关闭之
+				iSwitch.buttons[i].hotkey[1].close()	// 添加和访问时都要按数组的形式添加/访问
+			}
+			
+			// 生成static控件, 内容是设置的快捷键
+			iSwitch.buttons[i].label = iSwitch.buttons[i].addCtrl({
+				{
+					cls="static";
+					transparent=1;
+					marginTop=0.8;
+					height=20;
+					marginLeft=0.1;
+					marginRight=0.1;
+					align="center";
+					text=iSwitch.hotkeyToString(iSwitch.buttons[i].hotkeyValue);
+				}
+			})
+		}
+		
+    }
+})
+
+// 模拟点击, 默认选中 "锁定快捷键"
+settingMenu.click(3)
+
+var aboutMenu = win.ui.popmenu(iSwitch)
+aboutMenu.add('关于', function(id) {
+	iSwitch.msgbox("iSwitch 是用于NovaStart H2控制器的预设场景
+切换软件，支持设定全局快捷键。", "关于 iSwitch")
+})
+
+var menu = win.ui.menu(iSwitch) 				//创建主菜单
+menu.add('文件', fileMenu)
+menu.add('设置', settingMenu)
+menu.add('帮助', aboutMenu)
+
+iSwitch.show();
+
+return win.loopMessage(); 

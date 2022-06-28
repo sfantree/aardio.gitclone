@@ -1,0 +1,35 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form( bottom=399;parent=...;right=599;text="ÍÏ¶¯¿Ø¼þ" )
+winform.add( 
+button={ bottom=275;text="button";left=221;top=228;z=1;right=312;cls="button" }
+)
+/*}}*/
+
+import mouse;
+
+var moveFlag,bx,by;
+
+winform.button.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x201/*_WM_LBUTTONDOWN*/{
+			moveFlag = true;
+			var x,y = mouse.getPos();
+			bx,by = win.toClient(winform.button.hwnd,x,y);
+		}
+		case 0x202/*_WM_LBUTTONUP*/ {
+			moveFlag = false;
+		}
+		case 0x200/*_WM_MOUSEMOVE*/{
+			var x,y = mouse.getPos();
+			
+			var fx,fy = win.toClient(winform.hwnd,x,y)
+			if(moveFlag){
+				winform.button.setPos(fx-bx,fy-by)
+			}
+		}
+	}
+}
+
+winform.show() 
+win.loopMessage();

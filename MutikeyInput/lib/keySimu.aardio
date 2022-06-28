@@ -1,0 +1,303 @@
+
+import key;
+import key.hook;
+import winex;
+import frmDataFunc;
+
+namespace keySimu;
+
+var tableCollect = {};
+var tblTime = {};
+//装入按键模拟所需的表
+var function tabForKeySimu(){
+	tableCollect = {
+		lfChar = ..frmDataFunc.lfChar;
+		rtChar = ..frmDataFunc.rtChar;
+		frChar = ..frmDataFunc.frChar;
+		single = ..frmDataFunc.single;
+		left = ..frmDataFunc.left;
+		right = ..frmDataFunc.right;
+		freeKey = ..frmDataFunc.freeKey;
+		abbr = ..frmDataFunc.abbr;
+	};
+
+	tblTime = {
+		repMode = ..frmDataFunc.info.repMode; 
+		tmDnHold = ..frmDataFunc.info.tmDnHold; 
+		tmInterval =  ..frmDataFunc.info.tmInterval;
+	}	
+}
+
+tabForKeySimu();//程序启动时执行一次
+
+//收到重新加载配置消息后，更新各查询表的数据
+..subscribe("重新加载配置",function(){
+	tabForKeySimu();
+} );
+
+
+//根据给定的参数，输出按键或字符串
+class keyOutput {
+	ctor() {
+		var onRept = false;
+		var interval = 30; //连击间隔默认30毫秒
+		..subscribe("连击",function(bool, inter){//订阅连击消息，设置连击状态和连击间隔
+    		onRept = bool;
+    		interval = inter;
+		} );		
+		var brackets = {
+    		["()"] = {"("; ")"}; ["<>"] = {"<"; ">"};
+    		["[]"] = {"["; "]"}; ["{}"] = {"{"; "}"};
+     	};
+		var index = {
+    		["()"] = true; ["<>"] = true;
+    		["[]"] = true; ["{}"] = true; 
+     	};
+		var matchBrackets = function(key) {//括号配对
+     			var brkt = brackets[key];
+     			if(brkt == null) 
+     				return key;
+     			if(index[key]) {//索引为真时返回左括号
+        			index[key] = false;
+     				return brkt[1]	
+     			} 
+     			else {//索引为假时返回右括号
+         			index[key] = true;
+         			return brkt[2]
+     			}    
+ 			}
+	}//ctor()结束	
+	//输出字符串
+	sendString = function(keyV){
+		if(!onRept) {
+			..key.send(matchBrackets(keyV));//先匹配一下括号后再输出字符串
+			return;
+		}
+    	while(onRept) {
+			..key.send(keyV);
+			..win.delay(interval);
+		};				
+	}
+	//输出虚拟码
+	sendVK = function(keyV){
+		if(!onRept) {
+			..key.press(keyV);
+			return;
+		}
+    	while(onRept) {
+			..key.press(keyV);
+			..win.delay(interval);
+		};						
+	}
+	//输出组合键
+	sendComb = function(keyV){
+		if(!onRept) {
+			..key.combine(..table.unpack(keyV))
+			return;
+		}
+    	while(onRept) {
+			..key.combine(..table.unpack(keyV))
+			..win.delay(interval);
+		};						
+	}
+	//直接向焦点窗口输出Unicode字符
+	sendUni = function(keyV){
+		if(!onRept) {
+			..winex.say(keyV);
+			return;
+		}
+    	while(onRept) {
+			..winex.say(keyV);
+			..win.delay(interval);
+		};								
+	} 
+	//输出自由键，值的类型未知
+	sendFreeKey = function(keyV){
+		if(type(keyV) == type.string){
+			this.sendString(keyV);
+		}
+		elseif(type(keyV) == type.number){
+			this.sendVK(keyV);
+		}
+		elseif(type(keyV) == type.table){
+			this.sendComb(keyV);
+		}
+	}		
+}
+
+//过滤按键，重新组合并查询要输出的值	
+class selectOutput {
+	ctor(frmWin){
+		var leftChar = tableCollect.lfChar;
+		var rightChar = tableCollect.rtChar;
+		var freeCharKey = tableCollect.frChar;		
+		var tblSingle = tableCollect.single;
+		var tblLeft = tableCollect.left;
+		var tblRight = tableCollect.right;
+		var tblFreeKey = tableCollect.freeKey;
+		var tblAbbr = tableCollect.abbr;
+		
+		var tmDnHold = tblTime.tmDnHold;
+		var tmInterval = tblTime.tmInterval;
+		
+		var recLeft = {}; var recRight = {}; var recFree = {};
+		var dnExist = 0; 
+		var keyExport = ..keySimu.keyOutput();//实例化输出类。引用要写全路径，否则再别的文件中实例化后，运行报错
+		
+		var outputFree = function(keyFr) {
+    		var sfV = tblSingle[keyFr] : tblFreeKey[keyFr];//查单键、自由键输出表
+    		if(sfV) {
+    			keyExport.sendFreeKey(sfV)
+    		}
+    		elseif(tblAbbr[keyFr]) {//查略码
+    			keyExport.sendUni(tblAbbr[keyFr])
+    		}
+		};
+		
+		var outputLR = function (keyLf, keyRt) {
+			var vL = tblLeft[keyLf];
+			var vR = tblRight[keyRt];
+			if(vL and vR) {
+				keyExport.sendString(..string.concat(vL,vR));
+				return;
+			}
+			var tbFr = ..table.concat(..string.split(keyLf),..string.split(keyRt));	
+			..table.sort(tbFr);
+			outputFree(..string.join(tbFr));
+		};
+		
+		var output = function(){
+			recLf = ..table.slice(recLeft, 1, #recLeft);//切除键值对，只保留数组
+    		recRt = ..table.slice(recRight, 1, #recRight);
+    		recFr = ..table.slice(recFree, 1, #recFree);
+    		if(#recFr) {
+				var rec = ..table.concat(recFr, recLf, recRt);
+				..table.sort(rec);
+				outputFree(..string.join(rec)) 
+    		}    
+    		elseif(#recLf and #recRt) {
+        		..table.sort(recLf);
+        		..table.sort(recRt);        		
+    			outputLR(..string.join(recLf), ..string.join(recRt))
+    		}
+			else {
+				var rec = #recLf ? recLf : recRt;
+				..table.sort(rec);
+				outputFree(..string.join(rec)); 		
+			}
+			//recLeft = {}; recRight = {}; recFree = {};//在此清空，会无法down函数中阻挡连击键，
+			return;		
+		}
+		
+		//设定按键延时，启动连击
+		var timeID = 0;//计时器ID
+		var repExist = false;//连击状态
+		var setTimeProc = function() {
+				frmWin.killtimer(timeID);
+				timeID = frmWin.setTimeout(
+					function() {
+						repExist = true;
+						..publish("连击", true, tmInterval);//发布连击开始消息
+						output();
+						return;
+  					}, tmDnHold);
+				return; 
+			}
+			
+		var setTime = tblTime.repMode ? setTimeProc : function(){};//如不是连击模式，则置为空函数
+		
+		var recDown = function(kn, tbRec) {
+			if(tbRec[kn]) {
+				return;
+			}
+			tbRec[kn] = kn;
+			..table.push(tbRec, kn);
+			dnExist++ ;
+			setTime();
+			return;
+		};
+		
+		var recUp = function(){//按键记录表清空必须在Up函数中，用来阻挡连续按键要求进入的记录
+    		dnExist-- ;
+    		if(dnExist) {
+    			return
+    		};
+    		if(repExist) {
+    			..publish("连击",false, 0); //发布连击终止消息 
+    			repExist = false;
+    			recLeft = {}; recRight = {}; recFree = {};//清空必须放在此处
+    			return; 	
+    		};
+    		frmWin.killtimer(timeID);
+			output();
+			recLeft = {}; recRight = {}; recFree = {};//清空必须放在此处
+			return;
+		};
+
+	};//ctor()结束
+
+	selectKey = function (msg, vkcode){
+    	if(leftChar[vkcode]) {
+        	select msg {
+        		case 0x100, 0x104 {
+        			recDown(leftChar[vkcode], recLeft)
+        		}
+        		case 0x101, 0x105 {
+        			recUp()
+        		}
+        	}
+    	}
+    	elseif(rightChar[vkcode]) {
+        	select msg {
+        		case 0x100, 0x104 {
+        			recDown(rightChar[vkcode], recRight)      		
+        		}
+        		case 0x101, 0x105 {
+        			recUp()
+        		}
+        	}    
+    	}
+    	elseif(freeCharKey[vkcode]) {
+        	select msg {
+        		case 0x100, 0x104 {
+					recDown(freeCharKey[vkcode], recFree)         		
+        		}
+        		case 0x101, 0x105 {
+        			recUp()
+        		}
+        	}    
+  		}
+  		else{
+  			return false;
+  		}
+ 		return true;   
+	};
+
+}
+
+//将钩子函数重新包装为keyGlobalHook类
+class keyGlobalHook {
+	ctor(frmWin) {
+		var hook = ..key.hook();	
+		var output = ..keySimu.selectOutput(frmWin);//引用要写全路径，否则再别的文件中实例化后，运行报错
+		var hookProc = function (msg, vkcode, scancode, injected) {
+				if(injected) return; //模拟按键不处理
+				return output.selectKey(msg, vkcode)
+			}	
+	};
+	open = function() {
+		hook.proc = hookProc;
+		return true;
+	};
+	close = function() {
+		hook.close();
+	};
+	pause = function() {
+		hook.proc = null;
+		return false;
+	}
+	
+}
+
+
+

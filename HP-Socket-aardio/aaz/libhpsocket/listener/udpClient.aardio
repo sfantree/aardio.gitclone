@@ -1,0 +1,18 @@
+﻿import aaz.libhpsocket.listener.client;
+
+namespace aaz.libhpsocket.listener;
+var _dll = ..aaz.libhpsocket._dll;
+
+class udpClient{
+	ctor(){
+		this = ..aaz.libhpsocket.listener.client();
+		this.pListener = _dll.Create_HP_UdpClientListenerP();
+		this.componentClassPath = "component.udpClient";
+	};
+	destroy = function(){
+		if(this.pListener){
+			_dll.Destroy_HP_UdpClientListener(this.pListener);
+			this.pListener = null;
+		}
+	};
+}

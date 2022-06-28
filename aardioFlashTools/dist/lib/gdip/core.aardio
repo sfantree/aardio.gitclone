@@ -1,0 +1,137 @@
+//core 初始化
+import util.metaProperty;
+namespace gdip.core{}
+
+namespace gdip{
+
+	::Gdiplus := ..raw.loadDll("Gdiplus.dll");
+	_dll = ::Gdiplus;
+	
+	var $ = _dll;
+	GdiplusStartup = $.api("GdiplusStartup","int(int& token,struct& inputbuf,pointer outputbuf)")
+	GdiplusShutdown = $.api("GdiplusShutdown","void(int token)")
+	GdiplusStartupInput = class{ 
+		int GdiplusVersion; 
+		int DebugEventCallback; 
+		int SuppressBackgroundThread; 
+		int SuppressExternalCodecs;
+	}
+	
+	var defaultToken; //<--
+	function open(){
+		if(defaultToken)
+			return;
+			
+		var uInput = GdiplusStartupInput();
+		uInput.GdiplusVersion = 1 
+		var re,token = GdiplusStartup(0,uInput); 
+		if(re) error("GDI+ 初始化错误。" ,2)  
+		defaultToken = token;
+	}
+	function close(){  
+		if(defaultToken){
+			GdiplusShutdown(defaultToken);
+			defaultToken = null;
+		}
+	} 
+	open();  ..table.gc(self,"close");	//<--table.gc 按调用顺序的逆序析构对象
+	
+	errMsg = {
+		"GenericError! an error on the method call.";
+		"InvalidParameter!";
+		"OutOfMemory!";
+		"ObjectBusy!";
+		"InsufficientBuffer!";
+		"NotImplemented!";
+		"Win32Error!";
+		"WrongState!";
+		"Aborted!";
+		"FileNotFound!";
+		"ValueOverflow!"; 
+		"AccessDenied!";
+		"UnknownImageFormat!";
+		"FontFamilyNotFound!";
+		"FontStyleNotFound!";
+		"NotTrueTypeFont!";
+		"UnsupportedGdiplusVersion!";
+		"GdiplusNotInitialized!";
+		"PropertyNotFound!";
+		"PropertyNotSupported!";
+		"ProfileNotFound!";
+	}
+	
+	checkError = function( err,ci = 1 ){
+		if( err ) error( errMsg[err] : "Unknown Error",ci + 1 );
+	}
+	self.assert =  function(err,...) { 
+		if( err ) error(errMsg[err] : "Unknown Error",2)
+		return ...
+	}
+	self.assert2 =  function(err,...) { 
+		if( err ) error(errMsg[err] : "Unknown Error",3)
+		return ...
+	}
+	
+	class ::RECTF{
+		ctor(x=0,y=0,width=0,height=0){
+  			this.x = x;
+  			this.y = y;
+  			this.width = width;
+  			this.height = height;
+		} 
+		float x;
+		float y;
+		float width;
+		float height;
+	}
+	
+	class ::POINTF{
+		ctor(x=0,y=0){
+  			this.x = x;
+  			this.y = y;
+		} 
+		float x ; 
+		float y ;
+	}
+	self.POINTF = POINTF;
+	self.RECTF = RECTF;
+	
+	/**intellisense(::)
+	::RECTF(  = 浮点格式区块
+	::RECTF(.(x,y,width,height) = 浮点格式区块
+	::POINTF( = 浮点格式坐标
+	::POINTF(.(x,y) = 浮点格式坐标
+	::RECTF() = !rectf.
+	::POINTF() = !point.
+	::RECTF() = !rectf.
+	::POINTF() = !point.
+	::Gdiplus = !dllmodule.
+	end intellisense**/
+	
+	/**intellisense(!rectf)
+	x = x坐标
+	y = y坐标
+	width = 宽
+	height = 高
+	end intellisense**/
+	
+}
+ 
+/**intellisense(gdip)
+RECTF(.(x,y,width,height) = 浮点格式区块
+RECTF() = !rectf.
+POINTF( = 浮点格式坐标
+POINTF(.(x,y) = 浮点格式坐标
+POINTF() = !point.
+open() = 初始化GDI+\n导入gdip时会默认执行此函数
+close() =  关闭GDI+\n在程序退出时会自动调用此函数\n一般不需要显示调用此函数
+errMsg[__] = 根据返回值取错误信息
+checkError(__/*请输入GDI+函数返回值*/) = 如果有错误调用error函数抛出异常
+checkError(__/*请输入GDI+函数返回值*/,2) = 如果有错误调用error函数抛出异常\n参数2指定抛出异常的调用级别\n2表示调用当前函数的函数
+assert(__/*请输入GDI+函数返回值*/) = 校验GDI+函数返回值\n如果返回值非零,则抛出错误信息\n否则返回该函数的所有输出参数
+assert2(__/*请输入GDI+函数返回值*/) = 校验GDI+函数返回值\n如果返回值非零,则向上层调用函数抛出错误信息\n否则返回该函数的所有输出参数
+end intellisense**/
+
+/**intellisense() 
+?::RECTF = !rectf.
+end intellisense**/

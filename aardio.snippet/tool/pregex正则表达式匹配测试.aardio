@@ -1,0 +1,73 @@
+// @Author  : popy32
+// @Contact : 74o5o27o8#qq.com
+// @File    : pregex.aardio
+// @Comment : pregex正则表达式匹配测试
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="preg正则测试";right=391;bottom=455)
+winform.add(
+button={cls="button";text="匹配";left=264;top=416;right=384;bottom=448;z=8};
+button2={cls="button";text="调试";left=128;top=416;right=248;bottom=448;z=9};
+edit={cls="edit";left=8;top=80;right=384;bottom=184;autohscroll=false;edge=1;multiline=1;z=2};
+edit2={cls="edit";left=8;top=216;right=384;bottom=248;edge=1;multiline=1;z=5};
+edit3={cls="edit";left=8;top=280;right=384;bottom=408;autohscroll=false;edge=1;multiline=1;z=6};
+static={cls="static";text="preg正则测试";left=104;top=8;right=288;bottom=48;color=255;font=LOGFONT(h=-27;name='微软雅黑');transparent=1;z=1};
+static2={cls="static";text="正文";left=8;top=56;right=88;bottom=72;transparent=1;z=3};
+static3={cls="static";text="正则表达式";left=8;top=192;right=88;bottom=208;transparent=1;z=4};
+static4={cls="static";text="匹配的正文";left=8;top=256;right=152;bottom=272;transparent=1;z=7}
+)
+/*}}*/
+
+import console;
+import preg;
+import win.dlg.message;
+
+winDlgMessage = win.dlg.message(winform);
+
+doRegex = function(){
+	var s = winform.edit.text;
+	var r = winform.edit2.text;
+	if( ( not #s  ) or ( not #r  ) ) {
+		winDlgMessage.err("正文或正则表达式输入为空！", 3000);
+	    return;
+	}
+	var regex, err = preg(r);
+	if(not regex) {
+	    winDlgMessage.err("正则表达式创建失败！", 3000);
+	    return;
+	}
+	
+	winform.edit3.text = "";
+	var $keywords = {};
+	
+	for $keyword in regex.gmatch(s) {
+	    table.push($keywords, $keyword);
+	}
+	winform.edit3.dump($keywords)
+}
+
+winform.button.oncommand = function(id,event){
+	doRegex();
+}
+
+winform.edit3.oncommand = function(id,event){
+	
+}
+
+winform.edit.text = /**
+2to3把 Python 2.x 代码转换为 Python 3.x 代码的工具，
+通过解析源码，遍历解析树，处理绝大多数检测到的不兼容问题。
+**/;
+
+winform.edit2.text = /**
+/[\x{4e00}-\x{9fa5}]+/u
+**/
+
+winform.button2.oncommand = function(id,event){
+	import process;
+	process.openUrl("https://regex101.com/");
+}
+
+winform.show();
+win.loopMessage();

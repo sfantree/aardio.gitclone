@@ -1,0 +1,15 @@
+//dropdown 下拉选框
+namespace web.sciter.behavior.dropdown;
+
+onMouseUp = function (scTarget,scOwner,x,y,mouseParams) {
+	var elPopup = scOwner.querySelector(".popup,popup"); // either class or element <popup>
+	if( scTarget.isParent(elPopup) ){
+		return true;
+	}
+	 
+	if( elPopup && scOwner && !scOwner.state.owns_popup  ) { 
+		// you can use :popup and :owns-popup pseudo-classes in CSS now.   
+		elPopup.popupAnchor(scOwner,2); // show it below 
+	}
+	return true;
+}

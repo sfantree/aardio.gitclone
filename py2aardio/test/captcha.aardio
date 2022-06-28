@@ -1,0 +1,121 @@
+import re;
+
+import requests;
+import PIL; var Image = PIL.Image;
+
+import easytrader; var exceptions = easytrader.exceptions;
+
+
+captchaRecognize = function(imgPath) {
+    import pytesseract;
+
+    im = Image.open(imgPath).convert("L");
+    // 1. threshold the image
+    threshold = 200;
+    table = {};
+    for (i in range(256)) {
+        if (i < threshold) {
+            table.append(0);
+        } else {
+            table.append(1);
+        }
+    }
+
+    out = im.point(table, "1");
+    // 2. recognize with tesseract
+    num = pytesseract.imageToString(out);
+    return num;
+}
+
+
+recognizeVerifyCode = function(imagePath, broker="ht") {
+    /*识别验证码，返回识别后的字符串，使用 tesseract 实现
+    :param imagePath: 图片路径
+    :param broker: 券商 ['ht', 'yjb', 'gf', 'yh']
+    :return recognized: verify code string*/
+
+    if (broker == "gf") {
+        return detectGfResult(imagePath);
+    }
+    if (broker in ["yhClient", "gjClient"]) {
+        return detectYhClientResult(imagePath);
+    }
+    // 调用 tesseract 识别
+    return defaultVerifyCodeDetect(imagePath);
+}
+
+
+detectYhClientResult = function(imagePath) {
+    /*封装了tesseract的识别，部署在阿里云上，
+    服务端源码地址为： https://github.com/shidenggui/yhVerifyCodeDocker*/
+    api = "http://yh.ez.shidenggui.com:5000/yhClient";
+    with (open(imagePath, "rb") as f) {
+        rep = requests.post(api, files={"image": f});
+    }
+    if (rep.statusCode != 201) {
+        error = rep.json()["message"];
+        error exceptions.TradeError(string.format("request {} error {}", api, error));
+    }
+    return rep.json()["result"];
+}
+
+
+inputVerifyCodeManual = function(imagePath) {
+    import PIL; var Image = PIL.Image;
+
+    image = Image.open(imagePath);
+    image.show();
+    code = input(string.format("image path {}, input verify code answer:", imagePath));
+    return code;
+}
+
+
+defaultVerifyCodeDetect = function(imagePath) {
+    import PIL; var Image = PIL.Image;
+
+    img = Image.open(imagePath);
+    return invokeTesseractToRecognize(img);
+}
+
+
+detectGfResult = function(imagePath) {
+    import PIL; var ImageFilter, Image = PIL.ImageFilter, PIL.Image;
+
+    img = Image.open(imagePath);
+    if (img["width"]) {
+        width, height = img.width, img.height;
+    } else {
+        width, height = img.size;
+    }
+    for (x in range(width)) {
+        for (y in range(height)) {
+            if (img.getpixel((x, y)) < (100, 100, 100)) {
+                img.putpixel((x, y), (256, 256, 256));
+            }
+        }
+    }
+    gray = img.convert("L");
+    two = gray.point(lambda(p) 0 if 68 < p < 90 else 256);
+    minRes = two.filter(ImageFilter.MinFilter);
+    medRes = minRes.filter(ImageFilter.MedianFilter);
+    for (_ in range(2)) {
+        medRes = medRes.filter(ImageFilter.MedianFilter);
+    }
+    return invokeTesseractToRecognize(medRes);
+}
+
+
+invokeTesseractToRecognize = function(img) {
+    import pytesseract;
+
+    try {
+        res = pytesseract.imageToString(img);
+    } catch(FileNotFoundError) {
+        error Exception(
+            "tesseract 未安装，请至 https://github.com/tesseract-ocr/tesseract/wiki 查看安装教程"
+        );
+    }
+    validChars = re.findall("[0-9a-z]", res, re.IGNORECASE);
+    return "".join(validChars);
+
+}

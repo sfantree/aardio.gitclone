@@ -1,0 +1,90 @@
+import util.metaProperty;
+import hpsocket.listen;
+namespace hpsocket.listen;
+	
+class client{
+	ctor( pListener,className ){
+		this = ..hpsocket.listen(pListener,className);
+		//::HPSocket.HP_Set_FN_Client_OnWorkerThreadEnd(this.pListener,..thread.callbackUninitialize );
+	};
+	@_metaProperty;
+}
+
+namespace client{
+	_metaProperty = ..util.metaProperty(
+		onPrepareConnect = {
+			_set = function( callback ){
+				owner.OnPrepareConnectCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId,addr soListen)");
+				::HPSocket.HP_Set_FN_Client_OnPrepareConnect(owner.pListener,owner.OnPrepareConnectCallback );
+			} 	
+		};
+		onConnect = {
+			_set = function( callback ){
+				owner.OnConnectCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId)");
+				::HPSocket.HP_Set_FN_Client_OnConnect(owner.pListener,owner.OnConnectCallback );
+			} 	
+		}
+		onHandShake = {
+			_set = function( callback ){
+				owner.OnHandShakeCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId)");
+				::HPSocket.HP_Set_FN_Client_OnHandShake(owner.pListener,owner.OnHandShakeCallback );
+			} 	
+		};
+		onSend = {
+			_set = function( callback ){
+				owner.OnSendCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId,pointer pData, int length)");
+				::HPSocket.HP_Set_FN_Client_OnSend(owner.pListener,owner.OnSendCallback );
+			} 	
+		};
+		onReceive = {
+			_set = function( callback ){
+				owner.OnReceiveCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId,pointer pData, int length)");
+				::HPSocket.HP_Set_FN_Client_OnReceive(owner.pListener,owner.OnReceiveCallback );
+			} 	
+		};
+		onPullReceive = {
+			_set = function( callback ){
+				owner.OnPullReceiveCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId, int length)");
+				::HPSocket.HP_Set_FN_Client_OnPullReceive(owner.pListener,owner.OnPullReceiveCallback );
+			} 	
+		};
+		onClose = {
+			_set = function( callback ){
+				owner.OnCloseCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId, int enOperation, int iErrorCode)");
+				::HPSocket.HP_Set_FN_Client_OnClose(owner.pListener,owner.OnCloseCallback );
+			} 	
+		};
+		onShutdown = {
+			_set = function( callback ){
+				owner.OnShutdownCallback = owner.createThreadCallback(callback,"int(ptr pSender)");
+				::HPSocket.HP_Set_FN_Client_OnShutdown(owner.pListener,owner.OnShutdownCallback );
+			} 	
+		};
+		freeBufferPoolSize = {
+			_get = function(){
+				var s = {INT value} 
+				if(::HPSocket.HP_Client_GetFreeBufferPoolSize(owner.pSocket,s))
+					return s.value;;
+			} 
+			_set = function( value ){
+				::HPSocket.HP_Client_SetFreeBufferPoolSize(owner.pSocket,value)
+			} 	
+		};
+		freeBufferPoolHold = {
+			_get = function(){
+				var s = {INT value} 
+				if(::HPSocket.HP_Client_GetFreeBufferPoolHold(owner.pSocket,s))
+					return s.value;;
+			} 
+			_set = function( value ){
+				::HPSocket.HP_Client_SetFreeBufferPoolHold(owner.pSocket,value)
+			} 	
+		};
+		_topointer = function(){
+			return owner.pSocket;
+		};
+		_serialize = function(kernelCall){
+			return ..string.format("global.import('hpsocket.%s') : hpsocket.%s( topointer(0x%x))",owner.className,owner.className,tonumber(owner.pSocket) );;
+		}
+	)
+}

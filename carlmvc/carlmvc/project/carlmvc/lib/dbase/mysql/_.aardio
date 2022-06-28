@@ -1,0 +1,21 @@
+﻿
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+import dbase.base;
+
+namespace dbase
+
+mysql = class {
+	ctor( ... ){
+		var dbconfig = ..config.database.mysql;
+		this = ..dbase.base(dbconfig, ...);
+	};
+}

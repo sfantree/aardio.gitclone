@@ -1,0 +1,70 @@
+import win.ui;
+import config;
+import console;
+/*DSG{{*/
+var winform = win.form(text="添加公司";right=990;bottom=433;border="dialog frame";mode="popup";parent=...)
+winform.add(
+button={cls="button";text="添加公司";left=95;top=379;right=199;bottom=407;dl=1;dt=1;z=1};
+checkbox={cls="checkbox";text="自动关闭本窗口";left=350;top=386;right=460;bottom=402;dl=1;dt=1;z=2}
+)
+/*}}*/
+
+////
+//////////////////////////////
+////全局变量
+
+
+
+
+
+is_form_valid = function(){
+	if( #winform.edit_title.text
+			&& #winform.edit_account.text
+			&& #winform.edit_pass.text)
+	{
+		return true;
+	}else {
+			winform.msgboxErr("title,account and password is requried","Err")
+	}
+	return false;
+}
+
+
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+
+	//winform.center()
+
+	var state = config.settings.autoclose_company_form;
+	//
+	console.log(" config autoclose_company_form  " ++ state)
+	//
+
+	if(state == null){
+		state = false
+	}
+	winform.checkbox.checked = state
+
+	//
+	//console.log(" started " ++ state)
+	//
+}
+
+winform.checkbox.oncommand = function(id,event){
+	var state = winform.checkbox.checked;
+
+	config.settings.autoclose_company_form = state
+	config.saveAll()
+
+	//
+	//console.log(" started " ++ state)
+	//
+
+}
+
+winform.onInitDialog();
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

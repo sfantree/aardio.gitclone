@@ -1,0 +1,228 @@
+﻿import util.metaProperty;
+namespace web.cefx;
+
+class element{
+	ctor(browser,selector){
+		this.browser = browser;
+		this._object = browser._object
+		this.selector = selector;
+	};
+	@_metaProperty;
+}
+
+namespace element{
+    
+    _metaProperty = ..util.metaProperty(
+    
+    	addEventListener = function(listener){
+			listener.remove = function(eventType,functionName){
+				owner._object.RemoveEventListenerEx(owner.selector,eventType,listener,functionName,false);
+			}
+			
+			var listener = ..com.ImplInterface(listener);
+			for eventType,functionName in ..table.eachName(listener){
+				owner._object.addEventListenerEx(owner.selector,eventType,listener,functionName,false);
+			} 
+			
+			return listener;
+		};
+		
+		addCaptureEventListener = function(listener){
+			listener.remove = function(eventType,functionName){
+				owner._object.RemoveEventListenerEx(owner.selector,eventType,listener,functionName,true);
+			}
+			
+			var listener = ..com.ImplInterface(listener);
+			for eventType,functionName in ..table.eachName(listener){
+				owner._object.addEventListenerEx(owner.selector,eventType,listener,functionName,true);
+			} 
+			
+			return listener;
+		};
+		
+		set = function(name,value){
+			if( value === null ) return owner._object.RemoveAttribute(owner.selector,name);
+			owner._object.SetAttribute(owner.selector,name,value);
+		};
+		
+		get = function(name,ownerCall){
+			if(ownerCall){
+				return function(...){
+					var args = {...};
+					for i,v in ..table.eachIndex(args){
+						if( type(v) == "string" ) args[i] = '"' + v + '"' 
+					}
+					args = ..string.join(args,",");
+					return owner.browser.eval( `document.querySelector("%s").%s(%s)`,owner.selector,name,args)
+				} 
+			}
+			return owner._object.GetAttribute(owner.selector,name);
+		}; 
+		
+		querySelector = function(selector){
+			if( type(selector) != type.string ) error("参数@1必须使用字符串指定CSS选择器",2);
+			return ..web.cefx.element(owner.browser,owner.selector + " " + selector );
+		};
+		
+		setAttribute = function(name,value){
+			if( value === null ) return owner._object.RemoveAttribute(owner.selector,name);
+			owner._object.SetAttribute(owner.selector,name,value);
+		};
+		
+		getAttribute = function(name){
+			return owner._object.GetAttribute(owner.selector,name);
+		};
+		
+		removeAttribute = function(name){
+			owner._object.RemoveAttribute(owner.selector,name);
+		};
+		
+		setAttributes = function(value){
+			owner._object.SetAttributes(owner.selector,value);
+		};
+		
+		getAttributes = function(){
+			owner._object.GetAttributes(owner.selector);
+		};
+		
+		setStyle = function(setting,value){
+			return owner._object.SetStyle(owner.selector,setting,value);
+		};
+		
+		getStyle = function(setting,bComputed){
+			return owner._object.GetStyle(owner.selector,setting,bComputed);
+		};
+		
+		setCssText = function(cssText){
+			owner._object.SetCssText(owner.selector,cssText);
+		};
+		
+		getCssText = function(bComputed){
+			return owner._object.GetCssText(owner.selector,bComputed);
+		};
+		
+		getNodeId = function(){
+			return owner._object.GetNodeID(owner.selector);
+		};
+		
+		inspectNode = function(){
+			return owner._object.InspectNode(owner.selector);
+		};
+		
+		getMatchedStyles = function(toXml){
+			return owner._object.GetMatchedStyles(owner.selector,toXml);
+		};
+		
+    	innerHTML = {
+    		_get = function(){
+    			return owner._object.GetInnerHTML(owner.selector);
+    		}
+    		_set = function( value ){
+    			owner._object.SetInnerHTML(owner.selector,value );
+    		} 	
+    	};
+    	
+    	outerHTML = {
+    		_get = function(){
+    			return owner._object.GetOuterHTML(owner.selector);
+    		}
+    		_set = function( value ){
+    			owner._object.SetOuterHTML(owner.selector,value);
+    		} 	
+    	};
+    	
+    	inputValue = {
+    		_get = function(){
+    			return owner._object.GetInputValue(owner.selector);
+    		}
+    		_set = function( value ){
+    			owner._object.SetInputValue(owner.selector,value);
+    		} 	
+    	}; 
+		
+    	selectElement = function(moveCaret,selectContents){
+			return owner._object.SelectElement(owner.selector,moveCaret,selectContents);
+		};
+		
+		selectTableColumn = function(){
+			return owner._object.SelectTableColumn(owner.selector);
+		};
+		
+		selContainsNode = function(partialContainment){
+			return owner._object.SelContainsNode(owner.selector,partialContainment);
+		};
+		
+		selExtend = function(offset){
+			return owner._object.SelExtend(owner.selector,offset);
+		};
+		
+		getSelection = function(){
+			return owner._object.GetSelection(owner.selector);
+		};
+		
+		dataBind = function(){
+			return owner._object.DataBind(owner.selector);
+		};
+		
+		delete = function(){
+			return owner._object.Delete(owner.selector);
+		};
+		
+		execCommand = function(cmd,arguments){  
+			return owner._object.ExecCommand(cmd,owner.selector,arguments);
+		};
+		
+		click = function(){
+			return owner.browser.eval( `document.querySelector("%s").click()`,owner.selector)
+		}; 
+		
+		dispatchEvent = function(event,canBubble,cancelable,composed,detail,async){
+			if( type(event) != type.string ) error("参数@1必须使用字符串指定事件名",2);
+			var ret = owner._object.DispatchEvent(owner.selector,event,canBubble,cancelable,composed,detail,async)
+			if( (event == "click") && owner._object.GetAttribute(owner.selector,"click") ) owner.click(); 
+			return ret;
+		};
+		
+		valid = function(){
+			return owner.browser.eval( `document.querySelector("%s")?true:false`,owner.selector) 
+		};
+    )
+} 
+
+/**intellisense(!webcefxelement)
+valid() = 检查节点是否有效\n注意输入任何CSS选择器都会返回节点对象\n必须调用valid函数才能检查节点是否存
+execCommand(.(cmd,arguments) = 执行命令
+setAttribute(name,value) = 设置属性
+getAttribute(name) = 获取属性
+removeAttribute(name) = 移除属性
+setAttributes(value) = 以文本形式修改全部属性
+getAttributes() = 获取全部属性的文本形式
+setStyle(setting,value) = 设置CSS样式
+getStyle(setting,bComputed) = 获取CSS样式
+setCssText(cssText) = 以文本格式设置全部CSS
+getCssText(bComputed) = 以文本格式获取全部CSS
+innerHTML =  节点内HTML
+outerHTML = 节点HTML
+inputValue = 设置或者获取input控件的值
+selectElement(moveCaret,selectContents) = 选择节点
+selectTableColumn() = 选择表格
+selContainsNode(partialContainment) = 判断指定的节点是否包含在选区中
+selExtend(offset) = 扩展选区到指定的点，锚点不会移动
+getSelection() = 获取选区
+dataBind() = 绑定数据
+getMatchedStyles() = 返回计算后CSS样式,参数为ture时返回xml格式
+delete() = 删除节点
+click() =  模拟鼠标单击事件
+inspectNode() = 使用devtools检查节点
+getNodeId() = 返回调试协议NodeID
+querySelector("__/*CSS选择器*/") = 查询子节点
+querySelector() = !webcefxelement.
+dispatchEvent("click") = 模拟触发事件
+dispatchEvent(.(event,canBubble,cancelable) = 模拟触发事件\n参数("事件名",事件类型，是否冒泡，是否阻止浏览器的默认行为)
+addEventListener(事件表) = @.addEventListener(\n	click = function(eventType,eventSelector,targetSelector,targetPath,jsonEventData){\n		__/*浏览器不会等待此回调函数\n只能触发事件，不能拦截取消事件*/\n	} \n)
+addCaptureEventListener(捕获事件表) = @.addCaptureEventListener(\n	click = function(eventType,eventSelector,targetSelector,targetPath,jsonEventData){\n		__/*浏览器不会等待此回调函数\n只能触发事件，不能拦截取消事件*/\n	} \n)
+end intellisense**/
+
+
+  
+	 

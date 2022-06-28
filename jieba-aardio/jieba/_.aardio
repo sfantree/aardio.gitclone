@@ -1,0 +1,84 @@
+﻿//jieba 中文分词
+class jieba{
+	ctor(){
+		..table.gc(this, "destroy");
+	};
+	
+	destroy = function(){
+		dll.FreeJieba(handle)
+	}
+	
+	each = function(str){
+		var offset = 0
+		var cJiebaWordP = dll.CutP(handle,str,#str);
+		return function(){
+			var wordStruct = ..raw.convert(cJiebaWordP,cJiebaWord,..raw.sizeof(cJiebaWord)*offset)
+			offset++
+			if(wordStruct.len){
+				return ..raw.tostring( wordStruct.word,1,wordStruct.len); 
+			}else {
+				dll.FreeWords(cJiebaWordP)
+			}
+		}
+	}
+	
+	eachWithTag = function(str){
+		var offset = 0
+		var cJiebaWordP = dll.CutWithTagP(handle,str,#str);
+		return function(){
+			var wordStruct = ..raw.convert(cJiebaWordP,cJiebaWordWithTag,..raw.sizeof(cJiebaWordWithTag)*offset)
+			offset++
+			if(wordStruct.len){
+				return ..raw.tostring( wordStruct.word,1,wordStruct.len),..string.str(wordStruct.tag); 
+			}else {
+				dll.FreeWordTag(cJiebaWordP)
+			}
+		}
+	}
+	
+	eachWithOutTagName = function(str,tag){
+		var offset = 0
+		var cJiebaWordP = dll.CutWithoutTagNameP(handle,str,#str,tag);
+		return function(){
+			var wordStruct = ..raw.convert(cJiebaWordP,cJiebaWord,..raw.sizeof(cJiebaWord)*offset)
+			offset++
+			if(wordStruct.len){
+				return ..raw.tostring( wordStruct.word,1,wordStruct.len); 
+			}else {
+				dll.FreeWords(cJiebaWordP)
+			}
+		}
+	}
+}
+
+namespace jieba{
+	dll = ..raw.loadDll($"~/lib/jieba/.res/jieba.dll","","cdecl");
+	handle = dll.NewJiebaP(
+		..io.fullpath("~/lib/jieba/.res/dicts/jieba.dict.utf8"),
+		..io.fullpath("~/lib/jieba/.res/dicts/hmm_model.utf8"),
+		..io.fullpath("~/lib/jieba/.res/dicts/user.dict.utf8"),
+		..io.fullpath("~/lib/jieba/.res/dicts/idf.utf8"),
+		..io.fullpath("~/lib/jieba/.res/dicts/stop_words.utf8")
+	)
+	cJiebaWord = {
+		ptr word;
+ 		int len;
+	}
+	cJiebaWordWithTag = {
+		ptr word;
+ 		int len;
+ 		byte tag[4];
+	}
+}
+
+/**intellisense()
+jieba = jieba中文分词
+jieba() = 创建结巴分词对象
+jieba() = !jiebac.
+!jiebac.each(str) = @for word in ??.each(__/*输入字符串*/){
+}
+!jiebac.eachWithTag(str) = @for word,tag in ??.eachWithTag(__/*输入字符串*/){
+}
+!jiebac.eachWithOutTagName(str,tag) = @for word in ??.each(str,__/*要排除的词性*/){
+}
+end intellisense**/

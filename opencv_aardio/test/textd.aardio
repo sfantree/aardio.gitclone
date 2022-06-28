@@ -1,0 +1,46 @@
+import cv2
+
+//src = cv2.imdecode( win.clip.read() )
+src = cv2.imread("C:\Users\NINE\Desktop\busingOn\a2.jpg",0)
+
+img = cv2.threshold(src,30,255)
+kernel = cv2.getStructuringElement(0/*_CV2_MORPH_RECT*/,::SIZE(5,5) )
+img = cv2.morphologyEx(img,0/*_CV2_MORPH_ERODE*/,kernel)
+cv2.imshow( "morphologyEx",img )
+
+kernel = cv2.getStructuringElement(0/*_CV2_MORPH_RECT*/,::SIZE(5,5) )
+img = cv2.morphologyEx(img,1/*_CV2_MORPH_DILATE*/,kernel)
+cv2.imshow( "morphologyEx",img )
+
+kernel = cv2.getStructuringElement(0/*_CV2_MORPH_RECT*/,::SIZE(5,5) )
+img = cv2.morphologyEx(img,0/*_CV2_MORPH_ERODE*/,kernel)
+cv2.imshow( "morphologyEx",img )
+
+img,contours,hierarchy = cv2.findContours(img)
+
+cv2.imshow( "dst",img )
+
+
+for(i=1;contours.size;1){
+	var ret = cv2.minAreaRect(contours[i])
+	var points = cv2.boxPoints(ret)
+	cv2.line( img,points[1],points[2],::Scalar(255,127,0),3)
+	cv2.line( img,points[2],points[3],::Scalar(255,127,0),3)
+	cv2.line( img,points[3],points[4],::Scalar(255,127,0),3)
+	cv2.line( img,points[4],points[1],::Scalar(255,127,0),3)
+
+	var rect = cv2.boundingRect( contours[i] )
+	cv2.rectangle( img,::POINT(rect.left,rect.top),::POINT(rect.left+rect.right,rect.top+rect.bottom),::Scalar(,,255),1 )
+	//凸包检测
+	var hull = cv2.convexHull(contours[i])
+}
+
+cv2.imshow("dd",img)
+cv2.imwrite( "C:\Users\NINE\Desktop\aaa.jpg",img )
+/**
+src2 = cv2.imread("C:\Users\NINE\Desktop\busingOn\100005_177805.jpg",_cv2_imr)
+hsv = cv2.cvtColor(src2,0x28/*_CV2_COLOR_BGR2HSV*/)
+dsts = cv2.inRange( hsv,::Scalar(20,40,60),::Scalar(150,150,100) )
+cv2.imshow( "dsts",dsts )
+**/
+cv2.waitKey(0)

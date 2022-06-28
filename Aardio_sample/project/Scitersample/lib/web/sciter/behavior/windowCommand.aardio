@@ -1,0 +1,165 @@
+//windowCommand 窗口命令
+import win.ui.minmax;
+import win.ui.resizeBorder;
+namespace web.sciter.behavior.windowCommand;
+  
+onAttach = function( scOwner ){
+	var form = scOwner.getForm();
+	if( !form.initHtmsciterWindowCommand ){
+		form.initHtmsciterWindowCommand = true;
+		
+		var wbSciter = scOwner.getSciter();
+		form.adjust = function( cx,cy,wParam ) {
+		 	var ltRoot = wbSciter.documentElement;	
+		 	var ltBody = ltRoot.querySelector("body"); 
+		 	if( wParam == 0x2/*_SIZE_MAXIMIZED*/ ){
+		 		var elMax = ltRoot.querySelector('[command="window-max"]')
+				if( elMax ){
+					elMax.command = "window-restore"; 
+					if( ..string.cmp( elMax.style["font-family"],"Marlett") == 0 ) elMax.innerText = "2";
+					if(ltBody)ltBody.maximize = "true";
+				}
+				
+				ltRoot.enumQuery(
+					function(ltBorder){
+					 	ltBorder.style.display = "none";
+					}," [sizer-command]"
+				)
+		 	}
+		 	elseif( wParam == 0x0/*_SIZE_RESTORED*/ ){
+		 		var elRestore = ltRoot.querySelector('[command="window-restore"]')
+				if( elRestore ) {
+					elRestore.command = "window-max"; 
+					if( ..string.cmp( elRestore.style["font-family"],"Marlett") == 0 ) elRestore.innerText = "1";
+					if(ltBody)ltBody.maximize = null;
+				}
+				ltRoot.enumQuery(
+					function(ltBorder){
+					 	ltBorder.style.display = "block";
+					}," [sizer-command]"
+				)
+		 	}
+		};
+		if( form.onGetMinMaxInfo === null ){
+			..win.ui.minmax( form ); 
+		}
+		
+		
+		form.onEnterSizeMove = function(){
+			form.enterSizeMoveRect = form.getRect();
+		}
+		 
+	 	form.onExitSizeMove = function(){
+	 		if ..win.isZoomed(form.hwnd) return;
+	 		var x,y = form.getPos();  
+ 	   		if( y <= 0 ){
+ 	   			//小于0锁定,y小于0且x小于0时阴影窗口脱离(拖动过程中不响应消息)
+ 	   			form.setPos(x>0?x:1,1,form.enterSizeMoveRect.width(),form.enterSizeMoveRect.height() ) 
+ 	   		};
+	 	}
+	}
+	
+	if( ! scOwner.root().initHtmsciterWindowCommand ){
+		scOwner.root().initHtmsciterWindowCommand = "true"; 
+		var elMax = scOwner.root().querySelector('[command="window-max"],[command="window-restore"]');
+		if(!..win.getStyle(form.hwnd,0x10000/*_WS_MAXIMIZEBOX*/) ){ 
+			if( elMax ) elMax.style.display = "none";
+			
+		}
+		elseif(elMax){
+			var ltBody = scOwner.root().querySelector("body");
+			if( ltBody ) ..win.ui.resizeBorder(form,8);
+		}
+
+		if(!..win.getStyle(form.hwnd,0x20000/*_WS_MINIMIZEBOX*/) ){
+			var elMin = scOwner.root().querySelector('[command="window-min"]') ;
+			if( elMin ) elMin.style.display = "none";
+		}
+	}
+	
+	
+	return true;
+}
+
+onMouseUp = function (scTarget,scOwner,x,y,mouseParams) {
+	var cmd = scTarget.command or scOwner.command;
+	var form = scTarget.getForm(); 
+	
+	select(cmd) {
+		case "window-max"{
+			form.hitmax();
+		}
+		case "window-restore"{
+			form.hitmax();
+		}
+		case "window-min" {
+			form.hitmin();
+		}
+		case "window-close" {
+			form.close();
+		} 
+		else {
+			return;
+		} 
+	}
+	
+	scTarget.state.hover = false;
+	return true;
+}
+
+/*  
+-command:window-caption //允许拖动,节点可指定command为任意其他值以禁止点击时拖动窗口
+*/
+var titleClickableTags = { li=1;button=1;widget=1;input=1;a=1 }
+var isTitleBar  = function(scTarget,scOwner){
+	var cmdTarget = scTarget.getCustomAttribute("command"); 
+	var c = cmdTarget : scOwner.getCustomAttribute("command");
+	if( ( c== "window-caption") || !c ){
+		if( !cmdTarget ){
+			var ltParent = scTarget;
+			while(ltParent){ 
+				var customCmd = ltParent.getCustomAttribute("command") ;
+				if( customCmd ){ 
+					if( customCmd != "window-caption" )
+						return false;
+						
+					break;
+				}
+				else {  
+					if( ltParent.style.behavior ) {
+						if( ltParent != scOwner ){ 
+							return false; //other behavior;
+						}
+						break;
+					}
+				 
+					if( titleClickableTags[ltParent.tagName]   ){
+						return false;
+					} 
+				}
+				
+				ltParent = ltParent.parent();
+			}
+		}
+		return true;
+	};
+}
+
+onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {  
+	if( isTitleBar(scTarget,scOwner) ){  
+		var form = scTarget.getForm();  
+		form.hitCaption();
+		return true;
+	}
+}
+
+onMouseDblClick = function (scTarget,scOwner,x,y,mouseParams) { 
+	if( isTitleBar(scTarget,scOwner) ){ 
+		var doc = scOwner.root();
+		var ltMax = doc.querySelector( '[command="window-max"]') || doc.querySelector( '[command="window-restore"]' ) ;
+		if( ltMax && ltMax.isVisible() ) {
+			scOwner.getForm().hitmax();
+			return true;
+		}
+	}
+}

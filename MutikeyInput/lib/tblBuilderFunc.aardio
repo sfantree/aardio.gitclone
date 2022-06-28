@@ -1,0 +1,241 @@
+﻿
+namespace tblBuilderFunc;
+
+var keyChar = {//字符键的虚拟码值
+		A=65;
+		B=66;
+		C=67;
+		D=68;
+		E=69;
+		F=70;
+		G=71;
+		H=72;
+		I=73;
+		J=74;
+		K=75;
+		L=76;
+		M=77;
+		N=78;
+		O=79;
+		P=80;
+		Q=81;
+		R=82;
+		S=83;
+		T=84;
+		U=85;
+		V=86;
+		W=87;
+		X=88;
+		Y=89;
+		Z=90;
+		["0"]=48;
+		["1"]=49;
+		["2"]=50;
+		["3"]=51;
+		["4"]=52;
+		["5"]=53;
+		["6"]=54;
+		["7"]=55;
+		["8"]=56;
+		["9"]=57;
+		[";"]=186;
+		["="]=187;
+		[","]=188;
+		["-"]=189;
+		["."]=190;
+		["/"]=191;
+		["`"]=192;
+		["["]=219;
+		["\"]=220;
+		["]"]=221;
+		['\'']=222;
+		[" "]=32;
+	};
+	
+keyExt = {//扩展键的虚拟码值，设为公有变量，为方便在frmDataFunc名字空间中查询
+		ESC=27;
+		F1=112;
+		F2=113;
+		F3=114;
+		F4=115;
+		F5=116;
+		F6=117;
+		F7=118;
+		F8=119;
+		F9=120;
+		F10=121;
+		F11=122;
+		F12=123;
+		TAB=9;
+		CAPSLOCK=20;
+		BACK=8;
+		ENTER=13;
+		LSHIFT=160;
+		RSHIFT=161;
+		LCTRL=162;
+		RCTRL=163;
+		LALT=164;
+		RALT=165;
+		LWIN=91;
+		RWIN=92;
+		APPS=93;
+		PRNSCRN=44;
+		SCRLOCK=145;
+		PAUSE=19;
+		INSERT=45;
+		DELETE=46;
+		HOME=36;
+		END=35;
+		PGUP=33;
+		PGDN=34;
+		LEFT=37;
+		UP=38;
+		RIGHT=39;
+		DOWN=40;
+		NUMLOCK=144;
+		NUMPAD0=96;
+		NUMPAD1=97;
+		NUMPAD2=98;
+		NUMPAD3=99;
+		NUMPAD4=100;
+		NUMPAD5=101;
+		NUMPAD6=102;
+		NUMPAD7=103;
+		NUMPAD8=104;
+		NUMPAD9=105;
+		MULTIPLY=106;
+		ADD=107;
+		SUBTRACT=109;
+		DECIMAL=110;
+		DIVIDE=111;
+	};
+
+
+/***********************************************************************************
+从用户键位配置方案中取得程序需要监控的所有按键，构造左、右手和自由按键三个表，
+作为查询用户方案左、右手和自由键、略码四个表的桥梁。
+表数据为：虚拟码值为键，字符或按键为值，键值对形式为[65]="A"
+***********************************************************************************/
+/*************************************工具函数*************************************/
+/*提取一个或多个表的键名后分劈为char或关键字，去重*/
+var function splitKeys(tab,...) {
+    	var arg = {...};
+		var keys = ..table.keys(tab);
+		for(i=1; #arg; 1) {
+			keys = ..table.concat(keys,..table.keys(arg[i]));
+		}
+		
+		var uniKeys = {};//分劈并去重后的键名表
+		for(i=1; #keys; 1) {
+			var k = keys[i];
+			if(#k > 1) {
+				if(..string.indexOf(k, "+")){//如有“+”号,分劈后加入到原表
+					uniKeys = ..table.concat(uniKeys,..string.split(k, "+"));
+				}
+				elseif(keyExt[k]){//如果是扩展键关键字，如PGUP等
+					..table.push(uniKeys, k);
+				}			
+				else{//分劈为单字符，加入到原表
+					uniKeys = ..table.concat(uniKeys,..string.split(k));
+				}
+			}
+			else{//单字符加入到原表
+				..table.push(uniKeys, k);
+			}
+		}
+		uniKeys = ..table.unique(uniKeys);//去重
+		return uniKeys;	
+	}
+
+/*从A表中删除AB表的交集，直接对A表操作，无返回值*/
+var function delIntersec(tabA, tAbbr){
+		for(i=1; #tAbbr; 1) {
+			index = ..table.find(tabA, tAbbr[i])
+			if(index){
+				..table.remove(tabA, index)
+			}
+		}
+	}
+
+/*构造vcode和字符或按键的键值对表*/
+var function vcodeCharTable(tab) {
+		var vcodeChar = {};
+		for(i=1; #tab; 1) {
+			var ck = ..string.upper(tab[i]);//字符和按键转为大写
+    		var vcode = keyChar[ck]:keyExt[ck];//从keyChar或keyExt中找虚拟码值
+     		if (vcode) {
+    			vcodeChar[vcode] = ck;//键值对形式为[65]="A"
+			}
+		}
+		return vcodeChar; 	
+	}
+
+/*从用户键位配置方案中取得所需要监控的按键，分为左、右手和自由按键三个表*/
+function idxTable(left, right, free, abbr){
+	var lf = splitKeys(left);//并击时左手用的字符
+	var rt = splitKeys(right);//并击时右手用的字符
+	var fr = splitKeys(free, abbr);//非并击时的字符和键
+	//从自由按键表删除与左、右手重叠的部分
+	delIntersec(fr, lf);
+	delIntersec(fr, rt);
+	//构造左、右手和自由按键三个键值对表
+	lf = vcodeCharTable(lf);
+	rt = vcodeCharTable(rt);
+	fr = vcodeCharTable(fr);
+	return lf, rt, fr;
+}
+
+
+/***********************************************************************************
+左、右手和自由键、略码四个表，标准化为查找、输出形式。
+扩展键和组合键的值替换为虚拟码，键值对形式为{"ef"="f","aLCTRL"={162，67}}
+***********************************************************************************/
+/*************************************工具函数*************************************/
+/*将表的k、v标准化为查找、输出形式*/
+function kvStdn(tab, getV=true){
+    var kvPair = {};
+	for k,v in tab {
+		k = ..string.upper(k);//键转换为大写
+		if(#k > 1 and !keyExt[k])  {//k不是单字符，不是扩展键关键字
+			if(..string.indexOf(k, "+")){//将k分劈、排序、拼接成字符串
+				k = ..string.split(k, "+");
+				..table.sort(k);
+				k = ..string.join(k);
+			}
+			else {
+				k = ..string.split(k);
+				..table.sort(k);
+				k = ..string.join(k);
+			}
+		};
+
+		if(getV) {//判断是真，则v的值替换为vcode码
+			if(..string.indexOf(v, "+")){
+				v = ..string.upper(v);//对带+号的组合，值转换为大写
+				v = ..string.split(v, "+");//将v分劈成数组，不排序
+				for(i=1; #v; 1) {
+					var vKey = v[i];
+					v[i] = keyExt[vKey]:keyChar[vKey];//从keyExt或keyChar中找虚拟码值
+				}
+			}
+			elseif(keyExt[v]) {
+				v = keyExt[v];
+			}
+		};
+		kvPair[k] = v;
+	}
+	return kvPair;//返回标准化的kv表 	
+}
+
+/*通过lfChar,rtChar,frChar构造tblSingle表。
+由于单键被监视，无法输出，必须构造输出表，用于单键输出
+形式为键名 = 虚拟码，如["A"] = 65;["PGUP"] = 33;
+*/
+function snglStdn(lChar, rChar, fChar) {
+	var tblSngl = {};
+	for k, v in (lChar) { tblSngl[v] = k };	
+	for k, v in (rChar) { tblSngl[v] = k };
+	for k, v in (fChar) { tblSngl[v] = k };	 
+	return tblSngl;
+}
+

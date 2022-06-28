@@ -1,0 +1,54 @@
+/*
+ *	tv
+ *  https://github.com/hikdo
+ *	January 1,2017
+ */
+ 
+import win.ui;
+/*DSG{{*/
+mainForm = ..win.form(text="TV - live player";right=968;bottom=590;border="none")
+mainForm.add()
+/*}}*/
+
+import web.layout; 
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.main.player;
+import web.layout.behavior.main.channle;
+import web.layout.behavior.main.button;
+import web.layout.behavior.main.playerControl;
+
+wbLayout = web.layout( mainForm );
+
+if( _STUDIO_INVOKED ){
+	import web.layout.debug;
+	wbLayout.attachEventHandler( web.layout.debug );
+}
+
+import thread.event;
+import thread.command;
+import fsys.dirWatcher;
+
+thread.command.instance().updateChannel = function(){
+	..web.layout.behavior.main.player.init();
+}
+
+mainForm.watchThread = fsys.dirWatcher.thread(
+	function(filename,action,actionText){	
+		import thread.command;
+		thread.command.updateChannel();
+	},"/config");
+	
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    if (!mainForm.watchThread) {
+    	return;
+    }
+    mainForm.watchThread.close();
+}
+
+wbLayout.go("/res/main.html");
+
+import win.ui.shadow;
+win.ui.shadow(mainForm);
+
+mainForm.show() 
+return win.loopMessage(); 

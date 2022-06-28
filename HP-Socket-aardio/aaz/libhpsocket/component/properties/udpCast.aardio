@@ -1,0 +1,54 @@
+﻿import aaz.libhpsocket.component.properties.client;
+
+namespace aaz.libhpsocket.component.properties.udpCast;
+..table.mix(self, ..aaz.libhpsocket.component.properties.client);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+getRemoteAddress = function(){
+	var addr ={ WORD value[]='000.000.000.000.'u}
+	var addrlen = {int value}
+	var port = {WORD value}
+	if(_dll.HP_UdpCast_GetRemoteAddress(owner.pSocket,addr,addrlen,port))
+		return addr.value, port.value;
+}
+
+maxDatagramSize = {
+    _get = function(){
+    	return _dll.HP_UdpCast_GetMaxDatagramSize(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpCast_SetMaxDatagramSize(owner.pSocket, v);
+    } 
+}
+
+castMode = {
+    _get = function(){
+    	return _dll.HP_UdpCast_GetCastMode(owner.pSocket); 
+    }
+    
+    _set = function(v){
+    	return _dll.HP_UdpCast_SetCastMode(owner.pSocket, v); 
+    }	
+}
+
+multiCastTtl = {
+    _get = function(){
+    	return _dll.HP_UdpCast_GetMultiCastTtl(owner.pSocket); 
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpCast_SetMultiCastTtl(owner.pSocket, v); 
+    }	
+}
+
+isMultiCastLoop = {
+    _get = function(){
+    	return !!_dll.HP_UdpCast_IsMultiCastLoopB(owner.pSocket); 
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpCast_SetMultiCastLoop(owner.pSocket, v);
+    }
+}

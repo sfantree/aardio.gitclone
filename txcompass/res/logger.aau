@@ -1,0 +1,21 @@
+﻿//日志记录函数
+log2file = function(logContent="", logFileName="") {
+	if not(#logContent){
+		return false; 
+	}
+	if not(#logFileName){
+		logFileName = string.replace(io._exepath,"\.\w*$","\.log")
+	}
+	
+	var tm = time.now(); tm.format = "%Y/%m/%d %H:%M:%S";
+	string.save(
+		logFileName,
+		"GENERATE TIME: " ++
+		tostring(tm) ++ '\r\n' ++
+		"==================================" ++ '\r\n' ++
+		tostring(logContent) ++ '\r\n',
+		false // true:append / false:cover
+	)
+	
+	return true; 
+}

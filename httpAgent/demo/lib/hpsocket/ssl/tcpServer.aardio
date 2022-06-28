@@ -1,0 +1,32 @@
+﻿import hpsocket.ssl;
+import hpsocket.socket.tcpServer;
+import hpsocket.listen.server;
+namespace hpsocket.ssl;
+
+class tcpServer{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_TcpServerListener();
+			pSocket =  topointer( topointer( ::HPSocket.Create_HP_SSLServer(pListener) ) );
+			this = ..hpsocket.listen.server(pListener,"ssl.tcpServer");
+		}
+		
+		this.pSocket = pSocket;
+		..hpsocket.socket.tcpServer(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_SSLServer(this.pSocket);
+			::HPSocket.Destroy_HP_TcpServerListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+/**intellisense()
+hpsocket.ssl.tcpServer() = 创建TCP服务端\n!hpTcpServer.
+end intellisense**/

@@ -1,0 +1,35 @@
+﻿//html分析
+
+
+import web.mshtml;
+
+html = web.mshtml( )
+html.write("
+    <div id='test'>测试</div>
+")
+
+qEle = html.queryEles( id = "test" )
+
+io.open() 
+io.print("找到节点", qEle[1].innerHTML )
+
+execute("pause") //按任意键继续
+io.close();//关闭控制台
+
+
+
+import web.mshtml;
+
+html = web.mshtml( )
+html.document.designMode = "on"
+
+io.open() 
+io.print("正在打开 www.taobao.com")
+html.go("http://www.taobao.com")
+
+qEle = html.queryEles( innerHTML = "淘宝" )
+io.print("找到节点", qEle[#qEle].innerHTML )
+
+execute("pause") //按任意键继续
+io.close();//关闭控制
+

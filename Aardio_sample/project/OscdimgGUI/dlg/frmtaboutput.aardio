@@ -1,0 +1,43 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="输出";right=419;bottom=459)
+winform.add(
+button={cls="button";text="加载输出";left=230;top=425;right=310;bottom=450;ah=1;aw=1;tabstop=1;z=2};
+button2={cls="button";text="保存输出";left=330;top=425;right=410;bottom=450;ah=1;aw=1;tabstop=1;z=3};
+edit={cls="edit";left=0;top=0;right=420;bottom=415;acceptfiles=1;ah=1;aw=1;edge=1;hscroll=1;multiline=1;tabstop=1;vscroll=1;z=1}
+)
+/*}}*/
+
+import fsys.dlg;
+var log_path = "";
+import console;
+
+winform.button.oncommand = function(id,event){
+	var path = fsys.dlg.open("输出文件(*.log;*.txt)|*.log;*.txt|所有文件(*.*)|*.*",
+					, fsys.getParentDir(log_path), , ,fsys.getFileName(log_path));
+	if(path){
+		log_path = path;
+		//winform.edit.text = string.load(log_path);
+		if(winform.edit.text != ""){
+			winform.edit.selectAll();
+			winform.edit.clear();
+			winform.edit.appendText(string.load(log_path));
+		}
+		else {
+			winform.edit.appendText(string.load(log_path));
+		}	
+	}
+}
+
+winform.button2.oncommand = function(id,event){
+	var path = fsys.dlg.save("输出文件(*.log;*.txt)|*.log;*.txt|所有文件(*.*)|*.*",
+					, fsys.getParentDir(log_path), , ,fsys.getFileName(log_path));
+	if(path){
+		log_path = path;
+		string.save(log_path, winform.edit.text);
+	}
+}
+
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,57 @@
+﻿//wallpaper任意窗口设置为壁纸
+import winex;
+class wallpaper{
+	ctor(){
+		if( !_WIN7_LATER ) error("至少需要win7之后的系统");
+		this.shellWindow = ::User32.GetShellWindow();
+		this.workwHwnd = ..winex.findEx(this.shellWindow,1,'<WorkerW>');
+		this.hwndList = {};
+		this.parent = {};
+		if(!this.workwHwnd){
+			//发送消息使workw出现
+			::User32.PostMessage(this.shellWindow,0x052c,null,null)
+			this.workwHwnd = ..winex.findEx(this.shellWindow,1,'<WorkerW>');
+		}
+		if(this.workwHwnd) ..win.show(this.workwHwnd); //避免由于异常关闭或其他软件导致的workw被隐藏
+	};
+	
+	setWindow = function(hwnd){
+		this.parent.hwnd = ..win.getParent(hwnd);
+		..table.push(this.hwndList,hwnd)
+		return ..win.setParent(hwnd,this.workwHwnd); 
+	};
+
+	getAllWindow = function(){
+		return this.hwndList;
+	};
+		
+	removeWindow = function(hwnd,restore=true){	
+		if(..table.len(this.hwndList)){
+			..table.removeByValue(this.hwndList,hwnd)	
+		}
+		//先隐藏workw，再关闭子窗口，再显示workw，避免窗口残留在桌面
+		..win.show(this.workwHwnd,false);
+		..win.setParent(hwnd,this.parent.hwnd);
+		if(!restore){
+			..winex.close(hwnd);
+		}	
+		..win.show(this.workwHwnd); 
+	}
+	clearWindow = function(){ 
+		for hwnd in ..win.eachChild(this.workwHwnd) {
+ 			owner.removeWindow(hwnd);
+		}
+	}	
+};
+
+/**intellisense()
+wallpaper = 将任意窗户设置为壁纸
+wallpaper() = 将任意窗户设置为壁纸\n!wallpaper.
+end intellisense**/
+
+/**intellisense(!wallpaper)
+setWindow(__/*hwnd*/) = 将窗口设置为壁纸
+getAllWindow = 获取所有窗口
+removeWindow(__/*hwnd*/) = 从workw移除窗口并恢复到之前的parent，\n如果@2为假则关闭窗口
+clearWindow() = 清理窗口 \n用于清理异常关闭时残留的窗口，正常移除请使用removeWindow
+end intellisense**/

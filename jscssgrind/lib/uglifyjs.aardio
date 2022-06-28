@@ -1,0 +1,56 @@
+﻿//UglifyJS库
+namespace uglifyjs;
+
+import win
+import inet.url
+io = ..io
+table = ..table
+string = ..string
+
+/*在线压缩混淆：	http://uglifyjs.org/	http://tool.css-js.com/#header	http://marijnhaverbeke.nl/uglifyjs	*/
+var mixUrl = "http://uglifyjs.org/!nodejs3/uglify.do?action=compressor&loops=true&sequences=true&if_return=true&unused=true&evaluate=true&hoist_funs=true&comparisons=true&hoist_vars=true&conditionals=true&dead_code=true&booleans=true&properties=true&unsafe=false&join_vars=true"
+
+//HTTP操作
+httpPost = function(destUrl, postData, biscuit){
+	urlHeader = biscuit : global.biscuit //COOKIE
+	var web_header, web_htmltext = win.invoke( //异步交互数据，防止前端界面假死
+		function(url, post_data, header, debug_proxy){
+			import inet.whttp;
+			whttp = inet.whttp(,debug_proxy)
+			
+			whttp.beginRequest(url, "POST")
+			whttp.writeHeader(header)
+			whttp.disableRedirects() //防止302跳转
+			whttp.send(post_data)
+			var resp_header = whttp.readHeader()
+			var resp_htmltext = whttp.readAll()
+			whttp.endRequest()
+			
+			whttp.close()
+			return resp_header, resp_htmltext; 
+		}, destUrl, postData, urlHeader, //"127.0.0.1:8888"
+	)
+	return web_htmltext, web_header; 
+}
+
+mixfc = function(filecont){
+	if(0 == #filecont){ return "MIX_CONTENT_NIL" }
+	io.print('\t'++tostring(..time())++'\t正在转换编码...')
+	filecont = "code="++inet.url.encode(filecont)
+	io.print('\t'++tostring(..time())++'\t提交代码混淆...')
+	var mixCode = httpPost(mixUrl, filecont)
+	//io.print('\t'++tostring(..time())++'\t接口完成返回...')
+	for(i=2; 0; -1){ io.stdout.write('\t'++tostring(..time())++'\t接口完成返回('+i+')','\r'); sleep(1*1000) }
+	return mixCode; 
+}
+
+mixfn = function(filename){
+	if not(..io.exist(filename,4)){ return "MIX_FILENAME_ERR" }
+	var file_content = string.load(filename)
+	return mixfc( file_content ); 
+}
+
+/**intellisense()
+uglifyjs.mixfn( __ ) = 根据文件路径来混淆（需联网）
+uglifyjs.mixfc( __ ) = 混淆传值过来的内容（需联网）
+end intellisense**/

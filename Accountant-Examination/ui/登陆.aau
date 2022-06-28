@@ -1,0 +1,78 @@
+import win.ui;
+/*DSG{{*/
+var loginForm = ..win.form(text="登陆";right=1010;bottom=690;image=$"\res\images\login_bg.jpg";bkBottom=0;bkLeft=0;bkRight=0;bkTop=0;border="thin";max=false)
+loginForm.add(
+edit_password={cls="edit";left=567;top=345;right=713;bottom=369;edge=1;multiline=1;tabstop=1;z=2};
+edit_username={cls="edit";left=567;top=319;right=713;bottom=344;autohscroll=false;autovscroll=false;edge=1;tabstop=1;z=1};
+toExit={cls="custom";left=580;top=402;right=700;bottom=446;tabstop=1;transparent=1;z=4};
+toLogin={cls="custom";left=720;top=319;right=786;bottom=370;tabstop=1;z=3}
+)
+/*}}*/
+
+import ssexam;
+import web.layout;
+var toExitLayout=web.layout(loginForm.toExit)
+toExitLayout.html = /**
+		<button id="toExit"  /> 
+**/
+toExitLayout.css = /**
+ html{
+    overflow:hidden;
+    text-align:center;
+ }
+ button{
+    width:109px;
+    height:35px; 
+    cursor:pointer;
+    background-size: 100% 100%;
+    background:url("/res/images/退出考试.jpg") no-repeat;
+} 
+**/
+
+var toLoginLayout=web.layout(loginForm.toLogin)
+toLoginLayout.html = /**
+		 <button id="toLogin" /> 
+**/
+toLoginLayout.css = /**
+ html{
+    overflow:hidden;
+    text-align:center;
+ }
+ button{
+    width:50px;
+    height:42px; 
+    cursor:pointer;
+    background-size: 100% 100%;
+    background:url("/res/images/登陆.jpg") no-repeat;
+} 
+**/
+
+
+
+
+toLoginLayout.getEle("toLogin").onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+	var examForm = loginForm.loadForm("\ui\exam.aau");
+	exam_number=loginForm.edit_username.text;
+	id_card=loginForm.edit_password.text;
+	examForm.exam_number.text=loginForm.edit_username.text;
+	examForm.id_card.text=loginForm.edit_password.text;
+	//examForm.show();
+	loginForm.close();
+}
+
+toExitLayout.getEle("toExit").onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+	 var indexForm = loginForm.loadForm("\ui\index.aau");
+	loginForm.close();
+}
+
+
+
+    //调用此函数启用事件函数
+toLoginLayout.getEle("toLogin").attachEventHandler();
+toExitLayout.getEle("toExit").attachEventHandler();
+
+//ssexam.关闭返回首页(loginForm);
+
+loginForm.show() 
+win.loopMessage();
+return loginForm;

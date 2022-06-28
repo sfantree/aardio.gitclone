@@ -1,0 +1,17 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="有道词典";right=315;bottom=434)
+winform.add()
+/*}}*/
+
+import web.form;
+var wb = web.form( winform );
+wb.noScriptErr=true;
+wb.go("about:blank");
+
+winform.nav = function(url){
+	wb.go(url);
+}
+
+winform.show();
+wb.wait("");

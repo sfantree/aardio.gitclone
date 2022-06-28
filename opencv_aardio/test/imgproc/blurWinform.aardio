@@ -1,0 +1,46 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=633;bottom=589)
+winform.add(
+button={cls="button";text="中值滤波";left=505;top=14;right=611;bottom=50;z=1};
+button3={cls="button";text="双边滤波";left=505;top=275;right=611;bottom=311;z=2};
+button4={cls="button";text="均值滤波";left=505;top=79;right=611;bottom=115;z=3};
+button5={cls="button";text="高斯滤波";left=505;top=145;right=611;bottom=181;z=4};
+button6={cls="button";text="方框滤波";left=505;top=210;right=611;bottom=246;z=5};
+picturebox={cls="picturebox";left=14;top=14;right=229;bottom=566;z=6};
+picturebox2={cls="picturebox";left=263;top=14;right=478;bottom=566;z=7}
+)
+/*}}*/
+
+import cv2
+winform.picturebox.image = "./images/Lena.jpg"
+src = cv2.imread( "./images/Lena.jpg" )
+
+winform.button.oncommand = function(id,event){
+	var dst = cv2.medianBlur(src,5)
+	winform.picturebox2.setBitmap(dst.toBitmap().copyHandle())
+}
+
+winform.button4.oncommand = function(id,event){
+	var dst = cv2.blur( src,::SIZE(5,5) )
+	winform.picturebox2.setBitmap(dst.toBitmap().copyHandle())
+}
+
+winform.button5.oncommand = function(id,event){
+	var dst = cv2.gaussianBlur( src,::SIZE(5,5) )
+	winform.picturebox2.setBitmap(dst.toBitmap().copyHandle())
+}
+
+winform.button6.oncommand = function(id,event){
+	var dst = cv2.boxFilter( src,-1,::SIZE(5,5) )
+	winform.picturebox2.setBitmap(dst.toBitmap().copyHandle())
+}
+
+winform.button3.oncommand = function(id,event){
+	var dst = cv2.bilateralFilter(src,32,100,200)
+	winform.picturebox2.setBitmap(dst.toBitmap().copyHandle())
+}
+
+winform.show();
+win.loopMessage();
+return winform;

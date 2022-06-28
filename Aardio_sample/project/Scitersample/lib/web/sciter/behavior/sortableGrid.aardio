@@ -1,0 +1,63 @@
+//sortableGrid 排序网格
+
+import web.sciter.behavior.grid;
+namespace web.sciter.behavior.sortableGrid;
+
+var grid = ..web.sciter.behavior.grid; 
+var sortableGrid = self; 
+
+namespace sinking {
+	onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {  
+		return sortableGrid/*变更owner*/.onMouseDblClick(scTarget,scOwner, x,y,mouseParams,true);
+	}
+}
+
+onKeyDown = grid.onKeyDown;
+onMouseDblClick = grid.onMouseDblClick;
+
+onColumnClick = function(scOwner, scTarget ){
+    grid.onColumnClick(scOwner, scTarget); 
+    var current = scOwner.querySelector("th:checked");
+ 	
+ 	if( current && ( current != scTarget ) ){
+ 		current.state.checked = false;
+ 		current.order = "down";
+ 	};
+    
+    scTarget.state.checked = true; 
+    reorder(scOwner, scTarget );
+} 
+
+reorder = function(scOwner, scTarget){
+	var order = scTarget.order;
+	var columnNo = scTarget.index();
+	var elTrCurrent = grid.getCurrentRow( scOwner );
+	
+	if( order != "up" ){
+		scOwner.sort(
+    		function(scOwner,scEle2){ 
+    			return scOwner.child(columnNo).innerText < scEle2.child(columnNo).innerText
+    				? -1 : 1;
+    			return 1;/*-1,0,1*/
+    		},grid.fixedRows(scOwner)
+    	)
+    	scTarget.order = "up" 
+    }
+    else {
+		scOwner.sort(
+    		function(scOwner,scEle2){ 
+    			return scOwner.child(columnNo).innerText > scEle2.child(columnNo).innerText
+    				? -1 : 1;
+    			return 1;/*-1,0,1*/
+    		},grid.fixedRows(scOwner)
+    	)
+    	scTarget.order = "down";
+    }
+    
+    if( elTrCurrent )elTrCurrent.scrollToView();
+}
+
+/*
+修正智能提示
+elTrCurrent = scOwner
+*/

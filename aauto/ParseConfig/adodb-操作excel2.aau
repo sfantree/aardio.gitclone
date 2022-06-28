@@ -1,0 +1,41 @@
+/*
+ 系统需要装有Excel 2007
+ 
+用SQL语法操作
+ 
+支持2007,2003及以下格式，
+ 
+2010格式没测，有兴趣的童鞋可以自己测下
+ */
+ import com;
+ 
+io.open();//打开控制台
+ 
+FilePath="C:\test.xls"
+ 
+conn = com.CreateObject("adodb.connection");
+ 
+conn.ConnectionString = "Provider=Microsoft.Ace.OLEDB.12.0;Extended Properties=Excel 12.0;Data Source=" + FilePath;//主要这句不一样，其他的操作方法都跟SQL语法一样
+ 
+conn.Open();//打开
+ 
+sql="insert into [Sheet1$](name1,name2)values('test1','test2')"//新增记录
+ conn.execute(sql)
+ 
+sql="update [Sheet1$] set name1='快手' where name2='test2'"//修改记录
+ conn.execute(sql)
+ 
+var rs = com.CreateObject("ADODB.RecordSet");
+ sql="select * from [Sheet1$]"
+ rs.Open(sql,conn,3,3);
+ while(not rs.eof){  //遍历
+     name1=rs("name1").Value;
+     name2=rs("name2").Value;
+     io.print(name1,name2)
+     rs.movenext()
+ }
+ rs.close()
+ rs=null;
+ conn.close();
+ conn = null;
+ 

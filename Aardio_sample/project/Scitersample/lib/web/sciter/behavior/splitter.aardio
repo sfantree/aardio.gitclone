@@ -1,0 +1,122 @@
+//splitter 拆分条
+namespace web.sciter.behavior;
+ 
+class splitter{
+	ctor( ){
+		var pressedOffset,previousValue;
+	};
+	onMouseUp = function (scTarget,scOwner,x,y,scMouseParams) {
+		if( scMouseParams.button_state != 1/*_HL_MAIN_MOUSE_BUTTON*/ ) return;
+		 
+		 scOwner.capture = false;
+	};
+	
+	onMouseDown = function (scTarget,scOwner,x,y,scMouseParams) {
+		if( scMouseParams.button_state != 1/*_HL_MAIN_MOUSE_BUTTON*/ ) return;
+		
+		var elParent = scOwner.parent();
+
+		// what kind of splitter do we have? 
+		var horizontal = elParent.style.flow == "horizontal";
+		
+		var first = scOwner.previousSibling();
+		var second = scOwner.nextSibling();
+		if( !first || !second )
+		return;
+
+		var needUpdate;
+		if( horizontal )  
+			needUpdate = owner.doHorizontal(scMouseParams.cmd, x,y, scOwner,first,second, elParent);
+		else
+			needUpdate = owner.doVertical(scMouseParams.cmd, x,y,scOwner,first,second, elParent);
+     
+     	if( needUpdate && scMouseParams.cmd == 2/*_HL_MOUSE_MOVE*/ )
+			elParent.update(true);  //done! update changes on the view 
+			
+    	return true;
+	}
+	
+	onMouseMove = function (scTarget,scOwner,x,y,scMouseParams) {
+		return owner.onMouseDown(scTarget,scOwner,x,y,scMouseParams);
+	}
+	
+	doHorizontal = function( event_type,x,y,scOwner, first,second,elParent) {
+		// which element width we will change? 
+		var rcParent = elParent.getRect();
+		var rc = first.getRect();
+
+		var changeFirst = (rc.right - rc.left) < (rcParent.right - rcParent.left)/2; 
+		if(!changeFirst)
+			rc = second.getRect();
+		
+		if(event_type == 4/*_HL_MOUSE_DOWN*/)  {
+			pressedOffset = x;
+			scOwner.capture = true;
+			return false; // don't need updates
+		}
+		if( pressedOffset === null ) return false;
+		
+		// mouse move handling
+		if(x == pressedOffset)
+			return false; // don't need updates
+		
+		var width = rc.right - rc.left; 
+		if(changeFirst) {
+			width += (x - pressedOffset);
+			if(width >= 0){ 
+				first.style.width = width + "px";
+				second.style.width = "100%%"; 	
+			}
+		}
+		else  {
+			width -= (x - pressedOffset);
+			if(width >= 0) {
+				first.style.width = "100%%";
+				second.style.width = width + "px";
+			}
+		}
+		return true; // need update
+	}
+	
+	doVertical = function( event_type, x,y,scOwner,first,second,elParent) {
+		var rcParent = elParent.getRect();
+		var rc = first.getRect();
+		
+		// if width of first element is less than half of parent we
+		// will change its width.
+		var changeFirst =  (rc.bottom - rc.top) < (rcParent.bottom - rcParent.top)/2;
+		
+		if(!changeFirst)
+			rc = second.getRect();
+			
+			if(event_type == 4/*_HL_MOUSE_DOWN*/)  {
+			pressedOffset = y;
+			scOwner.capture = true;
+			return false; // don't need updates
+		}
+		if( pressedOffset === null ) return false;
+		
+		// mouse move handling
+		if(y == pressedOffset)
+			return false; // don't need updates
+		
+		var height = rc.bottom - rc.top; 
+		if(changeFirst) {
+			height += (y - pressedOffset);
+			if(height >= 0) {
+				first.style.height = height + "px";
+				second.style.height = "100%%"; 
+			}
+		}
+		else {
+			height -= (y - pressedOffset);
+			if(height >= 0) {
+				first.style.height = "100%%";
+				second.style.height = height + "px";  
+			}
+		}
+		return true;
+	}
+}
+
+ 

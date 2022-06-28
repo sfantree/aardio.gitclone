@@ -1,0 +1,54 @@
+﻿//drives 逻辑分区
+namespace fsys.drives;
+
+each = function(f,ds){  
+	var i = 1;
+	ds = ds || ::Kernel32.GetLogicalDrives();
+	return function(){
+		while(i<32){
+			i++;
+			if( ds & (1 << i) ) {
+				var d = ..string.pack('A'# + i) + ":";
+				var t = ::Kernel32.GetDriveType( d )
+				if(!f || (t & f) ) return d,t;
+			}
+		} 
+	}
+}
+
+eachFixed = function(){
+	return each(3/*_DRIVE_FIXED*/);
+}
+
+eachRemovable = function(){
+	return each(2/*_DRIVE_REMOVABLE*/);
+}
+
+get = lambda(ds,f) ..table.array(,each(f,ds));
+
+getFixed  = lambda() ..table.array(,each(3/*_DRIVE_FIXED*/));
+
+getRemovable  = lambda() ..table.array(,2/*_DRIVE_REMOVABLE*/);
+
+free = function(){ 
+	var dr = ::Kernel32.GetLogicalDrives();
+	for(i=2;31){ 
+		if( !( dr & (1<<i) ) ) return ..string.pack('A'# + i) + ":"
+	} 
+}
+
+/**intellisense(fsys.drives)
+get() = 返回包含所有逻辑分区的数组,按字母排序,\n可选用参数@1指定包含所有可用分区的数组,\n可选用参数@2 指定分区类型,\n可用分区类型请参考 ::Kernel32.GetDriveType 的文档
+getFixed() = 返回包含所有硬盘逻辑分区的数组,按字母排序,\n包含 USB 硬盘但不包含 U盘,\n可使用 sys.storage.isUsbDevice 函数检测 USB 存储设备*/
+getFixed() = 返回包含所有移动盘逻辑分区的数组,按字母排序
+each(driveType) = @for drive,driveType in ??.each() {
+	__/*按字母序遍历所有逻辑分区,\n可选在参数中用一个数值指定分区类型,例如 _DRIVE_FIXED,\n返回值 drive 为盘符,以冒号结束,\ndriveType 为分区类型,请参考 ::Kernel32.GetDriveType 的文档 */
+}
+eachFixed() = @for drive in ??.eachFixed() {
+	__/*按字母序遍历所有硬盘逻辑分区,\n迭代变量 drive 为盘符,以冒号结束,\n注意 USB 硬盘也会遍历到,\n但忽略普通 U盘,\n可使用 sys.storage.isUsbDevice 函数检测 USB 存储设备*/
+}
+eachRemovable() = @for drive in ??.eachRemovable() {
+	__/*按字母序遍历所有移动盘逻辑分区,这个一般指的是 U盘,\n迭代变量 drive 为盘符,以冒号结束,\n可使用 sys.storage.isUsbDevice 函数检测是否 USB 存储设备*/
+}
+free() = 未使用的盘符
+end intellisense**/

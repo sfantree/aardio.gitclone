@@ -1,0 +1,142 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="选择需要更新的列...";right=303;bottom=359)
+winform.add(
+button={cls="button";text="开始更新";left=160;top=328;right=296;bottom=352;db=1;dr=1;z=2};
+button2={cls="button";text='\uF0E2';left=264;top=8;right=296;bottom=40;color=255;dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');z=3};
+button3={cls="button";text="H";left=8;top=328;right=32;bottom=352;z=5};
+listview={cls="listview";left=0;top=48;right=304;bottom=320;ah=1;asel=false;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;msel=false;tabstop=1;z=1};
+static={cls="static";left=8;top=8;right=248;bottom=40;aw=1;dl=1;dr=1;dt=1;transparent=1;z=4}
+)
+/*}}*/
+
+import win.ui.tooltip; 
+var tooltipCtrl = win.ui.tooltip( winform );//在窗口上创建tooltip控件
+tooltipCtrl.addTool(winform.button3,"为Excel选中的列添加 H开头" )
+import config;
+import sqlite;
+var db = sqlite(config.dbServer.path + "QHCSAP.db");
+
+
+var tab = {};	//可用列
+table.push(tab, QHC.getColDef());
+table.push(tab, table.array(#tab[1],"")); //对应列号初始化
+
+db.close();
+
+import tarray;
+tab = tarray.replaceValue(tab, "MTyp", "物料类型");
+tab = tarray.replaceValue(tab, "BUn", "单位");
+tab = tarray.replaceValue(tab, "PGr", "采购组");
+tab = tarray.transpose(tab);
+//table.push(tab, { "长", ""},{ "宽", ""},{ "厚", ""});
+var fields = { [1] = "可用字段"; [2] = "绑定到列"}
+tab = tarray.mapfields(tab, fields);
+
+import win.ui.grid
+var grid = win.ui.grid(winform.listview);
+grid.setTable(tab);
+grid.setReadonlyColumns(1)
+winform.listview.checkbox = true;
+//winform.listview.setChecked(0);
+	
+import com.excel;
+var excel;
+var sht;
+
+var refresh = function(){
+	import etip;
+	grid.clear();
+
+	winform.titleRow = null;
+	
+	excel := com.excel(false);
+	if !excel.ActiveWorkbook return ; 
+	sht = excel.ActiveWorkbook.ActiveSheet;
+	winform.static.text = sht.parent.Name ++ "![" ++ sht.name ++ "]";
+	
+	var titleRng = sht.range("A1:Z5").value2;	//查找范围前5行
+	
+	titleRng = tarray.replaceValue(titleRng,"专用号", "物料"); //考虑其它命名方式
+	
+	for (i=1; #tab){
+		var match = tarray.findValue(titleRng, tab[i][fields[1]]);
+		if !match continue;
+		tab[i][fields[2]] = etip.toColName(match.col) ;
+		winform.titleRow := match.row;
+	}
+	grid.setTable(tab);
+/*
+	for(i=1;#tab)
+		winform.listview.setChecked(i, tab[i][fields[2]]!=="")
+*/
+}
+
+winform.button2.oncommand = function(id,event){
+	refresh();
+}
+
+
+
+var update = function(winform, tab){
+	import com.excel;
+	import tarray;
+	import QHC;
+	var excel = com.excel(false);
+	var sht = excel.ActiveWorkbook.ActiveSheet;
+	sht.AutoFilterMode = false;
+	sht.ListObjects("表1").AutoFilter.ShowAllData();
+//	import console;
+//	console.open();
+	excel.alerts = false;
+	
+	var tCount = sht.usedrange.rows.count;	
+	var key = tarray.mapAsItem(tab,  tab.fields[1], tab.fields[2]); //字段和列号对应起来
+	var ucol =  winform.listview.checked;
+	
+	var keyCol = sht.range(key.物料 ++ "1:" ++ key.物料 ++ tCount).value2;
+	for (i=1; #keyCol){
+		var t={};
+		if !keyCol[i][1] continue;	//如果title行之前有空行,string.startWith会报错
+		if !string.startWith(keyCol[i][1],"H") continue;
+		var hitem = QHC.getSapItem(keyCol[i][1]);
+		if !hitem continue;
+		for (j=1; #ucol){
+			var hitemname = winform.listview.getItemText(ucol[j],1)
+			if hitemname == "物料类型" hitemname="MTyp";
+			if hitemname == "单位" hitemname="BUn";
+			if hitemname == "采购组" hitemname="PGr";
+			sht.cells(i, winform.listview.getItemText(ucol[j],2)).value2 = hitem[hitemname];
+		}
+	}
+	excel.alerts = true;
+	winform.button.disabledText = null;
+}
+
+winform.button.oncommand = function(id,event){
+	owner.disabledText = {"✶";"✸";"✹";"✺";"✹";"✷";text="等待进程执行..."}
+	thread.invoke(update, winform, tab);
+}
+winform.onDestroy = function(){
+   	if excel excel.alerts = true;    //防止意外关闭后Excel假死
+}
+
+winform.button3.oncommand = function(id,event){
+	winform.button3.disabledText = {"✶";"✸";"✹";"✺";"✹";"✷"; text = " "};
+	thread.invoke( 
+		function(winform){
+			loadcodex("\forms\Excel\add_H_by_column.aardio");
+			winform.button3.disabledText = null;
+		}, winform
+	)
+}
+
+refresh();
+
+
+
+
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,18 @@
+import win.ui;
+/*DSG{{*/
+var finishForm = ..win.form(text="Æ´ˆD";right=408;bottom=187;border="none")
+finishForm.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+import web.layout.behavior.about.link;
+ 
+var wbLayout = web.layout( finishForm )
+wbLayout.go("/res/finish.html") ;
+import win.ui.shadow;
+win.ui.shadow(finishForm);
+finishForm.show() 
+win.loopMessage();
+return finishForm;

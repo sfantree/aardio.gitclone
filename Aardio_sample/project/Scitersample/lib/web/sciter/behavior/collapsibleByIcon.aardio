@@ -1,0 +1,22 @@
+//collapsibleByIcon 下拉按钮
+namespace web.sciter.behavior.collapsibleByIcon;
+
+onMouseDown = function (scTarget,scOwner, x,y,mouseParams) { 
+	// find first element with class "icon"
+	var eleIcon = scOwner.querySelector(".icon" /*css selector, sic!*/);  
+	
+	if( eleIcon != scTarget)
+ 		return true; // event is not targeted to element having class "icon"
+	
+	// ok, we've got here targeted to icon. then get open/closed state. 
+	var is_closed = scOwner.getAttribute("state") == "close"; 
+	
+	// toggle value of attribute "state" and 
+	// correspondent state flag - this is needed to play animation
+	scOwner.setAttribute("state",is_closed ? "open" : "close");
+	
+	// as it is ours then stop event bubbling
+	return true; 
+} 
+
+onMouseDblClick = onMouseDown;

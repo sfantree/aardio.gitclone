@@ -1,0 +1,738 @@
+namespace winex;
+import win;
+ 
+AttachThreadInput := ::User32.api( "AttachThreadInput", "int(INT idAttach,INT idAttachTo,int fAttach)" )  
+EnumWindows := User32.api( "EnumWindows", "int(POINTER lpEnumFunc ,int lParam )" )
+EnumChildWindows := User32.api( "EnumChildWindows", "int(int hWndParent,POINTER lpEnumFunc ,int lParam )" ) 
+isUnicode := User32.api( "IsWindowUnicode", "int(int hwnd)" )
+
+isHung = function(hwnd,timeout=500){
+	return ( ::User32.IsHungAppWindow(hwnd) ) or  
+		( ! ::SendMessageTimeout(hwnd,0x0/*_WM_NULL*/, , ,0x2/*_SMTO_ABORTIFHUNG*/,timeout,0 ) ); 
+} 
+  
+var getWindow = win.getWindow;
+match = function(hwnd,text,cls,id,timeout){ 
+
+	if( #cls  ){ 
+		if( not ..string.find( win.getClass(hwnd), cls ) ) {
+			return false;  
+		}
+	}
+
+	if( #text ) {    
+		var txtWnd = getText(hwnd,,timeout);
+		if( txtWnd === null ) return null;
+		
+		if( not ..string.find( txtWnd,text ) ){ 
+			return false;
+		} 
+	}
+	
+	if( id!==null ) { 
+		if( win.getId(hwnd) != id) { 
+			return false;  
+		}
+	}
+	
+	return true;
+}
+
+//枚举所有子窗口 - 深度递归遍历，支持 UWP 窗口
+var enumWindows;
+enumWindows=function( onfind, parent, cls ,text, id,depth  ){
+	
+	var next = ::User32.FindWindowExW(parent, ,null,null )
+	if(!next) return;
+	
+	var matched;
+	var hwnds = {};
+    do{
+		sleep(0);
+		if( hwnds[next] ) return;
+		hwnds[next] = true;
+		 
+		matched = match(next,text,cls,id )
+		if( matched !== null ) {
+			if( enumWindows( onfind, next, cls ,text, id ,depth+1 ) === false ) return false;
+			
+			if(matched){
+				if( onfind( next,depth ) === false ) return false;
+			}
+		} 
+		 
+		next = ::User32.FindWindowExW(parent,next,null,null )
+		
+	}while( next  )
+}
+
+enum = function(onfind,parent,cls,text,id){
+	return enumWindows(onfind, parent, cls ,text, id,2); 
+}
+ 
+function enumTop( onfind, cls ,text ) {  
+
+	var hwnd;
+	var hwnds = {};
+	do {
+		hwnd =::User32.FindWindowExW(0,hwnd,cls,text )
+		if(hwnd){
+			if( hwnds[hwnd] ) return;
+			hwnds[hwnd] = true;
+			
+			if( onfind( hwnd ) === false ) return false;
+		} 
+	}while(hwnd)
+}
+
+function each( mcls,mtitle,parent,timeout ) {
+   
+    var title;
+    var hwnds = {};
+    var threadId,processId;
+
+	return function(hwnd) {
+        do{	
+        	if( hwnd ) hwnd = ::User32.FindWindowExW(parent,hwnd,null,null )
+        	else { 
+        		hwnd = ::User32.FindWindowExW(parent, ,null,null )
+        	}
+        	 
+        	if(!hwnd) return null;
+        	if(!::User32.IsWindow(hwnd))  return null; 
+        	
+			if( hwnds[hwnd] ) return;
+			hwnds[hwnd] = true;
+
+			if( ! match(hwnd,mtitle,mcls,,timeout)  ) {
+				continue; 
+			}
+			return hwnd,getText(hwnd), ..win.getThreadProcessId(hwnd);  	 
+        }while(1)  
+	}; 
+} 
+
+find = function(cls,title,pid,tid,timeout){
+	for hwnd,title,threadId,processId in  each( cls,title,,timeout ) { 
+		if( pid ){
+		 	if( pid != processId )
+		 		continue;
+		}
+		if( tid ){
+		 	if( tid != threadId )
+		 		continue;
+		} 
+		
+		return hwnd,threadId,processId
+	} 
+}
+
+findMainWnd = function(cls,title=".+",pid,tid,timeout){
+
+    var threadId,processId;
+    var hwnd = ::User32.FindWindowExW(null,null,null,null )
+    var hwnds = {};
+ 	var hwnd;
+
+    do{	
+        hwnd = ::User32.FindWindowExW(null,hwnd,null,null ) 
+        if(!hwnd) return null;
+        if(!::User32.IsWindow(hwnd))  return null;  
+		if( hwnds[hwnd] ) return;
+		hwnds[hwnd] = true;
+	
+		var own = ..win.getOwner(hwnd); 
+		if( own && #..win.getText(own,20) ) continue; 
+		
+		if( pid ? (pid != processId ) ) continue; 
+		if( tid ? (tid != threadId ) ) continue; 
+
+		if( ! match(hwnd,title,cls,,timeout) ) {
+			continue; 
+		}
+		
+		return hwnd,..win.getThreadProcessId(hwnd);  	 
+    }while(1)  
+}
+
+waitEx = function(parent,number,cls,text,id,style,nStyle){
+	var tk = ..time.tick();
+	var hwndfind;
+
+	while(!hwndfind){
+		 
+		 hwndfind = findEx(parent,number,cls,text,id,style,nStyle)
+		 
+		 if( waitTimeout ){
+		 	if( ..time.tick() - tk > waitTimeout ){
+		 		return hwndfind
+		 	}
+		 } 
+		 if(! ..win.delay(waitDelay) )
+		 	break;
+	}
+	
+	return hwndfind;
+}
+
+eachFindEx = function(cls,title,parent,parentTitle){
+	if(parentTitle || type(parent) === "string") {
+		parent = ::User32.FindWindowExW(null,null,parent,parentTitle ); 
+		if(!parent) return lambda() null;
+	}
+	return function(hwnd) return ::User32.FindWindowExW(parent,hwnd,cls,title ) : null,parent;  
+}
+
+findEx2 = function(ctrlCls,ctrlText,wndCls,wndTitle,ctrlPrcsId){
+	if(ctrlPrcsId){
+		var tid,pid;
+		for hCtrl,hwnd in eachFindEx(ctrlCls,ctrlText,wndCls,wndTitle){
+			tid,pid = ..win.getThreadProcessId(hCtrl);
+			if(pid===ctrlPrcsId) return hCtrl,hwnd;
+		}
+		
+		return;
+	}
+	
+	var wnd = find(wndCls,wndTitle);
+	if(wnd) return findEx(wnd,0,ctrlCls,ctrlText ),wnd
+}
+	
+findEx = function(parent,number,cls,text,id,style,nStyle){
+	var count=0;
+	var result;
+
+	enum( 
+		function( hwndfind,depth ){
+			if( (style!==null) || (nStyle!==null) ){
+				if( !..win.getStyle(hwndfind,style,nStyle) ){
+					result = null;
+					return true;
+				}
+			}
+			
+			result = hwndfind; 
+			if( number ){
+				count++; 
+				return count < number ;
+			}
+			else 
+				return false;//停止查找
+			
+		} 
+		,parent
+		,cls
+		,text
+		,id
+	) 
+	
+	if(!result){
+		for hwndfind,title,threadId,processId in each( cls,text ){
+			if( ..win.getOwner(hwndfind) != parent ) continue;
+			
+			if( (style!==null) || (nStyle!==null) ){
+				if( !..win.getStyle(hwndfind,style,nStyle) ){
+					continue;
+				}
+			}
+			return hwndfind;
+		}
+	}
+	return result;
+}
+ 
+findExists = function(title,text,cls,ctrlcls,ctrlid,pid,number,style,nStyle){ 
+	
+	var ctrl;
+	for parent,title,threadId,processId in each( cls,title ) { 
+		if( text || ctrlcls || ctrlid ) {
+			ctrl = findEx(parent,number,ctrlcls ,text, ctrlid,style,nStyle);
+			if(!ctrl) continue ; 
+		}
+		
+		if( ( pid !== null ) && ( pid != processId ) ) continue ;
+		
+		if( (style!==null) || (nStyle!==null) ){
+			if( ( ! ..win.getStyle(parent,style,nStyle) ) 
+		 		|| (ctrl ? ( !..win.getStyle(ctrl,style,nStyle) ) )
+			) { 
+				continue;
+			}
+		}
+		
+		return parent,ctrl,threadId,processId
+	} 
+} 
+
+findActivate = function(title,text,cls,ctrlcls,ctrlid,pid,number){
+	var parent,ctrl,threadId,processId = findExists(title,text,cls,ctrlcls,ctrlid,pid,number);
+	if(parent){  
+		..win.setForeground(parent)
+		sleep(1)
+	}
+	return parent,ctrl,threadId,processId;
+}
+
+waitTimeout = null;
+waitDelay = 100;
+wait = function( title,text,cls,ctrlcls,ctrlid,pid,number,style,nStyle){
+	var tk = ..time.tick();
+	var parent,ctrl,threadId,processId ;
+
+	while(!parent){
+		 
+		 parent,ctrl,threadId,processId = findExists(title,text,cls,ctrlcls,ctrlid,pid,number,style,nStyle)
+		 
+		 if( waitTimeout ){
+		 	if( ..time.tick() - tk > waitTimeout ){
+		 		return parent,ctrl,threadId,processId
+		 	}
+		 } 
+		 if(! ..win.delay(waitDelay) )
+		 	break;
+	}
+	return parent,ctrl,threadId,processId;
+}
+
+waitStyle = function(title,text,cls,ctrlcls,ctrlid,pid,number,style,nStyle){
+	var tk = ..time.tick();
+	
+	if( type(title)==type.number){
+		while( ! ..win.getStyle(title,text,cls) && ..win.delay(waitDelay) ){
+			if( waitTimeout ){
+				if( ..time.tick() - tk > waitTimeout ){
+		 			return false
+				}
+			} 	
+		}
+		return title;
+	}
+	return wait(title,text,cls,ctrlcls,ctrlid,pid,number,style,nStyle ); 
+}
+
+waitEnabled = function(title,text,cls,ctrlcls,ctrlid,pid,number){
+	if( type(title)==type.number){
+		return waitStyle(title, ,0x8000000/*_WS_DISABLED*/);
+	}
+	return waitStyle(title,text,cls,ctrlcls,ctrlid,pid,number, ,0x8000000/*_WS_DISABLED*/ );
+}
+ 
+waitVisible = function(title,text,cls,ctrlcls,ctrlid,pid,number){
+	if( type(title)==type.number){
+		return waitStyle(title, 0x10000000/*_WS_VISIBLE*/);
+	}
+	return waitStyle(title,text,cls,ctrlcls,ctrlid,pid,number, 0x10000000/*_WS_VISIBLE*/);
+} 
+
+waitClose = function( title,text,cls,ctrlcls,ctrlid,pid,number){
+	var tk = ..time.tick(); 
+	var waitfunc = type(title)==type.number? ..win.isWindow : findExists
+	while( waitfunc(title,text,cls,ctrlcls,ctrlid,pid,number) && ..win.delay(waitDelay) ){ 
+	
+		 if( waitTimeout ){
+		 	if( ..time.tick() - tk > waitTimeout ){
+		 		return false
+		 	}
+		 } 
+	}
+	return true;
+}
+
+waitActive = function( title,text,cls,ctrlcls,ctrlid,pid,number){
+	var tk = ..time.tick(); 
+	var hwnd = type(title)==type.number ? title;
+	var f;
+	
+	while( ..win.delay(waitDelay) ){
+		if( waitTimeout ){
+		 	if( ..time.tick() - tk > waitTimeout ){
+		 		return;
+		 	}
+		}
+		f = ..win.getForeground();
+		if(!f)
+			continue;
+			
+		if( hwnd ){
+			if(hwnd == f )
+				return f;
+		}
+		else {
+			if( match(f,title,cls ) ){
+				var ctrl = findEx(f,number,ctrlcls ,text, ctrlid  ) 
+				if(  ctrl ){
+					var tid2,pid2 = ..win.getThreadProcessId(f);
+					if( ( pid == null ) || ( pid == pid2 ) ) 
+						return f,ctrl,tid2,pid2;
+				}
+			}
+		} 
+		
+		sleep(0) 
+	}
+}
+ 
+waitMainWnd = function(cls,title,pid,tid,waitTimeout){
+	var hwnd;
+	var tk = ..time.tick(); 
+	while( 
+	    var i;
+	    hwnd = ..winex.findMainWnd(cls,title,pid,tid) ; 
+	    ( !hwnd ) &&  ..win.delay(waitDelay) 
+	) {
+		if( waitTimeout ){
+			if( ..time.tick() - tk > waitTimeout ){
+		 		return false
+			}
+		} 
+	}
+	return hwnd; 
+} 
+
+fromPoint = User32.api("WindowFromPoint", "addr(int x, int y)");
+
+fromPointReal = function(x,y,cwp){
+	var hwnd = fromPoint(x,y);
+	if(hwnd){
+		var parent = ..win.getParent(hwnd) : hwnd;
+		while(parent){
+			var x,y = ..win.toClient(parent,x,y);
+			var h = fromClientPointReal(parent,x,y,cwp );
+		 
+			if( h!=hwnd ){ 
+				hwnd = h;
+				parent = hwnd;
+			}
+			else {
+				break;
+			}
+		}
+	}
+	return hwnd;
+}
+
+fromClientPoint = function(hwnd,x,y,un=0x0001/*_CWP_SKIPINVISIBLE*/){ 
+	return User32.ChildWindowFromPointEx(hwnd,x,y,un);
+} 
+
+fromClientPointReal = User32.api("RealChildWindowFromPoint","int(addr hwnd,int x,int y )")
+
+attachThread = function(tid,att = true){
+	var cid = ..thread.getId(); 
+	if(tid==cid)
+		return att;
+	
+	var hfore = ..win.getForeground();	
+	var ret = AttachThreadInput(tid, cid, att?1:0);
+	..win.setForeground(hfore);
+	
+	return ret;
+}
+
+attach = function(hwnd,att = true){
+	if(!hwnd) error("无效的窗口句柄",2)
+	if(type(att)===type.function){
+		attach(hwnd,true);
+		var ret = att();
+		attach(hwnd,false);	
+		return ret;
+	}
+	var tid,pid = ..win.getThreadProcessId(hwnd); // 当前窗口的线程ID  
+	return attachThread(tid,att);
+}
+
+getUiInfo = function(hwnd){
+	var tid;
+	if(hwnd){ tid = ..win.getThreadProcessId(hwnd); }
+	var ok,info = ::User32.GetGUIThreadInfo(tid,{
+  		INT cbSize = 48;
+  		INT flags;
+  		addr hwndActive;
+  		addr hwndFocus;
+  		addr hwndCapture;
+  		addr hwndMenuOwner;
+  		addr hwndMoveSize;
+  		addr hwndCaret;
+  		struct rcCaret = ::RECT();
+	}  );
+	if( ok ) return info;	
+}
+
+getFocus = function(hwnd){
+	if(hwnd === null)hwnd = ..win.getForeground();
+	
+	var info = getUiInfo(hwnd); 
+	if( info ) {
+		if(info.hwndFocus) return info.hwndFocus;
+		if(info.hwndCaret) return info.hwndCaret; 
+	}
+	
+	var leaf = ..win.getLeaf(hwnd); 
+	if(!leaf || leaf == hwnd ){ return hwnd;}
+}
+
+getCaret = function(hwnd){
+	var info = getUiInfo(hwnd); 
+	if(info[["hwndCaret"]]){
+		info.rcCaret.hwnd = info[["hwndCaret"]];
+		return ..win.toScreenRect(info[["hwndCaret"]],info.rcCaret)
+	} 
+}
+
+say = function(str,hwnd){ 
+	hwnd = getFocus(hwnd); 
+	str = ..string.toUnicode(str);
+	for(i=1;#str/2) {
+		::User32.PostMessageW(hwnd, 0x102/*_WM_CHAR*/, str[i], 0x0001); 
+	}   
+	..win.delay(1) 
+}
+
+sayAnsi = function(str,hwnd){ 
+	hwnd = getFocus(hwnd); 
+	str = ..string.fromto(str,65001,0)
+	for(i=1;#str) {
+		::User32.PostMessageA(hwnd, 0x102/*_WM_CHAR*/, str[i] & 0xFF, 0x0001); 
+	}   
+	..win.delay(1) 
+}
+
+sayIme = function(str,hwnd){
+	hwnd = getFocus(hwnd); 
+	str = ..string.toUnicode(str);
+	for(i=1;#str/2) {
+		::User32.PostMessageW(hwnd, 0x286/*_WM_IME_CHAR*/, str[i], 0x0001); 
+	}   
+	..win.delay(1)
+}
+
+sayImeAnsi  = function(str,hwnd){ 
+	hwnd = getFocus(hwnd); 
+	str = ..string.fromto(str,65001,0);
+	
+	for(i=1;#str ) {
+		if(str[i]>0x80){
+			::User32.PostMessageA(hwnd, 0x102/*_WM_CHAR*/,  (  ( ( str[i+1] << 8) | str[i]  ) ) , 1); 
+			i++
+		}
+		else {
+			::User32.PostMessageA(hwnd, 0x102/*_WM_CHAR*/,  str[i] , 1); 
+		}
+	} 
+	..win.delay(1) 
+}
+
+sendString = function(str,hwnd){
+	hwnd = getFocus(hwnd);
+	if(  ..win.isWindow(hwnd) ) {
+	    ::User32.SendMessageW(hwnd,0xC2/*_EM_REPLACESEL*/,null,str);  
+	}
+}
+
+setText = function(hwnd,str,timeout=500){ 
+	::SendMessageTimeout(hwnd,0xC/*_WM_SETTEXT*/, ,..string.toUnicode(str) ,0x2/*_SMTO_ABORTIFHUNG*/ ,timeout,0);
+}
+
+getText = function(hwnd,len,timeout=500){
+	var ok;
+	if(!len) ok,len = ::SendMessageTimeout(hwnd,0xE/*_WM_GETTEXTLENGTH*/, , ,0x2/*_SMTO_ABORTIFHUNG*/,timeout,0 );
+ 
+	if( ( len > 0 ) && ( len < 0x10000 ) ){ 
+		var buf = ..raw.buffer( (len + 1) * 2)
+		if(!buf) return;
+		
+		ok,len = ::SendMessageTimeout(hwnd,0xD/*_WM_GETTEXT*/,topointer(len + 1),buf,0x2/*_SMTO_ABORTIFHUNG*/,timeout,0);
+		if( ok && len ) return ..string.fromUnicode(buf,,len);  
+	} 
+	
+	if(!ok) return;
+	return "";
+}
+
+click = function(hwnd,cmdId,...){
+	if( ! cmdId ) { 
+		::PostMessage(hwnd, 0xf5/*_BM_CLICK*/, 0, 0) 
+	}
+	elseif(type.isString(cmdId) || ...){
+		var _,id = findMenu(hwnd,cmdId,...);
+		if(id) ::PostMessage(hwnd, 0x111/*_WM_COMMAND*/,id,0);
+	}  
+	else {
+		::PostMessage(hwnd, 0x111/*_WM_COMMAND*/,cmdId ,0);
+	} 	
+}
+
+quit = function(hwnd){
+	::PostThreadMessage(win.getThreadProcessId(hwnd),0x12/*_WM_QUIT*/ ,0,0);
+}
+
+close = function(hwnd){ 
+	::PostMessage(hwnd,0x10/*_WM_CLOSE*/,0,0);
+} 
+
+closeAndWait = function(hwnd){
+	var r = ..thread.invokeAndWait( lambda(hwnd) ::User32.SendMessage(hwnd,0x10/*_WM_CLOSE*/,0,0) ,hwnd )
+	return !..win.isWindow(hwnd);
+}
+
+findSubMenu = function(hMenu,label,...){
+	if(!hMenu) return hMenu;
+	var count = ::User32.GetMenuItemCount(hMenu); 
+	if (count < 1) return;  
+	
+	if(type.isString(label)){
+		var buf = ..raw.buffer(1024);
+		for(pos=0;count-1){ 
+			var len = ::User32.GetMenuString(hMenu, pos, buf, 512, 0x400/*_MF_BYPOSITION*/);
+			var target = ..string.fromUnicode(buf,,-1);
+		
+			if( not  ..string.find(label,"\&" ) )
+ 				target = ..string.replace(target,"\&","");
+ 			
+			if( ..string.find( target,label ) ){
+				label = pos+1;
+				break;
+			} 
+		}	
+	}
+	
+	if(type(label)=="number"){
+		if ( ( label < 1) || ( label > count) ) return;  
+		
+		var menuId =  ::User32.GetMenuItemID(hMenu, label-1); 
+		if (menuId == -1/*_MENU_ITEM_IS_SUBMENU*/) {
+			if(!...) return hMenu; 
+			var hMenu = ::User32.GetSubMenu(hMenu, label-1);
+			return findSubMenu(hMenu,...);
+		}
+		else { 
+			return hMenu,menuId;
+		}
+	}
+}
+
+findMenu = function(hwnd,...) {
+	return findSubMenu(User32.GetMenuP(topointer(hwnd)),...)
+}
+
+if(!_WINXP){
+	::DwmApi := ..raw.loadDll("Dwmapi.dll");
+	
+	isVisible = function(hwnd){
+		if(!..win.isVisible(hwnd)) return false;
+		
+ 		var isCloaked = {bool value};
+ 		if( ::DwmApi.DwmGetWindowAttribute(hwnd, 14/*_DWMWA_CLOAKED*/,isCloaked, 4) >= 0/*_SUCCEEDED*/){
+ 			if( isCloaked.value ) return false;
+ 		}
+ 		
+ 		return true;
+ 	}
+}
+else {
+	isVisible = ..win.isVisible;
+}
+
+removeBorder = function(hwnd){
+	return ..win.modifyStyle(hwnd,0xCF0000);
+}
+
+orphanWindow = function(ctrl,hwnd){
+	removeBorder(hwnd);
+	attach(hwnd);
+	ctrl.orphanWindow(false,hwnd)
+}
+
+/**intellisense(winex)
+isVisible(__/*窗口句柄*/) = 如果窗口可见并且不是伪装为可见的隐形状态（Cloaked）,\n返回 true,否则不可见返回 flase，隐形返回 null
+isUnicode(__/*窗口句柄*/) = 判断窗口是否Unicode窗口
+isHung( = 判断窗口是否失去响应
+isHung(.(窗口句柄,超时) = 判断窗口是否失去响应\n超时为可选参数,默认为500毫秒
+enum(onfind,parent)=@.enum( \n	function(hwnd,depth){\n		..io.print( depth/*深度*/,hwnd/*窗口*/,winex.getText(hwnd)/*标题*/ )\n		__/*此函数深度枚举指定父窗口的所有下级窗口(包括直接子窗口、间接子窗口）,\n省略父窗口则默认为桌面窗口,\n返回false停止枚举*/\n	} \n	,父窗口\n	,要查找的类名\n	,要查找的标题\n	,要查找的控件ID\n)
+enum(onfind)=@.enum( \n	function(hwnd,depth){\n		..io.print( depth/*深度*/,hwnd/*窗口*/,winex.getText(hwnd)/*标题*/ )\n		__/*此函数深度枚举所有窗口(包括窗口的直接子窗口、间接子窗口）,\n不指定父窗口会枚举所有桌面窗口,以及UWP应用窗口,\n返回false停止枚举*/\n	} \n)
+enumTop(onFind,cls,title)=@.enumTop(\n	function(hwnd){\n 		__/*枚举桌面顶层窗口,\n@onFind 参数为枚举回调函数,\n@cls 参数指定要查找的类名,不支持模式匹配,可省略,\n@title 参数指定要查找的标题,不支持模式匹配,可省略\n\n回调参数 @hwnd 为当前找到的窗口句柄*/\n	}\n)
+each("类名","查找标题") =  @for hwnd,title,threadId,processId in winex.each( "", ".*__/*请输入标题包含字符串\n可使用模式匹配语法*/" ) { \n//遍历所有顶层窗口以及UWP应用顶层窗口并查找匹配窗口\n	\n}
+each() =  @for hwnd,title,threadId,processId in winex.each( __/*无参数则返回桌面所有顶层窗口以及UWP应用顶层窗口,\n可在此输入类名,标题包含字符串\n可使用模式匹配语法*/ ) { \n//遍历所有顶层窗口\n	\n}
+each("类名","查找标题",父窗口,超时毫秒) =  @for hwnd,title,threadId,processId in winex.each("", ,__/*请输入桌面父窗口句柄\n省略父窗口则父窗口为顶层桌面窗口,*/) { \n//遍历指定父窗口中的直接子窗口，不含子间接子窗口\n	\n}
+eachFindEx( = 返回一个迭代器,\n按Z序遍历所有子窗口,支持 UWP 应用窗口,\n迭代器每次遍历返回2个值：找到的子窗口句柄,父窗口句柄
+eachFindEx(.(控件类名,控件文本,父窗口) = 查找类名,查找标题都是可选参数，都不支持模式匹配语法,\n省略父窗口句柄遍历全部顶层窗口
+eachFindEx(.(控件类名,控件文本,父窗口类名,父窗口标题) = 查找类名,查找标题都是可选参数，都不支持模式匹配语法,\n省略父窗口句柄遍历全部顶层窗口
+match(.(句柄,文本,类名,ID,超时毫秒) = 指定一个窗口句柄,检测是否符合给定参数\n所有参数可选,类名与文本支持模式表达式,\n\n可选指定读取窗口文本超时毫秒数,\n超时返回 null 值，否则返回非 null 值
+find(.(类名模式串,标题模式串,进程ID,线程ID,超时毫秒)=查找顶层窗口,所有参数都是可选参数\n可选指定读取窗口文本超时毫秒数\n返回值为：句柄,线程ID,进程ID
+findMainWnd(.(类名模式串,标题模式串,进程ID,线程ID,超时毫秒) = 查找独立不属于其他窗口所有的顶层窗口所有参数都是可选参数\n可选指定读取窗口文本超时毫秒数\n返回值为：句柄,线程ID,进程ID
+waitEx( = 在指定父窗口内查找并等待子窗口,
+waitEx(.(父窗口句柄,第几个匹配,类名模式串,标题模式串,控件ID) = 除父窗口句柄外所有参数可选，\n使用winex.enum枚举指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n返回值为句柄
+waitEx(.(所有窗口句柄, ,窗口模式串,标题模式串,控件ID) = 使用参数@1指定所有窗口,除所有窗口句柄外所有参数可选，\n使用winex.enum枚举指定所有独立窗口,\n并且该窗口的所有窗口为参数@1指定的句柄,\n返回值为句柄
+findEx( = 在指定父窗口内查找子窗口,\n使用句柄指定父窗口,\n使用类名和标题查找子窗口,支持模式匹配
+findEx(.(父窗口句柄,第几个匹配,类名模式串,标题模式串,控件ID)=在指定父窗口内查找子窗口,除父窗口句柄外所有参数可选，\n使用winex.enum枚举指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n返回值为句柄
+findEx(.(所有窗口句柄, ,窗口模式串,标题模式串,控件ID)=使用参数@1指定所有窗口,除所有窗口句柄外所有参数可选，\n使用winex.enum枚举指定所有独立窗口,\n并且该窗口的所有窗口为参数@1指定的句柄,\n返回值为句柄
+findExists(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配控件) = 查找包含指定控件窗口的父窗口,所有参数可选\n控件窗口可以是指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n也可以用参数@1指定所有窗口并查找独立窗口,\n返回值为:窗口句柄,控件句柄,线程ID,进程ID
+findActivate(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配控件) = 调用winex.findExists查找并激活包含指定控件窗口的父窗口,所有参数可选\n控件窗口可以是指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n也可以用参数@1指定所有窗口并查找独立窗口,\n返回值为:窗口句柄,控件句柄,线程ID,进程ID
+findEx2( = 在指定父窗口内查找并等待子窗口,\n通过类名和标题查找父窗口与子窗口,不支持模式匹配
+findEx2(.(子窗口类名,子窗口标题,父窗口类名,父窗口标题,子窗口进程ID) = 查找指定的子窗口,所有参数不支持模式匹配,\n所有参数都可以省略
+wait(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配) = 等待指定窗口创建,所有参数可选\n父窗口也可以是所有窗口,参数与winex.findExists相同\n成功返回窗口句柄,控件句柄,线程ID,进程ID,超时返回空值
+waitMainWnd( = 查询符合条件,并且独立不属于其窗口所有的窗体\n
+waitMainWnd(.(类名模式串,标题模式串,进程ID,线程ID,最大超时) = 所有参数都是可选参数\n超时以毫秒为单位
+waitClose(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配) = 等待指定窗口关闭,所有参数可选\n成功返回true,超时返回false
+waitClose(窗口句柄) = 等待指定窗口关闭,所有参数可选\n成功返回true,超时返回false
+waitActive(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配) = 等待指定窗口激活为前台窗口,所有参数可选\n控件窗口可以是指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n成功返回窗口句柄,控件句柄,线程ID,进程ID,超时返回false
+waitActive(窗口句柄) = 等待指定窗口激活为前台窗口,所有参数可选\n成功返回窗口句柄,超时返回false
+waitEnabled(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配) = 等待指定窗口启用,所有参数可选\n成功返回窗口句柄,控件句柄,线程ID,进程ID,超时返回false
+waitEnabled(窗口句柄) = 等待指定窗口启有,所有参数可选\n成功返回窗口句柄,超时返回false
+waitVisible(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配) = 等待指定窗口显示,所有参数可选\n控件窗口可以是指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n父窗口也可以是所有窗口,参数与winex.findExists相同,\n成功返回窗口句柄,控件句柄,线程ID,进程ID,超时返回false
+waitVisible(窗口句柄) = 等待指定窗口显示,所有参数可选\n成功返回窗口句柄,超时返回false
+waitStyle(.(窗口句柄,指定样式,否定样式) = 等待指定的窗口和控件出现指定样式并且移除否定样式\n指定样式或否定样式应至少指定一个
+waitStyle(.(父窗口标题,控件文本,父窗口类名,控件类名,控件ID,进程ID,第几个匹配,指定样式,否定样式) = 等待指定的窗口和控件出现指定样式并且移除否定样式\n控件窗口可以是指定父窗口的所有下级窗口(包括直接子窗口,间接子窗口),\n所有查找参数可选,应至少指定一个选项,\n指定样式或否定样式应至少指定一个.
+waitTimeout = 指定winex库所有wait前缀的等待函数的默认超时值\n以毫秒为单位,默认为null表示永不超时.
+waitDelay = 指定winex库所有wait前缀的等待函数的的检测时间间隔;\n以毫秒为单位,默认为100毫秒
+fromPoint(.(x坐标,y坐标)=从指定的屏幕坐标查找窗口\n获取叶级子窗口，忽略static控件,隐藏或被禁用的控件
+fromPointReal(.(x坐标,y坐标)=从指定的屏幕坐标查找窗口\n获取叶级子窗口,不忽略static控件,可穿透groupbox\n可选在参数@4中_CWP_ALL允许获取隐藏、禁用控件,\n更多选项请参考此函数源码
+fromClientPoint(.(窗口句柄,x坐标,y坐标) = 从指定的窗口坐标查找子窗口\n仅子窗口,非叶级窗口
+fromClientPoint(.(窗口句柄,x坐标,y坐标,_CWP_ALL) = 从指定的窗口坐标查找子窗口\n_CWP_ALL指定包含隐藏、禁用控件
+fromClientPointReal(.(窗口句柄,x坐标,y坐标) = 从指定的窗口坐标查找子窗口\n仅子窗口,非叶级窗口,穿透groupbox。 
+attach( = 绑定到外部线程窗口并共享输入状态\n注意该函数会重置键盘状态
+attach(.(hwnd,enabled) = 绑定到外部线程窗口并共享输入状态,\n@hwnd 指定外部线程的目标窗口柄\n参数@enabled 省略或为true绑定目标线程,为false取消绑定,\n返回值为是否成功
+attach(.(hwnd,proc) = 执行参数@proc指定的回调函数,\n@hwnd 指定外部线程的目标窗口柄,\n执行回调函数时绑定目标窗口线程并共享输入状态,\n执行完取消绑定，并返回该函数的返回值
+attachThread(__/*线程ID*/) = 附加到外部线程并共享输入状态\n返回值为是否成功附加\n注意该函数会重置键盘状态
+attachThread(__/*线程ID*/,false) = 解除附加\n返回值为是否成功解除
+getFocus(__/*可选指定父窗口句柄*/)=获取输指定参数@1指定句柄的窗口输入焦点所在的控件句柄，\n不指定参数获取前台窗口、输入焦点所在的控件句柄
+getCaret(__/*可选指定窗口句柄*/)=获取指定参数@1指定句柄的窗口光标区块位置，\n不指定参数获取前台窗口光标区块位置。\n成功返回 ::RECT 结构体，该结构体增加 hwnd 属性存放光标所在窗口句柄。\n失败返回 null\n\n不是所有窗口都支持，\n建议在调用此函数获取不到求标位置以后，\n再调用 winex.accObject.getCaret 函数获取光标位置
+getCaret()=!rect.
+findMenu(.(窗口句柄,"菜单标题",->->->) = 参数@2开始可以指定1个或任意个菜单匹配参数,\n菜单匹配参数可以是菜单项标题,也可以是菜单项序号,\n第一个菜单项序号为1\n找到子菜单则返回子菜单,\n否则返回当前菜单句柄与菜单项命令ID
+findSubMenu(.(菜单句柄,"菜单标题",->->->) = 参数@2开始可以指定1个或任意个菜单匹配参数,\n菜单匹配参数可以是菜单项标题,也可以是菜单项序号,\n第一个菜单项序号为1\n找到子菜单则返回子菜单,\n否则返回当前菜单句柄与菜单项命令ID
+click(.(窗口句柄,命令ID) = 模拟点击命令
+click(.(窗口句柄,"菜单标题",->->->) = 如果参数@2为字符串,\n或者指定了参数@3,\n则先使用所有传入参数调用 winex.findMenu 查找菜单项,\n如果找到则模拟点击该菜单项
+click(.(按钮窗口句柄) = 模拟点击按钮
+say(.("发送文本",窗口句柄) = 向指定控件窗口发送Unicode编码文本,\n省略窗口句柄自动获取焦点窗口
+sayAnsi(.("发送文本",窗口句柄) = 向指定控件窗口发送ANSI编码文本,\n省略窗口句柄自动获取焦点窗口
+sayIme(.("发送文本",窗口句柄) = 向指定控件窗口发送Unicode编码文本,\n省略窗口句柄自动获取焦点窗口
+sayImeAnsi(.("发送文本",窗口句柄) = 向指定控件窗口发送ANSI编码文本,\n省略窗口句柄自动获取焦点窗口
+sendString(.("发送文本",窗口句柄) = 向指定窗口上的文本框发送文本,\n省略窗口句柄自动获取焦点窗口
+setText(.(窗口句柄,文本) = 修改外部程序窗口标题或控件文本
+getText(.(窗口句柄,缓冲区长度,超时值) = 取外部程序窗口标题或控件文本,失败或超时返回 null,\n缓冲区长度为可选参数,默认自动获取文本长度\n超时值为可选参数,默认为 500 毫秒
+getUiInfo() = 获取UI线程窗口焦点,光标等信息\n可选使用参数@1指定目标窗口,省略则默认指定为前景窗口\n!guithreadinfo.
+quit(__/*输入窗口句柄*/) = 退出程序,发送 _WM_QUIT 消息
+close(__/*输入窗口句柄*/) = 关闭窗口,发送 _WM_CLOSE 消息\n不等待消息处理完成
+closeAndWait(__/*输入窗口句柄*/) = 关闭窗口,发送 _WM_CLOSE 消息\n等待消息处理完成,且不阻塞当前线程消息循环
+removeBorder(__) = 移除窗体边框样式,\n参数@1指定目标窗口句柄
+orphanWindow(.(ctrl,hwnd) = 使用 @hwnd 指定句柄的外部窗口作为参数,\n调用 aardio 控件对象的 orphanWindow 函数。\n使外部窗口附加为控件的悬浮影子窗口,\n悬浮影子窗口可将外部进程窗口附加到 @ctrl 并如影随形的自适应缩放调整位置\n此函数同时移除外窗口边框，并附加输入线程
+end intellisense**/
+
+/**intellisense(!guithreadinfo)
+hwndActive = 活动窗口
+hwndFocus = 键盘输入焦点窗口
+hwndCapture = 捕获鼠标事件窗口
+hwndMenuOwner = 拥有活动菜单的窗口
+hwndCaret = 光标所在窗口
+hwndMoveSize = 正在被拖动或调整大小的窗口
+rcCaret = 光标位置\n!rect.
+flags = 窗口状态 _GUI_ 前缀常量
+end intellisense**/
+
+/**intellisense()
+_GUI_CARETBLINKING=@0x1/*_GUI_CARETBLINKING*/
+_GUI_INMENUMODE=@0x4/*_GUI_INMENUMODE*/
+_GUI_INMOVESIZE=@0x2/*_GUI_INMOVESIZE*/
+_GUI_POPUPMENUMODE=@0x10/*_GUI_POPUPMENUMODE*/
+_GUI_SYSTEMMENUMODE=@0x8/*_GUI_SYSTEMMENUMODE*/
+end intellisense**/

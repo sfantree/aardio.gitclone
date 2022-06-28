@@ -1,0 +1,82 @@
+import win;
+import winex;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="发送消息";right=415;bottom=183;border="dialog frame";exmode="toolwindow";max=false;mode="popup")
+winform.add(
+Messages={cls="edit";left=64;top=48;right=408;bottom=120;edge=1;font=LOGFONT(h=-18);multiline=1;z=6};
+static={cls="static";text="控件句柄";left=8;top=8;right=56;bottom=40;ah=1;align="right";aw=1;center=1;transparent=1;z=1};
+static2={cls="static";text="父句柄";left=168;top=8;right=208;bottom=40;align="right";center=1;transparent=1;z=3};
+static3={cls="static";text="命令ID";left=320;top=8;right=360;bottom=40;align="right";center=1;transparent=1;z=9};
+static4={cls="static";text="发送文本";left=1;top=56;right=57;bottom=80;ah=1;align="right";aw=1;center=1;transparent=1;z=7};
+发送按钮={cls="button";text="文本发送";left=88;top=136;right=192;bottom=169;font=LOGFONT(h=-18);z=5};
+命令ID={cls="edit";left=368;top=8;right=408;bottom=40;bgcolor=16777215;edge=1;font=LOGFONT(h=-18);readonly=1;z=10};
+按钮点击={cls="button";text="按钮点击";left=248;top=136;right=352;bottom=169;font=LOGFONT(h=-18);z=8};
+控件句柄={cls="edit";left=64;top=8;right=160;bottom=40;bgcolor=16777215;edge=1;font=LOGFONT(h=-18);readonly=1;z=2};
+父句柄={cls="edit";left=216;top=8;right=312;bottom=40;bgcolor=16777215;edge=1;font=LOGFONT(h=-18);readonly=1;z=4}
+)
+/*}}*/
+
+//////////////////////////////////////////////////////////
+find_hwnd_by_id=function(hwnd,id){ return winex.findEx(hwnd,,,,id); }
+//////////////////////////////////////////////////////////
+winform.发送按钮.oncommand = function(id,event){
+	控件句柄=winform.控件句柄.text;
+	父句柄=winform.父句柄.text;
+	命令ID=winform.命令ID.text;
+	Messages=winform.Messages.text;
+	if(!#控件句柄) {
+		win.msgboxErr("请获取","错误1");
+		return ;
+	}  
+	winex.setText(tonumber(控件句柄),Messages);
+}
+//////////////////////////////////////////////////////////
+winform.按钮点击.oncommand = function(id,event){
+	控件句柄=winform.控件句柄.text;
+	父句柄=winform.父句柄.text;
+	命令ID=winform.命令ID.text;
+	if(!#控件句柄 || !#命令ID) {
+		win.msgboxErr("请获取","错误2");
+		return ;
+	}
+	winform.按钮点击.disabled=true;
+	var hwnd=find_hwnd_by_id ( tonumber(控件句柄),tonumber(命令ID));
+	if(!hwnd) hwnd=find_hwnd_by_id ( tonumber(父句柄),tonumber(命令ID));
+	winex.click( hwnd ); 
+	winform.按钮点击.disabled=false;
+}
+//////////////////////////////////////////////////////////
+get_text=function(){
+	win.invoke(
+		function(winform){
+			import win;
+			import winex;
+			import win.ui;
+			find_hwnd_by_id=function(hwnd,id){ return winex.findEx(hwnd,,,,id); }
+  			控件句柄=winform.控件句柄.text;
+			父句柄=winform.父句柄.text;
+			命令ID=winform.命令ID.text;	
+			var hwnd=find_hwnd_by_id ( tonumber(控件句柄),tonumber(命令ID));
+			if(!hwnd) hwnd=find_hwnd_by_id ( tonumber(父句柄),tonumber(命令ID));
+			if(!#winform.Messages.text){
+				winform.Messages.text=winex.getText(hwnd);
+			}			
+			winform.static4.text="发送文本";
+		} ,winform
+	)	
+}
+//////////////////////////////////////////////////////////
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+    winform.static4.text="获取.";
+    win.setTimeout(
+    	function(){
+    		get_text();
+    	},100
+    )
+    
+}
+//////////////////////////////////////////////////////////
+winform.show();
+win.loopMessage();
+return winform;

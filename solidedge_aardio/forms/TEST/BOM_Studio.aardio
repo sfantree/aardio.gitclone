@@ -1,0 +1,33 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="O";left=8;top=8;right=40;bottom=40;z=2};
+custom={cls="custom";text="自定义控件";left=0;top=80;right=760;bottom=376;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;z=1}
+)
+/*}}*/
+
+import com.dsoFramer;
+var dsoFrame = com.dsoFramer(winform.custom);
+dsoFrame.menubar = false //去掉菜单栏  
+dsoFrame.titlebar = false; //去掉标题栏
+dsoFrame.toolbars = false; //去掉工具条
+dsoFrame.borderStyle = 0; //去掉边框（默认值）
+
+
+import fsys.dlg;
+winform.button.oncommand = function(id,event){
+	var path = fsys.dlg.open("Excel 表格|*.xls;*.xlsx|","打开 Excel 文档");
+	if(path) {
+		 dsoFrame.openFile(path);
+	
+	var excel = dsoFrame.activeDocument.Application;
+	excel.activeWindow.DisplayWorkbookTabs  = false; //隐藏 WorkSheet Tabs
+	
+	}
+}
+
+
+winform.show();
+win.loopMessage();
+return winform;

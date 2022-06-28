@@ -1,0 +1,606 @@
+﻿//binFM 通用函数
+namespace binFM{
+
+	/*
+	 * 异步处理wget2函数的返回结果，并返回原调用函数
+	 *
+	 * 流程：
+	 * 函数functionName -(call)-> wget2 -(call)-> listener.callback -(call)-> 函数functionName =(return)=> listener.callback -(call)-> 其他函数
+	 */
+	import thread.command;
+	var listener = thread.command();
+	listener.callback = function(functionName,response,...){
+		..binFM.monitor.info("callback: " ++ functionName,...);
+		if(!response) return false;
+		//response = ..binFM.string.toGB2312(response);
+		response = ..string.trim(response);
+		var arg = {...};
+		
+		if(functionName=="getToken") ..binFM.douban.getToken(arg[1],arg[2],response);
+		if(functionName=="getSongs") ..binFM.douban.getSongs(arg[1],arg[2],arg[3],arg[4],response);
+		if(functionName=="like") {
+			if(response && response!="") ..binFM.douban.like(arg[1],arg[2],response,"ok");	
+			else ..binFM.douban.like(arg[1],arg[2],response,"failed");	
+		}
+		if(functionName=="del") ..binFM.douban.del(arg[1],response);
+		if(functionName=="getSongDetail") {
+			// 参数说明 wget2(url,post,functionName,arg[1],arg[2]); arg[1]: sid
+			// -------- binFM.douban.getSongDetail(sid,response,lrc)
+			// -------- binFM.lrc.get(title,artist,sid,response,source)
+			var result = ..binFM.douban.getSongDetail(arg[1],response);
+			if(result && result["sid"] && result["lrc"] && result["lrc"]!="") ..binFM.lrc.get(,,result["sid"],result["lrc"],"douban"); 
+		}
+		if(functionName=="getAlbumDetail") {
+		
+		}
+		if(functionName=="lrc.get") {
+			// 参数说明 wget2(url,post,functionName,arg[1],arg[2]); arg[1]: sid , arg[2]: source("baidu-1"|"qq-1");
+			// -------- binFM.lrc.get(title,artist,sid,response,source)
+			..binFM.lrc.get(,,arg[1],response,arg[2]);
+		}
+		if(functionName=="checkUpdate") checkUpdate(response);
+	}
+
+
+	listener.monitor = function(functionName,...){
+		if(functionName && functionName=="info") ..binFM.monitor.info(...);
+		if(functionName && functionName=="url") ..binFM.monitor.url(...);		
+	}
+
+
+	/*
+	 * 异步获取网络数据
+	 * -- functionName 原调用函数名
+	 */
+	wget2 = function(url,postData,functionName,...) {
+		..binFM.monitor.info("异步 原函数 " ++ functionName,...);
+		listener.invoke(
+    	function( hwndListener,url,postData,functionName,... ){
+        	import thread.command;
+        	var listener = thread.command.bind(hwndListener);
+	     	listener.onBegin();
+
+       		import inet.whttp;
+       		import binFM.monitor;
+       		
+			var http = inet.whttp();
+			var response;
+			http.setTimeouts (
+    			5000,//连接超时
+    			5000,//请求超时
+    			5000 //接收超时
+			);
+			try{
+				if(!postData) response = http.get(url);
+				else response = http.post(url,postData);
+			}
+			http.close();
+			if(response && response!="") {
+				listener.monitor("url",url);
+				listener.callback(functionName,response,...);
+				response = null;
+			}	
+			else {
+				import raw;
+				//raw.closehandle(hwndListener);
+				listener.monitor("url",url,false,true);	
+				listener.callback(functionName,"",...);
+			}
+        	listener.onEnd();
+    	},url,postData,functionName,...);
+	}
+	 	
+ 
+	/* 
+ 	 * 增加超时设置的win.invoke()
+ 	 */
+	import thread;
+	import raw;
+	var _id_invoke = "invoke_" ++ ..thread.getId(); 
+	invoke2 = function( func,... ){
+		var arg = {...};
+		if(arg[1]) var url = arg[1];
+		var ret;
+		var h = ..thread.create(
+			function(func,id,...){ 
+				var ret = { func(...) }
+				..thread.set(id, ret)
+			},func,_id_invoke,...); 
+		try {
+			..thread.waitOne(h,4000);
+			..raw.closehandle(h);
+			ret = ..thread.get(_id_invoke);
+		}
+		if(ret){
+			var _,ubound = ..table.range(ret);
+			..binFM.monitor.url(url,true);	
+			return ..table.unpack(ret,1,ubound);
+		}
+		else {
+			..binFM.monitor.url(url,true,true);
+			return false;
+		}
+	}
+
+
+	/* 
+ 	 * 下载服务器上的数据
+ 	 */
+	wget = function(url,postData) {
+		import inet.whttp;
+		//import curl;
+		var http = inet.whttp();
+		//var http = curl.easy();
+		var result;
+		
+		http.setTimeouts (
+    		5000,//连接超时
+    		5000,//请求超时
+    		5000 //接收超时
+		);
+		
+		try{
+			if(!postData) result = ..string.trim(http.get(url));
+			else result = ..string.trim(http.post(url,postData));
+		}
+		http.close();
+
+		if(result && result!="") {
+			return result;
+		}
+		else {
+			return;
+		}
+		return;
+	}
+
+
+	/*
+	 * 获取单首歌曲信息
+	 * -- 返回：包含单首歌曲信息的数组
+	 * -- sid == null 返回当前正在播放的歌曲信息
+	 * -- sid && from == null 返回当前播放列表中的歌曲信息 
+	 * -- sid && from == "history" 返回数据库songs表中的单首歌曲信息
+	 */
+	song = function(sid,from) {
+		var songTable = {"sid"=null;"title"=null;"url"=null;"artist"=null;"aid"=null;"albumtitle"=null;"album"=null;"picture"=null;"like"=null;};
+		if(!sid && !from) {
+			songTable = ..songs_noAd[..now_i];
+		}
+		if(sid && !from) {
+			if(#..songs_noAd==0) return songTable;
+			for(i=1;#..songs_noAd;1) {
+				if(..songs_noAd[i] && ..songs_noAd[i]["sid"] == sid) {
+					songTable = ..songs_noAd[i];
+					break;
+				}
+			}
+		}
+		if(sid && from=="history") {
+			var db = ..sqlite("\doubanFM_wubin.db");
+			if(db) {
+				var result = db.stepQuery("SELECT * FROM songs WHERE sid='" ++ tostring(sid)++"'");
+				if(result) songTable = result;
+			}
+		}
+		return songTable;
+	}
+
+
+	/*
+	 * 获取歌手id
+	 */
+	artistId = function(sid,name) {
+		var song_,result,artistId_;
+		if(!sid) song_ = song();
+		else song_ = song(sid);
+
+		if(song_) {
+			if(!sid) sid = song_["sid"];
+			if(!name) name = song_["artist"];	
+			if(song_["artistId"] && song_["artistId"]!="") {
+				..binFM.monitor.info("从数组中取出歌手id");
+				return song_["artistId"],song_["artist"];
+			}
+		}
+		if(name) {
+			result = ..binFM.db.getArtist(name);
+			if(result && result["artistId"]) {
+				artistId_ = result["artistId"];
+				..binFM.monitor.info("从数据库中获取歌手id by name");
+				return artistId_,name;
+			}
+		}
+		if(sid) {
+			result = ..binFM.douban.getSongDetail(sid,,"sync");
+			if(result) {
+				if(result["artistId"]) artistId_ = result["artistId"];
+				if(result["artistName"]) name = result["artistName"];
+				..binFM.monitor.info("重新从豆瓣获取歌手信息by sid");
+				return artistId_,name;
+			}
+		}
+		return false;
+	}
+	
+
+	/*
+	 * 获取歌手详细信息
+	 */
+	artistDetial = function(artistId,name,sid) {
+		var result;
+		if(artistId || name) {
+			result = ..binFM.db.getArtist(name,artistId);
+		 	if(result && result["artistId"] && result["name"]) return result;
+		}
+		if(!sid) {
+			var nowPlaying = song();
+			if(nowPlaying) sid = nowPlaying["sid"];
+		}
+		if(sid) {
+			var song_ = song(sid);
+			if(song_) {
+				result = {};
+				if(song_["artist"]) result["name"] = song_["artist"];
+				
+				var result_;
+				result_ = ..binFM.douban.getSongDetail(sid,,"sync");
+				if(result_ && result_["artistBrief"]) result["brief"] = result_["artistBrief"];
+				else result["brief"] = "木有介绍...";
+				if(result_ && result_["artistGenre"]) result["genre"] = result_["artistGenre"];
+				if(result_ && result_["artistPhoto"]) result["photo"] = result_["artistPhoto"];
+				if(result_ && result_["albums"]) result["albums"] = result_["albums"];
+			}
+			if(result && result["artistId"] && result["name"]) return result;
+		}
+		return false;	
+	}
+
+
+	/*
+	 * 获取专辑id
+	 */
+	albumId = function(sid,albumTitle) {
+		var song_,result,albumId_;
+		if(!sid) song_ = song();
+		else song_ = song(sid);
+		
+		if(song_) {
+			if(!sid) sid = song_["sid"];
+			if(!albumTitle) albumTitle = song_["albumtitle"];	
+			if(song_["aid"] && song_["aid"]!="") {
+				..binFM.monitor.info("从数组中取出专辑id: " ++ song_["aid"]);
+				return song_["aid"],song_["albumtitle"];
+			}
+		}
+		if(albumTitle) {
+			result = ..binFM.db.getAlbum(albumTitle);
+			if(result && result["artistId"]) {
+				artistId_ = result["artistId"];
+				return result["artistId"],result["title"];
+			}
+		}
+		if(sid) {
+			result = ..binFM.douban.getSongDetail(sid,,"sync");
+			if(result) {
+				if(result["albumId"]) albumId_ = result["artistId"];
+				if(result["album"]) albumTitle = result["album"];
+				..binFM.monitor.info("重新从豆瓣获取专辑信息by sid: "++sid);
+				return artistId_,albumTitle;
+			}
+		}
+		return false;
+	}
+		
+	
+	/*
+	 * 获取专辑详细信息
+	 */
+	albumDetail = function(albumId,title,sid) {
+		var result;
+		if(albumId) albumId = ..string.replace(albumId,"@@/subject/","");
+		if(albumId || title) {
+			// 先尝试从数据库中获取专辑信息，若失败，则抓取豆瓣官网
+			..binFM.monitor.info("查找专辑"++albumId);
+			result = ..binFM.db.getAlbum(title,albumId);
+		 	if(result && result["albumId"] && result["title"] && result["brief"] && result["photo"]) return result;
+		 	else if(albumId) {
+		 		..binFM.monitor.info("搜索豆瓣API-"++albumId);
+		 		result = ..binFM.douban.getAlbumDetail(albumId,,"sync");
+		 		if(result) return result;
+			}
+		}
+		if(!sid) {
+			var nowPlaying = song();
+			if(nowPlaying) sid = nowPlaying["sid"];
+		}
+		if(sid) {
+			var song_ = song(sid);
+			if(song_) {
+				result = {};
+				if(song_["aid"]) result["albumId"] = song_["aid"];
+				if(song_["albumtitle"]) result["title"] = song_["albumtitle"];
+				if(song_["picture"]) result["photo"] = ..string.replace(song_["picture"],"@@mpic","lpic");
+				var result_;
+				result_ = ..binFM.douban.getSongDetail(sid);
+				if(result_ && result_["albumBrief"]) result["brief"] = result_["albumBrief"];
+				else result["brief"] = "木有介绍...";
+			}
+			if(result && result["albumId"] && result["title"] && result["photo"]) return result;
+		}
+		return false;
+	}
+	 
+	
+	/*
+ 	 * 重建songs_noAd中的下标索引值
+ 	 */
+	reIndexSongs = function() {
+		for(i=1;#..songs_noAd;1){
+			if(..songs_noAd[i]) ..songs_noAd[i]["i"] = i;
+		}
+		return true;
+	}
+
+
+	/*
+ 	 * 乱序排列数组
+ 	 */
+ 	randTable = function(tab) {
+		..math.randomize();
+		var tab2={};
+		for(i=1;#tab;1){
+			var j = ..math.random(1,#tab);
+			var v = tab[j];
+			..table.remove(tab,j);
+			..table.push(tab2,v);
+		}
+		return tab2;  	
+ 	}
+
+
+	/*
+ 	 * 退出程序
+ 	 */
+	quit = function() {
+		..binFM.ui.quit();
+		//..win.delay(100);
+		
+		..bass.free();
+		
+		try {
+			..binFM.download.stop();
+      		
+			if(..aboutForm) ..aboutForm.close();  
+			if(..albumForm) ..albumForm.close();
+			if(..autoForm) ..autoForm.close();
+			if(..downForm) ..downForm.close();
+    		if(..fontsForm) ..fontsForm.close();		
+    		if(..hotkeyForm) ..hotkeyForm.close();
+    		if(..loginForm) ..loginForm.close();
+    		if(..popupForm) ..popupForm.close();
+    		if(..tableForm) ..tableForm.close();
+			if(..updateForm) ..updateForm.close();
+			
+			..binFM.db.dbBegin();
+			
+			if(..lrcForm && ..lrcShowing) {
+				var x,y = ..lrcForm.getPos();
+				..binFM.db.set("lrcPosY",y);
+				..binFM.db.set("lrcOnStart","1");
+				..lrcForm.close();
+			}
+			else {
+				..binFM.db.set("lrcOnStart","0");
+			}
+			if(..fftForm && ..fftShowing) {
+				..binFM.db.set("fftOnStart","1");
+				..fftForm.close();
+			}
+			else {
+				..binFM.db.set("fftOnStart","0");
+			}
+			if(..miniForm && ..miniShown) {
+				var x,y = ..miniForm.getPos();
+				..binFM.db.set("miniPosX",x);
+				..binFM.db.set("miniPosY",y);
+				..miniForm.close();
+			}
+			..binFM.db.set("volume",..volume);
+			..binFM.db.set("channelId",..channelId);
+			if(..binFM.ui.$("#channel-name")) ..binFM.db.set("channelName",..binFM.ui.html("#channel-name"));
+			if(..channelId==-100) {
+				var id,name = ..binFM.artistId(); // 获取正在播放的歌手名及id
+				..binFM.db.set("caid",id);
+				..binFM.db.set("caname",name);
+			}
+			if(..channelId==-10) {
+				var id,name = ..binFM.albumId(); // 获取正在播放的专辑名及id
+				..binFM.db.set("caid",id);
+				..binFM.db.set("caname",name);
+			}
+			..binFM.db.set("cnFont",..cnFont);
+			..binFM.db.set("enFont",..enFont);
+			..binFM.db.set("lrcFontsize",..lrcFontsize);
+			..binFM.db.set("lrcFontcolor1",..lrcFontcolor1);
+			..binFM.db.set("lrcFontcolor2",..lrcFontcolor2);
+			..binFM.db.set("saveFolder",..saveFolder);
+			if(..enableAero) ..binFM.db.set("aeroOnStart","1");
+			else ..binFM.db.set("aeroOnStart","0");
+			if(..randomSongs) ..binFM.db.set("random","1");
+			else ..binFM.db.set("random","0");
+			if(..enablePopWin) ..binFM.db.set("popWin","1");
+			else ..binFM.db.set("popWin","0");
+			if(..isWithLrc) ..binFM.db.set("withLrc","1");
+			else ..binFM.db.set("withLrc","0");
+			if(..enableEQ) ..binFM.db.set("enableEQ","1");
+			else ..binFM.db.set("enableEQ","0");
+			..binFM.db.set("splash",..splash);
+			..binFM.hotkey.save();
+			..binFM.hotkey.unReg();
+			..binFM.db.saveAuto();
+			
+			..binFM.db.dbCommit();
+			..binFM.db.close();
+			
+			if(..tray) ..tray.delete(); // 防止需要手动指向托盘图标才能使其消失
+		}
+		
+		..io.print('==============退出程序==============');
+		..io.print(""); ..io.print("");
+		collectgarbage("collect"); // 内存回收
+		..win.quitMessage(); // 完全退出程序
+	}
+
+
+	/*
+ 	 * 检查更新 获取扩展频道列表
+ 	 */	
+	checkUpdate = function(response) {
+		import web.json;
+		if(!response) ..binFM.wget2("http://wubin.in/app/doubanFM.php?ver="++.._ver,,"checkUpdate");
+		else if(response!="") {
+			var ver_new = _ver;
+			var json;
+			var json_tab;
+			var update = "";
+			var splash_new = "";
+			var channelList_new,channelList_ext;
+			json = ..binFM.string.toGB2312(response);
+			try {
+				json_tab = ..web.json.parse(json);
+				ver_new = json_tab["app"]["ver"];
+				update = json_tab["app"]["log"];
+				splash_new = ..string.trim(json_tab["splash"]);
+				channelList_new = json_tab["channels"];
+			}
+			
+			channelList_ext = ..binFM.db.set("channelList_ext");
+			if(channelList_new && channelList_new != channelList_ext) {
+				..binFM.db.set("channelList_ext",channelList_new);
+				if(!channelList_ext || channelList_ext =='') ..binFM.ui.$("#channels-list-ul").insertAdjacentHTML("beforeEnd",channelList_new);
+				else {
+					channelList_ext = ..string.replace(channelList_ext,"@@<hr />",'<hr></hr>\r\n');
+					channelList_ext = ..string.replace(channelList_ext,"@@</li><li>",'</li>\r\n<li>');		
+					channelList_ext = ..string.replace(channelList_ext,"@@cName",'cname');
+					channelList_ext = ..string.replace(channelList_ext,"@@cId",'cid');
+					channelList_new = ..string.replace(channelList_new,"@@<hr />",'<hr></hr>\r\n');
+					channelList_new = ..string.replace(channelList_new,"@@</li><li>",'</li>\r\n<li>');			
+					channelList_new = ..string.replace(channelList_new,"@@cName",'cname');
+					channelList_new = ..string.replace(channelList_new,"@@cId",'cid');						
+					var tmp = ..binFM.ui.html("#channels-list-ul");
+					tmp = ..string.replace(tmp,'@@\" ','\"');
+					tmp = ..string.replace(tmp,"@@" ++ channelList_ext,channelList_new);
+					..binFM.ui.html("#channels-list-ul",tmp);
+				}
+			}
+			
+			// 自动更新
+			if(ver_new && update && ver_new!=.._ver) {
+				update = ..string.replace(update,'@@\r\n',"<br />");
+				update = "更新记录（" ++ ver_new ++ "）：<br />" ++ update;
+
+				if(!..updateForm) ..updateForm = ..mainForm.loadForm("\forms\updateForm.aau",..mainForm);
+				..binFM.ui.html("#log",update,..wbLayout_update);
+				..updateForm.show();
+
+				if(!.._STUDIO_INVOKED && !..io.exist("noUpdate")) {
+					..binFM.download.start(.._update,..io._exedir++"doubanFM_lastest.exe");
+				}
+			} // if(ver_new && update && ver_new!=.._ver)
+			
+			// 更新splash图片
+			if(splash_new && splash_new!="") {
+				// 无论splash_new为何名称，下载后的名称均为splash.jpg 因为 加载splash前未打开数据库
+				var saveFile = .._data ++ "\splash.jpg";
+				if(splash_new!="default") {
+					// 当与数据库中保存的名称不相符 或 文件已被删除时 下载新文件
+					if(splash_new!=..binFM.db.set("splash") || !..io.exist(saveFile)) {
+						var ok = ..binFM.invoke2(..binFM.download.single,"http://wubin.in/app/doubanFM/splash/" ++ splash_new ++ ".jpg",saveFile);
+						if(ok) {
+							..binFM.monitor.info("下载splah完成",saveFile);
+							..splash = splash_new;
+						}
+					}
+				}
+				else {
+					try {
+						..io.remove(saveFile);
+					}
+					..splash = "default";
+				}
+			}
+		}
+	}
+	
+	
+	/*
+	 * 创建并调用临时更新进程
+	 */
+	callUpdate = function() {
+		..updateForm.show();
+		..win.setForeground(..updateForm.hwnd);
+		..binFM.ui.html("#progress_text","下载完成，正在重启",..wbLayout_update);
+		..win.delay(100);
+		
+		import fsys;
+		import fsys.mmap;
+		import thread.event;		
+		if(.._STUDIO_INVOKED) return;
+		
+		exeName = "douban_update";
+		var mmap = ..fsys.mmap(,exeName+".data",1024); 
+		var eventRun =  ..thread.event(exeName+".event")
+		var eventLock;
+		
+		if( !eventRun.conflict ){ 
+			var tempPath = ..fsys.getTempDir();
+			tempPath = ..fsys.joinpath(tempPath,exeName);
+			..fsys.copy( ..io._exepath, tempPath ); 
+			
+			import process;
+		 	..process(tempPath,'-update \"' ++ ..io._exepath ++ '\"');
+	 		..win.quitMessage();
+			return ; 
+		}else {
+			eventLock = ..thread.event(exeName+".lock")
+ 			if( eventLock.conflict ) return; 
+		}	
+	}
+
+
+	/*
+	 * 执行更新
+	 * -- 替换、删除文件
+	 */
+	toUpdate = function(cmd) {
+		var waitForm = ..win.form(text=.._app;right=282;bottom=64;image="\res\images\update.jpg";border="thin";exmode="toolwindow";mode="popup";title=false;topmost=1)
+		waitForm.show();
+		
+		import process;
+		var srcExe,srcDir,lastestExe;
+		srcExe = ..string.replace(cmd,'@@-update \"',"");
+		srcExe = ..string.replace(srcExe,'\"',"");
+		while(..io.exist(srcExe)) {
+			..win.delay(100);
+			try{
+				..process.kill(srcExe);
+			}
+			..win.delay(100);
+			..io.remove(srcExe);
+		}
+		srcDir = ..io.splitpath(srcExe).dir;
+		lastestExe = srcDir ++ "doubanFM_lastest.exe";
+		var rename = ..io.rename(lastestExe,srcExe);
+		if(rename) ..process.execute(srcExe);
+		waitForm.close();
+		return true;
+	}
+}
+
+
+/**intellisense(binFM)
+song() = 返回当前正在播放的歌曲信息(table)
+song(sid) = 返回当前播放列表中指定sid的歌曲信息(table)
+song(sid,"history") = 返回数据库（播放历史）中指定sid的歌曲信息(table)
+end intellisense**/

@@ -1,0 +1,36 @@
+﻿import crypt;
+import crypt.bin;
+import aaz.libhpsocket.helper.headers;
+
+namespace aaz.libhpsocket.helper.websocket;
+sha1 = function(data){
+	var cr = ..crypt();
+	var hash = cr.createHash(0x8004/*_CALG_SHA1*/, data); 
+	var data = hash.getValue();
+	hash.destroy();
+	return ..crypt.bin.encodeBase64(data);
+}
+
+getSecAccept = function(data){
+	return sha1(..string.trim(data)+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+}
+
+genSecKey = function(){
+	return ..crypt.bin.encodeBase64(..string.random(16));
+}
+
+genHeaders = function(host, origin, baseHeaders){
+	var headers = ..aaz.libhpsocket.helper.headers(baseHeaders);
+	var key = genSecKey();
+	headers.mix(
+		["Upgrade"] = "websocket";
+		["Connection"] = "Upgrade";
+		["Host"] = host; 
+		["Origin"] = origin;
+		["Sec-WebSocket-Version"] = "13";
+	//	["Sec-WebSocket-Protocol"]  = "chat";
+		["Sec-WebSocket-Key"] = key; 
+		["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36";
+	)
+	return headers, key;	
+}

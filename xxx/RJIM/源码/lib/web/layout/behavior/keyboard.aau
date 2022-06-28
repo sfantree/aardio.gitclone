@@ -1,0 +1,44 @@
+
+namespace web.layout.behavior.keyboard;
+   
+onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+
+	if( ltEle.type == "checkbox" ){
+		if( ltEle.state.checked ){
+		 
+			ltEle.parent().enumQuery(
+				function(ltEle){
+					var sup = ltEle.queryElement("sup");
+					if( sup ){
+					    ltEle.style.color = "#666";
+					    sup.style.color = "#000"; 
+					}
+				},"button"
+			)
+		}
+		else {
+			ltEle.parent().enumQuery(
+				function(ltEle){
+					var sup = ltEle.queryElement("sup");
+					if( sup ){
+					    ltEle.style.color = "#000";
+					    sup.style.color = "#666"; 
+					}
+				},"button"
+			)
+		}
+		
+	}
+	else {
+		var ltShift = ltEle.parent().queryElement("button[type=checkbox]");
+		var isShift = ltShift.state.checked;
+		
+		var sup = ltEle.queryElement("sup");
+		if( sup ){
+			var text = isShift ? sup.innerText : ltEle.innerText;
+			text  = ..string.left(text,1);
+			 
+			ltEle.root().getElementById("password").xcall("appendText", text);
+		} 
+	} 
+}

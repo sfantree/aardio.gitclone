@@ -1,0 +1,55 @@
+/*
+ *	tv
+ *  https://github.com/hikdo
+ *	January 1,2017
+ */
+namespace web.layout.behavior.main.playerControl{
+
+	onMouseClick = {
+	
+		ctrlPlay = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+			if(..web.layout.behavior.main.player.aPlayer.getState() == 5/*_APLAYER_PS_PLAY*/) {	
+				..web.layout.behavior.main.player.aPlayer.pause();				
+			} else {
+				..web.layout.behavior.main.player.aPlayer.play();				
+			}
+		};
+		
+		ctrlOpen = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+			import fsys.dlg
+			var filePath = fsys.dlg.open("ÊÓÆµ/ÒôÆµÎÄ¼þ|*.*");			
+			if(!filePath) {
+				return;
+			}			
+			..web.layout.behavior.main.player.aPlayer.open(filePath);		
+		};
+		
+		ctrlChannel =  function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+			var channel = ..wbLayout.getEle("channleList");
+			if(channel.style.display != "none") {
+				channel.style.display = "none";
+			} else {
+				channel.style.display = null;
+			}
+		};
+		
+	}	
+	
+	onButtonStateChanged = {
+		ctrlVolume = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+			var volume = ltTarget.value * 2;
+			..web.layout.behavior.main.player.aPlayer.setVolume(volume);
+		};
+		
+		ctrlProgress = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+			var progress = ltTarget.value;
+			var duration = ..web.layout.behavior.main.player.aPlayer.getDuration();
+			if(duration < 1) {
+				return;
+			}
+			progress = ..math.round(duration*progress/100);
+			..web.layout.behavior.main.player.timeCount = ..math.floor(progress/1000);
+			..web.layout.behavior.main.player.aPlayer.setPosition(progress);
+		};
+	}
+}

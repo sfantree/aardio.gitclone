@@ -1,0 +1,18 @@
+﻿import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="Web Form";right=599;bottom=399;bgcolor=16777215)
+winform.add()
+/*}}*/
+
+//创建web窗体
+import web.form;
+var wb = web.form( winform );
+wb.noScriptErr = true;
+
+//打开目标网站
+wb.go("http://bbs.aau.cn/") 
+winform.show(); //显示窗体
+ 
+//启动消息循环
+win.loopMessage(); 
+return  winform; 

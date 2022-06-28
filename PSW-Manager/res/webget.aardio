@@ -1,0 +1,33 @@
+import process;
+import inet.http;
+var i=0;
+
+
+getWebData=function(params,verify=true){
+	i++;
+	//console.log(myHttp+'?'+params+"&i="+i)
+	if(verify){
+		params+='&verify='+string.format("%x", string.crc32(usrId+time.tick()));
+	}
+	var http = inet.http();
+	var html,err,errCode = http.get(myHttp+'?'+params+"&i"+i);
+	http.close();
+	
+	if( html ){
+  		return html,""; 
+	}
+	else {
+		if( http.statusCode ){
+			//服务端返回错误信息
+			//console.log( http.lastResponse()+ "HTTP Error Code:" +err+ http.statusCode)
+			return "", http.lastResponse()+ "HTTP Error Code:" +err+ http.statusCode;
+		}
+		else{
+			//本地内部错误
+			//console.log("eeee",err,errCode)
+			return '',err;
+		}
+		
+	}
+}
+

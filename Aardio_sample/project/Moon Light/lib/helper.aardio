@@ -1,0 +1,204 @@
+﻿import win.ui.accelerator;
+import win.ui.tracker;
+import mouse;
+
+namespace helper{
+    class formManager{
+    	ctor( frmPlayer){
+    		var mouseX, mouseY = ..mouse.getPos();
+    		var fRC = {};
+    	};
+    	checkMouseIsInside = function(){
+    		return ::PtInRect(frmPlayer.getRect(true), ..mouse.getPos()); 	
+    	}     	
+    	showCursor = function(){
+    		// 恢复指针坐标
+    		if( !this.beginMouseEnter ){
+    			..mouse.setPos(mouseX, mouseY)
+    		}
+    		
+    		while( ::User32.ShowCursor(true) < 0 ){
+    		
+    		}
+    		this.cursorIsShow = true
+    	}
+    	hideCursor = function(){
+    		// 记录指针坐标
+    		mouseX, mouseY = ..mouse.getPos()  	
+    		while( ::User32.ShowCursor(false) >= 0 ){
+    		
+    		}  			
+  			this.cursorIsShow = false
+    	}
+    	setCursor = function(){
+			if( this.isFullscreen ){
+				this.hideCursor()
+			}
+			else {
+				this.showCursor()
+			}    		
+    	}
+    	bindTracker = function(...){
+    		var tracker =  ..win.ui.tracker( frmPlayer )
+    		var frmBar = ...;
+			tracker.onMouseLeave = function(wParam,lParam){ 
+				if( this.onMouseLeave ){
+					if( this.checkMouseIsInside() ) return ; 
+					this.onMouseLeave(wParam,lParam)
+					return ; 
+				}
+				if(frmBar){
+					if( this.checkMouseIsInside() ) return ;
+					frmBar.setRect( frmPlayer.getRect(true) );
+					if(!frmBar._sciter.querySelector(".danmuico").state["checked"]){
+						frmBar.show(false);
+						switchflag = false;
+					} else {
+						frmBar._sciter.querySelector(
+							"#container  #bottom").style["visibility"] = "collapse";
+							switchflag = false;
+					}
+					
+					return ; 
+				}
+
+			}
+			tracker.onMouseEnter = function(wParam,lParam){
+				if( this.onMouseEnter ){
+					this.onMouseEnter(wParam,lParam);
+					
+					this.beginMouseEnter = true;
+					this.showCursor();
+					this.beginMouseEnter = false;
+					return ; 
+				}
+				if(frmBar){
+					frmBar.setRect( frmPlayer.getRect(true) );
+					//frmBar.show(true);
+					this.beginMouseEnter = true;
+					this.showCursor();
+					this.beginMouseEnter = false;
+					return ; 
+				}
+
+			}
+			tracker.onMouseDown = function(wParam,lParam){
+			    mouseX, mouseY = ..win.getMessagePos(lParam);
+			    mouseX, mouseY = ..win.toScreen(frmPlayer.hwnd,mouseX,mouseY);
+			    fRC.x, fRC.y, fRC.w, fRC.h = ..win.getPos(
+			    							..win.getRoot(frmPlayer.hwnd), true);
+			    fRC.dx = 0;
+			    fRC.dy = 0;
+			    fRC.mx = mouseX;
+			    fRC.my = mouseY;
+
+			}
+			tracker.onMouseDrag = function(wParam,lParam){ 		
+/*
+				if( this.onMouseDrag ){
+					this.onMouseDrag(wParam,lParam)
+					return ;
+				}
+*/
+				var x, y = ..win.getMessagePos(lParam);
+				x, y = ..win.toScreen(frmPlayer.hwnd,x,y);
+				var wRC = {};
+				var dx = x - fRC.mx;
+				var dy = y - fRC.my;
+				fRC.dx = fRC.dx + dx;
+				fRC.dy = fRC.dy + dy;
+				wRC.x = fRC.x + fRC.dx;
+				wRC.y = fRC.y + fRC.dy;
+				fRC.mx = x;
+				fRC.my = y;
+				if(..math.abs(fRC.dx) > fRC.w * 0.01 ||
+								..math.abs(fRC.dy) > fRC.h * 0.01){
+					..win.setPos(..win.getRoot(frmPlayer.hwnd), wRC.x, wRC.y);
+					fRC.dx = 0;
+					fRC.dy = 0;
+					fRC.x, fRC.y, fRC.w, fRC.h = ..win.getPos(
+			    							..win.getRoot(frmPlayer.hwnd), true);
+					if( this.onMouseDrag ){
+						this.onMouseDrag(wParam,lParam)
+						return ;
+					}
+					frmBar.setRect( frmPlayer.getRect(true) );
+				}
+ 
+			}
+			
+			tracker.onMouseMove = function(wParam,lParam){
+				if( this.onMouseMove ){
+					this.onMouseMove(wParam,lParam)
+				}
+				
+			}
+			
+			tracker.onMouseClick = function(wParam,lParam){
+
+			    if(this.onMouseClick){
+			    	this.onMouseClick(wParam,lParam)
+			    	return ; 
+			    }
+			    if(frmBar){
+			    	numflag := 0;
+			    	numflag ++;
+			    	if(numflag == 2){
+			    		switchflag = !switchflag;
+			    		numflag = 0;	
+			    	}
+			    	frmBar.setRect( frmPlayer.getRect(true) );
+			    	if(switchflag){
+			    		if(!frmBar._sciter.querySelector(".danmuico").state["checked"]){
+							frmBar.show(true);
+						} else {
+							frmBar._sciter.querySelector(
+								"#container  #bottom").style["visibility"] = "visible";
+						}
+						
+			    	} else {
+			    		if(!frmBar._sciter.querySelector(".danmuico").state["checked"]){
+							frmBar.show(false);
+						} else {
+							frmBar._sciter.querySelector(
+								"#container  #bottom").style["visibility"] = "collapse";
+						}
+						
+			    	}
+			    
+					return ; 
+			    }
+
+  				/*鼠标左键在控件上单击,  
+				orphanWindow模式下如果阻止控件得到焦点,此事件不会被触发*/
+			}
+
+			tracker.onMouseDoubuleClick = function(wParam,lParam){ 
+			    if(this.onMouseDoubuleClick){
+			    	this.onMouseDoubuleClick(wParam,lParam)
+			    }
+			}
+    	}
+    	bindFullscreen = function( mainForm ){
+			..win.ui.accelerator({
+				{ vkey =0x1B/*_VK_ESC*/;oncommand = function(id,event) { 
+						this.isFullscreen = frmPlayer.fullscreen(false)	
+						
+						this.setCursor()
+						
+						if( !this.isFullscreen ? this.onRestore ){
+							this.onRestore()
+						}							
+				} }  
+    			{ vkey =0x7A/*_VK_F11*/; oncommand = function(id,event) {
+						this.isFullscreen = frmPlayer.fullscreen()			
+						
+						this.setCursor()
+						if( !this.isFullscreen ? this.onRestore ){
+							this.onRestore()
+						}	
+    			}}  
+			},mainForm);	     		
+    	}	
+    }  		
+}

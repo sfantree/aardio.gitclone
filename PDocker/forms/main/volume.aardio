@@ -1,0 +1,35 @@
+import win.ui;
+/*DSG{{*/
+var frmVolume = win.form(text="aardio form";right=828;bottom=628;bgcolor=16777215)
+frmVolume.add(
+editLocal={cls="edit";left=43;top=384;right=776;bottom=585;db=1;dl=1;dr=1;edge=1;multiline=1;z=2};
+editServer={cls="edit";left=43;top=64;right=776;bottom=312;db=1;dl=1;dr=1;dt=1;edge=1;multiline=1;z=1};
+static={cls="static";text="服务器容器映射目录
+每行一个，冒号前为本地目录，示例：/root/container-name/dir-path:/root/container-name/dir-path";left=42;top=11;right=775;bottom=45;dl=1;dr=1;dt=1;transparent=1;z=3};
+static2={cls="static";text="本地容器映射目录
+每行一个，冒号前为本地目录(请使用相对路径)，示例：./dir-path:/root/container-name/dir-path";left=42;top=336;right=775;bottom=370;db=1;dl=1;dr=1;transparent=1;z=4}
+)
+/*}}*/
+
+frmVolume.show();
+
+subscribe("docker-update-setting",function(docker){
+	//var docker = process.docker(); 
+	docker.bindVolume = string.splitEx(frmVolume.editServer.text)
+	docker.bindVolumeLocal = string.splitEx(frmVolume.editLocal.text)  
+} )
+
+import config;
+frmVolume.bindConfig( config.frmVolume,{
+	edit = "text";
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+	plus ={
+		["^chk"] = "checked";
+		["^edit"] = "text";
+	};
+} );
+
+win.loopMessage();
+return frmVolume;

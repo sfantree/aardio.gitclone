@@ -1,0 +1,64 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="psm2dxf";right=759;bottom=469;acceptfiles=1)
+winform.add(
+button={cls="button";text="export DXF";left=648;top=424;right=752;bottom=456;db=1;dr=1;z=2};
+listview={cls="listview";left=0;top=0;right=760;bottom=416;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+static={cls="static";text="把psm文件拖放进来";left=8;top=432;right=312;bottom=456;db=1;dl=1;transparent=1;z=3};
+static2={cls="syslink";text="<a>清空列表</a>";left=576;top=432;right=632;bottom=448;db=1;dr=1;transparent=1;z=4}
+)
+/*}}*/
+
+import tarray;
+import solidedge.application;
+import solidedge.SheetMetalDocument;
+var seApp = solidedge.application();
+/*
+import console
+console.open()
+*/
+import config;
+
+winform.onDropFiles = function(files){
+	var tab = {};	
+	tab.fields = {[1] = "文件名"; [2]="Path"; [3] = "output"}
+	var t = {}
+	for (i=1;#files){
+		var fn = string.match(files[i],".+\\(.+)$");
+		var fp = string.match(files[i],"^(.+)\\.+$");
+		var tf = config.setbm.workingDir;
+		if !string.endWith(tf,"\") tf = tf ++ "\";
+		tf = tf ++ string.replace(fn,"@@.psm",".dxf");
+		tab[i]={
+			"文件名" =  fn;
+			"Path" = fp;
+			"output" = tf;
+		}
+	}
+	winform.listview.setTable(tab);
+	winform.listview.adjust = function(cx,cy){
+	    winform.listview.fillParent(1);
+	    winform.listview.fillParent(2);
+	    winform.listview.fillParent(3);
+	}
+}
+
+winform.button.oncommand = function(id,event){
+	for (i=1; winform.listview.count){
+		var fn = winform.listview.getItemText(i,2) ++ "\" ++ winform.listview.getItemText(i,1);
+		var psm = seApp.Open(fn, false);
+		var sePSM = solidedge.SheetMetalDocument(psm);
+		sePSM.psm2dxf(winform.listview.getItemText(i,3));
+		sePSM.close(true /* SaveChanges */);
+	}
+	win.msgboxTimeout("done", "dxf", 5 * 1000);
+}
+
+winform.static2.onHyperlinkClick = function(nmSysLink,url,id){
+	winform.listview.clear(true);
+}
+
+
+winform.show();
+win.loopMessage();
+return winform;

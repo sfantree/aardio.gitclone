@@ -1,0 +1,32 @@
+﻿//BASE32库
+namespace base32;
+import string;
+
+decode = function(b32str=""){
+	if( #b32str ){
+		b32str = string.lower(b32str) //防止大写引起的错误
+		var mbit = 0
+		var vbit = 0
+		var b32ret = ""
+		for(i=1; string.len(b32str); 1){
+			mbit <<= 5
+			if(b32str[i] >= 'a'# and b32str[i] <= 'z'#)
+				{mbit += (b32str[i] - 97)}
+			elseif(b32str[i] >= '2'# and b32str[i] <= '7'#)
+				{mbit += (b32str[[i]] + 24)}
+			vbit += 5
+			while(vbit >= 8){
+				vbit -= 8
+				b32ret += string.pack(mbit >> vbit)
+				mbit &= ((1 << vbit) - 1)
+			}
+		}
+		return b32ret; 
+	} else {
+		return b32str; 
+	}
+}
+
+encode = function(b32str=""){
+	return false; 
+}

@@ -1,0 +1,326 @@
+﻿import aaz.libhpsocket.helper.headers;
+import aaz.libhpsocket.helper.cookie;
+import aaz.libhpsocket.component.properties.tcpAgent;
+
+namespace aaz.libhpsocket.component.properties.httpAgent;
+..table.mix(self, ..aaz.libhpsocket.component.properties.tcpAgent);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+sendRequest = function(connId, method="GET", path, headers, body){
+	headers = ..aaz.libhpsocket.helper.headers( headers );
+	return _dll.HP_HttpAgent_SendRequestB(
+			owner.pAgent, 
+			connId, 
+			method, 
+			path, 
+			headers.struct(), 
+			headers.length(), 
+			body, 
+			#body);
+}
+
+sendLocalFile = function(connId, filename, method, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpAgent_SendLocalFileB(
+			owner.pAgent,
+			connId,
+			..io.fullpath(filename),
+			method,
+			path,
+			headers.struct(),
+			headers.length());
+}
+
+sendChunkData = function(connId, pData, len=0, extensions){
+	return _dll.HP_HttpAgent_SendChunkDataB(connId, pData, len, extensions); 
+}
+
+sendPost = function(connId, path, headers, body){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpAgent_SendPost(
+			owner.pAgent,
+			connId,
+			path,
+			headers.struct(),
+			headers.length(),
+			body,
+			#body);
+}
+
+sendPut = function(connId, path, headers, body){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpClient_SendPutB(
+			owner.pAgent,
+			connId, 
+			path,
+			headers.struct(),
+			headers.length(), 
+			body, 
+			#body);
+}
+
+sendPatch = function(connId, path, headers, body){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpClient_SendPatchB(
+			owner.pAgent,
+			connId, 
+			path,
+			headers.struct(),
+			headers.length(), 
+			body, 
+			#body);
+}
+
+sendGet = function(connId, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpAgent_SendGetB(
+			owner.pAgent, 
+			connId, 
+			path, 
+			headers.struct(), 
+			headers.length());
+}
+
+sendDelete = function(connId, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpClient_SendDeleteB(
+			owner.pAgent,
+			connId, 
+			path,
+			headers.struct(),
+			headers.length());
+} 
+
+sendHead = function(connId, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpClient_SendHeadB(
+			owner.pAgent,
+			connId,
+			path,
+			headers.struct(),
+			headers.length());
+} 
+
+sendTrace = function(connId, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers)
+	return _dll.HP_HttpClient_SendTraceB(
+			owner.pAgent,
+			connId, 
+			path,
+			headers.struct(),
+			headers.length());
+} 
+
+sendOptions = function(connId, path, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers);
+	return _dll.HP_HttpClient_SendOptionsB(owner.pAgent, connId, path, headers.struct(), headers.length());
+} 
+
+sendConnect = function(connId, host, headers){
+	headers = ..aaz.libhpsocket.helper.headers(headers);
+	return _dll.HP_HttpAgent_SendConnectB(
+			owner.pAgent,
+			connId,
+			host,
+			path,
+			headers.struct(),
+			headers.length());
+}
+
+sendWsMessage = function(connId, data, opCode, final=true, mask='\x01\x02\x03\x04', bodyLen=0, reserved){
+	var len = 0;
+	if(data[["_struct"]]){
+		len = ..raw.sizeof(data);
+		opCode = 2;
+	}
+	elseif(type(data) == type.string){
+		len = #data;
+		opCode = 1;
+	}
+
+	if(data) data = realloc(len, null, data); 
+	
+	var ret = _dll.HP_HttpAgent_SendWSMessageB(
+		owner.pAgent,
+		connId,
+		final,
+		reserved,
+		opCode,
+		mask,
+		data, 
+		len, 
+		..math.size64(len + bodyLen));
+		
+    if(data) data = realloc(0, data);	
+	return ret;
+}
+
+startHttp = function(connId){
+	return _dll.HP_HttpAgent_StartHttpB(owner.pAgent, connId);
+}
+
+getStatusCode = function(connId){
+	return 0xFFFF & _dll.HP_HttpAgent_GetStatusCode(owner.pAgent, connId);
+}
+
+isUpgrade = function(connId){
+	return _dll.HP_HttpAgent_IsUpgradeB(owner.pAgent, connId);
+}
+
+isKeepAlive = function(connId){
+	return _dll.HP_HttpAgent_IsKeepAliveB(owner.pAgent, connId);
+} 
+
+getVersion = function(){
+	return 0xFFFF & _dll.HP_HttpAgent_GetVersion(owner.pAgent);
+}
+
+getContentLength = function(connId){
+	return _dll.HP_HttpAgent_GetContentLength(owner.pAgent, connId);
+}
+
+getContentType = function(connId){
+	var s = _dll.HP_HttpAgent_GetContentTypeP(owner.pAgent, connId);
+	if(s) return ..raw.str(s);
+}	
+
+getContentEncoding = function(connId){
+	var s = _dll.HP_HttpAgent_GetContentEncodingP(owner.pAgent, connId);
+	if(s) return ..raw.str(s);
+}
+
+getTransferEncoding = function(connId){
+	var s = _dll.HP_HttpAgent_GetTransferEncodingP(owner.pAgent, connId);
+	if(s) return ..raw.str(s);
+}
+
+getUpgradeType = function(connId){
+	return  _dll.HP_HttpAgent_GetUpgradeType(owner.pAgent, connId);
+}
+
+getParseErrorCode = function(connId){
+	var errdesc= {string value};
+	// int -> USHORT
+	var errno = 0xFFFF & _dll.HP_HttpAgent_GetParseErrorCode(owner.pAgent, connId, errdesc);
+	return errno, errdesc.value;
+}
+
+getHeader = function(connId, name){
+	var value = {string value};
+	_dll.HP_HttpAgent_GetHeader(owner.pAgent, connId, name, value);
+	return value.value;
+}
+
+getHeaders = function(connId, name){
+	var values = { string array[] = {INT length} };
+	
+	_dll.HP_HttpAgent_GetHeaders(owner.pAgent, connId, null, values.array);
+	if( s.array.length == 0 ){
+		return null;
+	}
+	
+	_dll.HP_HttpAgent_GetHeaders(owner.pAgent, connId, name, values, values.array);
+	return values.array;
+}
+
+getAllHeaders = function(connId){
+	var headers = ..aaz.libhpsocket.helper.headers(); 
+	
+	_dll.HP_HttpAgent_GetAllHeaders(owner.pAgent, connId, null, headers.array);
+	if( headers.array.length == 0 ){
+		return null; 
+	}
+	
+	_dll.HP_HttpAgent_GetAllHeaders(owner.pAgent, connId, headers.struct(), headers.array);
+	return headers.array;
+}
+
+getAllHeaderNames = function(connId){
+	var names = {string array[] = {INT length} };
+	
+	_dll.HP_HttpAgent_GetAllHeaderNames(owner.pAgent, connId, null, names.array);
+	if( names.array.length == 0 ){
+		return null; 
+	}
+	
+	_dll.HP_HttpAgent_GetAllHeaderNames(owner.pAgent, connId, names, names.array);
+	return names.array;
+}
+
+getCookie = function(connId, name){
+	var cookie = {string value};
+	_dll.HP_HttpAgent_GetCookieB(owner.pAgent, connId, name, cookie);
+	return cookie.value;
+}
+
+getAllCookies = function(connId){
+	var cookies = ..aaz.libhpsocket.helper.cookie();
+	
+	_dll.HP_HttpAgent_GetAllCookies(owner.pAgent, connId, null, cookies.array);
+	if(cookies.array.length == 0){
+		return null;
+	}
+	
+	_dll.HP_HttpAgent_GetAllCookies(owner.pAgent, connId, cookies, cookies.array);
+	return cookies.array;
+}
+
+getWsMessageState = function(connId){
+	var final = {bool value};
+	var reserved = {BYTE value};
+	var operationCode = {BYTE value};
+	var mask = {INT value};
+	var bodyLen = {LONG value};
+	var bodyRemain = {LONG value}; 
+	
+	var ok = _dll.HP_HttpAgent_GetWSMessageState(
+		owner.pAgent, 
+		connId, 
+		final, 
+		reserved,
+		operationCode, 
+		mask, 
+		bodyLen, 
+		bodyRemain);
+		
+	if(ok){
+		return{
+			final = final.value;
+			reserved = reserved.value;
+			operationCode = operationCode.value;
+			mask = mask.value;
+			bodyLen = bodyLen.value;
+			bodyRemain = bodyRemain.value
+		}
+	}
+}
+
+localVersion = {
+    _get = function(){
+    	return _dll.HP_HttpAgent_GetLocalVersion(owner.pAgent);  
+    }
+    _set = function(v){
+    	_dll.HP_HttpAgent_SetLocalVersion(owner.pAgent, v);
+    } 
+}
+
+isUseCookie = {
+    _get = function(){
+    	return _dll.HP_HttpAgent_IsUseCookieB(owner.pAgent);  
+    }
+    
+    _set = function(v){
+    	_dll.HP_HttpAgent_SetUseCookie(owner.pAgent, v);
+    } 
+}
+
+isHttpAutoStart = {
+    _get = function(){
+    	return _dll.HP_HttpAgent_IsHttpAutoStartB(owner.pAgent);  
+    }
+    
+    _set = function(v){
+    	_dll.HP_HttpAgent_SetHttpAutoStart(owner.pAgent, v);
+    } 
+}

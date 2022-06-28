@@ -1,0 +1,16 @@
+﻿import hpsocket.socket.tcpAgent;
+namespace hpsocket.socket;
+
+class tcpPullAgent{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpAgent(obj);
+	};
+	fetch = function(connId,buf,len){ 
+		if(len===null)len=#buf;
+		return ::HPSocket.HP_TcpPullAgent_Fetch(this.pSocket,connId,buf,len);
+	}
+	peek = function(connId,buf,len){
+		if(len===null)len=#buf;
+		return ::HPSocket.HP_TcpPullAgent_Peek(this.pSocket,connId,buf,len);
+	}	
+}

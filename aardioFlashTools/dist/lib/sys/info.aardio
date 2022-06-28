@@ -1,0 +1,40 @@
+//info 系统信息
+namespace sys;
+
+class info{
+	ctor(){
+		this = {
+ 			WORD wProcessorArchitecture;
+ 			INT dwPageSize;
+ 			ADDR lpMinimumApplicationAddress;
+ 			ADDR lpMaximumApplicationAddress;
+ 			ADDR dwActiveProcessorMask;
+ 			INT dwNumberOfProcessors;
+ 			INT dwProcessorType;
+ 			INT dwAllocationGranularity;
+ 			WORD wProcessorLevel;
+ 			WORD wProcessorRevision;
+		}
+		if( ::Kernel32.GetNativeSystemInfo ) ::Kernel32.GetNativeSystemInfo(this);
+		else ::Kernel32.GetSystemInfo(this);
+	}
+	isX64  = function(){
+		return this.wProcessorArchitecture == 9/*_PROCESSOR_ARCHITECTURE_AMD64*/
+	}
+}
+
+/**intellisense()
+sys.info = 获取 SYSTEM_INFO
+sys.info() = 调用 GetSystemInfo() 获取 SYSTEM_INFO结构体 \n!sys_info.
+!sys_info.wProcessorArchitecture = CPU体系结构
+!sys_info.dwPageSize = 被API函数 VirtualAlloc 使用的页大小
+!sys_info.lpMinimumApplicationAddress = 程序可以访问的最低内存地址
+!sys_info.lpMaximumApplicationAddress = 程序可以访问的最高内存地址
+!sys_info.dwActiveProcessorMask = CPU掩码
+!sys_info.dwNumberOfProcessors = CPU数目
+!sys_info.dwProcessorType = CPU类型
+!sys_info.dwAllocationGranularity = 已被分配的虚拟内存空间粒度
+!sys_info.wProcessorLevel = 处理器级别
+!sys_info.wProcessorRevision = 修订版本号
+!sys_info.isX64() = 是否64位处理器
+end intellisense**/

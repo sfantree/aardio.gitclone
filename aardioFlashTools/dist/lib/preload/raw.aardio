@@ -1,0 +1,93 @@
+//raw 原生静态类型
+namespace preload;
+self.raw = global.raw;
+
+namespace raw{
+	convertArray = function(p,l,t="pointer"){
+		if(!p) return; 
+		
+		var a; 
+		if(type(t)=="class") t = t();
+		
+		if( !t[["_struct"]] ) a = toarray(l,t,"v" );
+		else{
+	    	a = toarray(l,"struct","v");a.v = {t};
+		} 
+		
+		return convert(p,a).v;
+	};
+	mixin = function(p,s,v,...){
+ 		if(v){
+    		convert(p, s);
+    		..table.assign(s,v,...)
+    	}
+    	convert(s,p);
+    	return s;
+	};
+	dup = function(h,src,dst,inherit){
+		var t = {ptr v}
+		if( ::Kernel32.DuplicateHandle(src:-1,h,dst :-1,t,0,inherit,2) ) return t.v;
+	};
+	serializeDupHandle = function(cls,handle){ 
+		return ..string.format("global.import('%s') : %s( ..raw.dup(topointer(0x%p)),true)",cls,cls,topointer(handle) );
+	};
+	malloc = buffer;
+	
+	__module__ = {};
+	module = function(cal){
+		if(!cal)cal="stdcall";
+		if( __module__[cal] ) return __module__[cal];
+		__module__[cal] = loadDll(,,cal); 
+		return __module__[cal];
+	};
+	main = module("stdcall");
+	
+	class number {
+		ctor(t,v){
+			this = v;
+			this.type = t;
+		};
+		@_meta;
+	};
+	
+	number._meta = {
+		_tonumber=lambda() owner.value;
+		_number_type=lambda() owner.type;
+		_tostring=lambda() tostring(owner.value);
+		_json=function() { return tostring(owner.value),true}; 
+		_eq = lambda(v) owner.value = v.value;
+		_type="raw.number";
+	}; 
+	
+	double = lambda(v,ref) number("double",ref?{double value=v}:{value = v});
+	float = lambda(v,ref) number("float",ref?{float value=v}:{value = v});
+	byte = lambda(v,ref) number("byte",ref?{byte value=v}:{value = v});
+	ubyte = lambda(v,ref) number("BYTE",ref?{BYTE value=v}:{value = v});
+	word = lambda(v,ref) number("word",ref?{word value=v}:{value = v});
+	uword = lambda(v,ref) number("WORD",ref?{WORD value=v}:{value = v});
+	int = lambda(v,ref) number("int",ref?{int value=v}:{value = v});
+	uint = lambda(v,ref) number("INT",ref?{INT value=v}:{value = v});
+	long = lambda(v,ref) number("long",ref?{long value=v}:{value = v});
+	ulong = lambda(v,ref) number("LONG",ref?{LONG value=v}:{value = v}); 
+}
+
+/**intellisense(raw)
+mixin(.(指针,结构体对象,任意个混入对象) = 混入新的值,支持任意个混入table对象,\n自动更新指针指向内存,并返回结构体对象
+convertArray(.(源内存指针,源数组长度,"数据类型") = 将指针指向的内存转换为普通数组,传入空指针返回空值\n数据类型参数可省略,默认为"pointer"\n类型类型也可以直接传入一个声明元素类型的结构体参数\n注意该函数不会检测内存溢出错误,调用该函数时必须保证数组长度是正确的值
+dup(.(源句柄,源进程,目标进程,允许子进程继承) = 返回复制的系统句柄\n除参数1之外,其他参数可选\n默认仅在当前进程中复制句柄\n复制的句柄应使用raw.closehandle释放
+serializeDupHandle(.("类名",句柄) = 复制进程内有效句柄并序列化对象\n只能用于_serialize元方法，且必须kernelCall参数为真\n序列化类构造函数必须支持指针参数1为指针类型句柄,参数2为true的参数\n并负责在析构函数中调用 raw.closehandle 释放该句柄
+module() = !dllModule.
+module(.("调用约定") = 指定约定并返回进程主模块, \n省略参数时调用约定默认为stdcall,\n可用于将当前进程中的函数指针转换为aardio函数,
+main = 进程主模块,默认调用约定为stdcall\n与raw.module("stdcall")返回的值相同,\n可用于将当前进程中的函数指针转换为aardio函数\n!dllModule.
+
+double(__) = 转换参数@1指定的数值为 double 类型数值（64位浮点数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.double 函数
+float(__) = 转换参数@1指定的数值为 float 类型数值（32位浮点数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.float 函数
+byte(__) = 转换参数@1指定的数值为 byte 类型数值（8位整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.byte 函数
+ubyte(__) = 转换参数@1指定的数值为 BYTE 类型数值（8位无符号整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.ubyte 函数,\n注意在静态类型中使用大写的 BYTE 类型表示8位无符号整数
+word(__) = 转换参数@1指定的数值为 byte 类型数值（16位整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.word 函数
+uword(__) = 转换参数@1指定的数值为 BYTE 类型数值（16位无符号整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.uword 函数,\n注意在静态类型中使用大写的 WORD 类型表示16位无符号整数
+int(__) = 转换参数@1指定的数值为 byte 类型数值（32位整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.int 函数
+uint(__) = 转换参数@1指定的数值为 BYTE 类型数值（32位无符号整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.uint 函数,\n注意在静态类型中使用大写的 INT 类型表示32位无符号整数
+long(__) = 转换参数@1指定的数值为 byte 类型数值（64位整数）包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.long 函数
+ulong(__) = 参数@1可传入数值或math.size64 对象,\n返回适用于 LONG 类型数值（64位无符号整数）的包装对象,\n返回对象支持 tonumber tostring 等类型转换函数。\n\n用于调用非声明式静态 API 函数的参数,\n默认传值,参数@2为 true 则用于传址参数（传数值的指针）。\n\n用于 COM 函数参数则总是传值, COM 函数也可使用 com.ulong 函数,\n注意在静态类型中使用大写的 LONG 类型表示64位无符号整数
+end intellisense**/

@@ -1,0 +1,5 @@
+﻿//main 启动文件
+
+import ide;
+
+ide.pluginViewCreate("\main.plugin.aardio");

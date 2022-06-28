@@ -1,0 +1,504 @@
+//窗口探测器(winspy)
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="窗口探测器 zp-wmhx@163.com";left=-2;top=100;right=688;bottom=526;max=false)
+winform.add(
+chkPassword={cls="checkbox";text="允许抓取密码";left=280;top=77;right=420;bottom=96;checked=1;dl=1;dt=1;z=29};
+chkSkipDiabled={cls="checkbox";text="忽略禁用窗口";left=288;top=342;right=390;bottom=364;db=1;dl=1;z=34};
+chkSkipInvisible={cls="checkbox";text="忽略隐藏窗口";left=183;top=343;right=285;bottom=364;checked=1;db=1;dl=1;z=33};
+chkSkipTransparent={cls="checkbox";text="忽略透明窗口";left=77;top=342;right=179;bottom=364;db=1;dl=1;z=32};
+editClass={cls="edit";left=77;top=139;right=214;bottom=160;dl=1;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=22};
+editHwnd={cls="edit";left=77;top=13;right=185;bottom=36;dl=1;dt=1;edge=1;hidesel=1;multiline=1;readonly=1;tabstop=1;z=17};
+editId={cls="edit";left=353;top=169;right=455;bottom=192;dl=1;dr=0.34;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=26};
+editOwnerHwnd={cls="plus";left=395;top=16;right=470;bottom=30;align="left";color=16711680;dl=1;dt=1;notify=1;z=16};
+editParenHwnd={cls="plus";left=245;top=16;right=320;bottom=30;align="left";color=16711680;dl=1;dt=1;notify=1;z=14};
+editPath={cls="edit";left=77;top=45;right=494;bottom=68;dl=1;dr=0.28;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=18};
+editPid={cls="edit";left=77;top=77;right=142;bottom=98;dl=1;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=19};
+editPoint={cls="edit";left=77;top=169;right=298;bottom=192;dl=1;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=25};
+editStyle={cls="edit";left=254;top=139;right=340;bottom=160;dl=1;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=23};
+editStyleEx={cls="edit";left=406;top=139;right=494;bottom=160;dl=1;dr=0.28;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=24};
+editText={cls="edit";left=77;top=107;right=494;bottom=130;dl=1;dr=0.28;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=21};
+editTid={cls="edit";left=199;top=77;right=264;bottom=98;dl=1;dt=1;edge=1;hidesel=1;readonly=1;tabstop=1;z=20};
+groupbox={cls="groupbox";text="窗口操作";left=8;top=200;right=72;bottom=328;edge=1;z=36};
+hotkey={cls="hotkey";left=280;top=392;right=408;bottom=412;db=1;dl=1;edge=1;z=28};
+lbClass={cls="static";text="窗口类名:";left=0;top=141;right=73;bottom=158;align="right";dl=1;dt=1;z=4};
+lbHwnd={cls="static";text="窗口句柄:";left=10;top=15;right=73;bottom=32;align="right";dl=1;dt=1;z=1};
+lbId={cls="static";text="命令ID:";left=303;top=172;right=348;bottom=189;align="right";dl=1;dt=1;z=5};
+lbOwner={cls="static";text="所有窗口:";left=327;top=15;right=386;bottom=32;align="right";dl=1;dt=1;z=15};
+lbParenHwnd={cls="static";text="父窗口:";left=192;top=15;right=240;bottom=32;align="right";dl=1;dt=1;z=6};
+lbPid={cls="static";text="进程ID:";left=26;top=78;right=73;bottom=95;align="right";dl=1;dt=1;z=9};
+lbPoint={cls="static";text="窗口坐标:";left=3;top=172;right=73;bottom=189;align="right";dl=1;dt=1;z=12};
+lbStyle={cls="static";text="样式:";left=214;top=141;right=251;bottom=158;align="right";dl=1;dt=1;z=2};
+lbStyleEx={cls="static";text="扩展样式:";left=340;top=141;right=402;bottom=158;align="right";dl=1;dt=1;z=3};
+lbText={cls="static";text="窗口文本:";left=12;top=109;right=73;bottom=126;align="right";dl=1;dt=1;z=7};
+lbTid={cls="static";text="线程ID:";left=147;top=78;right=193;bottom=95;align="right";dl=1;dt=1;z=8};
+plusCur={cls="plus";left=16;top=384;right=48;bottom=416;background="\1.gif";db=1;dl=1;notify=1;repeat="center";z=10};
+richedit={cls="richedit";left=77;top=201;right=494;bottom=333;db=1;dl=1;dr=0.28;dt=1;edge=1;hscroll=1;multiline=1;tabstop=1;vscroll=1;z=27};
+spy_on_top={cls="checkbox";text="spy置顶";left=432;top=392;right=496;bottom=416;ah=1;aw=1;checked=1;z=35};
+static={cls="static";text="执行文件:";left=5;top=47;right=73;bottom=64;align="right";dl=1;dt=1;z=11};
+static2={cls="static";text="请拖动左侧瞄准器图标到目标窗口";left=72;top=392;right=256;bottom=408;center=1;db=1;dl=1;dr=1;z=13};
+static3={cls="static";text="下级子窗口:";left=502;top=4;right=602;bottom=18;dl=0.73;dt=1;transparent=1;z=31};
+static4={cls="static";text="0,0";left=392;top=344;right=494;bottom=366;align="right";transparent=1;z=41};
+treeview={cls="treeview";left=501;top=23;right=686;bottom=416;asel=false;bgcolor=16777215;db=1;dl=0.73;dr=1;dt=1;edge=1;hscroll=1;vscroll=1;z=30};
+["whnd_发送消息"]={cls="button";text="发送消息";left=16;top=296;right=64;bottom=320;font=LOGFONT(h=-9);z=39};
+["whnd_杀进程"]={cls="button";text="杀进程";left=16;top=269;right=64;bottom=293;disabled=1;font=LOGFONT(h=-9);z=40};
+["whnd_置顶"]={cls="checkbox";text="置顶";left=16;top=232;right=64;bottom=248;z=37};
+["whnd_透明"]={cls="checkbox";text="透明";left=16;top=251;right=64;bottom=267;z=38}
+)
+/*}}*/
+
+import winex;
+import mouse;
+import mouse.hook;
+import process;
+import win.ui.mask;
+
+var frmMask = win.ui.mask(winform);
+var hook = mouse.hook();
+
+function showWindowInfo(hwnd){
+	winform.editParenHwnd.text = string.format("0x%X",win.getParent(hwnd) );
+	winform.editOwnerHwnd.text = string.format("0x%X",win.getOwner(hwnd) );
+	winform.editHwnd.text = string.format("0x%X",hwnd )
+	winform.editClass.text = win.getClass(hwnd) 
+	winform.editId.text = win.getId(hwnd);
+	
+	var tid,pid = win.getThreadProcessId(hwnd)
+	winform.editTid.text,winform.editPid.text = tid,pid;
+	winform.editPath.text = process.getPath(pid)
+	if(!#winform.editPath.text){
+		try{
+			import process.wmi;
+			winform.editPath.text = process.wmi(pid).CommandLine;
+		}
+	}
+	
+	var str = winex.getText(hwnd,50); 
+	if(#str){
+		winform.editText.text = string.replace(str,"[\r\n]","")
+	} 
+	else { 
+		winform.editText.text = "";
+		
+		if( hwnd != winform.lastSpyHwnd
+			&& winform.chkPassword.checked
+			&& winform.editClass.text == "Edit"
+			&& ..win.getStyle(hwnd,0x40000000/*_WS_CHILD*/) 
+			&& !..win.isChild(winform.hwnd,hwnd) ){
+			var tid,pid = win.getThreadProcessId(hwnd)
+			var tid2,pid2 = win.getThreadProcessId(winform.hwnd);
+			if( pid2 != pid ){ 
+				var prcs = process( pid )
+				if(prcs){ 
+					var tid,pid = win.getThreadProcessId(hwnd);
+					var prcs = process( pid );
+					var getWindowText = prcs.remoteApi("int(addr hwnd,ustring& lpString,int cch)" ,"User32.dll","GetWindowTextW" )
+					if(getWindowText){
+						var len,str = getWindowText(hwnd,100,50);
+						if(len) winform.editText.text = str;
+					}
+					prcs.free();
+				}
+			}
+		}
+	}
+	
+	winform.editStyle.text =  string.format("0x%X",win.getStyle(hwnd) );
+	winform.editStyleEx.text =  string.format("0x%X",win.getStyleEx(hwnd) );
+	
+	var x,y = mouse.getPos();
+	x,y = win.toClient(hwnd,x,y);
+	winform.editPoint.text = ..string.format("%d,%d",x,y)
+	
+	winform.treeview.clear();
+	var hRootItem = winform.treeview.insertItem({text=..win.getClass(hwnd);hwnd=hwnd});
+	for hChild in win.eachChild(hwnd) {
+	    var hChildItem = winform.treeview.insertItem({text=..win.getClass(hChild);hwnd=hChild},hRootItem); 
+	    for hChild2 in win.eachChild(hChild) {
+	    	winform.treeview.insertItem({text=..win.getClass(hChild2);hwnd=hChild2},hChildItem);  
+		}
+	}
+	if(hRootItem) winform.treeview.expand(hRootItem);
+	
+	winform.showSampleCode();
+	winform.lastSpyHwnd = hwnd;
+}
+
+winform.treeview.onnotify = function(id,code,ptr){
+ 
+    if( code == 0xFFFFFFFE/*_NM_CLICK*/){  
+		var hItem,tvht = winform.treeview.hitTest();
+		if(hItem && tvht == 4/*_TVHT_ONITEMLABEL*/   ){
+			var data  = winform.treeview.getItemData(hItem);
+            if( data[["hwnd"]] ) {
+                winform.setTimeout( 
+                	function(){
+            			if( frmMask.moveToWindow(data[["hwnd"]]) ){
+							showWindowInfo(data[["hwnd"]]);
+							win.delay(600);
+            				frmMask.show(false);	
+						}
+                	}
+                );	
+            	
+            }
+		}
+    } 
+}
+    
+var validPattern = function(str){
+	if(!#str) return "";
+		
+	var mbs = string.match(str,"[\s\w]*:+[\s\w]*")
+	if(#mbs)
+		return mbs;
+		
+	str = string.replace(str,"(\p)","\\\1") 	
+	str = string.replace(str,"\x+",function(str){
+	 	if(..string.find(str,"\d") ) return "\x"
+	 	return str;
+	} ) 	
+    
+    str = string.replace(str,"\d+","\\d+") 	
+    return str;
+}
+
+winform.showSampleCode = function(){
+    var hwnd = tonumber(winform.editHwnd.text);
+    if(!hwnd) return;
+    
+	winform.richedit.text = "";
+	winform.richedit.print("import winex");
+	winform.richedit.print("import winex.mouse");
+	if( win.getParent(hwnd) ){
+		winform.richedit.printf("var hwnd = winex.findEx(%d,,""%s"",""%s"")",
+			win.getParent(hwnd),validPattern(win.getClass(hwnd)),validPattern(winex.getText(hwnd,50)));
+	}
+	elseif( win.getOwner(hwnd) ){
+		winform.richedit.printf("var hwnd = winex.findEx(%d,,""%s"",""%s"")",
+			win.getOwner(hwnd),validPattern(win.getClass(hwnd)),validPattern(winex.getText(hwnd,50)));
+	}
+	else {
+		winform.richedit.printf("var hwnd = winex.waitVisible(""%s"",,""%s"")",
+			validPattern(winex.getText(hwnd,50)),validPattern(win.getClass(hwnd)));
+	}
+	winform.richedit.printf("winex.mouse.click(hwnd,%s)",winform.editPoint.text);	
+}
+
+winform.plusCur.skin(
+	background = { 
+		active = "\2.gif"; 
+	}
+)
+
+import win.cur;
+var hCursor = win.cur.loadfile("\spy.cur") ;
+winform.plusCur.onMouseDown = function(wParam,lParam){
+	win.cur.beginCur();
+	winform.plusCur.capture = true;
+	winform.lastSpyHwnd = null;
+}
+	
+winform.plusCur.onMouseUp = function(wParam,lParam){
+	winform.plusCur.capture = false;
+	win.cur.endCur();
+	frmMask.show(false);
+}
+
+var hwndTarget;
+tmid = winform.setInterval(
+	700,function(hwnd,msg,id,tick){
+		if ( win.cur.beginning ){ 
+			var cwp = 0;
+			if( winform.chkSkipInvisible ) cwp = cwp | 0x0001/*_CWP_SKIPINVISIBLE*/
+			if( winform.chkSkipTransparent ) cwp = cwp | 0x0004/*_CWP_SKIPTRANSPARENT*/
+			if( winform.chkSkipDiabled ) cwp = cwp | 0x0002/*_CWP_SKIPDISABLED*/
+			var x,y = mouse.getPos();
+			hwndTarget = winex.fromPointReal( x,y,cwp );
+			if( frmMask.moveToWindow(hwndTarget) ){
+				showWindowInfo(hwndTarget);
+			} 
+		} 
+	}
+)
+winform.editParenHwnd.skin(
+	color = {
+		hover = 0xFFFF0000;
+		active = 0xFF00FF00;
+	}
+)
+winform.editOwnerHwnd.skin(
+	color = {
+		hover = 0xFFFF0000;
+		active = 0xFF00FF00;
+	}
+)
+
+winform.editParenHwnd.oncommand = function(id,event){
+	var hwnd = tonumber( winform.editParenHwnd.text,16 )
+	if(hwnd){
+		if( frmMask.moveToWindow(hwnd) ){
+			showWindowInfo(hwnd);
+			win.delay(600);
+        	frmMask.show(false);
+		}
+   }
+}
+
+winform.editOwnerHwnd.oncommand = function(id,event){
+	var hwnd = tonumber( winform.editOwnerHwnd.text,16 )
+	if(hwnd){
+		if( frmMask.moveToWindow(hwnd) ){
+			showWindowInfo(hwnd);
+			..win.delay(600);
+        	frmMask.show(false);
+		}
+   }
+}
+
+
+import fsys.config;
+config = fsys.config(io.tmpname("spy"));
+if( config.hotkey.vk === null ){
+    config.hotkey.vk = 0x7B/*_VK_F12*/;
+    config.hotkey.mod = 0x2/*_MOD_CONTROL*/
+} 
+winform.hotkey.sethotkey(config.hotkey.mod,config.hotkey.vk)
+
+var onHotkey = function(){
+    winform.lastSpyHwnd = null;
+    var cwp = 0;
+	if( winform.chkSkipInvisible ) cwp = cwp | 0x0001/*_CWP_SKIPINVISIBLE*/
+	if( winform.chkSkipTransparent ) cwp = cwp | 0x0004/*_CWP_SKIPTRANSPARENT*/
+	if( winform.chkSkipDiabled ) cwp = cwp | 0x0002/*_CWP_SKIPDISABLED*/
+	var x,y = mouse.getPos();
+	hwndTarget = winex.fromPointReal( x,y,cwp );
+	
+    if( hwndTarget == winform.editParenHwnd.hwnd ){
+       hwndTarget = tonumber(winform.editParenHwnd.text );
+       if(hwndTarget){ 
+       	showWindowInfo(hwndTarget);
+       	winform.plusCur.background = "\1.gif"
+	   	win.cur.endCur();
+	   	frmMask.show(false);
+	   	return;
+	   }
+    }
+    elseif( hwndTarget == winform.editOwnerHwnd.hwnd ){
+       hwndTarget = tonumber(winform.editOwnerHwnd.text );
+       if(hwndTarget){ 
+       	showWindowInfo(hwndTarget);
+       	winform.plusCur.background = "\1.gif"
+	   	win.cur.endCur();
+	   	frmMask.show(false);
+	   	return;
+	   }
+    };  
+
+	if( win.cur.beginning){
+		winform.plusCur.background = "\1.gif"
+		win.cur.endCur();
+		frmMask.show(false);
+	}
+	else {
+		win.cur.beginCur();
+		winform.plusCur.background = "\2.gif"  
+	}
+}
+
+var hkid = winform.reghotkey(onHotkey,config.hotkey.mod,config.hotkey.vk);
+
+winform.hotkey.oncommand = function(id,event){
+	winform.unreghotkey(hkId);
+	
+	hkId = winform.reghotkey(onHotkey,winform.hotkey.gethotkey()  );
+	
+	config.hotkey.mod,config.hotkey.vk = winform.hotkey.gethotkey();
+	config.hotkey.save();
+}
+
+//win.setTopmost(winform.hwnd,true);
+winform.editStyle.oncommand = function(id,event){
+	if( event != 0x100/*_EN_SETFOCUS*/){
+		return;
+	}
+	
+	winform.richedit.text = "";
+	
+	var style={
+		_WS_POPUP = 0x80000000;
+		_WS_CHID = 0x40000000;
+		_WS_MINIMIZE = 0x20000000;
+		_WS_VISIBE = 0x10000000;
+		_WS_DISABED = 0x8000000;
+		_WS_CIPSIBINGS = 0x4000000;
+		_WS_CIPCHIDREN = 0x2000000;
+		_WS_MAXIMIZE = 0x1000000;
+		_WS_CAPTION = 0xC00000;    
+		_WS_BORDER = 0x800000;
+		_WS_DGFRAME = 0x400000;
+		_WS_VSCROLL = 0x200000;
+		_WS_HSCROLL = 0x100000;
+		_WS_SYSMENU = 0x80000;
+		_WS_THICKFRAME = 0x40000;
+		_WS_GROUP = 0x20000;
+		_WS_TABSTOP = 0x10000; 
+		_WS_MINIMIZEBOX = 0x20000;
+		_WS_MAXIMIZEBOX = 0x10000;
+	}
+
+	var s = tonumber(winform.editStyle.text);
+	if(!s) return;
+	
+	if( ! ( s&0x80000000 || s&0x40000000 ) ){
+		winform.richedit.print("_WS_OVERAPPED") 
+	}
+	
+	for(k,v in style){
+		if( v &  s) winform.richedit.print(k) 
+	}
+	
+	
+};
+
+winform.editStyleEx.oncommand = function(id,event){
+	if( event != 0x100/*_EN_SETFOCUS*/){
+		return;
+	}
+
+	winform.richedit.text = "";
+	
+	var style={
+		_WS_EX_DLGMODALFRAME =  0x1;
+		_WS_EX_NOPARENTNOTIFY =  0x4;
+		_WS_EX_TOPMOST =  0x8;
+		_WS_EX_ACCEPTFILES =  0x10;
+		_WS_EX_TRANSPARENT =  0x20;
+		_WS_EX_MDICHILD =  0x40;
+		_WS_EX_TOOLWINDOW =  0x80;
+		_WS_EX_WINDOWEDGE =  0x100;
+		_WS_EX_CLIENTEDGE =  0x200;
+		_WS_EX_CONTEXTHELP =  0x400;
+		_WS_EX_RIGHT =  0x1000;
+		_WS_EX_RTLREADING =  0x2000;
+		_WS_EX_LEFTSCROLLBAR =  0x4000;
+		_WS_EX_CONTROLPARENT =  0x10000;
+		_WS_EX_STATICEDGE =  0x20000;
+		_WS_EX_APPWINDOW =  0x40000;
+		_WS_EX_LAYERED =  0x80000; 
+		_WS_EX_NOINHERITLAYOUT =  0x100000; 
+		_WS_EX_LAYOUTRTL =  0x400000; 
+		_WS_EX_COMPOSITED =  0x2000000; 
+		_WS_EX_NOACTIVATE =  0x8000000;
+	}
+
+	var s = tonumber(winform.editStyleEx.text);
+	if(!s) return;
+	
+	for(k,v in style){
+		if( v &  s) winform.richedit.print(k) 
+	}
+};
+
+winform.editClass.oncommand = function(id,event){
+	winform.showSampleCode(); 	
+}
+
+winform.editHwnd.oncommand = function(id,event){
+	winform.showSampleCode(); 
+}
+
+winform.editText.oncommand = function(id,event){
+	winform.showSampleCode(); 	
+}
+
+winform.editPoint.oncommand = function(id,event){
+	winform.showSampleCode(); 	
+}
+
+import win.ui.tooltip; 
+var tooltipCtr = win.ui.tooltip( winform );//在窗口上创建tooltip控件 
+tooltipCtr.add( 
+	plusCur = "请按住此图标并拖动到目标窗口";
+	editParenHwnd = "点击这里切换到父窗口(parent window),也可以将鼠标指针对准这里按下面设置的热键切换到父窗口";
+	editOwnerHwnd = "点击这里切换到所有窗口(owner window),也可以将鼠标指针对准这里按下面设置的热键切换到所有窗口";
+	editStyle = "点这里显示详细的样式列表";
+	editStyleEx = "点这里显示详细的扩展样式列表";
+	editClass = "点这里显示演示代码";
+	editText = "点这里显示演示代码";
+	hotkey = "设置抓取窗口的热键，按此热键可以开始、或停止抓取窗口，适用于抓取弹出窗口";
+	editPath = "启动目标应用程序执行文件路径"
+);
+
+/////////////////////////////////////////////
+hook.proc = function(msg,x,y,mouseData,injected,flags,timeStamp,extraInfo){
+	if( injected ) return; //模拟鼠标不处理
+    select(msg) {
+    	case 0x0200/*WM_MOUSEMOVE*/{
+    		winform.static4.text=x++"，"++y;
+    	}
+    }   
+}
+/////////////////////////////////////////////
+///spy置顶选择框。
+winform.spy_on_top.oncommand = function(id,event){
+	win.setTopmost(winform.hwnd,winform.spy_on_top.checked);
+}
+win.setTopmost(winform.hwnd,winform.spy_on_top.checked);
+/////////////////////////////////////////////
+//目标窗口置顶
+winform.whnd_置顶.oncommand = function(id,event){
+	var hwnd = tonumber(winform.editHwnd.text);
+	if(!hwnd) return;
+	win.setTopmost(hwnd,winform.whnd_置顶.checked);	
+}
+/////////////////////////////////////////////
+//目标窗口透明
+winform.whnd_透明.oncommand = function(id,event){
+	var hwnd = tonumber(winform.editHwnd.text);
+	if(!hwnd) return;
+	///不会。
+}
+/////////////////////////////////////////////
+winform.setInterval( 
+	200,function(){ 
+		var hwnd = tonumber(winform.editHwnd.text); 
+    	winform.whnd_置顶.disabled=(!hwnd);
+    	winform.whnd_透明.disabled=(!hwnd);
+    	winform.whnd_发送消息.disabled=(!hwnd);   
+    	winform.whnd_杀进程.disabled=(!hwnd);    	
+	} 
+)
+/////////////////////////////////////////////
+
+winform.whnd_发送消息.oncommand = function(id,event){
+	var hwnd = tonumber(winform.editHwnd.text); 	
+	var p_hwnd = win.getParent(hwnd) ;
+	发送消息frmChild = winform.loadForm($"\dlg\发送消息.aardio");
+	发送消息frmChild.show(false);
+	发送消息frmChild.控件句柄.text=string.format("0x%X",hwnd ) ;
+	发送消息frmChild.父句柄.text=string.format("0x%X",p_hwnd ) ;
+	发送消息frmChild.命令ID.text=win.getId(hwnd);
+	发送消息frmChild.center(winform);
+	发送消息frmChild.doModal(winform);
+}
+
+winform.whnd_杀进程.oncommand = function(id,event){
+	var hwnd = tonumber(winform.editHwnd.text); 	
+	if(!hwnd) return;
+	var test=win.msgboxTest("要强制关闭进程么?","确认",winform.hwnd);
+	if(!test) return ;
+	winex.quit(hwnd);
+	//winex.close(hwnd);
+}
+/////////////////////////////////////////////
+winform.onClose = function(hwnd,message,wParam,lParam){ 
+	hook.close();
+}
+/////////////////////////////////////////////
+
+发送消息frmChild=null;
+winform.richedit.enablePopMenu();
+winform.enableDpiScaling();
+winform.show(true);
+win.loopMessage();

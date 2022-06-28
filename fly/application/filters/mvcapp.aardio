@@ -1,0 +1,82 @@
+
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+//[mvcapp应用过滤器,请取消注释实现以下方法]
+
+
+/**
+mvcapp.loadControllerBefore = function(controllerPath/*控制器路径*/){
+	/*控制器加载之前,触发此事件,如果返回false,不会执行控制器*/
+
+}
+**/
+
+/***
+mvcapp.loadControllerAfter = function(controller/*控制器对像*/, controllerPath/*控制器路径名*/){
+	/*控制器加载之后,触发此事件,如果返回false,不会执行控制器内的函数*/
+	
+	if( controller.loginVisit ){//登录验证
+		if( !checkAdminSessionLogin() ) return false;
+	}
+}
+***/
+
+mvcapp.loadActionBefore = function(controller/*控制器对像*/, controllerPath/*控制器路径名*/, actionName/*操作函数名称*/){
+	/*控制器中的函数执行之前,触发此事件,如果返回false,不会执行函数*/
+	if(carl.session.get("tabUserLogin")){
+		if((controllerPath == "web.reg" || controllerPath == "web.login") and actionName == "index"){
+			response.redirect(mvcapp.urlAction("index","web.user"))
+			return false; 
+		}
+	}
+}
+
+mvcapp.loadActionAfter = function(controller/*控制器对像*/, controllerPath/*控制器路径名*/, actionName/*操作函数名称*/, .../*函数返回值*/ ) { 
+	/*控制器中的函数执行之后,触发此事件,框架已封装,您可以重写此函数*/
+	var status,msg,action = ...;
+	if( status === null && err === null ) return ;
+	var tab;
+	if( type(status) === type.null || type(status) === type.boolean){
+		tab = {};
+		tab.status = !status ? 1 : 0;
+		tab.msg = msg
+		tab.action = action;
+	}
+	var str;
+	if(type(tab) == type.table){
+		response.contentType = "application/json; charset=utf-8";
+		str = web.json.stringify(tab,false,false);
+	}
+	else {
+		str = status;
+	}	
+	print(str);
+}
+
+
+/**
+mvcapp.loadViewBefore = function(controller/*控制器对像*/, controllerPath/*控制器路径名*/, actionName/*操作函数名称*/,viewpath/*视图路径*/, viewFullPath/*视图文件完整路径*/){
+	/*视图加载之前,触发此事件,如果返回false,不会加载视图*/
+}
+**/
+
+/**
+mvcapp.loadViewAfter = function(controller/*控制器对像*/, controllerPath/*控制器路径名*/, actionName/*操作函数名称*/,viewpath/*视图路径*/, viewFullPath/*视图文件完整路径*/,.../*函数返回值*/){
+	/*视图加载之后,触发此事件*/
+	
+}
+**/
+
+/**
+mvcapp.errlog = function(err){
+	/*发生错误时,触发此事件,框架已封装,您可以重写此函数*/
+}
+**/

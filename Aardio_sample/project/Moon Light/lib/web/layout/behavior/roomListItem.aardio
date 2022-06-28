@@ -1,0 +1,30 @@
+﻿//roomListItem 房间列表项
+import process.openUrl;
+import win.clip;
+import public;
+
+namespace web.layout.behavior.roomListItem{	
+	onMenuItemClick = function (ltTarget,ltOwner,reason,behaviorParams) { 
+    	// 在谁的上面点击右键
+		var ltPopupOwner = ..web.layout.element( behaviorParams.he )
+		// 点击到右键菜单哪个项目
+		select( ltTarget.command ) {
+			case "open-url" {
+				..process.openUrl( ltPopupOwner["room-url"] )
+			}
+			case "copy-url"{
+				..win.clip.write( ltPopupOwner["room-url"] )
+			}
+			case "delete-room" {
+				ltPopupOwner.delete()
+			}
+		}    	
+	} 
+	
+	onButtonStateChanged = function (ltTarget,ltOwner,reason,behaviorParams) {
+    	var url = ltTarget["room-url"]  
+    	if( url ){
+        	..public.playUrl( url )	
+    	}		
+	}		
+}

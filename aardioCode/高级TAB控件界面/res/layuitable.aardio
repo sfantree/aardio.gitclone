@@ -1,0 +1,48 @@
+import win.ui;
+/*DSG{{*/
+winform = win.form(text="webkit调用layui演示";right=817;bottom=706;bgcolor=2960685)
+winform.add(
+button={cls="button";text="重载数据表";left=0;top=641;right=158;bottom=707;bgcolor=8421376;dl=1;dt=1;font=LOGFONT(h=-20);z=2};
+button2={cls="button";text="获取选择行数据";left=172;top=641;right=330;bottom=707;bgcolor=8421376;dl=1;dt=1;font=LOGFONT(h=-20);z=3};
+custom2={cls="custom";text="custom2";left=0;top=0;right=818;bottom=641;db=1;dl=1;dr=1;dt=1;z=1}
+)
+/*}}*/
+
+//import web.kit.portable; //让WebKit支持生成独立EXE文件
+import web.kit.form;//导入WebKit组件
+var wbKit = web.kit.form(winform.custom2); //创建WebKit控件
+
+import web.json;
+wbKit.external = {
+    getOption = function(){ 
+        data = /***
+        [{"id":10000,"username":"user-0","sex":"女","city":"城市-0","sign":"签名-0","experience":255,"logins":24,"wealth":82830700,"classify":"作家","score":57},{"id":10001,"username":"user-1","sex":"男","city":"城市-1","sign":"签名-1","experience":884,"logins":58,"wealth":64928690,"classify":"词人","score":27},{"id":10002,"username":"user-2","sex":"女","city":"城市-2","sign":"签名-2","experience":650,"logins":77,"wealth":6298078,"classify":"酱油","score":31},{"id":10003,"username":"user-3","sex":"女","city":"城市-3","sign":"签名-3","experience":362,"logins":157,"wealth":37117017,"classify":"诗人","score":68},{"id":10004,"username":"user-4","sex":"男","city":"城市-4","sign":"签名-4","experience":807,"logins":51,"wealth":76263262,"classify":"作家","score":6},{"id":10005,"username":"user-5","sex":"女","city":"城市-5","sign":"签名-5","experience":173,"logins":68,"wealth":60344147,"classify":"作家","score":87},{"id":10006,"username":"user-6","sex":"女","city":"城市-6","sign":"签名-6","experience":982,"logins":37,"wealth":57768166,"classify":"作家","score":34},{"id":10007,"username":"user-7","sex":"男","city":"城市-7","sign":"签名-7","experience":727,"logins":150,"wealth":82030578,"classify":"作家","score":28},{"id":10008,"username":"user-8","sex":"男","city":"城市-8","sign":"签名-8","experience":951,"logins":133,"wealth":16503371,"classify":"词人","score":14},{"id":10009,"username":"user-9","sex":"女","city":"城市-9","sign":"签名-9","experience":484,"logins":25,"wealth":86801934,"classify":"词人","score":75},{"id":10006,"username":"user-6","sex":"女","city":"城市-6","sign":"签名-6","experience":982,"logins":37,"wealth":57768166,"classify":"作家","score":34},{"id":10007,"username":"user-7","sex":"男","city":"城市-7","sign":"签名-7","experience":727,"logins":150,"wealth":82030578,"classify":"作家","score":28},{"id":10008,"username":"user-8","sex":"男","city":"城市-8","sign":"签名-8","experience":951,"logins":133,"wealth":16503371,"classify":"词人","score":14}
+        ,{"id":10009,"username":"user-9","sex":"女","city":"城市-9","sign":"签名-9","experience":484,"logins":25,"wealth":86801934,"classify":"词人","score":75}]
+		***/;
+        return data; 
+    };
+    getdata = function(...){
+        winform.msgbox(...)
+    };
+}
+
+import wsock.tcp.simpleHttpServer; //导入HTTP服务器模块
+var homeUrl  = wsock.tcp.simpleHttpServer.startUrl("/res/app/layuitable.aardio");//启动嵌入式HTTP服务器，端口自动分配不会冲突
+wbKit.go(homeUrl); //打开网页
+
+winform.button.oncommand = function(id,event){
+	wbKit.doScript(`tableObj.reload({data:[{"id":10000,"username":"user-0","sex":"女","city":"城市-0","sign":"签名-0","experience":255,"logins":24,"wealth":82830700,"classify":"作家","score":57},{"id":10001,"username":"user-1","sex":"男","city":"城市-1","sign":"签名-1","experience":884,"logins":58,"wealth":64928690,"classify":"词人","score":27}]})`);
+}
+winform.button2.oncommand = function(id,event){
+	var jsgetdata = /**
+      	var checkStatus = table.checkStatus('test')
+      	,data = checkStatus.data;
+      	external.getdata(JSON.stringify(data));
+	**/
+	wbKit.doScript(jsgetdata);	
+}
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

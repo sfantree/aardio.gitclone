@@ -1,0 +1,46 @@
+
+var action,pages,curr = ...;
+if(pages <= 1) return ; //总页数
+var groups = 5;//连续分页数。
+var prev = curr>1 ? curr-1 : 1;
+var next = curr < pages ? curr+1 : pages;
+var start = math.floor(curr/groups)*groups;
+if(curr % groups == 0){
+	start = start-groups+1;
+}
+else {
+	start++;
+}
+var endNum = start+groups-1;
+?>
+<div class="laypage-main">
+<?
+if(start-1>0){
+?>
+<a href="<?=mvcapp.urlAction(action ++ "&page=" ++ prev,"web.post")?>" class="layui-laypage-prev">上一页</a>
+<a href="<?=mvcapp.urlAction(action ++ "&page=1","web.post")?>" class="laypage_first" title="首页">首页</a>
+<a href="<?=mvcapp.urlAction(action ++ "&page=" ++ (start-1),"web.post")?>">...</a>
+<?
+}
+for(i=start;endNum;1){	
+	if(i == curr){
+		print("<span class='laypage-curr'>" ++ curr ++ "</span>");//当前页
+	}
+	elseif( i<= pages) {
+		print("<a href='" ++ mvcapp.urlAction(action ++ "&page=" ++ i,"web.post") ++ "'>" ++ i ++ "</a>");
+	}
+}
+if(endNum<pages){
+	//print("<span>…</span>");
+	print("<a href='" ++ mvcapp.urlAction(action ++ "&page=" ++ (endNum+1),"web.post") ++ "'>...</a>");
+}
+?>
+<?
+if(endNum < pages){
+?>
+<a href="<?=mvcapp.urlAction(action ++ "&page=" ++ pages,"web.post")?>" class="laypage-last" title="尾页">尾页</a>
+<a href="<?=mvcapp.urlAction(action ++ "&page=" ++ next,"web.post")?>" class="laypage-next">下一页</a>
+<?
+}
+?>
+</div>

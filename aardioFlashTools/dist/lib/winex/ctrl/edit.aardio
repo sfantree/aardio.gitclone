@@ -1,0 +1,44 @@
+﻿import win;
+import process;
+import win.ui.ctrl.edit;
+
+namespace winex.ctrl;
+	
+class edit{
+	ctor( hwnd ){
+		this = ..win.ui.ctrl.edit();
+		this.hwnd = hwnd;
+		
+		var threadId,processId = ..win.getThreadProcessId(this.hwnd )
+		this.process = ..process( processId ) 
+		this.threadId = threadId; 
+		
+	};
+	showBalloonTip = function(title,text,icon){ 
+		if(text===null) title,text = text:"",title:"";
+		
+		var ti =  {
+			INT cbSize;
+			addr title = this.process.writeStringUtf16(,title);
+			addr text = this.process.writeStringUtf16(,text);
+			addr icon = icon;
+		}
+		
+		ti.cbSize = ..raw.sizeof(ti);
+		
+		..win.setFocus(owner.hwnd); 
+		this.process.sendMessage(owner.hwnd,5379/*EM_SHOWBALLOONTIP*/,0,ti);
+		this.process.mfree(ti.title);
+		this.process.mfree(ti.text);
+	};
+	setText = function(text){
+		//自定义 text 属性，外部进程必须发 _WM_SETTEXT 消息设置文本
+		::User32.SendMessage(owner.hwnd,0xC/*_WM_SETTEXT*/,,text);
+	};
+}
+
+/**intellisense()
+winex.ctrl.edit = 用于控制外部进程文本框\n仅支持标准控件,不保证所有函数都能用于外部控件\n注意外部进程窗口不支持任何事件函数
+winex.ctrl.edit(.(外部进程文本框句柄) = 绑定外部外部进程文本框控件
+winex.ctrl.edit() = !edit.
+end intellisense**/

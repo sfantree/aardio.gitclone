@@ -1,0 +1,411 @@
+﻿import util.metaProperty;
+import web.json;
+import aaz.libchakraCore.value.object;
+
+var _dll = aaz.libchakraCore._dll;
+var JsDoubleToNumber = _dll.api("JsDoubleToNumber", "int(double doubleValue, pointer value)");
+
+namespace aaz.libchakraCore;
+class value{
+	ctor(handle){
+		var tt = type(handle);
+		select(tt) {
+			case type.pointer{
+				this.handle = handle; 
+			}
+			case type.boolean {
+				var v = {ptr value};
+				_dll.JsBoolToBoolean(handle, v);	
+				this.handle = v.value;
+			}
+			case type.number {
+				if(..math.isInteger(handle)){
+					var v = {int value};
+					_dll.JsIntToNumber(handle, v);
+					this.handle = v.value;	
+				}
+				else {
+					var v = {ptr value};
+					JsDoubleToNumber(handle, v);
+					this.handle = v.value;
+				}
+			}
+			case type.string {
+				var v = {ptr value};
+				_dll.JsPointerToString(handle, ..string.len(handle), v);	
+				this.handle = v.value;
+			}
+			case type.table{
+				if(handle[["_struct"]]){
+					return ; 
+				}
+				var json = ..web.json.parse(handle);
+			}
+		}
+	}
+
+	@_metaProperty;
+}
+namespace value{
+    valueType = {
+        undefined = 0;
+        ["null"] = 1;
+        number = 2;
+        string = 3;
+        boolean = 4;
+        object = 5;
+        ["function"] = 6;
+        error = 7;
+        array = 8;
+        symbol = 9;
+        arrayBuffer = 10;
+        typedArray = 11;
+        dataView = 12;
+    }
+
+	createObject = function(){
+		var reference = {ptr value};
+		_dll.JsCreateObject(v, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createExternalObject = function(data, finalizer){
+		var reference = {ptr value};
+		_dll.JsCreateExternalObject(data, finalizer, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createFunction = function(func, callbackState){
+		var reference = {ptr value};
+		_dll.JsCreateFunction(func, callbackState, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createArray = function(length){
+		var reference = {ptr value};
+		_dll.JsCreateArray(length, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createRangeError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateRangeError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createReferenceError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateReferenceError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createSyntaxError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateSyntaxError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createTypeError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateTypeError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	createUriError = function(message){
+		var reference = {ptr value};
+		_dll.JsCreateURIError(message, reference);	
+		return ..aaz.libchakraCore.value(reference.value);  	
+	}
+	
+	_meta = {
+ 		undefined = {
+ 			_get = function(){
+ 				var value = {ptr value};
+ 				_dll.JsGetUndefinedValue(value);
+ 				return ..aaz.libchakraCore.value(value.value); 	
+ 			}
+ 		}
+ 		
+ 		["null"] = {
+ 			_get = function(){
+ 				var value = {ptr value};
+ 				_dll.JsGetNullValue(value);
+ 				return ..aaz.libchakraCore.value(value.value); 	
+ 			}
+ 		}
+ 		
+ 		["true"] = {
+ 			_get = function(){
+ 				var value = {ptr value};
+ 				_dll.JsGetTrueValue(value);
+ 				return ..aaz.libchakraCore.value(value.value); 	
+ 			}
+ 		}
+ 		
+ 		["false"] = {
+ 			_get = function(){
+ 				var value = {ptr value};
+ 				_dll.JsGetFalseValue(value);
+ 				return ..aaz.libchakraCore.value(value.value); 	
+ 			}
+ 		}
+ 		
+ 		globalObject = {
+ 			_get = function(){
+ 				var value = {ptr value};
+ 				_dll.JsGetGlobalObject(value);
+ 				return ..aaz.libchakraCore.value(value.value); 	
+ 			}
+ 		}
+	}
+	
+	self@ = ..util.metaProperty(_meta);
+	
+	_properties = {
+    	_topointer = function(){
+    		return owner.handle; 
+    	}
+
+		addRef = function(){
+	   		var count = {INT value};
+	   		_dll.JsAddRef(owner.handle, count);
+	   		return count.value; 
+		}
+		
+		release = function(){
+	   		var count = {INT value};
+	   		_dll.JsRelease(owner.handle, count);
+	   		return count.value; 
+		}
+		
+		["type"] = {
+			_get = function(){
+	   			var t = {int value};
+	   			_dll.JsGetValueType(owner.handle, t);
+	   			return t.value; 
+			}
+		}
+		
+		stringLength = {
+			_get = function(){
+	   			var length = {int value};
+	   			_dll.JsGetStringLength(owner.handle, length);
+	   			return length.value; 
+			}
+		}
+		
+		prototype = {
+			_get = function(){
+	   			var prototypeReference = {ptr value};
+	   			_dll.JsGetPrototype(owner.handle, prototypeReference);
+	   			return prototypeReference.value; 
+			}
+			
+			_set = function(v){
+				_dll.JsSetPrototype(owner.handle, v);
+			}	
+		}
+		
+		isExtensionAllowed = {
+			_get = function(){
+	   			var allowed = {bool value};
+	   			_dll.JsGetExtensionAllowed(owner.handle, allowed);
+	   			return allowed.value; 
+			}	
+		}
+		
+		hasExternalData = {
+			_get = function(){
+	   			var hasExternalData = {bool value};
+	   			_dll.JsHasExternalData(owner.handle, hasExternalData);
+	   			return hasExternalData.value; 
+			}	
+		}
+		
+		externalData = {
+			_get = function(){
+	   			var data = {ptr value};
+	   			_dll.JsGetExternalData(owner.handle, data);
+	   			return data.value; 
+			}
+			
+			_set = function(v){
+				_dll.JsSetExternalData(owner.handle, v);
+			}	
+		}
+		
+		// js -> aardio
+		toBoolean = function(){
+	   		var value = {bool value};
+	   		_dll.JsBooleanToBool(owner.handle, value);
+	   		return value.value; 
+		}
+		
+		// js -> aardio
+		toDouble = function(){
+	   		var value = {double value};
+	   		_dll.JsNumberToDouble(owner.handle, value);
+	   		return value.value; 
+		}
+		
+		// js -> aardio
+		toInt32 = function(){
+	   		var value = {int value};
+	   		_dll.JsNumberToInt(owner.handle, value);
+	   		return value.value; 
+		}
+		
+		// js -> aardio
+		toString = function(){
+	   		var buffer = {ptr value};
+	   		var length = {INT value};
+	   		_dll.JsStringToPointer(owner.handle, buffer, length);
+	   		return ..raw.str(buffer.value, true);
+		}
+		
+		// js -> aardio
+		parse = function(){
+			select(owner.type) {
+				case valueType.undefined {
+					return null; 
+				}
+				case valueType.null {
+					return null; 
+				}
+				case valueType.number {
+					return owner.toInt32();
+				}
+				case valueType.string {
+					return owner.toString(); 
+				}
+				case valueType.boolean {
+					return owner.toBoolean(); 
+				}
+			}
+		}
+		
+		// js -> js
+		convertToBoolean = function(){
+			var booleanReference = {ptr value};
+			_dll.JsConvertValueToBoolean(owner.handle, booleanReference);
+			return ..aaz.libchakraCore.value(booleanReference.value); 
+		}
+		
+		// js -> js
+		convertToNumber = function(){
+			var numberReference = {ptr value};
+			_dll.JsConvertValueToNumber(owner.handle, numberReference);
+			return ..aaz.libchakraCore.value(numberReference.value); 
+		}
+		
+		// js -> js
+		convertToString = function(){
+			var stringReference = {ptr value};
+			_dll.JsConvertValueToString(owner.handle, stringReference);
+			return ..aaz.libchakraCore.value(stringReference.value); 
+		}
+		
+		// js -> js
+		convertToObject = function(){
+			var objectReference = {ptr value};
+			_dll.JsConvertValueToObject(owner.handle, objectReference);
+			return ..aaz.libchakraCore.value(objectReference.value); 
+		}
+		
+		preventExtension = function(){
+			_dll.JsPreventExtension(owner.handle);
+		}
+		
+		getOwnPropertyDescriptor = function(propertyId){
+			var descriptorReference = {ptr value};
+			_dll.JsGetOwnPropertyDescriptor(owner.handle, propertyId, descriptorReference);
+			return ..aaz.libchakraCore.value(descriptorReference.value); 
+		}
+		
+		getOwnPropertyNames = function(){
+			var propertyNamesReference = {ptr value};
+			_dll.JsGetOwnPropertyNames(owner.handle, propertyNamesReference);
+			return ..aaz.libchakraCore.value(propertyNamesReference.value); 
+		}
+		
+		hasProperty = function(propertyId){
+			var hasProperty = {bool value};
+			_dll.JsHasProperty(owner.handle, propertyId, hasProperty);
+			return hasProperty.value; 
+		}
+		
+		getProperty = function(id){
+			var propertyReference = {ptr value};
+			_dll.JsGetProperty(owner.handle, id, propertyReference);
+			return ..aaz.libchakraCore.value(propertyReference.value); 
+		}
+		
+		setProperty = function(id, value, useStrictRules=false){
+			_dll.JsSetProperty(owner.handle, id, value, useStrictRules); 
+		}
+		
+		deleteProperty = function(propertyId, useStrictRules=false){
+			var returnReference = {ptr value};
+			_dll.JsDeleteProperty(owner.handle, propertyId, useStrictRules, returnReference);
+			return ..aaz.libchakraCore.value(returnReference.value); 
+		}
+		
+		defineProperty = function(propertyId, propertyDescriptor){
+			var result = {bool value};
+			_dll.JsDefineProperty(owner.handle, propertyId, propertyDescriptor, result);
+			return result.value; 
+		}
+		
+		hasIndexedProperty = function(index){
+			var hasProperty = {bool value};
+			_dll.JsHasIndexedProperty(owner.handle, index, hasProperty);
+			return hasProperty.value; 
+		}
+		
+		getIndexedProperty = function(index){
+			var result = {ptr value};
+			_dll.JsGetIndexedProperty(owner.handle, index, result);
+			return ..aaz.libchakraCore.value(result.value); 
+		}
+		
+		setIndexedProperty = function(index, value){
+			_dll.JsSetIndexedProperty(owner.handle, index, value);
+		}
+		
+		deleteIndexedProperty = function(index){
+			_dll.JsDeleteIndexedProperty(owner.handle, index);
+		}
+		
+		equals = function(other){
+			var result = {bool value};
+			_dll.JsEquals(owner.handle, other, result);
+			return result.value; 
+		}
+		
+		strictEquals = function(other){
+			var equals = {bool value};
+			_dll.JsStrictEquals(owner.handle, other, equals);
+			return equals.value; 
+		}
+		
+		callFunction = function(arguments){
+			var returnReference = {ptr value};
+			_dll.JsCallFunction(owner.handle, arguments, #arguments, returnReference);
+			return ..aaz.libchakraCore.value(returnReference.value);
+		}
+		
+		constructObject = function(arguments){
+			var returnReference = {ptr value};
+			_dll.JsConstructObject(owner.handle, arguments, #arguments, returnReference);
+			return ..aaz.libchakraCore.value(returnReference.value);
+		}
+	}
+	
+	_metaProperty = ..util.metaProperty(_properties);
+}

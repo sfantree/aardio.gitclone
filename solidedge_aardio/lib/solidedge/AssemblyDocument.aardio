@@ -1,0 +1,101 @@
+﻿//AssemblyDocument 常用函数
+import solidedge.application;
+namespace solidedge;
+class AssemblyDocument{
+	ctor( seASM ){
+		this.seASM = seASM;
+	};
+	@_metaProperty;
+}
+namespace AssemblyDocument{
+  import util.metaProperty; 
+  _metaProperty = util.metaProperty( 
+	get = function(k){
+		return owner.seASM[k];
+	};
+	set = function(k,v){
+		owner.seASM[k] = v;
+	};
+	application = {
+		_get = function(){
+			return ..solidedge.application();
+		}
+		_set = function(){
+			//
+		}
+	} 
+	openDummy = function(pOc){
+		if (pOc.Type == -768828720 /* igReference */) pOc = pOc.Object;
+		return owner.application.Documents.Open(..string.split(pOc.OccurrenceFileName,"!")[1]);
+	}
+	getOcDocName = function(oc){
+    	if !(oc.name) oc = oc.Object;
+		return ..string.split(oc.name,":")[1]; //避免访问OccurrenceDocument可提高运行速度
+	}
+	hideOcByName = function(OCS, Name){
+    	if !OCS return; 
+		for (i=1; OCS.Count){
+			if (OCS.item(i).Subassembly) {
+			 	owner.hideOcByName (OCS.item(i).SubOccurrences, Name);
+			} else {
+				if (owner.getOcDocName(OCS.item(i)) == Name) {
+					OCS.item(i).Visible = false;
+				}
+			}
+		}
+	}
+	replaceWithPartCopy = function(pOc){
+
+		if pOc.Subassembly return ..win.msgboxErr("只能替换零件") ; 
+		if pOc.Parent.IsFamilyOfAssembly return ..win.msgboxErr("目标定义在Family中, 请先使用Open Dummy"); 
+
+		if (pOc.Type == -768828720 /* igReference */) pOc = pOc.Object;
+		var seProgId = {
+			[1 /* igPartDocument */] = "SolidEdge.PartDocument";
+			[2 /* igDraftDocument */] = "SolidEdge.DraftDocument";
+			[3 /* igAssemblyDocument */] = "SolidEdge.AssemblyDocument";
+			[4 /* igSheetMetalDocument */] = "SolidEdge.SheetMetalDocument";			
+		}
+		
+		var sfilter = {
+			[1] = "Part documents (*.par)|*.par|Sheet Metal documents (*.psm)|*.psm||",
+			[4] = "Sheet Metal documents (*.psm)|*.psm|Part documents (*.par)|*.par||",
+		}
+			
+		import fsys.dlg;
+		var se_last_saveas_path = ..se_last_saveas_path;
+		se_last_saveas_path := pOc.OccurrenceDocument.path;
+		
+		var path = fsys.dlg.save(
+			/* filter */ sfilter[pOc.OccurrenceDocument.Type],
+			/* title */ "save part copy as ...",
+			/* default path */ se_last_saveas_path,
+			/* flag */ 0,
+			/* hwndOwner */ winform,
+			/* default name */ pOc.OccurrenceDocument.Name
+		);
+		if !path return ; 
+		if path == pOc.OccurrenceDocument.FullName return ; 
+		
+		var newPart = owner.application.documents.add(seProgId[pOc.OccurrenceDocument.Type]);
+		newPart.Models.AddCopiedPart(pOc.OccurrenceDocument.FullName);
+		newPart.SaveAs(path);		
+		var newPath = newPart.Fullname;
+		..se_last_saveas_path = newPart.path;
+		newPart.close(false);
+		pOc.Replace(newPath, false);	
+	}
+	
+  )
+}
+namespace AssemblyDocument{
+
+
+}
+
+/**intellisense()
+solidedge.AssemblyDocument = AssemblyDocument 支持库
+solidedge.AssemblyDocument() = !AssemblyDocument.
+!AssemblyDocument.openDummy(_pOc) = open select asm's dummy file, _pOc is select item
+?solidedge.AssemblyDocument = !AssemblyDocument.
+end intellisense**/

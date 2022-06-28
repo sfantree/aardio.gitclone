@@ -1,0 +1,86 @@
+
+
+if ... _wbpath = ... ;
+else _wbpath = "\\ccnqia05\开发部共享文件-\01.2022Y图纸&技术通知及BOM\2022年开发部图纸下发台账-以此为准.xlsx";
+
+
+import console; 
+import com.excel;
+console.open()
+console.log("正在打开...")
+var excel = com.excel(true);
+var wb = excel.WorkBooks.Open(_wbpath,false /* updateLinks */,true /* readonly */,null /* format */,null /* password */);
+var sht = wb.Sheets("2022");
+
+console.log(sht.name,"打开成功")
+
+/*getTabFromRange{{*/
+var getTabFromRange = function(range){
+    	var eArr = range.value;
+		var tab = {}; 
+		tab.fields = eArr[1];
+		for(i=2;#eArr){    
+	    	var d = table.array();
+	    	for (j=1;#tab.fields){
+	    		eArr[i][j] = eArr[i][j] ? eArr[i][j] : eArr[i-1][j];
+	    		d[tab.fields[j]] = eArr[i][j] ? eArr[i][j] : eArr[i-1][j];
+			}		
+			table.push(tab,d);
+		}
+		return tab; 	
+}
+/*}}*/
+sht.Range("$D:$E").Replace ("'", "");
+sht.columns("C").Replace (".", "/");
+sht.columns("C").Replace ("20210", "2021");
+sht.columns("C").Replace ("3021", "2021");
+var etab = getTabFromRange(sht.range("C6:J" ++ sht.UsedRange.Rows.Count))
+console.log(#etab,"数据获取成功")
+
+wb.close(false);
+excel.Quit()
+
+console.log("Excel退出成功");
+
+_tname = "qhc_dw_rel_list";
+import config;
+import sqlite;
+var db = sqlite(config.dbServer.path + "qhc_dw_rel_list.db");
+if db.existsTable(_tname) db.exec("DROP table " ++ _tname ++ ";")
+var fieldsName = string.replace(string.join(etab.fields,", "),"/","");
+db.exec( "CREATE TABLE [" ++ _tname ++ "](" ++ fieldsName ++");")  
+
+var foam = string.join(table.array(#etab.fields,"?"),",");;
+
+var getTabValArr = function(tab){
+    var t={};
+	for(i=1;#etab.fields){
+		table.push(t,tab[etab.fields[i]])	
+	}
+	return t; 
+}
+
+
+console.log("开始导入数据库")
+
+import console.progress;
+var bar = console.progress()
+console.clearScreen();
+db.beginTrans();
+for (i=1; #etab){
+    bar.setProgress(math.round(i*100/#etab), math.round(i*100/#etab) +"% processing ......");
+	var cmd = db.prepare("INSERT INTO [" ++ _tname ++ "] VALUES (" ++ foam ++ ");");
+	var t = getTabValArr(etab[i]);
+	t[1] = tostring(t[1],"%Y.%m.%d");
+	//console.log(table.unpack(t));
+	cmd.bind.parameters(table.unpack(t)).step();
+	//if i>10 break;
+};
+db.commitTrans();
+console.log("更新完成");
+db.close();
+
+
+
+
+console.pause(true);

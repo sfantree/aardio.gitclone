@@ -1,0 +1,158 @@
+//solidedge 支持库
+import com;
+namespace solidedge;
+
+class application{
+	ctor( ... ){
+		this.seApp = ..com.TryGetObject("SolidEdge.Application") 
+		if( ! this.seApp ) return null,"请先打开SolidEdge";
+	};
+	@_metaProperty;
+}
+namespace application{
+  import util.metaProperty; 
+  _metaProperty = util.metaProperty( 
+	get = function(k){
+		return owner.seApp[k];
+	};
+	set = function(k,v){
+		owner.seApp[k] = v;
+	};
+	useQhcNameRule = {
+		_get = function(){
+			import config;
+			return !!config.printingCenter.radNameRule2
+		};
+		_set = function(k){
+			import config;
+			config.printingCenter.radNameRule2 = ( !!k ? 1 : 0);
+		};
+	};
+	Open = function(Filename, readOnly) {
+		var seDoc = owner.seApp.Documents.Open(Filename);
+		if (readOnly) seDoc.readonly = true;
+		sleep(500);
+		return seDoc; 
+	};
+/*
+	RefreshView = function(){
+		owner.seApp.ActiveWindow.View.RefreshView();
+	}
+*/
+	
+	_topointer = lambda() owner.seApp;
+  )
+}
+namespace application{
+	setPdfOptions = function(){
+		var seApp = ..solidedge.application();
+    	seApp.SetGlobalParameter ( 172 /*Sheet options*/, 1 /*All sheets*/ )
+    	seApp.SetGlobalParameter ( 174 /*Use individual sheet sizes*/, true)
+    	seApp.SetGlobalParameter ( 168 /*Save all colors as black*/, false)
+	};
+	closeDft = function(saveChanges){
+		var seApp = ..solidedge.application();
+		var Docs = seApp.Documents; 
+		seApp.DisplayAlerts = 0;
+		for(i=Docs.Count; 1; -1){
+			if(Docs.item(i).Type == 2 /*Draft Document Type*/){
+				Docs.item(i).Close(saveChanges);
+			}
+		}
+		seApp.DisplayAlerts = 1;
+	};
+
+	reOpenDocument = function(seDoc){
+		var seApp = ..solidedge.application();
+		seApp.DisplayAlerts = 0;
+		if (seApp.Documents.Count == 0) return;
+		seDoc := seApp.ActiveDocument;
+		var fPath = seDoc.FullName;
+		seDoc.Close(false);
+		seApp.Open(fPath);
+		seApp.DisplayAlerts = 1;
+	};
+}
+
+/**intellisense()
+solidedge.application = solidedge支持库
+solidedge.application() = !application.
+!application.setPdfOptions = set print All sheets, allow different sheet sizes, and allow color;
+!application.closeDft(saveChanges) = close DFT document.
+!application.nameRule = read namerule from registy
+!application.toFolder = read toFolder from registy
+!application.Open(Filename, readOnly) = open from filename, set ReadOnly if true;
+!application.reOpenDocument(seDoc) = re-open document;
+!application.GetGlobalParameter(_ApplicationGlobalConstants) = Returns the setting of a specified global parameter for the referenced Application or document object.
+!application.SetGlobalParameter(_ApplicationGlobalConstants, _Value) = Set value
+!application.ActiveDocument = Returns the currently active document.
+!application.ActiveDocumentType = Returns the type of the currently active document.
+!application.ActiveEnvironment = Returns the environment that belongs to the current active window of the document.
+!application.ActiveObject = Returns an Object from the active document. The type of object returned is specified by Type.
+!application.ActivePrinter = Returns the name of the active printer.
+!application.ActiveSelectSet = Returns the SelectSet object for the currently active window.
+!application.ActiveStatusBarPart = Sets and returns the current active status bar part.
+!application.ActiveWindow = Returns the active Window object.
+!application.AddIns = Returns the AddIns object for the referenced Application object.
+!application.AppDataFolder = Returns the path to the user's AppData folder for Solid Edge.
+!application.ApplicationEvents = Returns the ApplicationEvents object for the referenced Application object.
+!application.ApplicationV8AfterDocumentOpenEvent = Returns the ApplicationV8DocumentOpenEvent object for the referenced Application object.
+!application.ApplicationWindowEvents = Returns the ApplicationWindowEvents object for the referenced Application object.
+!application.BeforeFileSaveAsEvents = Returns the BeforeFileSaveAsEvents object for the referenced Application object.
+!application.Caption = Sets and returns the caption of the referenced object.
+!application.Customization = An object that is used to customize the user interface.
+!application.DefaultFilePath = Sets and returns the default path used when files are opened.
+!application.DelayCompute = Specifies whether or not to suspend the computing process.
+!application.DisplayAlerts = 0/1 Enables or disables the display of alerts and messages.
+!application.DisplayFullScreen = Specifies whether or not the referenced Application object is maximized.
+!application.DisplayRecentFiles = Specifies whether or not the used file list is appended to the File menu of the referenced Application object.
+!application.DisplayRecentFilesCount = Sets and returns the number of files that are displayed in the most recently used (MRU) list.
+!application.Documents = Returns the collection of documents that are owned by the referenced Application object.
+!application.EdgeBarVisible = Specifies whether or not the Edge Bar is visible for the referenced Application object.
+!application.EnableStereo = Specifies whether or not the referenced Application object will support the creation of stereoscopic displays.
+!application.Environments = Returns a collection of Environment objects that are owned by the referenced Application object.
+!application.FeatureLibraryEvents = Returns the FeatureLibraryEvents object for the referenced Application object.
+!application.FeatureSelectedFromPFEvents = Returns an Object of feature selected from path finder
+!application.FileUIEvents = Returns the FileUIEvents object for the referenced Application object.
+!application.Height = Returns the height of the referenced object.
+!application.hWnd = Returns the window handle for the referenced object.
+!application.Interactive = Specifies whether or not the referenced Application object can be used interactively.
+!application.Left = Specifies the distance (in twips) between the internal left edge of an object and the left edge of its container.
+!application.Name = Returns the name of the referenced object.
+!application.NewFileUIEvents = Returns the NewFileUIEvents object for the referenced Application object.
+!application.Parent = Returns the parent object for the referenced object.
+!application.ProcessID = Returns the processID of the application.
+!application.RegistryPath = Returns the path to the HKEY_CURRENT_USER registry hive for Solid Edge.
+!application.ScreenUpdating = Determines if the screen updating is enabled or disabled.
+!application.ShortcutMenuEvents = Returns the ShortcutMenuEvents object for the referenced Application object.
+!application.ShowStartupScreen = 
+!application.StatusBar = Sets and returns the caption text that is displayed in the referenced Application object.
+!application.StatusBarDelayUpdate = Specifies whether to immediately update the status bar or to defer the update to the idle loop.
+!application.StatusBarHeight = Returns the height of the status bar.
+!application.StatusBarPartCount = Sets and returns the number of parts or sections into which the status bar is divided.
+!application.StatusBarPartWidth = Returns the width of the current active part of the status bar.
+!application.StatusBarVisible = Specifies whether or not the status bar is visible.
+!application.Top = Sets and returns the distance from the top of the screen to the top of the referenced object or control.
+!application.UsableHeight = Returns the height of the usable vertical space in the application window.
+!application.UsableWidth = Returns the width of the usable horizontal space in the application window area.
+!application.UserName = Returns the name of the current user.
+!application.Value = Returns the name of the application, the value of a dimension, the value of a custom property, or the value of a variable.
+!application.Version = Returns the version number of the referenced Application object.
+!application.Visible = Specifies whether or not the referenced object is displayed to the screen.
+!application.Width = Returns the width of the referenced object.
+!application.Windows = Returns a collection of Window objects.
+!application.WindowState = Returns or sets the state of the referenced window.
+?solidedge.application = !application.
+_igAssemblyDocument = @3 /*Assembly Document Type*/
+_igAssemblyViewerDocument = @11 /*Assembly Viewer Document Type*/
+_igDraftDocument = @2 /*Draft Document Type*/
+_igPartDocument = @1 /*Part Document Type*/
+_igPartViewerDocument = @12 /*Part Viewer Document Type*/
+_igSheetMetalDocument = @4 /*SheetMetal Document Type*/
+_igSyncAssemblyDocument = @10 /*Synchronous Assembly Document Type*/
+_igSyncPartDocument = @8 /*Synchronous Part Document Type*/
+_igSyncSheetMetalDocument = @9 /*Synchronous Sheetmetal Document Type*/
+_igUnknownDocument = @5 /*Unknown Document Type*/
+_igWeldmentAssemblyDocument = @7 /*Weldment Assembly Document Type*/
+_igWeldmentDocument = @6 /*Weldment Document Type*/
+end intellisense**/

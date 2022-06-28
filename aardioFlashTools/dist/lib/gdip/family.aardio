@@ -1,0 +1,91 @@
+//family 字样 
+import gdip.core;
+import gdip.font;
+namespace gdip ;
+
+class family {
+	ctor(name,collection){
+		if(name === null || name === "Tahoma" )	{
+			name = _WINXP ? "MS Shell Dlg" : "Segoe UI"; 
+		}
+		
+		if(type(name) == type.string){ 
+			var e,f = gdip.CreateFontFamilyFromName ( ..string.toUnicode(name),collection) ;
+			if( e ) return null,gdip.errMsg[e];
+			this.pFamily = f;  
+			this.name = name; 
+			
+			..table.gc(this,"delete");
+		}
+		elseif(type(name) == type.pointer){ 
+			this.pFamily = name;
+			if(collection){
+				var family2 = {ptr p};
+				gdip.assert2( ::Gdiplus.GdipCloneFontFamily(this.pFamily,family2) );
+				this.pFamily = family2.p;
+				..table.gc(this,"delete");
+			}
+		}
+		else {
+			error("参数错误",2)
+		}
+
+		if(!this.pFamily) return;
+	}
+
+	@_metaProperty
+}
+
+
+namespace family {
+
+ 	self.gdip = ..gdip;
+	var gdip = gdip;
+	
+	_metaProperty = ..util.metaProperty(
+	
+	 	createFont = function( emSize,style=0/*_GdipFontStyleRegular*/,unit=2/*_GdipUnitPixel*/ ){
+			return gdip.font(owner,..math.abs(emSize),style,unit) ; 
+		};
+		
+		getName = function(lang){
+			var name ={WORD value[32]};
+			::Gdiplus.GdipGetFamilyNameW(owner[["pFamily"]],name,lang);
+			return name.value;
+		};
+		
+		name = {
+			_get = lambda() owner.getName();
+		};
+	 	
+		delete = function(){
+			if( owner[["pFamily"]]  ){
+				gdip.DeleteFontFamily(owner[["pFamily"]])
+				owner[["pFamily"]] = null;
+			}
+		};
+		
+		_type = "gdip.family";
+		_topointer = function(){
+			return owner[["pFamily"]];
+		}
+	)   
+}
+
+var $ = _dll; 
+/*intellisense(gdip)*/ 
+CreateFontFamilyFromName = $.api("GdipCreateFontFamilyFromName","int(string name,ptr fontColl,pointer& fontFamily)")
+DeleteFontFamily = $.api("GdipDeleteFontFamily","int(PTR family)") 
+/*end intellisense*/
+ 
+/**intellisense()
+gdip.family = 字样\n已安装或嵌入的字体列表（FontCollection）包含字样（Family），\n字样可以用于创建不同大小、不同样式的字体(Font)
+gdip.family(.("字体名") = 创建字样,\n不指定字体名字时,默认为"MS Shell Dlg",\n字样可以用于创建不同样式的同名字体\n创建失败返回空值
+gdip.family(.(字样指针,复制对象) = 字样指针转换为字样对象,\n如果参数@2为true,则复制字样并在对象销毁时负责回收字样\n\n否则仅绑定指针到对象,这时应当谨慎使用避免字样指针被释放
+!gdipfamily.createFont(15,_GdipFontStyle__) = 创建字体,参数一指定大小,\n参数二指定样式\n可选参数三指定单位,默认值为_GdipUnitPixel
+!gdipfamily.delete() = 删除字样\n注意不应手工调用此函数,除非该集合内创建的字体已不再使用
+!gdipfamily.getName() = 返回字体名,可选在参数@1中指定语言ID，不指定时默认为LANG_NEUTRAL
+gdip.family() = !gdipfamily.
+!gdipfamily.createFont() = !gdipfont.
+!gdipfamily.name = 字体名
+end intellisense**/

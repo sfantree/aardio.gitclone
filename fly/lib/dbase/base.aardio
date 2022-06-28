@@ -1,0 +1,249 @@
+﻿//base 基类
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+import dbase;
+import dbase.page;
+
+namespace dbase
+
+base = class {
+	ctor( dbconfig, tableName, tableKeyId, tableKeyIdIsAuto ){
+		this.database = ..dbase;
+		this.tableName = tableName;
+		this.tableKeyId = tableKeyId;
+		this.tableKeyIdIsAuto = tableKeyIdIsAuto;
+		this.dbconfig = dbconfig;
+	};
+	
+	exec = function( ... ){
+		return this.errorlog( this.database.exec(this.dbconfig, ... ) );
+	}
+	
+	getTable = function( ... ){
+		return this.errorlog( this.database.getTable(this.dbconfig, ... ) ); 
+	}
+	
+	getTableFirst = function(sql,...){//执行sql,返回第一条记录,空记录,返回空table
+		return this.errorlog( this.database.getTableFirst(this.dbconfig,sql,...) );
+	}
+	
+	getTables = function( tsql, ... ){//执行多个select语句,参数table
+		return this.errorlog( this.database.getTables(this.dbconfig, tsql, ...) );
+	}
+
+	transaction = function( ... ){
+		return this.errorlog( this.database.transaction(this.dbconfig, ... ) );
+	}
+	
+	storedProcedures = function( ... ){
+		return this.database.storedProcedures(this.dbconfig, ... ); 
+	}
+	
+	getInsertSql = function(p1, p2){//table对像转为 新增sql语句
+		var tabName,tab;
+		if( type(p1) == type.table ){
+			tabName = this.tableName;
+			tab = p1;			
+		}
+		elseif( type(p1) == type.string && type(p2) == type.table ){
+			tabName = p1;
+			tab = p2;			
+		}
+		else {
+			return null,"参数错误"; 
+		}
+		if( this.tableKeyIdIsAuto ){
+			for(k in tab) if( string.lower(k) == string.lower(this.tableKeyId) ) tab[k] = null;
+		}
+		var tabSave,err = this.getFields(tab, tabName);
+		if(!tabSave) return null,err; 
+		var sql = this.database.getInsertSql(this.dbconfig.driver, tabName, tabSave);
+		return sql;
+	}
+	
+	getUpdateSql = function(p1, p2, p3, p4){//table对像转为 更新sql语句
+		var tabName,tab,where,tabwhere;
+		if( type(p1) == type.table ){
+			tabName = this.tableName;
+			tab = p1;
+			where = p2;
+			tabwhere = p3;
+			if( tabwhere !== null && type(tabwhere) != type.table) return null,"参数三 不是table对像"; 
+		}
+		elseif( type(p1) == type.string && type(p2) == type.table ){
+			tabName = p1;
+			tab = p2;
+			where = p3;
+			tabwhere = p4;
+			if( tabwhere !== null && type(tabwhere) != type.table) return null,"参数四 不是table对像"; 
+		}
+		else {
+			return null,"参数错误";
+		}
+		if( this.tableKeyIdIsAuto ){
+			for(k in tab) if( string.lower(k) == string.lower(this.tableKeyId) ) tab[k] = null;
+		}
+		var tabSave,err = this.getFields(tab,tabName);
+		if(!tabSave) return null,err; 
+		if(tabwhere) where = this.formatSqlParameters(where,tabwhere);
+		return this.database.getUpdateSql(this.dbconfig.driver, tabName, tabSave, where);
+	}
+	
+	formatSqlParameters = function(sql, ...){//格式化sql
+		return this.database.formatSqlParameters(this.dbconfig, sql, ...);
+	}
+
+	getFields = function(tabSave, tabName){
+		tabName := this.tableName;
+		if( !#tabName ) return null,"请指定表名";
+		if( type(tabSave) != type.table ) return null,"参数一不是table对像"; 
+		var tab = {};
+		var sql = "select * from " ++ tabName ++ " where 1!=1";
+		var t,err = this.getTable(sql);
+		if(!t) return null,err;
+		for(i,name in t["fields"]){
+			for(k,v in tabSave){
+				if( string.lower(name) == string.lower(k) ){
+					tab[k] = v;
+					break ;
+				}
+			}
+		}
+		return tab;
+	}
+	
+	getAutoId = function(){//获取自增ID
+		if( !#this.tableName ) return null,"请指定表名";
+		if( this.tableKeyIdIsAuto ) return null,"当前表是自增主键"; 
+		var t,err = this.storedProcedures("sp_get_auto_id",this.tableName);
+		if(t && #t) return t[1]["id"];
+		return null,err;
+	}
+	
+	getAutoId = function(tabName){//获取自增ID
+		if(!#tabName){
+			if( !#this.tableName ) return null,"请指定表名";
+			if( this.tableKeyIdIsAuto ) return null,"当前表是自增主键";
+			tabName = this.tableName;
+		}
+		var t,err = this.storedProcedures("sp_get_auto_id",tabName);
+		if(t && #t) return t[1]["id"];
+		return null,err;
+	}
+	
+	insert = function(tab, bool){
+		if( !this.tableKeyIdIsAuto ){
+			var keyId,err = this.tableKeyId;
+			for(k in tab) if( string.lower(k) == string.lower(this.tableKeyId) ) keyId = k;
+			var value = tab[keyId];
+			if(value) value = tostring(value);
+			if( !#value ) tab[keyId],err = this.getAutoId();
+			if( !tab[keyId] ) return null,"无法获取主键ID " ++ (err:""); 
+		}
+		var sql,err = this.getInsertSql(tab);
+		if(!sql) return null,err;
+		if(!bool) return this.exec(sql);
+		
+		var ok,err,lastInsertId;
+		if(this.tableKeyIdIsAuto){
+			var tabconfig = table.mixin(,this.dbconfig);
+			tabconfig.cache = false;
+			tabconfig.lastInsertId = true;
+			ok,err,sql = this.errorlog( this.database.exec(tabconfig,sql) );
+			lastInsertId = ok;
+		}
+		else {
+			lastInsertId = tab[keyId];
+			ok,err,sql = this.exec(sql);
+		}
+		if(!ok) return null,err,sql; 
+		return lastInsertId;
+	}
+	
+	update = function(tab, where, tabwhere){
+		if(!#where) return null,"无where条件";
+		if( tabwhere !== null && type(tabwhere) != type.table) return null,"参数三 不是table对像"; 
+		var sql,err = this.getUpdateSql(tab, where, tabwhere);
+		if(!sql) return null,err; 
+		return this.exec(sql);
+	}
+
+	delete = function(where, ...){
+		if( !#this.tableName ) return null,"请指定表名";
+		if(!#where) return null,"无where条件";
+		var sql = "delete from " + this.tableName + " where " ++ where;
+		sql = this.formatSqlParameters(sql, ...);
+		return this.exec(sql);
+	}
+
+	getFirstList = function(where, ...){//返回当前表,where条件第一条记录,空记录,返回空table
+		if( !#this.tableName ) return null,"请指定表名";
+		if(!#where) return null,"无where条件";
+		var sql = "select * from " ++ this.tableName ++ " where " ++ where;
+		sql = this.formatSqlParameters(sql, ...);
+		return this.getTableFirst(sql);
+	}
+	
+	getAllList = function(where, ...){//返回当前表,where条件所有记录
+		if( !#this.tableName ) return null,"请指定表名";
+		if(!#where) return null,"无where条件";
+		var sql = "select * from " ++ this.tableName ++ " where " ++ where;
+		sql = this.formatSqlParameters(sql, ...);
+		return this.getTable(sql);
+	}
+	
+	getPageList = function(tabPage,mainSql,orderby,where){//分页查询
+		return this.errorlog( ..dbase.page.getPageList(tabPage,mainSql,orderby,where,this.dbconfig) );
+	}
+	
+	errorlog = function(tab,err,sql){
+		if( ..config.webconfig.dbErrorLog && !tab ){
+			..carl.mvc.common.saveErrorLog(err,sql);
+		}
+		return tab,err,sql; 
+	}
+	
+}
+
+namespace base{
+	string = ..string;
+	table = ..table;
+}
+
+/**intellisense()
+dbase.base = mvc框架数据库操作基类
+dbase.base( dbconfig, tableName, tableKeyId, tableKeyIdIsAuto ) = 创建mvc框架数据库连接,参数:连接配置对像,表名,表主键名,主键是否自增\n参数一不能省略,其他参数都可以省略
+dbase.base() = !dbaseBase.
+<-base->
+!dbaseBase.getTable(sql,格式化参数) = 执行一条SQL\n成功返回查询结果集table对像\n错误返回:null,err,sql\n每个元素代表一行,每行由N个键值对列组成,键fields为列名结果集\n格式化参数 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getTableFirst(sql,格式化参数) = 执行一条SQL\n成功返回查询第一条记录table对像,空记录返回空table对像\n错误返回:null,err,sql\n格式化参数 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getTables(tsq,格式化参数) = 执行多条SQL,成功返回查询table数据集\n错误返回:null,err,sql\n参数:table对像 格式:{"sql1";"sql2"}\n格式化参数 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.exec(sql,格式化参数) = 执行sql,成功返回ture,失败返回null,err,sql\n格式化参数 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.transaction(tsql,格式化参数) = 事务执行多条sql语句\n成功返回ture,失败返回null,err,sql\n参数一:table对像,格式:{"sql1";"sql2"}或参数一:sql语句,\n说明:全部执行成功,或全部失败\n mysql表需InnoDB类型\n格式化参数 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.storedProcedures(name,"其他参数") = 执行存储过程,参数1:存储过程名称,参数2以后,是传存储过程函数参数
+!dbaseBase.getInsertSql("表名", tab) = 返回新增SQL语句\n参数:表名,table对像 格式:{字段1="值1";字段2="值2"}
+!dbaseBase.getUpdateSql("表名", tab, where, 格式化参数table) = 返回更新SQL语句\n参数:表名, table对像,where条件,格式化参数table\n参数四 可省略\n参数二格式:{字段1="值1";字段2="值2"}\n格式化参数是一个table表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.formatSqlParameters(sql,格式化参数) = 格式化sql\n参数:sql语句,格式化参数\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getPageList(tabPage,mainSql,orderby,where) = 分页查询,参数:分页条件table对像,主SQL,排序SQL语句,where条件\n具体用法请查看dbase.page分页库\n成功返回分页table记录集,失败返回null,err,sql
+!dbaseBase.getAutoId("表名") = 获取指定表主键ID值,\n需自己实现sp_get_auto_id存储过程
+<-base end->
+<-table->
+!dbaseBase.getInsertSql(tab) = 操作当前表\n返回新增SQL语句\n参数:table对像 格式:{字段1="值1";字段2="值2"}
+!dbaseBase.getUpdateSql(tab, where, 格式化参数table) = 操作当前表\n返回更新SQL语句\n参数:table对像,where条件,格式化参数table\n参数一格式:{字段1="值1";字段2="值2"}\n参数三 可省略\n格式化参数是一个table表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getAutoId() = 操作当前表\n获取自主管理主键ID,仅当 tableKeyIdIsAuto=false 有效,即自主管理主键ID,非自增才可调用\n需自己实现sp_get_auto_id存储过程
+!dbaseBase.insert(tab) = 操作当前表\n新增一条记录\n成功返回ture,失败返回null,err,sql\n参数:table对像 格式:{字段1="值1";字段2="值2"}
+!dbaseBase.insert(tab,true) = 操作当前表\n新增一条记录\n成功返回自增ID,失败返回null,err,sql\n参数:table对像 格式:{字段1="值1";字段2="值2"}
+!dbaseBase.update(tab, where, 格式化参数table) = 操作当前表\n更新记录\n成功返回ture,失败返回null,err,sql\n参数:table对像,where条件,格式化参数table\n参数一格式:{字段1="值1";字段2="值2"}\n参数三可省略\n格式化参数是一个table表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.delete(where, 格式化参数) = 操作当前表\n删除记录\n成功返回ture,失败返回null,err,sql\n参数:where条件,格式化参数\n参数二可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getFirstList(where, 格式化参数) = 操作当前表\n成功返回where条件查询结果的第一条记录,失败返回null,err,sql\n参数:where条件,格式化参数\n参数二 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+!dbaseBase.getAllList(where, 格式化参数) = 操作当前表\n成功返回where条件所有查询结果记录集,失败返回null,err,sql\n参数:where条件,格式化参数\n参数二 可省略\n格式化参数与string.format用法兼容,\n格式化参数也可以是一个表参数,用于替换sql中的命名参数,\nsql中用@前缀标明命名参数,命名参数自动过滤所有转义符
+<-table end->
+end intellisense**/

@@ -1,0 +1,16 @@
+﻿//common 公共变量
+namespace common{
+	snap = 0;
+	path = null;
+	hkid = null;
+	lowMouseSpeed = 5;	
+	mouseSpeed = 10;
+	doubleStartup = 0;
+	hotkey = {};
+	maskAlpha = 180;			//遮罩的透明度0-255
+	maskColor = 0xFF000000;			//遮罩的颜色
+	drawColor = 0xFF00FFFF;    	//十字线及选取边框的颜色
+	minSize = 100;
+	minAlpha = 60;				//窗口透明度(迷你)
+	minType = 1;
+}

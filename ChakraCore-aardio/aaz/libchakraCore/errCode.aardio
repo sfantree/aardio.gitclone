@@ -1,0 +1,40 @@
+﻿
+namespace aaz.libchakraCore{
+    errCode = {
+    	[0x10000/*JsErrorCategoryUsage*/] = "用 API 自身用法不正确相关的一类错误";
+    	[0x10001/*JsErrorInvalidArgument*/] = "托管 API 的参数无效";
+    	[0x10002/*JsErrorNullArgument*/] = "托管 API 的参数在上下文中为空，但该上下文不允许存在空值";
+    	[0x10003/*JsErrorNoCurrentContext*/] = "托管 API 要求上下文处于最新状态，但是没有最新的上下文";
+    	[0x10004/*JsErrorInExceptionState*/] = "引擎处于异常状态，在清除异常之前，无法调用任何 API";   
+    	[0x10005/*JsErrorNotImplemented*/] = "托管 API 尚未实现";
+    	[0x10006/*JsErrorWrongThread*/] = "调用托管 API 的线程有误";
+    	[0x10007/*JsErrorRuntimeInUse*/] = "不能释放仍在使用的运行时";    
+    	[0x10008/*JsErrorBadSerializedScript*/] = "使用了错误的序列化脚本，或者序列化脚本由不同版本的 Chakra 引擎序列化";
+    	[0x10009/*JsErrorInDisabledState*/] = "运行时处于禁用状态";
+    	[0x1000A/*JsErrorCannotDisableExecution*/] = "运行时不支持可靠的脚本中断";    
+    	[0x1000B/*JsErrorHeapEnumInProgress*/] = "当前正在脚本上下文中执行堆枚举";
+    	[0x1000C/*JsErrorArgumentNotObject*/] = "调用处理对象值的托管 API 时提供了非对象值";
+    	[0x1000D/*JsErrorInProfileCallback*/] = "脚本上下文正处于配置文件回调过程中";    
+    	[0x1000E/*JsErrorInThreadServiceCallback*/] = "当前正在执行线程服务回调";
+    	[0x1000F/*JsErrorCannotSerializeDebugScript*/] = "无法在调试上下文中序列化脚本";
+    	[0x10010/*JsErrorAlreadyDebuggingContext*/] = "无法将上下文置于调试状态，因为它已处于调试状态";    
+    	[0x10011/*JsErrorAlreadyProfilingContext*/] = "上下文无法启动分析，因为已经开始分析";
+    	[0x10012/*JsErrorIdleNotEnabled*/] = "当主机未启用空闲处理时发出的空闲通知";
+    	[0x10013/*JsCannotSetProjectionEnqueueCallback*/] = "上下文不接受入队回调";    
+    	[0x10014/*JsErrorCannotStartProjection*/] = "Failed to start projection";
+    	[0x10015/*JsErrorInObjectBeforeCollectCallback*/] = "集合回调前，不支持在对象中执行该操作。此枚举值仅在边缘模式下受到支持";
+    	[0x10016/*JsErrorObjectNotInspectable*/] = "对象不能为解包到 IInspectable 指针。此枚举值仅在边缘模式下受到支持";     
+    	[0x10017/*JsErrorPropertyNotSymbol*/] = "一种托管 API，对符号属性 ID 起作用，但调用时使用非符号属性 ID。 如果使用非符号属性 ID 调用函数，JsGetSymbolFromPropertyId 将返回错误代码";
+    	[0x10018/*JsErrorPropertyNotString*/] = "一种托管 API，对字符串属性 ID 起作用，但调用时使用非字符串属性 ID。 如果使用非字符串属性 ID 调用函数，JsGetPropertyNamefromId 将返回错误代码。此枚举值仅在边缘模式下受到支持";
+    	[0x20000/*JsErrorCategoryEngine*/] = "与引擎自身中发生的错误相关的一类错误";
+    	[0x20001/*JsErrorOutOfMemory*/] = "Chakra 引擎内存不足";     
+    	[0x30000/*JsErrorCategoryScript*/] = "与脚本中的错误相关的一类错误"; 
+    	[0x30001/*JsErrorScriptException*/] = "运行脚本时发生了 JavaScript 异常";      
+    	[0x30002/*JsErrorScriptCompile*/] = "JavaScript 编译失败";    
+    	[0x30003/*JsErrorScriptTerminated*/] = "脚本因挂起运行时的请求而终止";    
+    	[0x30004/*JsErrorScriptEvalDisabled*/] = "脚本已终止，因为它尝试使用 eval 或 function 而 eval 处于禁用状态";    
+    	[0x40000/*JsErrorCategoryFatal*/] = "预示引擎故障的一类错误";    
+    	[0x40001/*JsErrorFatal*/] = "在引擎中发生了错误";    
+    	[0x40002/*JsErrorWrongRuntime*/] = "调用托管 API 时在不同的 JavaScript 运行时上创建对象";    
+    }	
+}

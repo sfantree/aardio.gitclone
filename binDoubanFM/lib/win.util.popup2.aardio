@@ -1,0 +1,88 @@
+﻿//popup2 屏幕右下通知窗口（从右侧滑出）
+namespace win.util; 
+
+class popup2 {
+
+    ctor( winform,delayClose=10000,clickClose=true,marginRight=25,tick=3,step=3 ){
+        this = winform;  
+        var x,y,width,height = this.getPos();
+        var sRight = ::GetSystemMetrics(0x10/*_SM_CXFULLSCREEN*/);
+        var sBottom = ::GetSystemMetrics(0x11/*_SM_CYFULLSCREEN*/) + ::GetSystemMetrics(0x4/*_SM_CYCAPTION窗口标题的高度*/) ;
+        leftMost = sRight - marginRight - width;
+        x = sRight;
+        width_ = width;
+        y = sBottom -  height; 
+        winform.setPos(x,y,0,height,,0x10/*_SWP_NOACTIVATE*/); 
+       
+        var tickstart;
+        var remaintime;
+        var remaintime_pre;
+        
+        var waitClick = function(){ 
+            this.capture = true;
+            this.wndproc = function(hwnd,message,wParam,lParam){ 
+				if( message == 0x201/*_WM_LBUTTONDOWN*/ ){  
+					var x,y = ..win.getMessagePos(lParam);
+					if( x < 0 || y < 0 || x > width || y > height ){
+            			this.close();
+            		}
+				}
+			}  
+        }
+        
+        var tmid = this.addtimer( tick,
+            function(hwnd,msg,id,tick){
+            	if( tickstart ){
+            		var span = ..time.tick()-tickstart
+            		if( span > delayClose) { 
+            			this.killtimer(id); 
+            			if(clickClose){
+            				waitClick();
+            			}
+            			else{ 
+            				this.close();
+            			}
+            		}
+            		else {
+            			remaintime = ..math.floor( (delayClose - span) /1000 )
+            			if( remaintime != remaintime_pre ){
+            				remaintime_pre = remaintime;
+            				if(this[["countdown"]])
+            					this.countdown( remaintime )
+            			}
+            		}
+            		return;
+            	}
+            
+                if( x <= leftMost && width_>=width ) { 
+                	tickstart = ..time.tick() 
+                	if(delayClose < 0){
+                		this.killtimer(id);
+                		
+                		if(clickClose){
+            				waitClick();
+            			}
+                	}
+                		
+                    return;
+                }
+                else{
+                	x -= step;
+                	width_ = sRight - x;
+                	winform.setPos(x,y,width_,height,,0x10/*_SWP_NOACTIVATE*/); 
+                }
+            }
+        );
+        ..win.setTopmost(this.hwnd)
+        this.show(); 
+    }
+}
+
+/**intellisense() 
+win.util.popup2(.(winform对象,显示超时,点击是否关闭,屏幕右侧边距,移动速度,移动步进) = 创建一个通知窗口,在屏幕右下角弹出\n除参数一以外,所有参数可选,\n显示延时: 以毫秒为单位,延时为-1表示一直显示\n点击是否关闭: 为true则在显示超时以后点击窗口范围外时关闭自身\n移动速度:每次向上移动显示的间隔,以毫秒为单位\n移动步进:每次向上移动的距离
+!utilpopup.countdown = @.countdown=function(remaintime){
+	..io.print("剩余时间：",remaintime  + "秒")
+}
+
+win.util.popup2() = !utilpopup.
+end intellisense**/

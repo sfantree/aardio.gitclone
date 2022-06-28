@@ -1,0 +1,113 @@
+//Listbox控件演示 
+//感谢 xYe 编写该范例
+import win.ui;
+import fsys.ini;
+/*DSG{{*/
+var winform = win.form(text="文件类型配置";right=397;bottom=171)
+winform.add(
+btnAdd={cls="button";text="添加";left=126;top=51;right=172;bottom=75;dl=1;dt=1;z=4};
+btnClear={cls="button";text="清除";left=184;top=52;right=230;bottom=76;dl=1;dt=1;z=3};
+btnDelete={cls="button";text="删除";left=241;top=52;right=287;bottom=76;dl=1;dt=1;z=2};
+btnFind={cls="button";text="模糊查找";left=297;top=52;right=360;bottom=76;dl=1;dt=1;z=10};
+btnFindEx={cls="button";text="精确查找";left=298;top=83;right=362;bottom=107;dl=1;dt=1;z=11};
+btnSave={cls="button";text="保存退出";left=23;top=144;right=89;bottom=167;dl=1;dt=1;z=12};
+combobox={cls="combobox";left=128;top=81;right=236;bottom=101;dl=1;dt=1;edge=1;items={};mode="dropdown";z=8};
+edit={cls="edit";text="请输入...";left=129;top=20;right=360;bottom=44;acceptfiles=1;dl=1;dt=1;edge=1;multiline=1;tabstop=1;z=9};
+groupbox={cls="groupbox";text="添加删除";left=114;top=2;right=379;bottom=165;acceptfiles=1;dl=1;dt=1;edge=1;tabstop=1;z=1};
+listbox={cls="listbox";left=3;top=3;right=110;bottom=144;acceptfiles=1;bgcolor=16777215;dl=1;dt=1;edge=1;items={};tabstop=1;vscroll=1;z=6};
+static={cls="static";left=128;top=111;right=360;bottom=158;acceptfiles=1;dl=1;dt=1;edge=1;tabstop=1;transparent=1;z=5};
+static2={cls="static";text="static2";left=196;top=235;right=197;bottom=236;acceptfiles=1;bgcolor=14215660;tabstop=1;transparent=1;z=7}
+)
+/*}}*/
+
+var config = fsys.ini("/res/sys.ini");
+var sec = config.getSection("sys")
+var filetype = sec.type;
+
+
+// 初始从配置文件获取
+winform.edit.text = filetype
+//var res = addColumn(filetype)
+
+winform.btnFindEx.oncommand = function(id,event){
+	var ind = winform.listbox.findEx(winform.edit.text);
+	winform.listbox.selIndex = ind; 
+	win.msgbox(ind,"aardio");
+}
+
+winform.btnFind.oncommand = function(id,event){ ;
+	var ind = winform.listbox.find(winform.edit.text)
+	winform.listbox.selIndex = ind
+	
+	var ind = winform.combobox.find(winform.edit.text)
+	winform.combobox.selIndex = ind
+	winform.msgbox(ind)
+}
+ 
+winform.combobox.oncommand = function(id,event){
+	if(event == 0x1/*_CBN_SELCHANGE*/){
+		winform.edit.text = winform.combobox.selText;
+	}
+}
+
+winform.btnClear.oncommand = function(id,event){
+	winform.listbox.clear();
+	winform.static.text = "";
+	winform.redraw();
+}
+
+winform.listbox.oncommand = function(id,event){ 
+	if( event == 0x1/*_LBN_SELCHANGE*/ ){
+		winform.static.text =  string.format( 
+			'您选中了第%d项\n总计%d项\n项文本：%s'
+			,winform.listbox.selIndex
+			,winform.listbox.count
+			,winform.listbox.selText
+			);
+	}
+}
+
+winform.btnDelete.oncommand = function(id,event){
+	winform.listbox.delete(); 
+}
+
+winform.btnAdd.oncommand = function(id,event){
+    var strs = winform.edit.text;
+	var res = addColumn(strs)
+	
+}
+
+addColumn = function(file){
+	
+	// 如果含有; |, 等分割符，逐个增加
+	var files = string.splitEx(file,';')
+
+	
+	for(i=1;#files;1){
+	    var str = files[i]
+     	winform.listbox.add(str)
+		winform.combobox.add(str)
+		winform.combobox.selText =  str 
+		winform.listbox.selIndex = winform.listbox.count;
+ 	} 
+ 	winform.edit.text = ''
+}
+
+winform.btnSave.oncommand = function(id,event){
+    var strs = ''
+
+	for( k,str in winform.listbox.items ){
+		if(strs==''){
+			strs = str
+		}else{
+			strs = strs+';'+str
+		}
+	}
+	
+	sec.type =strs
+	sec.save()
+	winform.close()
+}
+
+winform.show(true) 
+win.loopMessage( winform );

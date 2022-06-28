@@ -1,0 +1,122 @@
+import win.ui;
+import web.form;
+import web.form.util;
+/*DSG{{*/
+mainForm = win.form(text="自动添加大淘客推广商品";left=1;right=870;bottom=800)
+mainForm.add(
+addSpreadLV={cls="listview";left=14;top=12;right=900;bottom=320;edge=1;fullRow=1;gridLines=1;hide=1;z=3};
+startBtn={cls="button";text="开始推广商品";left=307;top=588;right=514;bottom=630;z=2};
+wbCustom={cls="custom";text="custom";left=14;top=12;right=900;bottom=320;autosize=1;aw=1;center=1;dl=1;dr=1;dt=1;transparent=1;z=1}
+)
+/*}}*/
+
+//自适应宽高
+mainForm.adjust = function( cx,cy,wParam ) { 	
+	mainForm.wbCustom.width = cx-28;
+	mainForm.wbCustom.bottom = cy*0.9;
+	mainForm.addSpreadLV.width = cx-28;
+	mainForm.addSpreadLV.bottom = cy*0.9;
+	mainForm.startBtn.top = cy*0.92;
+	mainForm.startBtn.bottom = mainForm.startBtn.top+40;
+};
+
+import fsys;
+import fsys.file;
+fsys.file("/logs.txt", "a+");
+string.load("/logs.txt");
+
+var wb = web.form(mainForm.wbCustom);
+wb.silent = true;
+wb.go("http://www.dataoke.com");
+
+wb.wait();
+var ele = wb.queryEles( className="link_tong"  );
+if(ele.innerHTML=="[登录]"){
+	mainForm.setTimeout(function(){
+		mainForm.msgbox("请先登录！")
+	},1000);
+}
+
+var simClick = function(){
+	
+	import thread.command;
+	var listener = thread.command();
+	listener.disabledBtn = function(){
+		mainForm.startBtn.disabled = true;
+	}
+	listener.usableBtn = function(){
+		mainForm.startBtn.disabled = false;
+	}
+	listener.addSpread = function(url){
+		string.save("/logs.txt",tostring(url)++'\r\n' ,true);
+		wb.go(url);
+		wb.wait();
+		eleBtn = wb.queryEles( className="quan_add_u" )
+		for(i=1;#eleBtn;1){
+			k,v = string.find(tostring(eleBtn[i].innerHTML), "@加入推广");
+			
+			if(k){
+				wb.click(eleBtn[i])
+				win.delay(50)
+				
+			} else {
+				continue ;
+			}
+			
+		}
+		string.save("/logs.txt", '本页添加完成'++'\r\n' ,true);
+		mainForm.wbCustom.show(true);
+		
+		return !!#eleBtn
+		
+	}
+	
+	
+	thread.invoke( 
+		function(lHwnd){
+			import win;
+			import thread.command;	
+			
+			thread.command.disabledBtn();
+			page = 1;
+			isLast = false;
+			sreadUrl = "http://www.dataoke.com/quan_list";
+			do{
+				addSpreadUrl = sreadUrl + "?page="+page
+				
+				isLast = thread.command.addSpread(addSpreadUrl);
+
+				page += 1;	
+					
+			}while(isLast)
+			
+			if(isLast==false){
+				thread.command.usableBtn();
+				thread.stop();
+			}		
+			
+		},listener.hwnd
+	)
+	
+}
+
+
+//开始推广
+ var startSpread = function(){
+ 	simClick()
+ }
+
+mainForm.startBtn.oncommand = function(id,event){
+	var ele = wb.queryEles( className="link_tong"  );
+	if(ele.innerHTML=="[登录]"){
+		mainForm.msgbox("请先登录！")
+	} else {
+		mainForm.startBtn.disabled = true;
+		startSpread();
+		mainForm.startBtn.disabled = false;
+	}
+}
+ 
+
+mainForm.show() 
+return win.loopMessage(); 

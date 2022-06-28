@@ -1,0 +1,128 @@
+import win.ui;
+import console;
+/*DSG{{*/
+mainForm = win.form(text="Calc";right=399;bottom=499)
+mainForm.add(
+button={cls="button";text="计算";left=232;top=248;right=368;bottom=296;font=LOGFONT(h=-21);z=5};
+calcRes={cls="richedit";left=32;top=328;right=376;bottom=472;edge=1;font=LOGFONT(h=-14);multiline=1;readonly=1;vscroll=1;wrap=1;z=6};
+dt={cls="edit";left=32;top=248;right=176;bottom=288;edge=1;font=LOGFONT(h=-19);multiline=1;z=3};
+inData={cls="richedit";left=32;top=96;right=376;bottom=208;edge=1;font=LOGFONT(h=-19);multiline=1;wrap=1;z=2};
+static={cls="static";text="输入数据(逗号分割)";left=40;top=64;right=248;bottom=112;font=LOGFONT(h=-21);transparent=1;z=1};
+static2={cls="static";text="最小刻度";left=32;top=224;right=184;bottom=248;font=LOGFONT(h=-21);transparent=1;z=4};
+static3={cls="static";text="误差处理计算器";left=80;top=8;right=304;bottom=40;font=LOGFONT(h=-29);transparent=1;z=8};
+static5={cls="static";text="结果";left=32;top=304;right=88;bottom=328;font=LOGFONT(h=-21);transparent=1;z=7}
+)
+/*}}*/
+
+// 解析输字符串，返回数组
+function getData(inputStr){
+    // 为了支持中文和英文逗号，我们先将所有中文逗号都替换成英文逗号。
+	var sTemp = string.replace(inputStr,"，",",");
+	// 用英文逗号分隔字符串，获得输入的数据（数组）
+	var arrData = string.split(sTemp,",");
+	return  arrData;  
+}
+
+// 计算
+function calc(arrData,dt) {
+    var Data = {
+		arr = arrData ; // 原数据
+		insDt = 0 ;    // 仪器最小刻度
+		arrCount = 0;   // 原数据的个数
+		sum = 0;    // 总和
+		avr = 0;    // 平均值
+		sigma = 0;  // 标准差
+		uA = 0;     // A类不确定度
+		uB = 0;     // B类不确定度
+		U = 0;      // 合成标准不确定度
+	};
+    var arrDataCount = 0;
+	// 计算总和
+	for index in arrData{
+   	// 统计数据的个数
+		arrDataCount ++;
+   		Data.sum += arrData[index];
+	}
+	// 计算平均值
+	Data.avr = Data.sum/arrDataCount;
+	Data.arrCount = arrDataCount;
+	// 计算标准差
+	var temp = 0;
+	for index in arrData{
+ 		temp += (arrData[index] - Data.avr)*(arrData[index] - Data.avr)
+	}
+	Data.sigma = math.sqrt(temp/(arrDataCount-1));
+	// A类标准不确定度
+	Data.uA = Data.sigma/math.sqrt(Data.arrCount);
+	// 判断是否需要计算B类不确定度
+	if(dt != null){
+		Data.insDt = dt;
+   		// 计算B类不确定度
+   		Data.uB = dt/math.sqrt(3);
+   		// 计算合成标准不确定度
+   		Data.U = math.sqrt(Data.uA*Data.uA+Data.uB*Data.uB);
+	}else {
+		Data.U = Data.uA;
+	}
+	return Data; 
+}
+
+// 结果的显示
+function showRes(res){
+
+	var  resStr = "您输入的数据是：";
+	for(i=1;#res.arr;1){
+		resStr += res.arr[i]+' ';
+	}
+	resStr += '\n'
+	resStr += "数据个数：" + res.arrCount +' | ';
+	resStr += "总和：" + res.sum + ' | ';	
+	resStr += "平均数：" + res.avr + '\n';
+	resStr += "标准差：" + res.sigma +'\n';
+	resStr += "A类标准不确定度：" + res.uA + '\n';
+	if(res.uB == 0){
+		resStr += "未提供仪器最小刻度，无法估算B类不确定度！" + '\n';
+		resStr += "标准不确定度：" + res.U ;
+	}else {
+		resStr += "仪器最小刻度："+res.insDt + '\n';
+		resStr += "B类不确定度：" + res.uB + '\n';
+		resStr += "合成标准不确定度：" + res.U;
+	}
+	// 显示的代码与获取的代码刚好相反
+	mainForm.calcRes.text = resStr;
+}
+
+mainForm.button.oncommand = function(id,event){
+	
+	// 获取输入框原始数据（字符串）
+	var inputStr = mainForm.inData.text;
+	// 讲字符串处理成单个数据（数组）
+	var arrData = getData(inputStr);
+	// 获取仪器最小刻度
+	var dt = mainForm.dt.text;
+	// 将数据拿去计算
+	var  res = calc(arrData,dt);
+	
+	// 算完后显示
+	showRes(res);
+	
+}
+/*
+
+mainForm.inData.wndproc = function(hwnd,message,wParam,lParam){
+	if(message = 0x0008){//光标焦点离开
+        var inputStr = mainForm.inData.text;
+        // 解析输入框内的字符串，返回数组
+        arrData = getData(inputStr); 
+        //console.varDump(arrData);
+    }
+	//无返回值则继续调用默认回调函数
+}
+
+*/
+
+mainForm.enableDpiScaling();
+mainForm.show();
+
+
+return win.loopMessage();

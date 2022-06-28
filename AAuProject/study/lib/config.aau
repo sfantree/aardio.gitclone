@@ -1,0 +1,8 @@
+//config 配置文件
+
+import fsys.config;
+config  = ..fsys.config("/res/config/"); 
+
+/**intellisense(config)
+配置文件名.属性名 = 请打开['用户库\config.aau']智能提示,\n可添加任意的配置文件名或属性名,\n属性值可以是普通值或可序列化的table对象.\nconfig对象可自动加载,自动保存.
+end intellisense**/

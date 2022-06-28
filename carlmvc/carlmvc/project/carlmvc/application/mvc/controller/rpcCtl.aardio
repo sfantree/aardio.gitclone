@@ -1,0 +1,42 @@
+
+namespace mvc.controller.rpc
+
+import carl.rpc.server;
+import svc.rpc.rpcSvc;
+
+var rpcSvc = svc.rpc.rpcSvc;
+var server = carl.rpc.server( ..config.rpcconfig.rsaPrivateKey );
+
+reply = function(t,func){
+	if(type.table != type(t)) return ; 
+	var funcName,err = t[1],t[2];
+	if( !func ){
+		if(funcName){
+			return "'" + funcName + "' function not exist!";
+		}
+		elseif( err ){
+			return err;
+		}
+		else{
+			return "welcome to " ++ (..config.webconfig.webTitle : "aardio") ++ " rpc!";
+		}
+	}
+	if(type.function != type(func)) return ; 
+	var min,max = table.range(t);
+	var tab = { call(func,,table.unpack(t,2,max)) };
+	var ok,err = tab[1],tab[2];
+	if( !ok ){
+		if(#err) ..mvcapp.errlog('rpcCtl,function: ' ++ funcName ++ ' Run Error.\r\n' ++ err);
+		return;
+	}
+	min,max = table.range(tab);
+	return server.reply(table.unpack(tab,2,max));
+}
+
+//rpc启动入口，一个svc服务层配一个启动入口
+start = function(){
+	var t = { server.receive() };//接收
+	var funcName,err = t[1],t[2];
+	var func = rpcSvc[funcName];
+	return reply(t,func); 
+}

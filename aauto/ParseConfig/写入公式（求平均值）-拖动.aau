@@ -1,0 +1,49 @@
+//在Excel中写入公式——求平均值//
+//作者：山野雪人//
+//2010.10.3//
+
+import win.ui;
+//import labs.excel;
+
+/*DSG{{*/
+var winform = win.form(parent=...; min=1;bottom=249;max=1;text="AAuto Form";right=349 )
+winform.add( )
+/*}}*/
+
+/*DSG{{*/ begin
+winform = win.form( bgcolor=16777215;bottom=130;topmost=1;text="写入公式（求平均值）";left=0;min=1; acceptfiles=1;right=499;max=1;top=0;cls="AAU_FORM" )
+
+winform.add(
+txtEdit={ bottom=78;text="文件名";left=74;top=50;z=0;right=468;edge=1;cls="edit" };
+static={ bottom=36;text="将待处理Excel文件文件拖放到窗体上即可";left=31;top=13;z=1;transparent=1;right=286;cls="static" }
+)
+end /*}}DSG*/
+
+平均值 = function(filename,x,y,x1){
+excel = com.CreateObject("Excel.Application") //创建Excel对象
+book=excel.Workbooks.Add(filename) //添加工作簿
+excel.Visible = true //设置可见
+sh=excel.Workbooks(1)
+
+//*下面的公式意义：
+//labs.excel.writeCell(oExcel,value,row,column) *//
+labs.excel.writeCell(sh,"=average（C2:C117）",118,3)
+
+}
+winform.wndproc = function(hwnd,message,wparam,lparam){
+select(message) {//判断消息类型
+
+        case 0x233/*_WM_DROPFILES*/    //拖动消息
+        {
+        filename=win.getDropFile(wparam ) //取得文件名
+        winform.txtEdit.text = filename;   //edit控件显示文件名
+        winform.redraw()
+        平均值(filename) ;           //执行“平均值”函数
+        excel.Quit();
+        thread.stop()
+
+        }
+}
+}//endproc
+winform.show(true)
+win.loopMessage( winform );

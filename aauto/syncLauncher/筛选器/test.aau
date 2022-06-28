@@ -1,0 +1,8 @@
+import process.popen 
+prcs = process.popen("cmd.exe")
+cmd = /*
+ explorer d:
+*/
+prcs.write(cmd)
+result = prcs.peekTo(">");
+prcs.write('exit\n')

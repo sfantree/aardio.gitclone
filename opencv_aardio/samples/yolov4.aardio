@@ -1,0 +1,114 @@
+import cv2
+
+//模型下载 https://github.com/AlexeyAB/darknet/wiki/YOLOv4-model-zoo
+// 或到https://github.com/xuncv/opencv_aardio/releases/tag/0.0.1 下载测试用模型
+
+class yolo{
+	ctor( weights,cfg ){
+		this.net = ..cv2.dnn.readNet(weights,cfg);
+		this.setConfig = this.net.setConfig
+		this.outLayersNames = this.net.getUnconnectedOutLayersNames()
+		this.net.setInputSize(320,320)
+	};
+	
+	//前向推理解码
+	decode = function(mats){
+		var confidences = {}
+		var boxes = {}
+		var classIds = {}
+		var floatSize = ..raw.sizeof({float v})
+		//loop start
+		for(i=1;#mats;1){
+			var data = mats[i].data;
+			for(j=1;mats[i].rows;1){
+				var scores = mats[i].row(j-1).colRange(5,mats[i].cols);
+				var minVal,maxVal,minLoc0,maxLoc0 = ..cv2.minMaxLoc(scores)
+				var floatArray = ..raw.convert(data,{float value[4]}, mats[i].cols*(j-1)*floatSize).value
+				if(maxVal>this.net.$config.confThreshold){
+					centerX = ..math.floor( floatArray[1] * this.net.size.cx )
+					centerY = ..math.floor( floatArray[2] * this.net.size.cy )
+					width = ..math.floor(floatArray[3] * this.net.size.cx)
+					height = ..math.floor(floatArray[4] * this.net.size.cy)
+					left = ( centerX - ..math.floor(width/2) )
+					top = ( centerY - ..math.floor(height/2) )
+					..table.push( boxes,::RECT(left,top,width,height) )
+					..table.push( confidences,maxVal )
+					..table.push( classIds,maxLoc0.x)
+				}
+			}
+		}
+		//loop end
+		return boxes,confidences,classIds; 
+	}
+	
+	detect = function(img){
+		var blob = this.net.blobFromImage(img)
+		this.net.setInput(blob);
+		var outs = this.net.forward(this.outLayersNames)
+		boxes,confidences,classIds = this.decode(outs)
+		var indices = ..cv2.dnn.nmsBoxes(boxes,confidences,this.net.$config.confThreshold,this.net.$config.nmsThreshold);
+		var filterBoxes = {}
+		var filterScores = {}
+		var filterIds = {}
+
+		for(i=1;#indices;1){
+			var idx = indices[i];
+			var rect = boxes[idx+1]
+			..table.push( filterBoxes,rect )
+			..table.push( filterScores,confidences[idx+1] )
+			..table.push( filterIds,classIds[idx+1]+1)
+		}
+
+		//还原回0-1的浮点矩阵
+		filterBoxes = ..table.map(filterBoxes,function(v,k,result){
+			return ::RECTF(	v.left/this.net.size.cx,
+							v.top/this.net.size.cy,
+							v.right/this.net.size.cx,
+							v.bottom/this.net.size.cy
+							); 
+		})
+		return filterBoxes,filterScores,filterIds; 		
+	}
+}
+
+classes = {"person";"bicycle";"car";"motorbike";"aeroplane";"bus";"train";"truck";"boat";"traffic light";"fire hydrant";"stop sign";
+"parking meter";"bench";"bird";"cat";"dog";"horse";"sheep";"cow";"elephant";"bear";"zebra";
+"giraffe";"backpack";"umbrella";"handbag";"tie";"suitcase";"frisbee";"skis";"snowboard";"sports ball";
+"kite";"baseball bat";"baseball glove";"skateboard";"surfboard";"tennis racket";"bottle";"wine glass";
+"cup";"fork";"knife";"spoon";"bowl";"banana";"apple";"sandwich";"orange";"broccoli";"carrot";"hot dog";
+"pizza";"donut";"cake";"chair";"sofa";"pottedplant";"bed";"diningtable";"toilet";"tvmonitor";"laptop";
+"mouse";"remote";"keyboard";"cell phone";"microwave";"oven";"toaster";"sink";"refrigerator";"book";"clock";
+"vase";"scissors";"teddy bear";"hair drier";"toothbrush";
+}
+
+detector = yolo("./model/yolo-fastest-xl.weights","./model/yolo-fastest-xl.cfg",classes);
+//detector = yolo("./model/yolov4_tiny_weights_coco.pth",null,classes);
+
+detector.setConfig({
+	confThreshold = 0.5;
+	nmsThreshold = 0.4;
+})
+
+tk = time.tick()
+src = cv2.imread( "./images/bus.jpg" )
+boxes,scores,classIds = detector.detect(src)
+costTime = time.tick() - tk
+
+var h,w,c = ..table.unpack(src.shape)
+table.map(boxes,function(v,k,result){
+    var x = v.x*w
+    var y = v.y*h
+    var x2 = (v.x+v.width)*w
+    var y2 = (v.y+v.height)*h
+	cv2.rectangle(src,::POINT(x,y),::POINT(x2,y2),::Scalar(0,255,0),3)
+	
+	var text = string.format("%s %.4f",classes[classIds[k]],scores[k] )
+	var textSize = cv2.getTextSize(text,0,0.5,1)
+	cv2.rectangle(src,::POINT(x,y),::POINT(x+textSize.cx,y+textSize.cy),::Scalar(0,255,0),-1)
+	cv2.putText( src,text,::POINT(x,y+10),,0.5,::Scalar(255) )
+})
+
+//cv2.imwrite("./images/detect.jpg",src)
+title = string.format("耗时:%d毫秒",costTime )
+cv2.imshow(title,src)
+cv2.waitKey(0)

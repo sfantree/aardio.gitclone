@@ -1,0 +1,843 @@
+import win;
+namespace gdi
+
+class ::LOGFONT{ 
+	ctor(arg){  
+		this.name = "Tahoma"; 
+		this.h = -12;
+		this.weight = 400;
+		this.charset = arg[["name"]] == 'Marlett' ? 2 : 1/*_DEFAULT_CHARSET*/;
+		for(k,v in arg){
+			 if( k!="_struct" ) this[k] = v;
+		}
+		
+		if(this.name =="Tahoma"){
+			if( _WINE ){
+				this.name = "MS Shell Dlg";
+			}
+			elseif(!_WINXP) {
+				this.name = "Segoe UI";
+			}	
+		}
+	}  
+	
+	int h;//像素高度
+	int w;//像素宽度
+	int esc;//字符串相对页面底端角度
+	int ori;//字符相对页面底端角度
+	int weight;//重量
+	BYTE italic;//是否斜体
+	BYTE underline;//是否添加下划线
+	BYTE strike;//是否添加删除线
+	BYTE charset;//字符集
+	BYTE out;//输出精度
+	BYTE clip;//剪辑精度
+	BYTE quality;//输出质量
+	BYTE family;//字符间距和族
+	WORD name[32] ;//字体名
+	@_meta;
+} 
+namespace ..LOGFONT {
+	
+	_meta ={
+		_get = function(k){
+			return self[k];
+		};
+	}
+	
+	detach = function(){
+		var h = owner.handle;
+		owner.handle = null;
+		return h;
+	};
+	
+	createIndirect = function(hdcIn,hwnd,own){
+		if(own===null) own = true;
+		if(own && owner.handle) return owner.handle;
+		if(owner.bold !== null ) owner.weight = owner.bold ? 700 : 400;
+		
+		if( owner.point ){
+			owner.stripPoint(hdcIn,hwnd);
+		}
+		else { 
+			owner.h = -(..math.abs(owner.h)); 
+		}
+			
+		var handle = ::CreateFontIndirect( owner );
+		if(own) owner.handle = handle;
+		return handle;
+	};
+	
+	stripPoint = function(hdcIn,hwnd){
+		if( owner.point ){
+			var hdc = hdcIn or ::GetDC(hwnd:0);  
+			var pt = ::POINT();  
+				
+			pt.y = ..math.mulDiv( ::GetDeviceCaps(hdc, 0x5A/*_LOGPIXELSY*/),owner.point*10,720)
+			::Gdi32.DPtoLP(hdc,pt,1);
+			
+			var ptOrg = ::POINT();
+			::Gdi32.DPtoLP(hdc,ptOrg,1);
+			owner.h = -(..math.abs( pt.y - ptOrg.y ) ); 
+			
+			if(!hdcIn) ::ReleaseDC(hwnd:0,hdc);
+			owner.point = null;
+		}
+		return owner;
+	};
+	
+	setPointSize = function(pt,hdcIn,hwnd){
+		owner.point = pt;
+		if(hdcIn || hwnd) owner.stripPoint(hdcIn,hwnd);
+	};
+	
+	getPointSize = function(hdcIn,hwnd){
+		if( owner.point ) return owner.point;
+		var hdc = hdcIn or ::GetDC(hwnd:0);  
+		
+		var ptOrg = ::POINT();
+		::Gdi32.DPtoLP(hdc, ptOrg, 1);
+		var pt = ::POINT();  
+		pt.y = ..math.abs(owner.h) + ptOrg.y;
+		::Gdi32.LPtoDP(hdc,pt,1);
+		
+		var size = ..math.mulDiv(..math.abs(pt.y), 720, ::GetDeviceCaps(hdc, 0x5A/*_LOGPIXELSY*/))/10;
+		if(!hdcIn) ::ReleaseDC(hwnd:0,hdc); 
+		
+		var pt,f = ..math.modf(size);
+		if(f>0.2){
+			if(f>0.7) pt=pt+1;
+			else pt = pt+0.5;
+		} 
+		
+		return pt;
+	};
+	
+	deleteIndirect = function(){
+		if( owner.handle ){
+			::DeleteObject(owner.handle)
+			owner.handle =  null
+			return true;
+		}
+	} 
+} 
+
+setFont = function(hwnd,font){ 
+	var hfont = font; 
+	if( type(font) == "table" ) {
+		
+		if(! (font[["_struct"]] && font@) ){ 
+			font = ..table.assign( getFont(hwnd) : ::LOGFONT() ,font);
+		}
+			
+		hfont = font.createIndirect( ,hwnd,false);  
+	}
+	if(type(hfont)==type.pointer){
+			::SendMessage(hwnd,0x30/*_WM_SETFONT*/,hfont);
+			return hfont;
+	}
+} 
+
+getFont = function(hwnd){
+	var hf = ::SendMessage(hwnd, 0x31/*_WM_GETFONT*/);
+	if(!hf) return;
+	
+	var lf = LOGFONT(); 
+	if( ::GetObject(topointer(hf), ..raw.sizeof(lf), lf) )
+		return lf;
+}
+
+getSystemFont = function(i=0xD/*_SYSTEM_FONT*/){
+	var hf = ::GetStockObject(i);
+	if( hf ){ 
+		var lf = LOGFONT(); 
+		if( ::GetObject(hf, ..raw.sizeof(lf), lf) ){
+			return lf;
+		}
+	}
+} 
+	
+::Gdi32 := ..raw.loadDll("Gdi32.dll")
+var g,u =  ::Gdi32,::User32;
+
+/*intellisense(::)*/  
+::PAINTSTRUCT = class {
+	pointer hdc;
+	int fErase;
+	struct rcPaint = ::RECT();
+	int fRestore;
+	int fIncUpdate;
+	BYTE rgbReserved[32];
+}
+::TRIVERTEX = class {
+	int x;
+	int y;
+	WORD Red;
+	WORD Green;
+	WORD Blue;
+	WORD Alpha;
+}
+::GRADIENT_RECT = class {
+	int UpperLeft;
+	int LowerRight;
+}
+::DRAWITEMSTRUCT = class {
+	INT CtlType;
+	INT CtlID;
+	INT itemID;
+	INT itemAction;
+	INT itemState;
+	addr hwndItem;
+	pointer hDC;
+	struct rcItem = ::RECT();
+	ptr itemData;
+}
+::MEASUREITEMSTRUCT = class {
+	INT CtlType;
+	INT CtlID;
+	INT itemID;
+	INT itemWidth;
+	INT itemHeight;
+	ptr itemData;
+}
+
+::SelectObject = g.api("SelectObject","ptr(PTR hdc,ptr hObj)");
+::DeleteObject = g.api("DeleteObject","bool(PTR hObj)");
+::GetCurrentObject = g.api("GetCurrentObject","ptr(ptr hdc,int type)");
+::GetWindowDC = u.api("GetWindowDC","ptr(addr hwnd)" ) 
+::CreateDC = g.api("CreateDC","ptr(str drive,str device,str output,struct initData)")
+::DeleteDC = g.api("DeleteDC","bool(PTR hdc)");
+::ReleaseDC = u.api("ReleaseDC","bool(addr hwnd,PTR hdc)");
+::GetDC = u.api("GetDC","ptr(addr hwnd)");
+::GetDCEx = u.api("GetDCEx","ptr(addr hwnd,int hrgnClip,int flags)");  
+::CreateFontIndirect = g.api("CreateFontIndirect","ptr(struct lplf)" )
+::GetStockObject = g.api("GetStockObject","ptr(int i)" )
+::CreatePatternBrush = g.api("CreatePatternBrush","ptr(ptr hbm)" ) 
+::PatBlt = g.api("PatBlt","int(PTR hDc,int x,int y,int cx,int cy,INT rop)" ) 
+::AbortPath = g.api("AbortPath","int(ptr hdc)");
+::BeginPath = g.api("BeginPath","int(ptr hdc)");
+::BitBlt = g.api("BitBlt","int(ptr hDestDC,int x,int y,int cx,int cy,pointer hSrcDC,int xSrc,int ySrc,int dwRop)");
+::EndPath = g.api("EndPath","int(ptr hdc)");
+::CreatePen = g.api("CreatePen","ptr(int style,int width,int color)");
+::CreateSolidBrush = g.api("CreateSolidBrush","ptr(int crColor)");
+::CreateHatchBrush = g.api("CreateHatchBrush","ptr(int nIndex,int color)");
+::CreateFont = g.api("CreateFont","ptr(int H,int W,int E,int O,int W,bool I,bool u,int S,int C,int OP,int CP,int Q,int PAF,ustring F)");
+::CreateCompatibleDC = g.api("CreateCompatibleDC","ptr(ptr hdc)");
+::CreateCompatibleBitmap = g.api("CreateCompatibleBitmap","ptr(ptr hdc,int nWidth,int nHeight)");
+::CreateBitmap = g.api("CreateBitmap","ptr(int nWidth,int nHeight,INT nPlanes,INT nBitCount,pointer lpBits)");
+::MoveToEx = g.api("MoveToEx","bool(ptr hdc,int x,int y,struct& lpPoint)");
+::LineTo = g.api("LineTo","bool(ptr hdc,int x,int y)");
+::DrawEdge = u.api("DrawEdge","int(ptr hdc,struct qrc,int edge,int grfFlags)");
+::DrawFocusRect = u.api("DrawFocusRect","int(ptr hdc,struct lpRect)");
+::DrawFrameControl = u.api("DrawFrameControl","int(ptr hdc,struct rc,int un1,int un2)");
+::DrawIconEx = u.api("DrawIconEx","int(PTR hdc,int x,int y,pointer hIcon,int cx,int cy,int stepIfAni,pointer hbrFlickerFreeDraw,int flags )" );
+::Ellipse = g.api("Ellipse","int(ptr hdc,int X1,int Y1,int X2,int Y2)");
+::CancelDC = g.api("CancelDC","int(ptr hdc)");
+::AngleArc = g.api("AngleArc","int(ptr hdc,int x,int y,int dwRadius,float eStartAngle,float eSweepAngle)");
+::Arc = g.api("Arc","int(ptr hdc,int X1,int Y1,int X2,int Y2,int X3,int Y3,int X4,int Y4)");
+::ArcTo = g.api("ArcTo","int(ptr hdc,int X1,int Y1,int X2,int Y2,int X3,int Y3,int X4,int Y4)");
+::FillPath = g.api("FillPath","int(ptr hdc)");
+::FillRect = u.api("FillRect","int(ptr hdc,struct& lpRect,pointer hBrush)");
+::FrameRect = u.api("FrameRect","int(ptr hdc,struct& lpRect,pointer hBrush)");
+::GetBkColor = g.api("GetBkColor","int(ptr hdc)");
+::SetBkColor = g.api("SetBkColor","int(ptr hdc,int color)");
+::GetTextColor = g.api("GetTextColor","int(ptr hdc)");
+::SetTextColor = g.api("SetTextColor","int(ptr hdc,int crColor)");
+::GetBkMode = g.api("GetBkMode","int(ptr hdc)");
+::SetBkMode = g.api("SetBkMode","int(ptr hdc,int mode)");
+::TextOut = g.api("TextOut","int(ptr hdc,int x,int y,ustring lpString,int nCount)");
+::SelectClipPath = g.api("SelectClipPath","int(ptr hdc,int iMode)");
+::BeginPaint = u.api("BeginPaint","ptr(addr hwnd,struct &lpPaint)");
+::EndPaint = u.api("EndPaint","int(addr hwnd,struct lpPaint)");
+::GdiGradientFill = g.api("GdiGradientFill","int(ptr hdc,struct pVertex,int nVertex,struct mesh,int count,int mode)");
+::PrintWindow = u.api("PrintWindow","int(addr hwnd,pointer hdcBlt,int nFlags)");
+::GetPixel = g.api("GetPixel","int(ptr hdc,int x,int y)");
+::SetPixel = g.api("SetPixel","int(ptr hdc,int x,int y,int crColor)");
+::RoundRect = g.api("RoundRect","int(ptr hdc,int l,int t,int r,int b,int cx,int cy)");
+::GetTextAlign = g.api("GetTextAlign","int(PTR hdc)")
+::SetTextAlign = g.api("SetTextAlign","int(PTR hdc,INT align)") 
+::DrawText = u.api("DrawText","int(ptr hdc,ustring lpStr,int nCount,struct& lpRect,int wFormat)");
+::GetStretchBltMode = g.api("GetStretchBltMode","int(ptr hdc)");
+::SetStretchBltMode = g.api("SetStretchBltMode","int(ptr hdc,int nStretchMode)");
+::StretchBlt = g.api("StretchBlt","int(ptr hdc,int x,int y,int nWidth,int nHeight,pointer hSrcDC,int xSrc,int ySrc,int nSrcWidth,int nSrcHeight,int dwRop)");
+::TransparentBlt = g.api("GdiTransparentBlt","int(ptr hdcDest,int xoriginDest,int yoriginDest,int wDest,int hDest,pointer hdcSrc,int xoriginSrc,int yoriginSrc,int wSrc,int hSrc,INT crTransparent)");
+::GetObject = g.api("GetObject","int(ptr hObj,int nCount,struct& lpObject)");
+::GetSysColor = u.api("GetSysColor","int(int nIndex)");
+::GetDeviceCaps = g.api("GetDeviceCaps","int(ptr hdc,int nIndex)");
+::SetBrushOrgEx = g.api("SetBrushOrgEx","int(ptr hdc,int xOrg,int yOrg,struct &pt)");  
+::GetBitmapBits = g.api("GetBitmapBits","int(ptr hbmp,int len,ptr bits)")
+/*end intellisense*/ 
+
+getTextExtent = function(hdc,s){
+	var sz = ::SIZE();
+	s = ..string.toUnicode(s);
+	if( g.GetTextExtentPoint32(hdc,s,#s/2,sz) ) return sz.cx,sz.cy;
+}
+
+textOut = function (hdc,font,s,x,y) {
+    var lfown = font.handle;
+	var lf = lfown : font.createIndirect(hdc); 
+	
+	var of = ::SelectObject(hdc,lf);
+	if( font.color!== null ) ::SetTextColor(hdc,font.color);
+	
+	s = ..string.toUnicode(s);
+	::TextOut(hdc,x,y,s,#s/2);
+	
+	::SelectObject(hdc,of);
+	if(!lfown) font.deleteIndirect();
+}
+
+drawText = function(hdc,font,s,rc,ft) {
+    var lfown = font.handle;
+	var lf = lfown : font.createIndirect(hdc); 
+	var of = ::SelectObject(hdc,lf);
+	if( font.color!== null ) ::SetTextColor(hdc,font.color);
+	
+	s = ..string.toUnicode(s);
+	::DrawText(hdc,s,#s/2,rc,ft:0);
+	
+	::SelectObject(hdc,of);
+	if(!lfown) font.deleteIndirect();
+}
+
+drawTextCenter = function(hdc,font,s,rc,ft) {
+	return drawText(hdc,font,s,rc,(ft:0)|0x40025/*_DT_SINGLELINE|_DT_CENTER*|_DT_VCENTER|_DT_WORD_ELLIPSIS*/);
+}
+
+roundRect = function (hdc,rc,cx,cy){ 
+	::RoundRect(hdc,rc.left,rc.top,rc.right,rc.bottom,cx:0,cy:cx:0);
+}
+
+fillRect = function(hdc,color,rc){
+	var br = ::CreateSolidBrush(color);
+	var old = ::SelectObject(hdc,br); 
+	::PatBlt(hdc,rc.left,rc.top,rc.width(),rc.height(),0xF00021/*_PATCOPY*/);   
+	::SelectObject(hdc,old); 
+	::DeleteObject(br);   	
+}
+
+fillGradient = function (hdc,rc,clr,clr2,mode) {
+	var vtx = {::TRIVERTEX();::TRIVERTEX()};
+	
+		var r,g,b = getRgb(clr);
+		with vtx[1]{
+			Red = r << 8;
+			Green = g << 8;
+			Blue = b << 8;
+			x = rc.left;
+			y = rc.top;
+		}
+		
+		var r,g,b = getRgb(clr2);
+		with vtx[2]{
+			Red = r << 8;
+			Green = g << 8;
+			Blue = b << 8;
+			x = rc.right;
+			y = rc.bottom;
+		}
+		
+	::GdiGradientFill(hdc,{struct vertex[2] = vtx},2,{
+		int UpperLeft=0;
+		int LowerRight=1;
+	}, 1, mode:0/*_GRADIENT_FILL_RECT_H*/);
+}
+
+selectBrush = function(proc,hdc,bgcolor,color,width,style){
+	var brush = ::CreateSolidBrush( bgcolor  );
+	var oBrush  = ::SelectObject(hdc,brush );
+	
+	::SetBkColor(hdc,bgcolor);
+	::SetBkMode(hdc,1/*_TRANSPARENT*/);
+	
+	if( color!==null ) selectPen(proc,hdc,color,width,style,brush); 
+	else proc(hdc,,brush); 
+	
+	::SelectObject(hdc,oBrush); 
+	::DeleteObject(brush);
+}
+
+selectPen = function(proc,hdc,color,width,style,brush){
+	var pen = ::CreatePen(style:0/*_PS_SOLID*/,width:1,color);
+	var oPen = ::SelectObject(hdc,pen );
+	proc(hdc,pen,brush);
+	::SelectObject(hdc,oPen); 
+	::DeleteObject(pen);
+}
+
+lineTo = function(hdc,x1,y1,...){
+	::LineTo(hdc,x1,y1);
+	if(...) return lineTo(hdc,...);
+}
+
+drawLine = function(hdc,x1,y1,x2,y2,...){ 
+	::Gdi32.MoveToEx(hdc,x1,y1,null );
+    ::LineTo(hdc,x2,y2);
+    if(...) return lineTo(hdc,...);
+}
+
+blendFunction = function(alpha=255,format=1){
+	return {
+		BYTE blendOp;
+		BYTE blendFlags;
+		BYTE sourceConstantAlpha = alpha;
+		BYTE alphaFormat = format;
+	} 
+}
+
+var updateLayeredWindowA = ::User32.api("UpdateLayeredWindow","bool(int hwnd,ptr hdcDst,struct ptDst, struct size, 
+		ptr hdcSrc, struct ptSrc, INT crKey,struct blend, INT flags)");
+		
+updateLayeredWindow = function(hwnd,hdcSrc,size,blend,ptDst,ptSrc,hdcDst,crKey=0,flags=0x2/*_ULW_ALPHA*/){
+	if( hwnd === null ) error("窗口句柄参数@1不能为空",2);
+	ptDst := {}; size := {};
+	
+	if(!ptSrc) ptSrc = hdcSrc ? ::POINT() : {};
+	if(!blend) blend = blendFunction();  
+	return updateLayeredWindowA(hwnd,hdcDst,ptDst,size,hdcSrc,ptSrc,crKey,blend,flags);
+} 
+
+layeredBuffer = function(hwnd,draw){
+	var hdc = ::GetDC(hwnd);
+	var x,y,cx,cy = ..win.getPos(hwnd);
+	var blend = blendFunction();
+  
+	var hMemDc = ::CreateCompatibleDC(hdc); 
+	var hMemBmp = ::Gdi32.CreateDIBSectionP(hMemDc, {
+ 			INT cbSize = 40;
+ 			int cx = cx;
+ 			int cy = -cy; 
+ 			WORD planes = 1;
+ 			WORD bitCount = 32;
+ 			INT compression;
+ 			INT size;
+ 			int xpm;
+ 			int ypm;
+ 			INT clrUsed;
+ 			INT clrImportant;
+  	},0, {ptr v},null,0);
+
+	var hOldBmp = ::SelectObject(hMemDc, hMemBmp);
+	var ret = draw( hdc,hMemDc,hMemBmp,cx,cy,x,y,hwnd,blend);
+	
+	::SelectObject(hMemDc, hOldBmp);
+	::DeleteDC(hMemDc);	
+	::DeleteObject(hMemBmp);
+	::ReleaseDC(hwnd, hdc);
+	
+	return ret;
+}
+
+paint = function( hwnd,draw ){
+	var ps = PAINTSTRUCT();
+	var rc = ..win.getClientRect(hwnd);
+	var hdc,ps = ::BeginPaint(hwnd, ps); ; 
+	draw(hdc,rc.right-rc.left,rc.bottom-rc.top,ps.rcPaint,ps.fErase,ps); 
+	::EndPaint(hwnd, ps);	
+}
+
+paintBuffer = function( hwnd,draw ){
+	var ps = PAINTSTRUCT();
+	var rc = ..win.getClientRect(hwnd);
+	var hdc,ps = ::BeginPaint(hwnd, ps);
+	var hMemDc = ::CreateCompatibleDC(hdc);
+	var width,height = rc.width(),rc.height();
+	var hMemBitmap = ::CreateCompatibleBitmap(hdc, width, height);
+	var hOldBitmap = ::SelectObject(hMemDc, hMemBitmap); 
+	::BitBlt(hMemDc, 0, 0, width, height,hdc , 0, 0, 0xCC0020/*_SRCCOPY*/);
+	draw(hdc,hMemDc,hMemBitmap,width,height,ps.rcPaint,ps.fErase,ps); 
+		::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);
+	::SelectObject(hMemDc, hOldBitmap);
+	::DeleteDC(hMemDc);	
+	::DeleteObject(hMemBitmap);
+	::EndPaint(hwnd, ps);	
+} 
+
+doubleBuffer = function(hdc,width,height,draw,...){
+	var hMemDc = ::CreateCompatibleDC(hdc);
+	var hMemBitmap = ::CreateCompatibleBitmap(hdc, width, height);
+	var hOldBitmap = ::SelectObject(hMemDc, hMemBitmap);
+	var borrowBitmap = draw( hdc,hMemDc,hMemBitmap,width,height,... );
+	::SelectObject(hMemDc, hOldBitmap);
+	::DeleteDC(hMemDc);	
+	if(!borrowBitmap)::DeleteObject(hMemBitmap);
+	else return hMemBitmap; 
+}
+
+windowBuffer = function(hwnd,draw){
+	var hdc = ::GetWindowDC(hwnd);
+	var rc = ..win.getRect(hwnd,true);
+	var hBmp = doubleBuffer(hdc,rc.right-rc.left,rc.bottom-rc.top,draw);
+	::ReleaseDC(hwnd, hdc)
+	return hBmp;
+}
+
+clientBuffer = function(hwnd,draw){
+	var hdc = ::GetDC(hwnd);
+	var rc = ..win.getClientRect(hwnd);
+	var hBmp = doubleBuffer(hdc,rc.right-rc.left,rc.bottom-rc.top,draw);
+	::ReleaseDC(hwnd, hdc)
+	return hBmp;
+}
+
+getBitmapObject = function( hdc ){
+	GetCurrentObject( hdc, 0x7/*_OBJ_BITMAP*/ )
+}
+
+class BITMAP {
+	int bmType;
+	int bmWidth;
+	int bmHeight;
+	int bmWidthBytes;
+	WORD bmPlanes;
+	WORD bmBitsPixel;
+	pointer bmBits;
+}
+
+getBitmapInfo = function( hbmp ){
+	var bmp = BITMAP()
+	if( GetObject(hbmp, ..raw.sizeof(bmp), bmp) )
+		return bmp
+}
+
+drawBitmap = function(hdc,bBmp,rc,t,r,b,l){
+	var left,top,right,bottom = rc.left,rc.top,rc.right,rc.bottom;  
+	var width = right - left;
+	var height = bottom - top;  
+			
+	var hMemDc = ::CreateCompatibleDC(hdc);     
+	var hBmpSave = ::SelectObject(hMemDc,bBmp );  
+	var draw = ::BitBlt;
+	var stretch = ::StretchBlt;  
+	var bmpInfo = ..gdi.getBitmapInfo(bBmp); 
+	var cxSrc = bmpInfo.bmWidth;
+	var cySrc = bmpInfo.bmHeight;
+	
+	if( t!==null && r!==null && b!==null && l!==null ){
+	
+		SetStretchBltMode(hdc,0x4/*_STRETCH_HALFTONE*/);   
+		SetBrushOrgEx(hdc,0,0,{});
+	
+		if( r + t + b + l == 0 ){  
+			stretch( hdc,left,top, width,height,hMemDc,0,0,cxSrc,cySrc,0xCC0020/*_SRCCOPY*/);   
+		}
+		else {		
+			var mCySrc = cySrc-t-b;
+			var mCxSrc = cxSrc-l-r;  
+			var mCy = height-t-b;
+			var mCx = width-l-r;
+	
+			draw( hdc,left,top,l,t,hMemDc,0,0, 0xCC0020/*_SRCCOPY*/ );
+			draw( hdc,left,bottom-b,l,b,hMemDc,0,cySrc-b,0xCC0020/*_SRCCOPY*/); 
+			draw( hdc,right - r,top,r,t,hMemDc,cxSrc - r,0,0xCC0020/*_SRCCOPY*/); 
+			draw( hdc,right - r,bottom-b,r,b,hMemDc,cxSrc - r,cySrc-b,0xCC0020/*_SRCCOPY*/);  
+		
+			stretch( hdc,left + l ,top, mCx,t,hMemDc,l,0,mCxSrc,t,0xCC0020/*_SRCCOPY*/); 
+			stretch( hdc,left + l ,bottom-b, mCx,b,hMemDc,l,cySrc-b,mCxSrc,b,0xCC0020/*_SRCCOPY*/); 
+			stretch( hdc,left,top+t,l,mCy,hMemDc,0,t,l,mCySrc,0xCC0020/*_SRCCOPY*/); 
+			stretch( hdc,right-r,top+t,r,mCy,hMemDc,cxSrc-r,t,r,mCySrc,0xCC0020/*_SRCCOPY*/); 
+			stretch( hdc,left + l,top+t,mCx,mCy,hMemDc,l,t,mCxSrc,mCySrc,0xCC0020/*_SRCCOPY*/);
+		}
+	}
+	else { 
+		for(x=left;right;cxSrc){ 
+			for(y=top;bottom;cySrc){  
+				draw( hdc,x,y,cxSrc,cySrc,hMemDc,0,0, 0xCC0020/*_SRCCOPY*/ ); 
+			}
+		} 
+	} 
+	
+	::SelectObject(hMemDc,hBmpSave);   
+	::DeleteDC(hMemDc);  
+}
+
+GetIconInfoA := ::User32.api( "GetIconInfo", "bool(PTR h,struct &info)");
+getIconInfo = function(h){
+	if(!h) error("参数不能为空",2);
+	var r,f = GetIconInfoA(h,{
+			bool fIcon;
+			INT xHotspot;
+			INT yHotspot;
+			pointer hbmMask;
+			pointer hbmColor;
+	} );
+	if( r ) return f;
+}
+
+getBitmapBits = function(h,len){
+	if( ! (h && len ) ) error("参数不能为空",2); 
+	var bits = ..raw.buffer(len)
+	var len = GetBitmapBits(h,len,bits)
+	if( len ) return bits,len;
+}
+
+getPixel = function(x,y,hwnd = 0 ){  
+	var hdc = GetDC(hwnd); 
+	if(hdc){
+		var pix = GetPixel(hdc,x,y);
+		
+		::ReleaseDC(hwnd,hdc); 
+		return pix; 
+	}
+}
+
+setPixel = function(x,y,color,hwnd = 0 ){  
+	var hdc = GetDC(hwnd); 
+	if(hdc){
+		var pix = SetPixel(hdc,x,y,color);
+		
+		::ReleaseDC(hwnd,hdc); 
+		return pix; 
+	}
+}
+
+getDpi = function(hdcIn,hwnd){
+	var hdc = hdcIn or ::GetDC(hwnd:0);  
+	if(!hdc) return 96,96;
+	var dpiX= ::GetDeviceCaps(hdc, 0x58/*_LOGPIXELSX*/);
+	var dpiY= ::GetDeviceCaps(hdc, 0x5A/*_LOGPIXELSY*/);
+	if(!hdcIn) ::ReleaseDC(hwnd:0,hdc);
+	return dpiX,dpiY;
+}
+
+try{
+	::Shcore = ..raw.loadDll("Shcore.dll") 
+	GetDpiForMonitor  = ::Shcore.api("GetDpiForMonitor","int(addr hmonitor,int type,INT &dpiX,INT &dpiY)" )
+	
+	if( GetDpiForMonitor ){
+		var __getDpi = getDpi; 
+		getDpi = function(hdc,hwnd){
+			var hm = ::User32.MonitorFromWindow(hwnd:0, 2/*_MONITOR_DEFAULTTONEAREST*/ );
+			if(hm){
+				var ret,dpiX,dpiY = GetDpiForMonitor(hm,0/*_MDT_EFFECTIVE_DPI */,0,0)
+				if( ret == 0 ) return dpiX,dpiY; 
+			} 
+			return __getDpi(hdc,hwnd);
+		}
+	}
+}
+
+getDpiScale = function(hdcIn,hwnd){
+	var dpiX,dpiY = getDpi(hdcIn,hwnd);
+	return dpiX/96,dpiY/96;
+}
+
+/*intellisense(gdi)*/ 
+class RGBQUAD { 
+	ctor(r,g,b,q){
+		this.rgbRed = r;
+		this.rgbGreen = g;
+		this.rgbBlue = b;
+		this.rgbReserved = q;
+	}
+	BYTE rgbBlue; 
+	BYTE rgbGreen; 
+	BYTE rgbRed; 
+	BYTE rgbReserved;  
+} 
+/*end intellisense*/ 
+
+RGB = function(r,g,b,a){  
+	return ..raw.convert( {BYTE r = r;  BYTE g = g;  BYTE b = b;  BYTE a = a;  },{INT color} ).color;
+}
+
+ARGB =  function(r,g,b,a){
+	if( a === null ) a = 0xFF;
+		return ..raw.convert( {BYTE b = b;  BYTE g = g;  BYTE r = r;  BYTE a = a;  },{int color} ).color;
+}
+
+getRgb = function (c) { 
+	return c  & 0xFF, c>> 8  & 0xFF, c>> 16 & 0xFF;
+}
+
+getRgba = function (c) { 
+	return c>> 16 & 0xFF, c>> 8  & 0xFF,c  & 0xFF,c>> 24 & 0xFF;
+}
+
+argbReverse = function(c){
+	return ( ( c  & 0xFF ) << 16 ) | ( c & 0xFF00 ) |  ( c>> 16 & 0xFF ) | 0xFF000000;
+}
+
+rgbReverse = function(c){
+	return ( ( c  & 0xFF ) << 16 ) | ( c & 0xFF00 ) |  ( c>> 16 & 0xFF );
+}
+
+colorParse = function(s){
+	if( s[1] == '#'# ) s = ..string.right(s,-2);
+	if( #s==3 ) s = ..string.replace(s,".","\0\0");
+	var clr,len = tonumber(s,16); 
+	if(len!=#s) return;
+	if( #s==6 ) return rgbReverse(clr); 
+	return ( (clr & 0xFF) << 24 ) | ( ( clr >> 8 ) & 0x00FFFFFF );
+}
+
+colorStringify = function(c,rgba){
+	c = c || 0;
+	if(!rgba) { return ..string.format("#%06X",rgbReverse(c) )};
+	c =  ( (c  >>24 ) & 0xFF ) | ( ( c & 0x00FFFFFF ) << 8  )
+	return ..string.format("#%08X",c ) 
+}
+
+/**intellisense(gdi) 
+getDpiScale(.(hdc,hwnd) = 获取屏幕DPI缩放系数,\n参数可选,\n返回2个表示百分比的小数值,1表示100%,\n第一个返回值为 x 轴缩放,第二个返回值为 y 轴缩放,\n2个返回值通常都是一样的
+getDpi(.(hdc,hwnd) = 获取屏幕DPI,即每英寸像素点数,\n参数可选
+drawBitmap( = 九宫格贴图
+drawBitmap(.(hdc,位图句柄,rect,t,r,b,l) = 在目标DC上绘图\nt,r,b,l依次为上、右、下、左九宫格切图,\n如果不指定r,t,b,l则显示原图不拉伸\nr,t,b,l都为0则直接拉伸全图
+blendFunction(.(透明度,透明选项) = 创建透明混合参数,\n透明度为1到255,默认为255\n透明选项默认为1
+blendFunction() = !blendFunction.
+updateLayeredWindow( = 更新分层窗口 
+updateLayeredWindow(.(hwnd,hdcSrc,size,blend,ptDst,ptSrc,hdcDst,crKey,flags) = 除参数1以外,所有参数可选\n参数用法与同名API相同,请参考微软文档\n注意参数顺序与API不同,请参考该函数源码
+doubleBuffer = @.doubleBuffer( hdc,width,height,\n    function( hdc,hMemDc,hMemBitmap ){\n        __/*双缓冲绘图,此函数不可返回任何值*/\n        ::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);\n    }\n)
+windowBuffer = @.windowBuffer( hwnd,\n    function( hdc,hMemDc,hMemBitmap,width,height ){\n        __/*窗口双缓冲绘图,此函数不可返回任何值*/\n        ::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);\n    }\n)
+clientBuffer = @.clientBuffer( hwnd,\n    function( hdc,hMemDc,hMemBitmap,width,height ){\n        __/*窗口客户区双缓冲绘图,此函数不可返回任何值*/\n        ::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);\n    }\n)
+layeredBuffer = @.layeredBuffer( winform.hwnd,  \n	function( hdc,hMemDc,hMemBitmap,width,height,left,top,hwnd,blendFunction ){\n	\n    	__/*在hMemDc上绘图即可*/\n    	\n		..gdi.updateLayeredWindow( hwnd,hMemDc,::SIZE(width,height) ,blendFunction  );  \n	}\n) 
+paintBuffer = @.paintBuffer( hwnd,\n    function( hdc,hMemDc,hMemBitmap,width,height,rcPaint,fErase,paintStruct ){\n        __/*专用于_WM_PAINT消息内创建内存DC绘图\n此函数自动负责内存DC到DC设备间的双向BitBlt复制操作*/\n        ::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);\n    } \n);
+paint = @.paint( hwnd,\n    function( hdc,width, height,rcPaint,fErase,paintStruct ){\n        __/*此函数只能用于wndproc内部处理_WM_PAINT消息*/\n        ::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);\n    } \n);
+getTextExtent(.(hdc,str) = 获取字符串输出后的宽度,高度,返回2个值\n参数@1为目标DC，参数@2指定字符串
+getPixel( = 抓像素颜色
+getPixel(.(x,y,hwnd) = 句柄为可选参数
+setPixel( = 修改像素颜色
+setPixel(.(x,y,color,hwnd) = 句柄为可选参数
+getBitmapObject(__/*hdc*/) = 返回当前设备位图对象
+getBitmapInfo(__/*位图句柄*/) = 返回BITMAT结构体
+getBitmapInfo() = !gdi_bitmap.
+getBitmapBits( = 获取位图数据\n返回值为cdata指针,以及数据读取长度\n无数据返回空值
+getBitmapBits(.(位图句柄,长度) = 成功返回读取内存,以及读取长度
+getIconInfo( = 获取图标信息
+getIconInfo(.(句柄) = 参数不可为空
+getIconInfo() = !gdicoinfo.
+setFont( = 设置窗口字体,返回字体句柄\n直接调用此函数必须自行管理字体生命周期
+setFont(.(窗口句柄,LOGFONT对象)  = 第二个参数是字体句柄、或LOGFONT结构体,\n使用LOGFONT参数将创建新的逻辑字体句柄并返回该句柄
+getFont(__/*窗口句柄*/) = 返回窗口字体,LOGFONT对象\n如果窗口仍然是使用系统字体,返回空值\n不应使用此函数获取系统字体
+getSystemFont(.( _SYSTEM_FONT ) = 获取系统字体并转换为LOGFONT
+getSystemFont(.( _DEFAULT_GUI_FONT ) = 获取界面缺省字体并转换为LOGFONT
+getFont() = !logfont.
+?.getFont = !logfont.
+BITMAP() = 位图信息\n!gdi_bitmap.bmType = 类型
+ARGB( = 转换ARGB颜色值为数值)
+RGB(.(红,绿,蓝) = 转换颜色为数值,\n建议直接用16进制写,格式为0xBBGGRR,例如 0xFF0000 为蓝色
+RGB( = 转换RGB颜色值为数值
+ARGB(.(红,绿,蓝,透明度) = 透明度默认为0xFF,即不透明
+RGBQUAD(.(红,绿,蓝) = 创建RGBQUAD结构体
+rgbReverse(__/*颜色数值*/) = ARGB颜色转值转RGB,\nRGB分量中R、B的位置互换
+argbReverse(__/*颜色数值*/) = RGB颜色转值转ARGB,\nRGB分量中R、B的位置互换,并修改高位透明分量为0xFF
+getRgb(__/*RGB颜色数值*/) = 返回R(红),G（绿）,B（蓝） 三个分量\nRGB颜色值一般用于GDI,普通控件等
+getRgba(__/*ARGB颜色数值*/) = 返回R(红),G（绿）,B（蓝),A（透明度) 4个分量\n注意透明度为0~0xFF,0xFF为完全不透明,0为完全透明\nARGB颜色值一般用于GDI+,plus控件等
+colorParse(.("#FFFFFF") = 解析网页兼容的颜色代码\n支持#RGB,#RRGGBB,#RRGGBBAA三种格式,#号可省略,\n#RGB,#RRGGBB返回GDI兼容的RGB值\n#RRGGBBAA返回GDI+兼容的ARGB格式颜色值\n失败返回null
+colorStringify(.(颜色数值,是否ARGB格式) = 生成网页兼容的文本\n如果是ARGB数值，返回#RRGGBBAA格式字符串\n#RRGGBBAA可用于HTMLayout,Sciter,以及最新版的chrome也可以支持
+selectBrush(callback,hdc,bgolor,color,width,style) = @.selectBrush(\n	function(hdc,pen,brush){\n		\n		::FillRect(hdc,::RECT(0,0,100,100),brush);\n		\n		var font = ::LOGFONT(weight=800;color=0x000000);\n		gdi.textOut(hdc,font,"TEST",0,0);\n			\n		__/*在指定绘图设备hdc选择新的笔刷和画笔\n参数bgolor指定笔刷颜色,参数color指定画笔颜色,如果不指定color则不创建画笔,\n注意GDI使用RGB格式的颜色值,用16进制数值可写为0xBBGGRR格式,\nwidth为可选参数用于指定画笔宽度,style为可选参数用于指定画笔样式\n回调参数中brush为新的笔刷,如果指定了color参数则回调参数pen为新的画笔\n此函数在回调函数执行完以后负责销毁笔刷、画笔并复原绘图设备*/\n	},hdc,0xFFFFFF,0x000000)
+selectPen(callback,hdc,color,width,style) = @.selectPen(\n	function(hdc,pen){\n		\n		gdi.drawLine(hdc,0,0,100,100)__/*在指定绘图设备hdc选择新的画笔,参数color指定画笔颜色,\n注意GDI使用RGB格式的颜色值,用16进制数值可写为0xBBGGRR格式,\nwidth为可选参数用于指定画笔宽度,style为可选参数用于指定画笔样式\n回调参数中pen为新的画笔\n此函数在回调函数执行完以后负责销毁画笔并复原绘图设备*/\n	},hdc,0xFFFFFF,0x000000)
+textOut(.(hdc,font,str,x,y) = 输出文本\nhdc参数指定绘图设备句柄,font参数指定LOGFONT字体对象,\n可选参数x,y指定输出坐标
+drawText(.(hdc,font,s,rect,format) = 输出文本\nhdc参数指定绘图设备句柄,font参数指定LOGFONT字体对象,\nrect应使用::RECT结构体指定输出区块,\nformat为可选参数使用_DT_前缀常量指定输出选项
+drawTextCenter(.(hdc,font,s,rect,format) = 居中对齐输出文本,\nhdc参数指定绘图设备句柄,font参数指定LOGFONT字体对象,\nrect应使用::RECT结构体指定输出区块,\nformat为可选参数使用_DT_前缀常量指定输出选项
+roundRect(.(hdc,rect,cx,cy) = 输出圆角矩形\nhdc参数指定绘图设备句柄\nrect应使用::RECT结构体指定输出区块,cx,cy指定圆角大小
+fillRect(.(hdc,color,rect) = 使用color指定的颜色填充矩形\nhdc参数指定绘图设备句柄\nrect应使用::RECT结构体指定输出区块\n\n如果不需要指定新的颜色,可改为调用::PatBlt即可\n如果需要指定笔刷,调用::FillRect即可
+fillGradient(.(hdc,rect,clr,clr2,mode) = 使用clr,clr2指定的渐变颜色填充矩形\nhdc参数指定绘图设备句柄\nrect应使用::RECT结构体指定输出区块\nmode为可选参数,默认为水平渐变,指定为1则为垂直方向渐变
+lineTo(.(hdc,x1,y1,->->->) = 开始画线到x1,y1指定的坐标点,\n可选添加任意个坐标点参数继续向后画线
+drawLine(.(hdc,x1,y1,x2,y2,->->->) = 在hdc指定句柄的绘图设备上移动到x1,y1坐标,\n开始画线到x2,y2指定的坐标点,\n可选添加任意个坐标点参数继续向后画线
+end intellisense**/
+
+/**intellisense(::)
+::LOGFONT() = 创建字体[LOGFONT结构体]\n可调用createIndirect生成字体句柄\ngdi.textOut,gdi.drawText 等函数可以直接使用此对象作为参数\n所有窗口及控件的setFont函数可使用此对象作为参数\n!logfont.
+::LOGFONT( name="Tahoma";point=12 ) = 创建字体对象\n参数表可以使用键值对指定LOGFONT结构体中的字段值,\n参数也可以是另一个LOGFONT结构体,此时复制并创建新的结构体\npoint指定字体大小,以点数为单位
+?::LOGFONT = !logfont.
+end intellisense**/
+
+/**intellisense()
+LOGFONT() = 创建字体[LOGFONT结构体]\n可调用createIndirect生成字体句柄\ngdi.textOut,gdi.drawText 等函数可以直接使用此对象作为参数\n所有窗口及控件的setFont函数可使用此对象作为参数\n!logfont.
+LOGFONT( name="Tahoma";point=12 ) = 创建字体对象\n参数表可以使用键值对指定LOGFONT结构体中的字段值,\n参数也可以是另一个LOGFONT结构体,此时复制并创建新的结构体\npoint指定字体大小,以点数为单位
+!logfont.h = 指定字符的高度，逻辑单位，\n字体映射器会将此值转换为设备单位，\n默认的 MM_TEXT 映射模式下，这个值也就是像素值\n\n即使用此属性指定字体大小，\naardio 创建的窗口仍然可以默认支持自动DPI缩放
+!logfont.w = 指定字符的宽度，逻辑单位，\n一般不建议指定此参数
+!logfont.esc = 字符串相对页面底端角度
+!logfont.ori = 单个字符相对页面底端角度
+!logfont.weight = 重量,0到1000\n0为默认值,标准字体为400\n粗体为700
+!logfont.bold = 是否为粗体
+!logfont.italic = 斜体
+!logfont.underline = 添加下划线
+!logfont.strike = 添加删除线
+!logfont.charset = 字符集代码,请参考标准库 gdi 中 _CHARSET 后缀常量
+!logfont.out = 输出精度
+!logfont.clip = 剪辑精度
+!logfont.quality = 输出质量
+!logfont.family = 字符间距和族
+!logfont.name = 字体名称
+!logfont.color = 字体颜色
+!logfont.createIndirect( = 创建可用于GDI设备的逻辑字体\n并返回字体句柄
+!logfont.createIndirect(.(hdc,hwnd,own) = 创建可用于绘图设备的逻辑字体,并返回对象句柄\nhdc,hwnd为可选参数用于转换point单位,默认为屏幕dc\n参数@3指定是否由当前对象是否持有该字体句柄
+!logfont.deleteIndirect() = 删除createIndirect函数创建并管理生存期的字体\n必须确认该字体确实不再被使用
+!logfont.detach() = 分离并返回字体句柄\n并将对象的字体句柄置为空,\n已分离的句柄必须自行管理生存期并负责释放
+!logfont.handle = createIndirect 函数创建并管理生存期的字体句柄\n不应直接读写此句柄
+!logfont.point = 字体点数,\n此为内部只写属性,\n不应当使用直接此属性读写字体点数,\n请改用 getPointSize, setPointSize 函数
+!logfont.setPointSize(.(pt,hdc,hwnd) = @pt 参数指定字体点数,\n1点等于 1/72 英寸\n在不同DPI设置的显示器上,每英寸对应的点数与像素不相同,\n使用点数单位可在不同DPI设置的显示器上得到相同大小的字体,\n如果指定了@hdc 或 @hwnd 参数，则自动调用 stripPoint 函数并更新 h 属性指定的逻辑单位
+!logfont.getPointSize(.(hdc,hwnd) = 返回点数大小\n可选使用参数hdc指定绘图设备句柄,或使用hwnd指定获取hdc的窗口
+!logfont.stripPoint(.(hdc,hwnd) = 如果指定了字体点数,转换并更新 h 属性的逻辑单位,\n可选使用参数 @hdc 指定绘图设备句柄,或使用 @hwnd 指定获取 @hdc 的窗口
+end intellisense**/
+
+	
+/**intellisense()
+!gdicoinfo.fIcon = 是否图标 
+!gdicoinfo.xHotspot = 热点坐标x 
+!gdicoinfo.yHotspot = 热点坐标u 
+!gdicoinfo.hbmMask = 掩码位图句柄 
+!gdicoinfo.hbmColor = 位图句柄 
+!gdi_bitmap.bmType = 类型
+!gdi_bitmap.bmWidth = 宽度
+!gdi_bitmap.bmHeight = 高度
+!gdi_bitmap.bmWidthBytes = 每行光栅所占字节数,必须为偶数
+!gdi_bitmap.bmPlanes = 调色板颜色数
+!gdi_bitmap.bmBitsPixel =  调色板颜色位数
+!gdi_bitmap.bmBits = 指向存储像素阵列的数组
+!blendFunction.blendOp = 必须是0
+!blendFunction.blendFlags = 必须是0
+!blendFunction.sourceConstantAlpha = 透明度值 1~255\n如果要使用图像本身的透明值,设为255\n默认值为255
+!blendFunction.alphaFormat = 默认为1,\n即AC_SRC_ALPHA:使用图像自带透明通道
+end intellisense**/
+
+/**intellisense()
+_SRCCOPY=@0xCC0020/*_SRCCOPY*/
+_SRCPAINT=@0xEE0086/*_SRCPAINT*/
+_SRCAND=@0x8800C6/*_SRCAND*/
+_SRCINVERT=@0x660046/*_SRCINVERT*/
+_SRCERASE=@0x440328/*_SRCERASE*/
+_NOTSRCCOPY=@0x330008/*_NOTSRCCOPY*/
+_NOTSRCERASE=@0x1100A6/*_NOTSRCERASE*/
+_MERGECOPY=@0xC000CA/*_MERGECOPY*/
+_MERGEPAINT=@0xBB0226/*_MERGEPAINT*/
+_PATCOPY=@0xF00021/*_PATCOPY*/
+_PATPAINT=@0xFB0A09/*_PATPAINT*/
+_PATINVERT=@0x5A0049/*_PATINVERT*/
+_DSTINVERT=@0x550009/*_DSTINVERT*/
+_BLACKNESS=@0x42/*_BLACKNESS*/
+_WHITENESS=@0xFF0062/*_WHITENESS*/
+_STRETCH_ANDSCANS=@0x1/*_STRETCH_ANDSCANS*/
+_STRETCH_ORSCANS=@0x2/*_STRETCH_ORSCANS*/
+_STRETCH_DELETESCANS=@0x3/*_STRETCH_DELETESCANS*/
+_STRETCH_HALFTONE=@0x4/*_STRETCH_HALFTONE*/ 
+_ULW_ALPHA = @0x2/*_ULW_ALPHA*/
+_ULW_OPAQUE = @0x4/*_ULW_OPAQUE*/
+_ULW_COLORKEY = @0x1/*_ULW_COLORKEY*/ 
+end intellisense**/
+
+/**intellisense()
+_ANSI_CHARSET=@0/*_ANSI_CHARSET*/
+_DEFAULT_CHARSET=@1/*_DEFAULT_CHARSET*/
+_SYMBOL_CHARSET=@2/*_SYMBOL_CHARSET*/
+_THAI_CHARSET=@0xDE/*_THAI_CHARSET*/
+_ARABIC_CHARSET=@0xB2/*_ARABIC_CHARSET*/
+_TURKISH_CHARSET=@0xA2/*_TURKISH_CHARSET*/
+_BALTIC_CHARSET=@0xBA/*_BALTIC_CHARSET*/
+_HANGUL_CHARSET=@0x81/*_HANGUL_CHARSET*/
+_GB2312_CHARSET=@0x86/*_GB2312_CHARSET*/
+_CHINESEBIG5_CHARSET=@0x88/*_CHINESEBIG5_CHARSET*/
+_EASTEUROPE_CHARSET=@0xEE/*_EASTEUROPE_CHARSET*/
+_GREEK_CHARSET=@0xA1/*_GREEK_CHARSET*/
+_HANGEUL_CHARSET=@0x81/*_HANGEUL_CHARSET*/
+_HEBREW_CHARSET=@0xB1/*_HEBREW_CHARSET*/
+_JOHAB_CHARSET=@0x82/*_JOHAB_CHARSET*/
+_MAC_CHARSET=@0x4D/*_MAC_CHARSET*/
+_OEM_CHARSET=@0xFF/*_OEM_CHARSET*/
+_RUSSIAN_CHARSET=@0xCC/*_RUSSIAN_CHARSET*/
+_SHIFTJIS_CHARSET=@0x80/*_SHIFTJIS_CHARSET*/
+_VIETNAMESE_CHARSET=@0xA3/*_VIETNAMESE_CHARSET*/
+end intellisense**/

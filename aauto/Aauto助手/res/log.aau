@@ -1,0 +1,27 @@
+import win.ui;
+import process;
+/*DSG{{*/
+var winform = ..win.form( bottom=520;parent=...;text="AAuto Form";right=411 )
+winform.add( 
+button={ bottom=511;right=390;left=321;top=488;z=2;text="πÿ±’";cls="button" };
+static={ bottom=507;text="static";left=25;right=231;top=489;transparent=1;z=3;cls="static" };
+edit={ bottom=481;vscroll=1;right=404;left=9;multiline=1;top=7;z=1;edge=1;cls="edit" }
+)
+/*}}*/
+
+winform.edit.limit=1024*10;
+winform.edit.oncommand = function(id,event){
+	if(event =0x501/*_EN_MAXTEXT ª∫≥Â«¯¬˙¡À*/)
+		winform.edit.text =""
+		
+}
+
+winform.button.oncommand = function(id,event){
+	//winform.msgbox( winform.button.text );
+	winform.close();
+	
+}
+
+winform.show() 
+win.loopMessage();
+return winform;

@@ -1,0 +1,370 @@
+/**main.aardio**/
+/**:抓取 www.avtb6677.com 的视频**/
+import console;
+import inet;
+import inet.http;
+import inet.httpFile;
+import fsys;
+import fsys.file;
+import fsys.ini;
+import fsys.table;
+/////////////////////////////////////////////////
+////自定义.
+import Utils;
+/////////////////////////////////////////////////
+var url = "";
+var _debug_ = false;
+var llll = 0; /**已经下载的数据量**/
+var filesize = 0; /**文件大小**/
+var html = ""; /**网页源码**/
+var load_html_time=1; /**重试次数**/
+/////////////////////////////////////////////////
+ini = fsys.ini(".sys.ini");
+get_ini_value = function(name) {
+    return ini.read("系统设置", name);
+}
+set_ini_value = function(name, val) {
+    ini.write("系统设置", name, val);
+}
+save_download_history = function(name, val) {
+    ini.write("历史", name, val);
+}
+match1 = get_ini_value("match1"); /**匹配串一**/
+match2 = get_ini_value("match2"); /**匹配串二**/
+save_dir = get_ini_value("save_dir");  /**下载文件保存目录**/
+console_title = get_ini_value("console_title"); /**窗口标题**/
+_debug_ = ..string.cmpMatch(get_ini_value("debug"), "true",4);
+if (!#console_title) {
+    console_title = 'www.avtb6677.com 支持断点续传 | 输入qa查询未完成任务';
+    set_ini_value("console_title", console_title);
+}
+if (!#match1) { //为空 
+    match1 = '<@<video@>(.+?)<@</video>@>';
+    set_ini_value("match1", match1);
+}
+if (!#match2) {
+    match2 = '<@src="@>(.+?)<@"@> <@type="video/mp4" label="360p" res="360"@>';
+    set_ini_value("match2", match2);
+}
+if (#save_dir) { 
+	if (!..string.endWith(save_dir, "/")) {
+    	save_dir = save_dir++"/";
+   	 	set_ini_value("save_dir", save_dir);
+	}
+}else{
+    save_dir = fsys.getCurDir() + "/";
+    set_ini_value("save_dir", save_dir);
+}
+/////////////////////////////////////////////////
+write_log=function(...){
+    console.log(...);
+    console.log("");
+}
+getMd5 = function(str) { /**获取字符串的md5值**/
+    import crypt;
+    var md5 = crypt.md5(str);
+    return ..string.left(md5,16);
+}
+_name = function(name) { /** 获取临时文件 **/
+    import fsys;
+    return fsys.getTempDir()++name++".html.gz";
+}
+clean = function(file) {/** 清理临时文件 **/
+    import fsys;
+    if (..io.exist(file)) {
+        if (!_debug_) fsys.deleteEx(file);
+    }
+    return true;
+}
+load = function(file) {/** 从临时文件加载 **/
+    import zlib;
+    var data = null;
+    gz = zlib.gzFile(file, "rb")
+    if (gz) {
+        data = gz.read(-1)
+        gz.close(); //关闭文件句柄
+        gz = null;
+    }
+    return data;
+}
+put = function(file, data) {/** 保存临时文件 **/
+    import zlib;
+    var gz = zlib.gzFile(file, "wb")
+    var d = gz.write(data); ///返回的是data长度
+    gz.close();
+    gz = null;
+    return d > 0;
+}
+tm = function(tt) {/** 格式化日期 **/
+    var str = tostring(tt, "%m月%d日%H时%M分%S秒", "chs");
+    return str;
+}
+/**查询未完成的视频信息**/
+get_break_move_list=function(){
+    var index=1; 
+    var tmp_list_file=..io.tmpname("get_break_move_list") ;
+    var list=fsys.table(tmp_list_file);
+    var not_download=function(tmp_fullpath){
+        //console.log(fullpath) ;
+        //console.pause();
+        Utils.update_resume_file(tmp_fullpath); ///处理,合并下信息.
+		var break_setting = fsys.table(tmp_fullpath);
+		break_setting.load() ;
+		var is_ok=break_setting.ok:"";
+    	return !!!..string.cmpMatch( is_ok ,"ok" ,2 ),break_setting;
+    }
+	fsys.enum( save_dir , //指定要遍历的目录
+			"*.dow!oad" , //指定查询文件名,支持windows掩码
+			function(dir,filename,fullpath,findData){ //指定触发器
+				var tmp_fullpath=fullpath;
+				var not_,config=not_download(tmp_fullpath) ;
+				if(not_ && config.url){
+       				var tt = {};
+        			tt.index = index;
+        			tt.config=config ;
+        			table.push(list, tt);  
+					index+=1; 
+					//console.dumpTable(tt);	
+				}
+			} ,false 
+	) ; 
+	fsys.delete(tmp_list_file);
+	return list; 
+}
+/////////////////////////////////////////////////
+/**打印未完成的视频信息**/
+print_list=function(list){
+	for (index, vvv in list) {
+		if (type(vvv)!=type.table  ) continue;
+		//console.dumpTable( vvv) ;
+		console.log(index,vvv.config.url   ) ;
+	}
+}
+/**选择未完成的视频信息,返回URL**/
+slect_one_from_list=function(list){ 
+    var url=null;   
+    do{
+		var _index = console.getText("请输入序号选择(0退出):"); 
+		_index=..string.trim( _index);
+		write_log("") ;
+		if(  ..string.cmpMatch( _index,"0" ) ) {
+			url="0";
+			break;
+		}else{
+			
+			for (index, vvv in list) {
+				var _str_index= tostring(index) ;
+				
+				if(type(vvv)==type.table){
+					if( ..string.cmpMatch( _str_index, _index )  ){
+						/*
+console.varDump(vvv);
+*/
+					 	url= (vvv.url:(vvv.config.url:'')) ;
+					 	/*
+console.log("1111",url,"3333") ;
+*/
+					 }
+				}
+				
+			}
+		}
+		if( null==url ) {write_log("输入错误") ;}
+    }while(null==url ) ;
+	return url ;	
+}
+/////////////////////////////////////////////////
+/** 设置窗口标题 **/
+console.setTitle(console_title++" "++(_debug_ ? "debug" : ""));
+/////////////////////////////////////////////////
+/**查询未完成视频信息的操作**/
+do_special_url=function(){
+    var tmp_url="";
+	list=get_break_move_list();
+	if(!#list){
+		write_log("没有未完成的下载任务.") ;
+		return tmp_url;
+	}
+	print_list(list);
+	var config=slect_one_from_list(list);
+	//console.varDump(config) ;
+	/*
+console.log("config",type(config),config);
+*/
+	if( type(config)==type.string ) {
+		if(  0==..string.cmp( config,"0" ) ){ tmp_url="" ;/* console.log("1",tmp_url);*/ }
+		else{ tmp_url= config;/* console.log("2",tmp_url); */ }	
+		//tmp_url =  ..string.cmpMatch( config,"0" ) ? "" : config ;
+	}else if( type(config)==type.table ) {
+		tmp_url = (config.url:(config.config.url:'')) ;
+		//console.log("1",tmp_url); 
+   		///console.varDump(config.config.url) ;	
+	}
+	/*
+console.log("tmp_url",tmp_url);
+*/
+	return tmp_url;    
+}
+/////////////////////////////////////////////////
+do { /** 要求输入下载视频的网址 **/
+    url = console.getText("请输入avtb的视频网址:") ;
+    write_log("") ;
+    if(..string.cmpMatch( url,"qa" ,2 )){ 
+	    url=do_special_url();
+    }
+    if (#url) {
+        write_log("您的输入/选择是", url);
+        break;
+    }
+} while (true)
+/////////////////////////////////////////////////
+var _yes_no_times=0;
+do {/** 要求用户确认 **/
+    _yes_no_times+=1;
+    var _yes_no = console.getText("本程序只供学习体验，不提供其他用途，确认（Y / N）:");
+    write_log("") ;
+    if ( _yes_no_times >3 ) _yes_no="n";
+    if (..string.cmpMatch(_yes_no, "y")) break;
+    if (..string.cmpMatch(_yes_no, "n")) error("程序退出。", 2);
+} while (true)
+if (!..string.endWith(url, "/")) {
+    url = url++"/";
+}
+/////////////////////////////////////////////////
+write_log("网址:"++url)
+
+/////////////////////////////////////////////////
+
+realname = _name(getMd5(url));
+write_log("缓存:"++realname);
+realhtml = fsys.file(realname, "r")
+if (realhtml) { //文件存在
+    var tnow = time.now().addhour(-1); //近1个小时.
+    var tttm = realhtml.getTime().write;
+    if (tttm > tnow) {
+        html = load(realname);
+    }else{
+    	clean(realname);
+    }
+}
+
+do{
+    if(!!#html) break; 
+    http = inet.http()
+    html = http.get(url)
+    if(!!#html) put(realname, html);
+    else write_log("没获取到网页,重试 " ++load_html_time);
+	sleep(1000);
+	load_html_time+=1;
+}while(load_html_time<5)
+/////////////////////////////////////////////////
+if (!#html) {
+    clean(realname);
+    error("没抓到网页，请重试。html is blank " );
+}else{
+	write_log("获取到网页." ++ #html ++"字节");
+}
+/////////////////////////////////////////////////
+html = string.match(html, match1);
+if (!#html) {
+    clean(realname);
+    error("没有视频标签，请重试。video is blank");
+}
+srouces = string.match(html, match2)
+write_log("视频地址:"++srouces);
+;
+if (!#srouces) {
+    clean(realname);
+    error("没有视频信息，请重试。srouces is blank");
+}
+var name = ..inet.url.getFileName(srouces);
+console.setTitle(name);
+if (!#name) {
+    clean(realname);
+    error("没有视频信息，请重试。name is blank");
+}
+/////////////////////////////////////////////////
+var setting=null;
+var path = save_dir++name;
+var ff = fsys.file(path);
+if (ff) llll = ff.size();
+/////////////////////////////////////////////////
+var dw = inet.httpFile(srouces, path);
+if( io.exist(dw.resumePath)){ setting = fsys.table(dw.resumePath); setting.load(); }
+else {  /** ... **/ }
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+dw.onReceiveBegin = function(statusCode,contentLength,fileSize){
+	if( statusCode == 206/*断点续传*/ ){} 
+	///setting.ok="doing"; 
+	if( setting ){
+		start_date = tm(time.now()) ;
+		if(!#setting.length) setting.length =  ..fsys.formatSize(setting.contentLength) ;  
+		if(!#setting.start_date) setting.start_date = start_date ;
+		if(!#setting.srouces) setting.srouces=srouces;   
+		if(!#setting.name) setting.name=name; 
+		if(!#setting.path) setting.path=path;
+		if(!#setting.url) setting.url=url; 
+    	filesize = setting.contentLength ;
+	}
+}
+/////////////////////////////////////////////////
+dw.onReceive = function(buffer, readSize, contentLength /*需要下载的长度*/ ) {   
+   	llll += readSize;
+    ff = function(dd) {
+        return string.format("%0.1f", dd)++"%";
+    }
+    tm = function(tt) {/** 格式化日期 **/
+    	var str = tostring(tt, "%m月%d日%H时%M分%S秒", "chs");
+    	return str;
+	}
+   
+    if (filesize >0 && llll>0)
+    	console.log(name, ff(100 * llll / filesize), ..fsys.formatSize(llll), ..fsys.formatSize(filesize), tm(time.now()));
+    
+}
+
+/////////////////////////////////////////////////
+save_download_history(name, url);
+write_log(tm(time.now()), "开始下载：", path);
+/////////////////////////////////////////////////
+/////////////////////////////////////////////////
+var download_ok=false;
+for(i=1;5;1){  ///重试5次
+	sleep(1000);
+	var ok, err, fileSize = dw.download();//下载
+	//if(setting) setting=null;
+	//setting = fsys.table(dw.resumePath); 
+	write_log("") ;
+	/////////////////////////////////////////////////    
+	if (!!ok) { 
+		download_ok=true;;
+    	write_log(tm(time.now()), name, " 已经下载完成");
+		dw.close() ;  
+    	break;
+	}else{
+		setting.ok="error";
+		write_log("下载错误,重试 "++ i) ;
+	}
+}
+////////////////////////////////
+while(download_ok){
+    sleep(200);
+    Utils.update_resume_file(dw.resumePath); ///处理,合并下信息.
+	if(!setting){
+		setting = fsys.table(dw.resumePath); 
+		setting.load();
+	}
+	if(  0 == ..string.cmp("ok",setting.ok||"" ,2 ) ){ break; }
+	else{
+		setting.ok="ok";
+		setting.end_date =  tm(time.now())   
+		setting.save() ;
+	}	
+}
+////////////////////////////////
+ 
+/////////////////////////////////////////////////   
+write_log(tostring(setting)) ; 
+write_log("") ; 
+console.pause(true);

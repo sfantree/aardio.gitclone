@@ -1,0 +1,179 @@
+﻿//path 路径函数
+namespace fsys.path;
+
+::Shlwapi := ..raw.loadDll("Shlwapi.dll");
+PathCompactPath = Shlwapi.api("PathCompactPath", "int(pointer hdc, ustring&lpszPath, INT dx)" )
+PathCanonicalize = Shlwapi.api("PathCanonicalize", "int(ustring &dst,ustring src)" )  
+PathCommonPrefix = Shlwapi.api("PathCommonPrefix", "int(ustring,ustring,ustring&)" )
+PathRelativePathTo = Shlwapi.api("PathRelativePathTo", "bool(ustring& pszPath,ustring pszFrom,INT dwAttrFrom,ustring pszTo,INT dwAttrTo)" ); 
+GetShortPathName = ::Kernel32.api("GetShortPathNameW","int(ustring long,ustring&short,int cchBuffer)")
+GetLongPathName = ::Kernel32.api("GetLongPathNameW","int(ustring  short,ustring&long,int cchBuffer)")
+
+cmp = function(path,path2){
+    if(!path || !path2) return -1;
+	return ..string.cmp(canonicalize(path),canonicalize(path2));
+}; 
+
+validName = function(name){
+ 	if( type(name) != "string" ) return;
+ 	var name = ..string.replace(name,"[\/\:\*\?\""\<\>\r\n]",""); 
+ 	name = ..string.replace(name,"@\",""); 
+ 	name = ..string.replace(name,"@|",""); 
+ 	return name;
+};
+
+canonicalize = function(path,lng=true){ 
+	if(!path) error("路径参数不能为空",2)
+	path = ..string.replace(path,'/','\\');
+ 	if( path[#path] == ':' ) path = path + "\";
+ 	if( lng ) path = long(path);
+ 	var ret,cp = PathCanonicalize(0x208/*_MAX_WPATH_BYTES*/,path ); 
+ 	if(ret){ 
+ 		return ( removeBackslash( cp ) );//除分区根目录外保证尾部不为斜杠
+ 	}
+};
+
+ischild = function(dir,path){
+ 	if(!(dir&&path) ) return;
+ 	dir = addBackslash(canonicalize(dir,true));
+ 	path = canonicalize(path,true);
+ 	return path ? ..string.startWith(path,dir,true);
+};
+
+long = function(path){
+	if(!path) error("参数不能为空",2);
+	if( !..io.exist(path) )return ..io.fullpath(path);
+	var len,path = GetLongPathName( ..io.fullpath(path) ,0x208/*_MAX_WPATH_BYTES*/,0x104/*_MAX_PATH*/);
+	if(len) return path
+};
+
+short = function(path){
+	if(!path) error("参数不能为空",2);
+	if(!..string.indexAny(path,"/\")) return path;
+	var len,path = GetShortPathName( ..io.fullpath(path) ,0x208/*_MAX_WPATH_BYTES*/,0x104/*_MAX_PATH*/);
+	if(len)return path;
+};
+
+isDir = function(path){
+	if(!path) return false;
+	if( ..string.indexAny(path,"\/",#path) ) return true;
+	var a = ::Kernel32.GetFileAttributesW(path);
+	return  (a!=-1) && ( a & 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/);
+};
+
+relativeTo = function(from,to,fromAttr,toAttr){
+	if(! (from && to) ) error("请指定正确的参数",2);
+	from = long(from);
+	to = long(to);
+
+	if( fromAttr === null ){
+		fromAttr = 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/;
+		if( ..io.exist( from )  ){
+			if( !isDir(from) ) toAttr = 0;
+		}
+	}
+	if( toAttr === null ){
+		toAttr = 0;
+		if( ( ..io.exist( to ) && isDir(to) ) || eofBackslash(to) ){
+			if( isDir(to)  ) toAttr = 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/
+		} 
+	} 
+	
+	var ok,path = PathRelativePathTo(0x208/*_MAX_WPATH_BYTES*/,from,fromAttr,to,toAttr); 
+	if(ok)return path;
+};
+
+relative = function(path,dir,prefix=true,pathAttr){
+	if(! (path && dir) ) error("请指定正确的参数",2); 
+
+ 	dir = addBackslash(dir);
+ 	var r = relativeTo( dir,path,0x10/*_FILE_ATTRIBUTE_DIRECTORY*/,pathAttr)
+ 	if( !r )
+ 			return ( ! ..string.match( path,"<\a+\:>|<\\\\>" ) ) ? path : null;
+
+ 	if( ..string.startWith(r,".\") ){
+ 		if( prefix ) return ..string.right(r,-2);
+ 		return #r>2?..string.right(r,-3):".";
+ 	}
+ 	if( ..string.startWith(r,"..") || ..string.startWith(r,"\..")){
+ 		if(  cmp(path,dir) ) return;
+ 		return prefix?"\":".";
+ 	}
+ 		
+ 	if( prefix ){
+ 		if( r[1] == '\\'# ) return r;
+ 		return "\" + r;
+ 	}
+ 	if( r[1] == '\\'# ) return ..string.right(r,-2);
+ 	return r;
+};
+
+eofBackslash = function(path){
+	return path ? ( ..string.indexAny(path,"\/",#path) );
+};
+
+removeBackslash = function(path){
+	if(!path) error("路径参数不能为空",2); 
+ 	return ..string.trimright(path,"\/");
+}; 
+ 
+addBackslash = function(path){
+	if(path) return ..io.joinpath(path,"/");
+};
+
+compact = function(path,pix = 300){
+	var re,path = PathCompactPath( ,path,pix)
+	return path;
+}; 
+
+commonPrefix = function(path,path2){
+	var l,p = PathCommonPrefix(canonicalize(path),canonicalize(path2),0x208/*_MAX_WPATH_BYTES*/)
+	if(l) return addBackslash(p);//保证尾部为斜杠
+};
+
+replaceDir = function(path,dir,newDir){ 
+	return  ..io.joinpath(newDir,relative(path,dir) );
+};
+
+replaceFile = function(path,filename){ 
+	if(!path) error("路径参数不能为空",2);
+	path = ..string.trimright(path,"\/")
+	return  ..io.joinpath(..io.splitpath(path).dir,filename);
+};	
+
+full = function(path,root){
+    var abs = ..string.match(path,"^<//>|<\\\\>|<[^\\/\:]+\:>");
+    if( abs ) {
+        if(path[#path]==':'#/*D:*/) path = path + "\";
+    	return path;
+    }
+    if( root ) return  ..io.localpath(path) || ..io.fullpath( ..io.joinpath(root,path) );
+}
+
+append = ..io.joinpath;
+
+
+/**intellisense(fsys.path) 
+long(.(路径) = 转为长路径
+short(.(路径) = 转为短路径\n如果文件不存在,返回空值,\n短文件名指向会因实际文件数变更,所以不能把短路径存入数据库\n\n存在特定文件目录无法获取短路径且返回包含空格的长路径的可能性\n如无必要，不建议使用或依赖此函数，正确使用 process 等可以自动\n转义路径参数中的空格。
+isDir(.(路径) = 如果文件路径存在并且是一个目录,\n或者路径路径以斜杠、反斜杠结束返回真
+cmp(.(路径,比较路径) = 比较两个路径是否指向同一位置,\n任何一个参数为null时返回-1,\n返回值意义与 string.cmp()函数相同,\n路径相同则返回0,注意在条件表达式中为false\n\n更准确的检测相同或不同的路径是否指向同一真实文件,\n应使用fsys.fileInfo函数
+compact(.(文件路径,显示像素宽度) = 截断路径来适合一定数目的像素
+commonPrefix(.(路径,路径2) = 返回两个文件路径的公共前缀目录\n该函数失败保证返回的是一个目录比以斜杠结尾,失败返回null,\n在比较以前自动对路径归一化处理,忽略大小写
+canonicalize(.(路径,是否处理短路径) = 转换为完整路径,\n并对路径进行归一化处理,参数2可选(默认为true),\n扩展和适当置换路径中包含的所有".."和"."\n该函数保证除分区根目录外保证尾部不为斜杠
+eofBackslash(.("文件路径") = 首先替换所有正斜杠为反斜杠\n检测路径尾部是否有反斜杠
+addBackslash(__/*路径*/) = 首先替换所有正斜杠为反斜杠\n如果目录最后面没有反斜杠,则追加反斜杠,\n这个函数实际是调用  io.joinpath(path,"/")
+removeBackslash(__/*路径*/) = 首先转换为完整路径,替换所有正斜杠为反斜杠\n移除路径最后面的反斜杠,并返回新路径以及尾字符\n如果尾字符为反斜杠并已移除,第二个返回值为空字符\n如果是分区号后的反斜杠或路径只有一个反斜杠,第二个返回值为反斜杠
+relativeTo(.(参考路径,目标路径,参考路径属性,目标路径属性) = 自参数@1指定的路径得到一个相对路径指向目标路径\n注意相对路径不一定是子目录,如果是上层目录使用 ../ 表示\n路径属性可为0,或 _FILE_ATTRIBUTE_DIRECTORY,可省略
+relative(.(路径,目录,返回路径是否以斜杠开始) = 将路径转换为指定目录下层的相对路径,\n在比较以前自动对路径归一化处理,忽略大小写\n相同路径则返回空字符串,不是该目录下的路径则返回null\n参数三可选,默认首字符为斜杠
+validName(__/*路径*/) = 检测文件名是否合法,\n返回修正后的合法名称\n传入非字符串参数直接返回空值
+replaceDir(.(路径,根目录,新的根目录) = 将路径转换为参数2指定根目录下的相对路径\n再将其转换为新的根目录下的绝对路径
+replaceFile(.(路径,新文件名) = 替换路径中的文件名部分
+ischild(.(目录,路径) = 检测参数@2指定的路径是否在参数@1指定的目录之下
+full(.(path) = 如果路径是绝对路径则返回该路径（不作任何转换）,\n否则返回null
+full(.(path,root) = 如果path是相对路径，并且不以/、\、~等字符开始,\n则返回io.joinpath(root,path)\n否则转换为绝对路径返回
+end intellisense**/
+
+/**intellisense() 
+fsys.path = 提供文件路径相关函数,\n在导入fsys支持库时将自动导入fsys.path
+end intellisense**/

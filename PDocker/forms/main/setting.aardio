@@ -1,0 +1,198 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var frmSetting = win.form(text="aardio form";right=759;bottom=469;bgcolor=16777215)
+frmSetting.add(
+btnLoadSetting={cls="plus";text="导入配置";left=318;top=383;right=444;bottom=413;align="left";bgcolor=-5197169;db=1;dr=1;font=LOGFONT(h=-13);forecolor=15128749;iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=20}};iconText='\uF149';notify=1;textPadding={left=39};z=23};
+btnSaveSetting={cls="plus";text="导出配置";left=466;top=383;right=587;bottom=413;align="left";bgcolor=13929098;db=1;dr=1;font=LOGFONT(h=-13);forecolor=15128749;iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=20}};iconText='\uF148';notify=1;textPadding={left=39};z=22};
+editContainerPort={cls="plus";left=155;top=143;right=252;bottom=169;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=7};
+editHostPort={cls="plus";left=378;top=143;right=475;bottom=169;align="left";border={bottom=1;color=-6908266};dl=1;dr=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=11};
+editRegistryPasssword={cls="plus";left=445;top=105;right=591;bottom=131;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);password=1;textPadding={top=6;bottom=2};z=5};
+editRegistryUrl={cls="plus";text="registry.cn-hangzhou.aliyuncs.com/namespace/container-name:latest";left=155;top=73;right=695;bottom=99;align="left";border={bottom=1;color=-6908266};dl=1;dr=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=1};
+editRegistryUsername={cls="plus";left=155;top=105;right=312;bottom=131;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=3};
+editSshHost={cls="plus";left=155;top=232;right=331;bottom=258;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=9};
+editSshPassword={cls="plus";left=432;top=261;right=578;bottom=287;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);password=1;textPadding={top=6;bottom=2};z=14};
+editSshUsername={cls="plus";text="root";left=155;top=265;right=312;bottom=291;align="left";border={bottom=1;color=-6908266};dl=1;dt=1;editable=1;font=LOGFONT(h=-13);textPadding={top=6;bottom=2};z=16};
+editWorkDir={cls="plus";left=154;top=12;right=690;bottom=38;align="left";border={bottom=1;color=-6908266};dl=1;dr=1;dt=1;editable=1;font=LOGFONT(h=-13);notify=1;textPadding={top=6;bottom=2};z=17};
+linkAliyun={cls="plus";text='\uF08E';left=694;top=75;right=727;bottom=99;dr=1;dt=1;font=LOGFONT(h=-15;name='FontAwesome');notify=1;z=20};
+lnkWorkDir={cls="plus";text='\uF08E';left=694;top=22;right=727;bottom=46;dr=1;dt=1;font=LOGFONT(h=-15;name='FontAwesome');notify=1;z=26};
+static={cls="static";text="容器仓库地址：";left=4;top=84;right=152;bottom=101;align="right";dl=1;dt=1;transparent=1;z=2};
+static10={cls="static";text="示例：192.168.1.100 或 192.168.1.100:22";left=346;top=243;right=644;bottom=264;color=6908265;dl=1;dt=1;transparent=1;z=19};
+static11={cls="static";text="如果配置了 SSH Key 可以不用输入密码";left=433;top=298;right=654;bottom=322;color=6908265;dl=1;dt=1;transparent=1;z=21};
+static12={cls="static";text="配置文件( *.pdocker )可直接拖放到此窗口加载。
+也可以直接拖放工作目录到此窗口，该目录下的 .pdocker 文件可自动加载。";left=316;top=421;right=751;bottom=463;color=6908265;db=1;dr=1;transparent=1;z=24};
+static13={cls="static";text="变更本地工作目录时，如该目录下存在 .pdocker 文件则会自动加载";left=315;top=48;right=734;bottom=65;color=6908265;db=1;dr=1;dt=1;transparent=1;z=25};
+static2={cls="static";text="容器仓库登录用户名：";left=10;top=117;right=152;bottom=134;align="right";dl=1;dt=1;transparent=1;z=4};
+static3={cls="static";text="映射到主机端口：";left=260;top=150;right=373;bottom=167;align="right";dl=1;dt=1;transparent=1;z=12};
+static4={cls="static";text="仓库登录密码：";left=322;top=117;right=427;bottom=134;align="right";dl=1;dt=1;transparent=1;z=6};
+static5={cls="static";text="SSH 登录用户名：";left=10;top=273;right=152;bottom=290;align="right";dl=1;dt=1;transparent=1;z=13};
+static6={cls="static";text="容器服务端口：";left=7;top=150;right=152;bottom=167;align="right";dl=1;dt=1;transparent=1;z=8};
+static7={cls="static";text="Linux 服务器地址：";left=3;top=238;right=152;bottom=255;align="right";dl=1;dt=1;transparent=1;z=10};
+static8={cls="static";text="本地工作目录：";left=3;top=23;right=151;bottom=40;align="right";dl=1;dt=1;transparent=1;z=18};
+static9={cls="static";text="SSH 登录密码：";left=309;top=273;right=414;bottom=290;align="right";dl=1;dt=1;transparent=1;z=15}
+)
+/*}}*/
+
+import config;
+frmSetting.bindConfig( config.frmSetting,{
+	edit = "text";
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+	plus ={
+		["^chk"] = "checked";
+		["^edit"] = "text";
+	};
+	
+} );
+
+subscribe("docker-update-setting",function(docker){
+	//var docker = process.docker(); 
+	if(!io.exist(frmSetting.editWorkDir.text)){
+		docker.lasterr = "请指定正确的工作目录";
+		return;
+	}
+	
+	if(!#frmSetting.editRegistryUrl.text){
+		docker.lasterr = "请指定正确的仓库地址";
+		return;	
+	}
+	
+	if(frmSetting.editRegistryUrl.text=="registry.cn-hangzhou.aliyuncs.com/namespace/container-name:latest"){
+		docker.lasterr = "请将设置中的演示仓库地址修改为实际要使用的仓库地址";
+		return;	
+	}
+	
+	if( string.indexOf(frmSetting.editRegistryUrl.text,"/namespace/container-name") ){
+		docker.lasterr = "仓库地址不应包含演示名称：/namespace/container-name";
+		return;	
+	}
+	
+	docker.init(frmSetting.editWorkDir.text,frmSetting.editRegistryUrl.text);
+	docker.ssh.host = frmSetting.editSshHost.text;
+	docker.ssh.username = frmSetting.editSshUsername.text;
+	docker.ssh.password = frmSetting.editSshPassword.text;
+	docker.username = frmSetting.editRegistryUsername.text;
+	docker.password = frmSetting.editRegistryPasssword.text;
+	docker.setPort(frmSetting.editContainerPort.text,frmSetting.editHostPort.text);
+	
+	if(!#docker.ssh.host){
+		docker.lasterr = "请指定正确的 SSH 服务器地址";
+		return;	
+	}
+	
+	if(!#docker.username){
+		docker.lasterr = "请指定 Docker 仓库登录用户名";
+		return;	
+	}
+	
+	if(!#docker.password){
+		docker.lasterr = "请指定 Docker 仓库登录用密码";
+		return;	
+	}
+	
+	if(!tonumber(frmSetting.editHostPort.text)){
+		docker.lasterr = "请指定正确的主机端口";
+		return;	
+	}
+	
+	config.frmSetting.save();
+} )
+
+
+if(io.exist("/Dockerfile") ){
+	frmSetting.editWorkDir.text = io.fullpath("/");
+}
+
+import style;
+frmSetting.linkAliyun.skin(style.plainButton)
+frmSetting.linkAliyun.oncommand = function(id,event){
+	import process;
+	process.openUrl("https://cr.console.aliyun.com")
+}
+
+import crypt;
+import fsys.dlg;
+
+var loadSetting = function(path){
+    var data = string.load(path);
+    if(!data){
+    	frmSetting.msgErr("错误的配置文件")
+    }
+    
+    data = crypt.decodeBin(data);
+    if(!#data){
+    	frmSetting.msgErr("配置文件编码错误")
+    }
+    
+    var cfg = eval(data);
+ 
+	table.assign( config.frmSetting,cfg.setting );
+	table.assign( config.frmVolume,cfg.volume );
+
+	config.frmSetting.afterLoad();
+	config.frmVolume.afterLoad();	
+}
+
+
+frmSetting.btnLoadSetting.skin(style.plainButton)
+frmSetting.btnLoadSetting.oncommand = function(id,event){
+    var path = fsys.dlg.open("*.pdocker|*.pdocker","打开 PDocker 配置文件",,frmSetting.hwnd);
+    if(!path) return;
+    
+    loadSetting(path);
+}
+
+frmSetting.btnSaveSetting.skin(style.plainButton)
+frmSetting.btnSaveSetting.oncommand = function(id,event){
+    
+    var path = fsys.dlg.save("*.pdocker|*.pdocker","另存为 PDocker 配置文件",frmSetting.editWorkDir.text,frmSetting.hwnd,,".pdocker");
+    if(!path) return;
+    
+    //控件值同步到配置文件
+	config.frmSetting.save();
+	
+	var cfg  = {
+		setting = table.assign({},config.frmSetting); //丢弃元表
+		volume = table.assign({},config.frmVolume); //丢弃元表
+	}
+	
+	var data = crypt.encodeBin(table.tostring(cfg));
+	string.save(path,data)
+}
+
+frmSetting.editWorkDir.editBox.onChange = function(){ 
+	if(owner.onModified)owner.onModified(true);
+	var dir  = ..io.exist(owner.text)
+	if(dir){
+		var path = io.joinpath(dir,".pdocker")
+		if(io.exist(path)){
+			loadSetting(path);
+		}
+	}
+}
+
+import fsys.dlg.dir;
+frmSetting.lnkWorkDir.skin(style.plainButton)
+frmSetting.lnkWorkDir.oncommand = function(id,event){
+	var path = fsys.dlg.dir(,frmSetting,'请选择工作目录')
+	if(path){
+		frmSetting.editWorkDir.text = path;
+	}
+}
+
+import fsys;
+frmSetting.onDropFiles = function(files){
+	var path = files[1]
+	if(io.exist(path) && ..string.endWith(path,".pdocker",true) ){
+		loadSetting(path);
+	}
+	elseif( fsys.isDir(path)) {
+		frmSetting.editWorkDir.text = path;
+	} 
+}
+
+frmSetting.show();
+win.loopMessage();
+
+return frmSetting;

@@ -1,0 +1,16 @@
+
+import dbase.mssql;
+
+var database = dbase.mssql();
+svc.rpc.rpcSvc = database;//继承数据库操作函数
+
+namespace svc.rpc.rpcSvc
+
+string = ..string;
+table = ..table;
+
+getServerTime = function(){//返回服务器时间
+	var t = ..time();
+	t.format = "%Y-%m-%d %H:%M:%S";
+	return tostring(t);
+}

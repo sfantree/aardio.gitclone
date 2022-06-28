@@ -1,0 +1,178 @@
+﻿import fsys;
+import fsys.table;
+import time;
+import console;
+//////////////////////////////////////////
+/**
+class Utils{
+    ctor() {} 
+}
+**/
+//////////////////////////////////////////
+namespace Utils { 
+   //////////////////////////////////////////
+    tm = function(tt) {
+        return tostring(tt, "%Y%m%d_%H%M%S", "chs");
+    }
+    //////////////////////////////////////////
+    back_resume_file=function(resumePath){
+        var bakResumepath = resumePath++"."++tm(..time.now())++".bak"; //backup
+        var dir=..fsys.getSpecial(0x5/*_CSIDL_MYDOCUMENTS*/) ; 
+        var name= ..fsys.getFileName(resumePath)++"."++tm(..time.now())++".bak";
+        	bakResumepath=dir++"/avtaobao/" ++ name;
+        if( !..io.exist(bakResumepath) )
+			..fsys.createParentDir(bakResumepath);
+        var b = ..fsys.copy(resumePath, bakResumepath); //copy
+    	return b;
+    }
+    //////////////////////////////////////////
+    trunc_resume_file=function(resumePath){
+        var tablestr = ..string.load(resumePath); // load
+        var str = ..string.replace(tablestr, `@}{`, `};{`); // replace
+        ..fsys.delete(resumePath); //删除
+        	  ..string.save(resumePath,'\xEF\xBB\xBF' );
+        var b=..string.save(resumePath, str) //回写
+    	return b;
+    }
+    
+    //////////////////////////////////////////
+	
+	update_resume_file = function(path) { 
+        var ttmpfilelist={};
+		var tmpname= ..fsys.getFileName(path) ++"."++ .. string.random(4 ) ++".KKK."  ;
+        var resume=..fsys.table(  ..io.tmpname(tmpname) );
+        var resumePath = ..io.exist(path); ///这是绝对路径
+        if (!#path) error("错误");
+        if (!..string.endWith(path, ".dow!oad")) error("错误");
+        if (!resumePath) error("错误");  //文件存在就有值
+        ///////////////////////
+		var tablestr = ..string.load(resumePath); // load
+		var ttt=..string.splitEx(tablestr ,`@};{` );
+		if( !..string.indexOf(tablestr ,`@};{` )   ) return ;
+        ///////////////////////
+        back_resume_file(resumePath); //备份
+        trunc_resume_file(resumePath) ; //格式化
+        ///////////////////////
+		//..console.log(#ttt);
+        for i,tt in ttt{
+            tt=..string.trim(tt);
+            if(!..string.startWith(tt,"{")){ tt="{"+tt;  }
+            if(!..string.endWith(tt,"}")){ tt=tt+"}";  }
+            if(..string.startWith(tt,"{﻿{" /*这符号之间有个隐藏字符*/)){ tt=  ..string.slice( tt, 3 ,#tt); }
+            var ttname=  ..io.tmpname(tmpname) ;
+            ..string.save(ttname,'\xEF\xBB\xBF' );
+            ..string.save(ttname,tt );
+           // ..console.log("@@"++i);
+        }
+         // ..console.log("@@"++ ..fsys.getTempDir());
+		..fsys.enum( ..fsys.getTempDir(), //指定要遍历的目录
+			 tmpname++"*", //指定查询文件名,支持windows掩码
+			function(dir,filename,fullpath,findData){ //指定触发器
+				//if( ..string.startWith(filename,tmpname ) )  {
+					//..console.log("发现文件：",fullpath );
+				..table.push(ttmpfilelist, fullpath );
+				//}
+			},false 
+		  ); 
+		   	
+		var _idx=function(fullpath){ //截取最后的数字
+			var _k= ..string.lastIndexOf(fullpath,".");
+			var	_i= ..string.slice( fullpath,_k+1,#fullpath);
+			var _q=tonumber(_i) ;  /// tonumber返回2个值
+			return _q;
+		}
+
+        ..table.sort(ttmpfilelist,function(b){  //按末尾数字升序排列
+            	var a=tostring(owner);
+        		return _idx(a)<_idx(b) ;
+        	}
+         ) ;
+        
+		for i,tt in ttmpfilelist{
+			var tmptab=null;
+			//..console.log( tt ) ;
+			//..console.log( ..string.load(tt)) ;
+			//try{
+			tmptab=..fsys.table(tt);	
+				//..console.dump( tt ) ;			
+			//} catch(e) {
+			//	console.log(e);				
+			//}		
+			if(tmptab){
+				..table.mixin(resume,tmptab);
+			}			
+		}
+		
+		//..console.dump( resume ) ;
+		if(resume){
+			var strleng=tostring(resume) ;
+			if( #strleng > 10 ){
+				..string.save(resumePath,'\xEF\xBB\xBF' );
+				..string.save(resumePath,tostring(resume) );			
+				check_if_download_ok(resumePath); //写真的ok了
+				..fsys.enum( ..fsys.getTempDir(), //指定要遍历的目录
+			 		tmpname++"*", //指定查询文件名,支持windows掩码
+					function(dir,filename,fullpath,findData){ //指定触发器
+					 	..fsys.delete( fullpath );
+					} 
+		  		); 
+			}
+
+		}
+        
+    }
+    check_if_download_ok=function(resumePath){
+        var resume=..fsys.table( resumePath );
+		if(!resume) return ;
+		resume.load();
+    	var ok=resume.ok; //下载状态
+    	var path=resume.path; //路径
+    	var contentLength=resume.contentLength; //大小
+    	if(..string.cmp(ok,"ok" ,2 )===0) return ;
+    	if (!..io.exist(path))  return ;
+    	var size=..fsys.fileInfo(path).size ;
+    	size=tonumber(size);
+    	contentLength=tonumber(contentLength);
+    	if( size  >= contentLength ) { resume.ok="ok"; resume.save(); }
+    }
+    
+}
+
+/**
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.10
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.11
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.12
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.13
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.14
+C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.15
+**/
+ 
+/**
+var resume = "C:\avtb\54082.mp4.dow!oad";
+Utils.update_resume_file(resume); 
+console.pause();   
+
+
+**/
+
+
+/**
+_idx=function(fullpath){ //截取最后的数字
+	var _k= ..string.lastIndexOf(fullpath,".");
+	var	_i= ..string.slice( fullpath,_k+1,#fullpath);
+	var _q=tonumber(_i) ;
+	return _q;
+}
+			
+ttt="C:\Users\ADMINI~1\AppData\Local\Temp\rnkc82062g.KKK.01" ;
+
+..console.log("_i",  _idx(ttt) );
+console.pause();
+
+**/
+
+//////////////////////需要导出的函数
+/**intellisense(Utils)
+update_resume_file(.(resumePath) = 更新整理.dow!oad文件
+end intellisense**/
+

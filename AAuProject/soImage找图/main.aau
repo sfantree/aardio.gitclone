@@ -1,0 +1,29 @@
+﻿
+import gdi;
+import mouse;
+import soImage;
+
+var imgScreen = soImage();//创建图像
+imgScreen.capture(); //抓屏
+
+//在图像上搜索指定颜色的点,
+//第一个参数是一个表示查找颜色的数值,更多参数用法请查看智能提示
+var x,y = imgScreen.findColor( gdi.RGB(48,171,53) );
+mouse.moveTo(x,y,true);
+
+var img = soImage();//创建图像
+img.load("/要查找的图片.bmp");//加载要查找的图像
+
+imgScreen.capture(); //抓屏
+/*
+img.findImage(屏幕图像,x,y,x2,y2,step)
+参数x,y,x2,y2指定要查找的范围，x、y为左上角坐标,x2、y2为右下角坐标。
+step参数指定步进。
+除第一个参数以外，所有参数可选。
+*/
+相似度,x,y = img.findImage(imgScreen) //返回值x,y 为找到的坐标
+
+if( 相似度 ){
+    //相似度，为0到100之间的值，100为完全相似,0为完全不相似
+    mouse.moveTo(x,y,true);
+}}

@@ -1,0 +1,62 @@
+//config 配置文件
+class config{
+	ctor(){
+		
+		//var path = ..io.exist("/config/Config.table");
+		cfg  = fsys.config("/config/"); 
+		var c = cfg.Config;
+		
+		/*
+c = {};
+		var s = ..string.load("d:\Project\aardio\Buff\config\Config.table");
+		if( !s ){
+			wCfg.writeCfg( c )
+		}
+		if(#s){
+			if(  ! ( s[1] == 0xEF  && s[2] == 0xBB && s[3] == 0xBF )  ) {
+				s = ..string.fromto(s,0,65001);
+			} 
+			var ok,t = call(eval,,s);
+			if(! (ok && t) ) {
+				error(t,2)
+			}
+			..table.mixin(c,t );
+		}
+*/
+
+
+		if(!c.Hotkey)
+			wCfg.writeCfg( c )
+		
+		
+		
+		//common.maskAlpha = c.UI.maskAlpha;
+		//var str = tostring( c.UI.maskAlpha,16 ) ++ c.UI.maskColor;
+		common.maskColor = tostring( c.UI.maskAlpha,16 ) ++ c.UI.maskColor;
+		common.drawColor = c.UI.drawColor;
+		common.minSize = c.UI.minSize;
+		common.minType = c.UI.minType;
+		common.minAlpha = c.UI.minAlpha;
+		
+		//获得当前鼠标速度以便恢复
+		this.SystemParametersInfo = ::User32.api("SystemParametersInfoA","int(int uAction,int uParam,int &lpvParam,int fuWinIni)" )
+		var rs,lpvParam = this.SystemParametersInfo(0x70/*_SPI_GETMOUSESPEED*/,0,0,0)
+		common.mouseSpeed = lpvParam;
+		common.lowMouseSpeed = c.Mouse.lowMouseSpeed;
+		
+		common.doubleStartup = c.Sys.doubleStartup;
+		
+	};
+	type=me;
+	/*对象的所有成员必须用分号分隔*/
+	
+}
+
+
+namespace config{
+	import fsys.config;
+	import wCfg;
+	import common;
+}
+
+

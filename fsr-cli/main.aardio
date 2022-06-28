@@ -1,0 +1,108 @@
+import console
+import process
+import winex
+import winex.mouse
+import string.list;
+
+console.setTitle('fsr-cli');
+arg = string.list( _CMDLINE , " ");
+
+function tagStatus(tag) {
+    filePath = "tag.txt"
+    if(tag) {
+		string.save(filePath,tag)
+    } else {
+		return string.load(filePath) || 'stop'
+    }
+}
+
+function runFSR(){ // 运行 FSRecorder
+ 	recorder = "\FSRecorder.exe"
+	process.execute( recorder, "19166 277014 137 211" )
+	sleep(1000)
+	return false
+}
+
+function findFSR_hwnd(){ // 查找 FSRecorder 句柄
+  hwnd = winex.find('FastStoneScreenRecorder')
+  console.log("找到类名为Notepad的窗口,句柄：", hwnd )
+  return hwnd
+}
+
+function record(action, fileName) {
+  status = tagStatus()
+
+  if(action == 'start') {
+    if(status == 'start') {
+    	console.log('请先停止之前的录制任务')
+    	return false
+    }
+	var screen = { // 录制屏幕
+  		'固定大小比例';
+  		'重复上次区域'; // 默认选项
+  		'整个屏幕';
+  		'整个屏幕(不含任务栏)';
+  		'窗口/对象';
+  		'矩形区域';
+	}
+	
+	var screenHwnd, screenId = winex.findEx( fsr, 2, 'TRadioButton' );
+	winex.click( screenHwnd, screenId )
+		
+	var hwnd = winex.findEx(fsr,,"TTBXButton","录制")
+	winex.mouse.click(hwnd)
+
+  	窗口句柄,开始 = winex.wait(
+      	'屏幕录像机',
+      	'开始',
+      	,
+      	'TButton',
+  	)
+  	winex.mouse.click(开始)
+  	
+	tagStatus('start')
+  }
+
+  if(action == 'stop'){
+    if(status == 'stop') {
+    	console.log('没有录制中的任务')
+    	return false; 
+    }
+    import key;
+    key.combine("CTRL", "F10")
+  	
+  	窗口句柄,保存,线程ID,进程ID = winex.wait(
+      	'屏幕录像机',
+      	'保存',
+      	,
+      	'TTBXButton',
+  	)
+
+  	winex.mouse.click(保存)
+  	tagStatus('stop')
+  	save(fileName)
+  }
+}
+
+function save(fileName) {
+  	sleep(1000)
+	var edit = winex.findEx(winex.findEx(,,"ComboBoxEx32"),,"Edit")
+	winex.sendString( fileName, edit )
+	var 另存为 = winex.find("另存为")
+	var save = winex.findEx(另存为,,"Button", "保存")
+	winex.click(save)
+}
+
+
+if(arg.action) {
+	console.dumpJson(arg) // 显示命令行参数
+    if(arg.action == 'clear') {
+    	tagStatus('')
+    } else {
+		fsr = findFSR_hwnd() or (runFSR() or findFSR_hwnd())
+		record(arg.action, arg.out)
+    }
+} else {
+    runFSR()
+	// console.log('请输入 action 参数')
+}

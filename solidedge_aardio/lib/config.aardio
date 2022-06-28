@@ -1,0 +1,40 @@
+﻿//config 配置文件
+import fsys.config;
+config = fsys.config(io.appData("/domisoft/SETBM/"));
+
+//不需要序列化的配置名字前请添加下划线
+namespace config {
+	__appName = "TBM";
+	__appVersion = "1.5.22.01";
+	__appDescription = "TBM";
+	__website = "https://github.com/doomiris/";
+
+}
+if !config.dbServer.path
+	config.dbServer.path = "\\ccnsia1a\separts\Admin\SAP\db\";
+
+import VBASettingIO;
+if !config.tbm.Designer
+	config.tbm.Designer = VBASettingIO.GetSetting("Domisoft", "TBM_SE", "Default_Designer", "");
+if !config.tbm.Reviewer
+	config.tbm.Reviewer = VBASettingIO.GetSetting("Domisoft", "TBM_SE", "Default_Reviewer", "");
+if !config.tbm.Approver
+	config.tbm.Approver = VBASettingIO.GetSetting("Domisoft", "TBM_SE", "Default_Approver", "");
+if !config.setbm.workingDir
+	config.setbm.workingDir = VBASettingIO.GetSetting("Domisoft", "Config", "SE_Output", "d:\workspaces\");
+if !config.revmgr.desp
+	config.revmgr.desp = {};
+if !config.serverIndex.combobox
+	config.serverIndex.combobox = 1;
+if config.settings.closeToTray === null
+	config.settings.closeToTray = true;
+if !config.admin.lastWorkingFolder
+	config.admin.lastWorkingFolder = io.getSpecial(0x5/*_CSIDL_MYDOCUMENTS*/);
+/**intellisense(config)
+__appName = 应用程序名
+__appVersion = 应用程序内部版本号
+__appDescription = 程序说明
+__website = 官方网站
+dbServer.path = 数据库位置
+? = 配置文件名,\n读写配置并序列化为一个表对象,\n表的成员值可以是支持序列化的普通变量,支持table对象\n配置文件在首次使用时自动加载,退出程序时自动保存\n!fsys_table.
+end intellisense**/

@@ -1,0 +1,64 @@
+﻿import aaz.libhpsocket;
+
+namespace aaz.libhpsocket.listener.properties.server;
+var _dll = ..aaz.libhpsocket._dll;
+
+_topointer = function(){
+	return owner.pListener;
+}
+
+onPrepareListen = {
+	_set = function(callback){
+		owner.OnPrepareListenCallback = owner.createThreadCallback(callback,"int(ptr pSender,addr soListen)")
+		_dll.HP_Set_FN_Server_OnPrepareListen(owner.pListener, owner.OnPrepareListenCallback);
+	} 	
+}
+
+onAccept = {
+	_set = function(callback){
+		owner.OnAcceptCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId, ADDR client)");
+		_dll.HP_Set_FN_Server_OnAccept(owner.pListener, owner.OnAcceptCallback);
+	} 	
+}
+
+onHandShake = {
+	_set = function(callback){
+		owner.OnHandShakeCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId)");
+		_dll.HP_Set_FN_Server_OnHandShake(owner.pListener, owner.OnHandShakeCallback);
+	} 	
+}
+
+onSend = {
+	_set = function(callback){
+		owner.OnSendCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId,pointer pData, int length)");
+		_dll.HP_Set_FN_Server_OnSend(owner.pListener, owner.OnSendCallback);
+	} 	
+}
+
+onReceive = {
+	_set = function(callback){
+		owner.OnReceiveCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId,pointer pData, int length)");
+		_dll.HP_Set_FN_Server_OnReceive(owner.pListener, owner.OnReceiveCallback);
+	} 	
+}
+
+onPullReceive = {
+	_set = function(callback){
+		owner.OnPullReceiveCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId, int length)");
+		_dll.HP_Set_FN_Server_OnPullReceive(owner.pListener, owner.OnPullReceiveCallback);
+	} 	
+}
+
+onClose = {
+	_set = function(callback){
+		owner.OnCloseCallback = owner.createThreadCallback(callback,"int(ptr pSender,ADDR connId, int enOperation, int iErrorCode)");
+		_dll.HP_Set_FN_Server_OnClose(owner.pListener, owner.OnCloseCallback);
+	} 	
+}
+
+onShutdown = {
+	_set = function(callback){
+		owner.OnShutdownCallback = owner.createThreadCallback(callback,"int(ptr pSender)");
+		_dll.HP_Set_FN_Server_OnShutdown(owner.pListener, owner.OnShutdownCallback);
+	} 	
+}

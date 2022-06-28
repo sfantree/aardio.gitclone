@@ -1,0 +1,93 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="修      改";left=618;top=265;right=720;bottom=295;disabled=1;dr=1;dt=1;font=LOGFONT(weight=700);z=1};
+buttonExcel={cls="button";text="浏览";left=656;top=138;right=718;bottom=164;dr=1;dt=1;z=7};
+buttonPath={cls="button";text="浏览";left=656;top=215;right=718;bottom=241;dr=1;dt=1;z=8};
+cboSheet={cls="combobox";left=120;top=176;right=644;bottom=202;aw=1;dl=1;dr=1;dt=1;items={};mode="dropdownlist";z=11};
+editExcel={cls="edit";left=120;top=136;right=642;bottom=162;aw=1;dl=1;dr=1;dt=1;edge=1;z=5};
+editPath={cls="edit";left=120;top=215;right=642;bottom=241;aw=1;dl=1;dr=1;dt=1;edge=1;z=6};
+static={cls="static";text="国网五峰县供电公司";left=43;top=33;right=320;bottom=50;color=32768;font=LOGFONT(h=-14);transparent=1;z=9};
+static1={cls="static";text="Word文档批量修改程序";left=55;top=74;right=349;bottom=103;dl=1;dt=1;font=LOGFONT(h=-24;weight=700);transparent=1;z=2};
+staticExcel={cls="static";text="Excel 文件";left=48;top=144;right=115;bottom=164;dl=1;dt=1;transparent=1;z=3};
+staticPath={cls="static";text="文件夹";left=48;top=221;right=115;bottom=241;dl=1;dt=1;transparent=1;z=4};
+staticSheet={cls="static";text="工作表";left=48;top=182;right=115;bottom=202;dl=1;dt=1;transparent=1;z=10}
+)
+/*}}*/
+
+import fsys.dlg;
+import aExcel;
+import aWord;
+
+winform.editExcel.oncommand = function(id,event){
+    if(event == 0x300/*_EN_CHANGE*/){
+        showButton();
+		setCboSheet();
+	}
+}
+
+winform.editPath.oncommand = function(id,event){
+    if(event == 0x300/*_EN_CHANGE*/){
+        showButton();
+	}
+}
+
+winform.buttonPath.oncommand = function(id,event){
+    var path;
+    if(winform.editExcel.text !== ""){
+    	path = ..io.splitpath(winform.editExcel.text).dir;
+    }
+    else {
+    	path = ..fsys.getSpecial(0x5 /*_CSIDL_MYDOCUMENTS*/);
+    }    
+    
+    winform.editPath.text = fsys.dlg.opendir(path);    
+}
+
+winform.buttonExcel.oncommand = function(id,event){
+	var path = fsys.dlg.open("Excel文件|*.xls;*.xlsx");
+	winform.editExcel.text = path;
+	setCboSheet();
+}
+
+showButton = function(){
+	winform.button.disabled = !(winform.editExcel.text != "" and winform.editPath.text != "")
+}
+
+setCboSheet = function(){
+    var cboSheet = winform.cboSheet;
+    cboSheet.clear();
+    
+    var path = ..io.exist(winform.editExcel.text);
+    if(!path) return ; 
+    
+    var sheetNames = aExcel.getSheetNamesWithDb(path);
+    if(!sheetNames or #sheetNames == 0) return ; 
+	
+	cboSheet.items = sheetNames;
+	cboSheet.selText = cboSheet.items[1];
+}
+
+winform.button.oncommand = function(id,event){
+    var excelPath = winform.editExcel.text;
+    var sheetName = winform.cboSheet.text;
+    var filePath = winform.editPath.text;
+    
+    var files = {};
+    ..fsys.enum(filePath, "*.doc*",
+    	lambda(dir,filename,fullpath) filename? ..table.push(files, fullpath),    	
+    	false /*如果此参数为false则忽略子目录*/
+    );
+    
+    if(..io.exist(excelPath) and sheetName != "" and #files > 0){        
+    	var data = aExcel.getDataWithDb(excelPath, sheetName);	
+		if(data) aWord.batchEdit(files, data);
+		..win.msgbox("完毕");
+    }
+}
+
+winform.enableDpiScaling();
+winform.show();
+
+return win.loopMessage(); 

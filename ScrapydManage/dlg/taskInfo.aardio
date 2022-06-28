@@ -1,0 +1,91 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="创建任务";right=437;bottom=541)
+winform.add(
+button={cls="button";text="确定";left=288;top=455;right=419;bottom=518;font=LOGFONT(h=-19);z=5};
+host={cls="combobox";left=115;top=104;right=418;bottom=130;edge=1;items={};mode="dropdown";z=6};
+interval={cls="edit";text="0";left=116;top=356;right=420;bottom=390;align="center";edge=1;font=LOGFONT(h=-16);num=1;tabstop=1;z=12};
+name={cls="edit";left=114;top=29;right=420;bottom=63;edge=1;font=LOGFONT(h=-16);tabstop=1;z=4};
+project={cls="combobox";left=113;top=169;right=418;bottom=195;edge=1;items={};mode="dropdown";z=7};
+runtime={cls="edit";left=114;top=289;right=418;bottom=323;edge=1;font=LOGFONT(h=-16);tabstop=1;z=11};
+spider={cls="combobox";left=113;top=229;right=419;bottom=255;edge=1;items={};mode="dropdown";z=9};
+static={cls="static";text="任务名称";left=6;top=30;right=90;bottom=69;align="center";font=LOGFONT(h=-20);transparent=1;z=1};
+static2={cls="static";text="主机";left=8;top=101;right=92;bottom=140;align="center";font=LOGFONT(h=-20);transparent=1;z=2};
+static3={cls="static";text="爬虫";left=9;top=228;right=93;bottom=267;align="center";font=LOGFONT(h=-20);transparent=1;z=3};
+static4={cls="static";text="项目名称";left=8;top=167;right=92;bottom=206;align="center";font=LOGFONT(h=-20);transparent=1;z=8};
+static5={cls="static";text="运行间隔";left=9;top=358;right=93;bottom=397;align="center";font=LOGFONT(h=-20);transparent=1;z=13};
+static6={cls="static";text="运行时间";left=10;top=293;right=94;bottom=332;align="center";font=LOGFONT(h=-20);transparent=1;z=10}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+    var name = winform.name.text;
+    var host = mainForm.hosts[winform.host.text];
+	var project = winform.project.text;
+	var spider = winform.spider.text;
+	var runtime = winform.runtime.text;
+	var interval = winform.interval.text;
+	if(name == '' or host == '' or project == '' or spider=='') mainForm.task = 'error';
+    else {
+        if (spider == 'all') spider = winform.spider.items
+		mainForm.task = {name; winform.host.text; host; project; spider; runtime; interval};
+    }
+	winform.close()
+}
+var hostName = {}
+for(i=1; #mainForm.hostInfos;1){
+    table.push(hostName, mainForm.hostInfos[i][1])
+}
+winform.host.items = hostName
+//winform.host.items = {'127.0.0.1:6800'; '172.25.1.8:6800'}
+winform.runtime.text = tostring(time.now())
+winform.host.oncommand = function(id,event){
+	var text = owner.selText;
+	select(event) {
+		case 9/*_CBN_SELENDOK*/ {
+			projects, err = win.invoke(
+			function(host){
+				import scrapydAPI;
+				var projects, err = scrapydAPI.listProjects(host)
+				return projects, err
+			}, mainForm.hosts[text])
+			if(projects){
+				winform.project.items = projects
+			}
+			else win.msgbox(err,'错误信息',,)
+		}
+		case 5/*_CBN_EDITCHANGE*/ {
+			
+		}
+		case 10;20 {
+		}
+		case !=0 {
+		}
+		else {
+		}
+	}
+}
+winform.project.oncommand = function(id,event){
+	var host = mainForm.hosts[winform.host.text];
+	var project = owner.selText
+	select(event) {
+		case 9/*_CBN_SELENDOK*/ {
+			spiders, err = win.invoke(
+			function(host, project){
+				import scrapydAPI;
+				spiders, err = scrapydAPI.listSpiders(host, project)
+				return spiders, err
+			}, host, project)
+			if(spiders){
+				table.insert(spiders, 'all')
+				winform.spider.items = spiders
+			}
+			else win.msgbox(err,'错误信息',,)
+		}
+	}
+	
+}
+
+
+win.loopMessage();
+return winform;

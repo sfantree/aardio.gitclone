@@ -1,0 +1,19 @@
+
+namespace mvc.controller.default
+
+import svc.web.webPostSvc;
+
+base = ..mvc.controller.web.base();//继承基类控制器
+
+var webPostSvc = svc.web.webPostSvc;
+
+index = function(){
+	var tabParam = {}
+	tabParam.list = webPostSvc.getWebPageList(1,..config.webconfig.pageSize:30);
+	owner.view.loadcode("index",tabParam);	
+}
+
+//向页面输出验证码
+getVerCode = function(){
+	..common.code.write();
+}

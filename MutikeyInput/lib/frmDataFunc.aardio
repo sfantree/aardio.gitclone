@@ -1,0 +1,256 @@
+
+import win.ui.menu;
+import process;
+import web.json;
+import winex;
+import key;
+import key.ime;
+import fsys;
+
+import loadSaveFunc;
+import tblBuilderFunc;
+
+
+namespace frmDataFunc;
+
+/*-------------载入数据--------------------------------------------------*/
+
+var cfgFileName = "\键位配置.json";
+var abbrFileName = "\略码.json";
+    helpName = "\帮助.txt"//在frmTabPage3中引用
+var	backupName = "\_default.bak";//默认配置的备份文件
+var	cfgJson, abbrJson;
+
+var function strJson(){//将键位配置和略码文件载入为Json字符串
+		cfgJson, abbrJson = ..loadSaveFunc.loadJson(cfgFileName, abbrFileName); 
+		if(cfgJson) { return true }//检测cfgJson不为空，返回真；
+	} 
+
+//用于窗体显示的表
+info = {}; parSchemes = {}; free = {}; abb = {};
+var function dataForShow(){
+		//为info, parSchemes, freeKey, abbr表装入数据
+		info, parSchemes, free, abb = ..loadSaveFunc.dtForShow(cfgJson, abbrJson);
+		if(info) { return true }//检测info不为空，返回真；
+		//..win.msgbox(info.HotKey,"");
+	}
+
+//三个桥梁表
+lfChar = {}; rtChar = {}; frChar = {};
+//五个标准化查询表
+single = {}; left = {}; right = {}; freeKey = {}; abbr = {};
+//为三个桥梁表，五个标准化查询表填入数据，用于按键模拟
+var function tabForKeySimu(){
+    	//基础表，用于生成查询输出表
+		var tbInfo, tbLeft, tbRight, tbFreeKey, tbAbbr = ..loadSaveFunc.cfgData(cfgJson, abbrJson);
+		lfChar, rtChar, frChar = ..tblBuilderFunc.idxTable(tbLeft, tbRight, tbFreeKey, tbAbbr);
+		single = ..tblBuilderFunc.snglStdn(lfChar, rtChar, frChar);//单键输出表
+		left = ..tblBuilderFunc.kvStdn(tbLeft, false);//左手输出表
+		right = ..tblBuilderFunc.kvStdn(tbRight, false);//右手手输出表
+		freeKey = ..tblBuilderFunc.kvStdn(tbFreeKey);//自由键输出表
+		abbr = ..tblBuilderFunc.kvStdn(tbAbbr, false);//略码输出表
+		if(single) { return true }//检测single不为空，返回真；
+	}
+
+//装载数据，启动时执行一次
+strJson();
+dataForShow();
+tabForKeySimu();
+//重新装载数据，由dtSaveLoad()调用
+var function dataReload() {
+    if(strJson()) {
+		if(dataForShow() and tabForKeySimu()) {
+			..publish("重新加载配置");
+			return true;	
+		}
+	}
+}
+
+/*-------------存储数据--------------------------------------------------*/
+var function dataSave() {
+	var cfg = {};//构造键位配置表
+	cfg["Info"] = info;
+	cfg["ParSchemes"] = parSchemes;
+	cfg["FreeKey"] = free;
+
+	//table对象转换为JSON字符串,参数2为true时格式化JSON
+	var jsonCfg = ..web.json.stringify(cfg,true);
+	var jsonAbb = ..web.json.stringify(abb,true);
+	if(! ..string.save(cfgFileName, jsonCfg)){
+		..win.msgboxErr("存储“键位配置”文件时发生错误！","错误");
+		return false;
+	}
+	if(! ..string.save(abbrFileName, jsonAbb)){
+		..win.msgboxErr("存储“略码”文件时发生错误！","错误");
+		return false;
+	}
+	return true;//两个文件都成功存储时返回真
+}
+
+
+//子窗体1和子窗体2控件数据收集指示，完毕为真。
+frmDataReady = { frm1Ready=false; frm2Ready=false; };
+
+//存储配置，并重新载入，由主窗体“保存”按钮调用
+function dtSaveLoad() {
+    //命令各子窗体收集控件数据，更新info, parSchemes, free，abb四个表
+    ..publish("保存");
+    if(frmDataReady.frm1Ready and frmDataReady.frm2Ready) {//子窗体控件数据收集完毕
+		if(dataSave()) {//数据存储完毕
+			if(dataReload()){//数据重新载入完毕
+				frmDataReady.frm1Ready = false;
+				frmDataReady.frm2Ready = false;
+				return true;
+			}
+			else{
+				..win.msgboxErr("重新载入数据时发生错误！","错误");
+			};	
+		};
+    }
+    else{
+    	if(not frmDataReady.frm1Ready){
+    		..win.msgboxErr("选项卡1：数据收集错误！","错误");
+        }
+        else{..win.msgboxErr("选项卡2：数据收集错误！","错误");
+        }
+    };
+}
+
+//用默认配置文件“_default.bak”替换“键位配置.aardio”文件，由主窗体“默认配置”按钮调用
+function renewDefault() {
+    var path = ..fsys.searchFile(backupName);//查找是否存在_default.bak文件
+    if(path) {
+       var v = ..win.msgboxTest("将用默认配置文件替换掉当前配置文件，确定要继续吗？","提示") 
+       if(!v) { return };	
+       	..fsys.copy(backupName,cfgFileName);//替换配置文件
+       	if(dataReload()){//数据重新载入完毕
+			frmDataReady.frm1Ready = false;
+			frmDataReady.frm2Ready = false;
+			return true;
+		}
+		else{
+			..win.msgboxErr("配置文件已替换，但重新载入数据时发生错误！","错误");
+			return;
+		};
+	}
+	else{
+		..win.msgboxErr("未能找到默认配置文件_default.bak，请检查目录！","错误");
+	};
+}
+
+
+
+/*---------------------窗体用函数-----------------------------------------*/
+
+	//用于选项卡子窗体，将数据装入dtgrid
+function dataShow(dtgrid, tbLoadSave, width1, width2){
+	dtgrid.readonlyColums = { [1] = true };//设置禁止编辑的列
+	dtgrid.dtSetColumns({"输入";"输出"});
+	var tb = {};
+	for k, v in (..table.eachName(tbLoadSave)) {
+		..table.push(tb, {k;v});
+	};
+	dtgrid.dtSetItems(tb);
+	dtgrid.setColumn( { cx = width1 }, 1 );//第1列宽
+	dtgrid.setColumn( { cx = width2 }, 2 );//第2列宽
+	dtgrid.fillParent(); //使指定列自适应父窗口宽度,如果不指定列默认调整最后一列
+}
+
+	//用于检查dtgrid数据，返回为表
+function dataCheck(dtgrid, name){
+	var tb = {};
+	var items = dtgrid.dtGetItems();
+	var k, v;
+	for(i=1; #items; 1) {
+    	k = ..string.trim(items[i][1]);
+    	v = ..string.trim(items[i][2]);
+    	if(..string.find(k, ":") or ..string.find(v, ":")) {
+    		..win.msgboxErr(name ++
+    					'\r\n输入：' ++ k ++ 
+    					'\r\n输出：' ++ v ++ 
+    					'\r\n\r\n输入输出中不允许有汉字字符', "错误");
+    		return null;
+    	}
+		tb[k] = v;
+  	}
+ 	return tb;
+}
+
+
+
+
+
+//加入托盘菜单，设置菜单动作
+class popmenuAdd {
+	ctor(frmWin, tray, hook) {
+		this = ..win.ui.popmenu(frmWin);	
+		var hookStatus = true;
+	
+	};
+	
+	pause = function() {
+		var hwnd = ..winex.getFocus();
+		var threadId = ..win.getThreadProcessId(hwnd);
+		var hIme = ..key.ime.getCurrent(threadId);//当前输入法句柄
+		var name = ..key.ime.getDescription(hIme);//输入法描述
+		if(hookStatus) {
+			if (name) {
+   				..key.combine("CTRL","SPACE");
+   			};
+			hookStatus = hook.pause();
+			tray.pop("现在是【单击】状态");
+		}
+		elseif(!hookStatus) {
+			if (! name) {
+   				..key.combine("CTRL","SPACE");
+   			};
+			hookStatus = hook.open();
+			tray.pop("现在是【并击】状态");
+		};
+	};
+	
+	isRestart = false;
+	restart = function() {//重启程序本身，发送自定义的启动参数wait
+		tray.pop("48键并击正在重启" );
+		..win.delay(1500);//界面操作，需要响应，要用win.delay
+		//sleep(1500);//是控制台，或者无界面操作，用sleep
+		..process.execute( ..io._exepath ,"wait" );
+		this.isRestart = true;
+		frmWin.close();
+	};
+
+	this.addTable( {
+		{ '设置'; function(id){ frmWin.show(true);	} }; 
+		{   };//菜单内分割线
+		{ '暂停/继续'; function(id){ this.pause(); } }; 
+		{ '重启'; function(id){ this.restart();	} };				
+		{ '退出'; function(id){ frmWin.close(); } };			 	
+		} );
+
+}
+
+//主窗体回调函数
+function wndproc(frmWin, popmenu) {
+	var proc = {//消息响应函数写成了数组的形式，消息为键，函数为值
+			[0xACCF/*_WM_TRAYMESSAGE*/ ] = function(hwnd, message, wParam, lParam) {
+				select(lParam) {
+	    			case( 0x205/*_WM_RBUTTONUP*/ ){//点击右键弹出菜单
+	    				var pt = ::POINT();
+						::User32.GetCursorPos(pt);
+	    				//弹出托盘菜单以前，一定要前置主窗口中，不然不点击菜单不会消失
+	    				..win.setForeground(frmWin.hwnd);
+	    				popmenu.popup(pt.x, pt.y, true );
+	    			}
+	    			case ( 0x203/*_WM_LBUTTONDBLCLK*/ ){//双击托盘图标打开窗口
+        				frmWin.show(true);
+        				..win.setForeground(frmWin.hwnd);
+        			}
+        		};
+        	};
+        	//可在此加入“[新的消息]=函数”键值对；	
+        };	
+	return proc;
+}	
+		
+		
+

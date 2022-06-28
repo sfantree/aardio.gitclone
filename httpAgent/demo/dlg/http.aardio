@@ -1,0 +1,186 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="HTTP Test";right=924;bottom=709)
+winform.add(
+checkbox={cls="checkbox";text="完成时通知";left=805;top=25;right=904;bottom=46;z=16};
+groupbox={cls="groupbox";text="Request";left=9;top=6;right=918;bottom=259;edge=1;z=1};
+groupbox2={cls="groupbox";text="Response";left=9;top=268;right=918;bottom=695;edge=1;z=8};
+method={cls="combobox";left=475;top=25;right=539;bottom=45;edge=1;items={"GET";"POST";"OPTION"};mode="dropdownlist";z=4};
+onBody={cls="checkbox";text="onBody";left=473;top=114;right=559;bottom=134;z=11};
+onBodyText={cls="edit";left=472;top=137;right=914;bottom=244;edge=1;hscroll=1;multiline=1;vscroll=1;z=12};
+onSend={cls="checkbox";text="onSend";left=20;top=117;right=89;bottom=135;z=9};
+onSendText={cls="edit";left=20;top=139;right=462;bottom=246;edge=1;hscroll=1;multiline=1;vscroll=1;z=10};
+postData={cls="edit";text="POST Data";left=372;top=54;right=910;bottom=112;edge=1;hscroll=1;multiline=1;vscroll=1;z=7};
+requestHeader={cls="edit";text="Headers";left=20;top=52;right=357;bottom=113;edge=1;hscroll=1;multiline=1;vscroll=1;z=6};
+respnseView={cls="listview";left=21;top=287;right=914;bottom=498;edge=1;fullRow=1;msel=false;z=13};
+responseData={cls="edit";text="Response Data";left=372;top=511;right=910;bottom=684;edge=1;hscroll=1;multiline=1;vscroll=1;z=15};
+responseHeader={cls="edit";text="Response Header";left=22;top=509;right=359;bottom=684;edge=1;hscroll=1;multiline=1;vscroll=1;z=14};
+sendBtn={cls="button";text="发送请求";left=552;top=23;right=641;bottom=47;z=5};
+static={cls="static";text="URL：";left=22;top=27;right=61;bottom=48;transparent=1;z=2};
+url={cls="combobox";left=64;top=25;right=463;bottom=45;edge=1;items={"http://www.baidu.com"};mode="dropdown";z=3}
+)
+/*}}*/
+
+var httpListColumn = {
+    {name = "序号";width = 40;style = 0x2/*_LVCFMT_CENTER*/;fields = null};
+	{name = "URL";width = 200;style = 0x0/*_LVCFMT_LEFT*/;fields = "path"};
+	{name = "Method";width = 45;style = 0x0/*_LVCFMT_LEFT*/;fields = "Method"};
+	{name = "状态";width = 40;style = 0x0/*_LVCFMT_LEFT*/;fields = "statue"};
+	{name = "开始时间";width = 90;style = 0x2/*_LVCFMT_CENTER*/;fields = "iniTime";};
+	{name = "结束时间";width = 90;style = 0x2/*_LVCFMT_CENTER*/;fields = "endTime";};
+	{name = "文件头";width = 200;style = 0x0/*_LVCFMT_LEFT*/;fields = "headers"};
+	{name = "正文";width = 100;style = 0x0/*_LVCFMT_LEFT*/;fields = "body"};
+}
+
+var listViewInit = function(oListView,list){
+	for index = 1;#list;1{
+		oListView.insertColumn(
+				list[index].name,
+				list[index].width,,
+				null,
+				list[index].style
+			);
+	}
+}
+
+listViewInit(winform.respnseView,httpListColumn)
+
+//保存任务
+var responseList = {
+	count = 0;
+};
+
+var urlList = {
+    "http://www.baidu.com";
+    "https://tieba.baidu.com";
+	"http://www.sina.com.cn";
+	"https://s.click.taobao.com/3GZELLw";
+	"http://www.qq.com/";
+	"http://qzone.qq.com";
+	"http://www.163.com";
+	"http://email.163.com";
+	"http://www.ifeng.com/?_aoyou";
+	"https://www.amazon.cn/?tag=maxthon02-23";
+	"https://www.taobao.com";
+	"http://www.sohu.com/";
+	"http://tv.sohu.com/";
+	"http://www.miercn.com/maxthon/";
+	"https://click.union.vip.com/redirect.php?code=6IgKgCc";
+	"https://www.haha.mx/";
+	"https://www.autohome.com.cn/beijing/";
+	"https://www.qunar.com/?ex_track=UNID100019_100042&ouid=";
+	"http://mini.eastday.com/?qid=aymz";
+	"http://www.youku.com/";
+	"http://www.tudou.com/";
+	"https://p.gouwubang.com/176MX6";
+	"https://v.qq.com/";
+	"http://www.4399.net/";
+	"http://military.china.com/zh_cn/";
+	"http://aoyou.880ju.com/index.php?r=l&u=1102182";
+	"http://www.12306.cn/mormhweb/";
+	"http://www.bilibili.com";
+	"https://p.yiqifa.com/2NCkR";
+	"https://www.douyu.com/";
+	"https://s.click.taobao.com/XDKCLLw";
+	"http://www.douban.com/";
+	"http://www.tianya.cn/";
+	"https://y.qq.com/"
+    }
+
+var loopUrlList = function(text){
+	var index = winform.url.find(text);
+	if (index){
+		if (index == winform.url.count)	winform.url.selIndex = 1;
+		winform.url.selIndex = index + 1;
+	}
+}
+
+
+winform.url.items = urlList;
+
+winform.sendBtn.oncommand = function(id,event){
+    
+    var header = winform.requestHeader.text;
+	var postData = winform.postData.text;
+	var url = winform.url.text 
+	var method = winform.method.selText
+	
+	header = (header != "Headers")?header:null;
+	postData = (postData != "POST Data")?postData:null;
+    
+	if (!#url) return win.msgbox("请输入网址","请求错误",0x40/*_MB_ICONINFORMATION*/,winform); 
+	
+	responseList.count += 1;
+	responseList[responseList.count] = {path = url};
+	winform.respnseView.addItem({responseList.count;url;method})
+	
+	var guid,task = winform.client.getRequest(url,{
+							onResponse 	= winform.onResponse;
+							onSend		= (winform.onSend.checked)?winform.onSent:null;
+							onBody		= (winform.onBody.checked)?winform.onBodyData:null
+						},header,method,postData);
+	
+	if (!guid){
+		winform.respnseView.setItemText("URL ERROR",responseList.count,7);
+	}
+	responseList[responseList.count].guid = guid;
+	loopUrlList(url);
+}
+
+winform.onResponse = function(statue,task,enOperation,errCode){
+	//console.log(statue,enOperation,errCode)
+	for k,j in responseList{
+		if k == "count" continue ;
+		if j.guid == task.guid {
+			winform.respnseView.setItemText(task.statue,k,4);
+			winform.respnseView.setItemText(task.iniTime,k,5);
+			winform.respnseView.setItemText(task.endTime,k,6);
+			if task.statue == 1{
+				winform.respnseView.setItemText(tostring(task.response.headers),k,7);
+				winform.respnseView.setItemText(#task.response.body,k,8);
+			}
+			else {
+				winform.respnseView.setItemText("Error",k,7);
+				winform.respnseView.setItemText(task.errCode,k,8);
+			}
+			j.task = task;
+			break ;
+		}	
+	}
+}
+
+winform.onSent = function(pData,length){
+	winform.onSendText.text = raw.tostring(pData,1,length);
+}
+
+winform.onBodyData = function(pData,length){
+	winform.onBodyText.text = raw.tostring(pData,1,length);
+}
+
+
+winform.respnseView.onnotify = function(id,code,ptr){
+	if (code == 0xFFFFFFFD/*_NM_DBLCLK*/) {
+    	var index = owner.getSelection()
+    	if (index) {
+    		if (!responseList[index].task) return ; 
+    		winform.responseHeader.text = tostring((responseList[index].task.response)?responseList[index].task.response.headers:"");
+    		winform.responseData.text = (responseList[index].task.response)?responseList[index].task.response.body:"";
+    	}
+    	else {
+    		winform.responseHeader.text = "";
+    		winform.responseData.text = "";
+    	}
+    }
+}
+
+winform.checkbox.oncommand = function(id,event){
+	client.setTaskComplete(
+    	(owner.checked)?function(){
+			win.msgbox("Task Complete","提示",0x40/*_MB_ICONINFORMATION*/)
+		}:null
+	)
+}
+
+winform.show();
+win.loopMessage();
+return winform;

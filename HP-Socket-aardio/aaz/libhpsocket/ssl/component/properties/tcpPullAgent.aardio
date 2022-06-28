@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.ssl.component.properties.agent;
+import aaz.libhpsocket.component.properties.tcpPullAgent;
+
+namespace aaz.libhpsocket.ssl.component.properties.tcpPullAgent;
+..table.assign( 
+	self, 		
+	..aaz.libhpsocket.component.properties.tcpPullAgent, 
+	..aaz.libhpsocket.ssl.component.properties.agent
+);

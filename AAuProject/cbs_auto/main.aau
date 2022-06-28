@@ -1,0 +1,218 @@
+import win.ui;
+/*DSG{{*/
+mainForm = ..win.form( bottom=800;parent=...;text="超级门";right=900 )
+mainForm.add( 
+edit5={ bottom=246;right=240;left=95;multiline=1;top=222;z=12;edge=1;cls="edit" };
+button3={ bottom=301;text="上传";left=187;top=276;z=16;right=257;cls="button" };
+static4={ bottom=157;right=86;left=39;text="密码：";top=132;transparent=1;z=8;cls="static" };
+static3={ notify=1;text="用户名：";left=28;top=91;transparent=1;bottom=116;right=85;z=7;cls="static" };
+edit3={ right=240;bottom=110;text="233079";left=96;multiline=1;top=87;z=5;edge=1;cls="edit" };
+button={ bottom=204;right=329;left=259;top=179;z=11;text="刷新";cls="button" };
+picturebox={ top=175;z=10;bottom=216;right=238;left=96;cls="picturebox" };
+button4={ bottom=347;text="查看";left=91;top=322;z=17;right=161;cls="button" };
+edit4={ bottom=151;right=240;left=96;top=128;password=1;z=6;text="2o0d8v8oP{";edge=1;cls="edit" };
+edit={ text="http://10.0.26.30/exa";bottom=40;right=296;left=96;top=22;z=2;edge=1;cls="edit" };
+static={ bottom=46;text="地址：";left=41;right=89;top=23;transparent=1;z=1;cls="static" };
+edit7={ readonly=1;bgcolor=0;bottom=785;color=16777215;right=886;left=19;multiline=1;top=433;z=15;edge=1;cls="edit" };
+richedit={ bottom=357;text="上传内容";left=383;multiline=1;top=19;vscroll=1;z=14;right=886;hscroll=1;edge=1;cls="richedit" };
+static5={ bottom=197;right=90;left=27;text="验证码：";top=172;transparent=1;z=9;cls="static" };
+button2={ bottom=301;right=162;left=92;top=276;z=13;text="登陆";cls="button" };
+static2={ bottom=76;text="文件路径：";left=16;right=92;top=51;transparent=1;z=3;cls="static" };
+edit2={ right=296;bottom=70;text="/pages/testarrange/exaExamArrange.jsp";left=96;multiline=1;top=50;z=4;edge=1;cls="edit" }
+)
+/*}}*/
+
+mainForm.richedit.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.richedit.text );
+	
+	
+}
+
+
+mainForm.static3.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.static3.text );
+	
+	
+}
+
+mainForm.richedit.limit = 99999999;
+/***
+import config;
+mainForm.bindConfig( config.mainForm,{
+	edit = "text"; //绑定edit控件的text属性值到配置文件
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+} );
+***/
+import io;
+io.open()
+
+import inet.http;
+var http = inet.http();
+http.flags = 0x80000000   //_INTERNET_FLAG_RELOAD//清除缓存
+http.close = function(){ }
+
+var session = http.session;
+
+var base_url_hwnd = mainForm.edit.hwnd;
+var result_hwnd = mainForm.edit7.hwnd;
+
+/***加载验证码图片***/
+function getImageCode(){
+	win.invoke(
+		function(session,base_url_hwnd,pic_hwnd){
+			import win;
+			import inet.http;
+			import win.ui.ctrl.picturebox;
+			import win.ui.ctrl.edit;
+			
+			var http = inet.http();
+			http.session = session;
+			//io.print(http.session);
+			var picturebox = win.ui.ctrl.picturebox();
+			picturebox.hwnd = pic_hwnd;
+			var base_url_edit = win.ui.ctrl.edit();
+			base_url_edit.hwnd = base_url_hwnd;
+					
+			//图片链接
+			var img_url=base_url_edit.text+"/loginmgmt/imgcode";
+			io.print(img_url);
+			ImgBuffer,errmsg = http.get(img_url);
+			picturebox.image = ImgBuffer;
+		},session ,base_url_hwnd,mainForm.picturebox.hwnd
+	)
+}
+getImageCode();
+
+mainForm.button.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.button.text );
+	getImageCode();
+	
+}
+
+
+/***登陆***/
+function login(){
+	win.invoke(
+		function(session,base_url_hwnd,result_hwnd,username,password,verifyCode){
+			import win;
+			import inet.http;
+			import win.ui.ctrl.picturebox;
+			import win.ui.ctrl.edit;
+			
+			var http = inet.http();
+			http.session = session;
+			//io.print(http.session);
+			var picturebox = win.ui.ctrl.picturebox();
+			picturebox.hwnd = pic_hwnd;
+			var base_url_edit = win.ui.ctrl.edit();
+			base_url_edit.hwnd = base_url_hwnd;
+			var result_edit = win.ui.ctrl.edit();
+			result_edit.hwnd = result_hwnd;
+			//登陆
+			var url = base_url_edit.text+"/loginmgmt/login.action";
+			var post_data = "username="+username+"&password="+password+"&verifyCode="+verifyCode;
+			var str,err = http.post(url,post_data);
+			io.print(err);
+			result_edit.appendText('['+err+']\r\n'+str+'\r\n');	
+		},session ,base_url_hwnd,result_hwnd,mainForm.edit3.text,mainForm.edit4.text,mainForm.edit5.text
+	)
+}
+
+mainForm.button2.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.button2.text );
+	login();
+	
+}
+
+/***上传内容***/
+var content_hwnd = mainForm.richedit.hwnd;
+
+function save(){
+	win.invoke(
+		function(session,base_url_hwnd,result_hwnd,content_hwnd,filepath,username,password,verifyCode){
+			import win;
+			import inet.http;
+			import win.ui.ctrl.picturebox;
+			import win.ui.ctrl.edit;
+			import win.ui.ctrl.richedit;
+			
+			var http = inet.http();
+			http.session = session;
+			//io.print(http.session);
+			var picturebox = win.ui.ctrl.picturebox();
+			picturebox.hwnd = pic_hwnd;
+			var base_url_edit = win.ui.ctrl.edit();
+			base_url_edit.hwnd = base_url_hwnd;
+			var result_edit = win.ui.ctrl.edit();
+			result_edit.hwnd = result_hwnd;
+			var content_edit = win.ui.ctrl.richedit();
+			content_edit.hwnd = content_hwnd;
+			
+			//登陆
+			var url = base_url_edit.text+"/backstage/save.action";
+			var content = string.fromto(content_edit.text, 0, 65001);
+			content = inet.url.encode(content);
+			io.print(content);
+			var post_data = "content="+content+"&filePath="+filepath;
+			var str,err = http.post(url,post_data);
+			io.print(err);
+			result_edit.appendText('['+err+']\r\n'+str+'\r\n');	
+		},session ,base_url_hwnd,result_hwnd,content_hwnd,mainForm.edit2.text,mainForm.edit3.text,mainForm.edit4.text,mainForm.edit5.text
+	)
+}
+
+mainForm.button3.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.button3.text );
+	save();
+	
+}
+
+/***查看内容***/
+function view(){
+	win.invoke(
+		function(session,base_url_hwnd,result_hwnd,content_hwnd,filepath,username,password,verifyCode){
+			import win;
+			import inet.http;
+			import inet.httpFile;
+			import win.ui.ctrl.picturebox;
+			import win.ui.ctrl.edit;
+			
+			var http = inet.http();
+			http.session = session;
+			io.print(http.session);
+			var picturebox = win.ui.ctrl.picturebox();
+			picturebox.hwnd = pic_hwnd;
+			var base_url_edit = win.ui.ctrl.edit();
+			base_url_edit.hwnd = base_url_hwnd;
+			var result_edit = win.ui.ctrl.edit();
+			result_edit.hwnd = result_hwnd;
+			result_edit.clear();
+			//下载
+			var url = base_url_edit.text+"/backstage/download.action?filePath="+filepath;
+			var temp_arr = string.split(filepath,'/');
+			var file_name = temp_arr[#temp_arr];
+			io.print(url);
+			var remoteFile = inet.httpFile(url,'./'+file_name);
+			remoteFile.onRecive = function(str,size,contentLength){ 
+    			io.print(size);
+			} 
+			remoteFile.download();
+			//var str,err = http.post(url,post_data);
+			//io.print(err);
+			//result_edit.appendText('['+err+']\r\n'+str+'\r\n');	
+		},session ,base_url_hwnd,result_hwnd,content_hwnd,mainForm.edit2.text,mainForm.edit3.text,mainForm.edit4.text,mainForm.edit5.text
+	)
+}
+
+mainForm.button4.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.button4.text );
+	view();
+	
+}
+
+mainForm.show() 
+win.loopMessage();
+http.close();//释放资源 
+io.close();

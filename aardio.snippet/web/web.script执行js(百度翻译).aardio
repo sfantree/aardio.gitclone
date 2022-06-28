@@ -1,0 +1,193 @@
+// @Author  : popy32
+// @Contact : 74o5o27o8#qq.com
+// @File    : webscript.aardio
+// @Comment : webscript执行js获取百度翻译sign
+
+import debug;
+import console;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="百度翻译JS";right=759;bottom=469)
+winform.add(
+button={cls="button";text="日志测试1";left=0;top=0;right=136;bottom=32;z=2};
+button2={cls="button";text="翻译";left=0;top=32;right=136;bottom=64;z=3};
+button3={cls="button";text="调试sign";left=0;top=64;right=136;bottom=96;z=5};
+edit={cls="edit";left=0;top=256;right=760;bottom=472;autohscroll=false;bgcolor=0;color=16777215;edge=1;multiline=1;z=1};
+edit2={cls="edit";text="Edit";left=136;top=0;right=760;bottom=256;autohscroll=false;edge=1;font=LOGFONT(h=-16;name='Calibri');multiline=1;z=4}
+)
+/*}}*/
+
+import console;
+import web.script;
+import inet.http;
+
+// js 来源 编程助手工具 百度翻译
+// https://bbs.125.la/forum.php?mod=viewthread&tid=14644335
+
+
+jsBaiduFanyi = /**
+	var i = null;
+	var window = {};
+	
+	function n(r, o) {
+    	for (var t = 0; t < o.length - 2; t += 3) {
+        	var a = o.charAt(t + 2);
+        	a = a >= "a" ? a.charCodeAt(0) - 87 : Number(a),
+            	a = "+" === o.charAt(t + 1) ? r >>> a : r << a,
+            	r = "+" === o.charAt(t) ? r + a & 4294967295 : r ^ a
+    	}
+    	return r
+	}
+	
+	function e(r) {
+    	var o = r.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g);
+    	if (null === o) {
+        	var t = r.length;
+        	t > 30 && (r = "" + r.substr(0, 10) + r.substr(Math.floor(t / 2) - 5, 10) + r.substring(r.length - 10))
+    	} else {
+        	for (var e = r.split(/[\uD800-\uDBFF][\uDC00-\uDFFF]/), C = 0, h = e.length, f = []; h > C; C++)
+            	"" !== e[C] && f.push.apply(f, a(e[C].split(""))),
+            	C !== h - 1 && f.push(o[C]);
+        	var g = f.length;
+        	g > 30 && (r = f.slice(0, 10).join("") + f.slice(Math.floor(g / 2) - 5, Math.floor(g / 2) + 5).join("") + f.slice(-10).join(""))
+    	}
+    	var u = void 0,
+        	l = "" + String.fromCharCode(103) + String.fromCharCode(116) + String.fromCharCode(107);
+    	u = null !== i ? i : (i = window[l] || "") || "";
+    	u = '320305.131321201';
+    	for (var d = u.split("."), m = Number(d[0]) || 0, s = Number(d[1]) || 0, S = [], c = 0, v = 0; v < r.length; v++) {
+        	var A = r.charCodeAt(v);
+	
+        	128 > A ? S[c++] = A : (2048 > A ? S[c++] = A >> 6 | 192 : (55296 === (64512 & A) && v + 1 < r.length && 56320 === (64512 & r.charCodeAt(v + 1)) ? (A = 65536 + ((1023 & A) << 10) + (1023 & r.charCodeAt(++v)),
+                    	S[c++] = A >> 18 | 240,
+                    	S[c++] = A >> 12 & 63 | 128) : S[c++] = A >> 12 | 224,
+                	S[c++] = A >> 6 & 63 | 128),
+            	S[c++] = 63 & A | 128)
+    	}
+    	for (var p = m, F = "" + String.fromCharCode(43) + String.fromCharCode(45) + String.fromCharCode(97) + ("" + String.fromCharCode(94) + String.fromCharCode(43) + String.fromCharCode(54)), D = "" + String.fromCharCode(43) + String.fromCharCode(45) + String.fromCharCode(51) + ("" + String.fromCharCode(94) + String.fromCharCode(43) + String.fromCharCode(98)) + ("" + String.fromCharCode(43) + String.fromCharCode(45) + String.fromCharCode(102)), b = 0; b < S.length; b++)
+        	p += S[b],
+        	p = n(p, F);
+    	return p = n(p, D),
+        	p ^= s,
+        	0 > p && (p = (2147483647 & p) + 2147483648),
+        	p %= 1e6,
+        	p.toString() + "." + (p ^ m)
+	}
+**/
+
+// 日志输出
+Logd = function(...){
+    import time;
+    var args = {...};
+    var tm = time.now();
+    tm.format = "[%Y/%m/%d %H:%M:%S] ";
+    //
+    var debugInfo = debug.queryinfo(2, "select source,function,upvars,name,currentline,activelines") ;
+    winform.edit.log(tostring(tm), "line: ", debugInfo[['currentline']], " ", ..string.join(args,' '),'\r\n');
+    // 滚动条随光标滚动
+    winform.edit.scrollCaret();
+}
+
+// 测试当前目录
+winform.button.oncommand = function(id,event){
+    import fsys;
+    import fsys.path;
+    Logd("winform.button.oncommand", "fsys.getCurDir()", fsys.getCurDir());
+    Logd("winform.button.oncommand", "io._exepath", io._exepath);
+    Logd("winform.button.oncommand", 'io.fullpath("/")', io.fullpath("/") );
+    Logd("winform.button.oncommand", 'io.fullpath("~")', io.fullpath("~") );
+}
+
+vm = web.script("JScript");
+vm.doScript(jsBaiduFanyi);
+// sign = vm.xcall("e", source);
+
+
+// 逐行翻译
+BaiduFanyiLine = function(source){
+	var oHttp = inet.http();
+	var response;
+	oHttp.head("https://www.baidu.com");
+	response = oHttp.get("http://fanyi.baidu.com/translate");
+	//Logd("response", response);
+	var pattern =  "token\: '(.*?)'";
+	var token;
+	for s in ..string.gmatch( response, pattern ){
+		 token = s;
+	}
+	
+	var sign = vm.xcall("e", source);
+	//Logd("BaiduFanyi", "token:", token, "sign:", sign);
+	
+	/*
+	https://fanyi.baidu.com/v2transapi?from=en&to=zh&query=good&transtype=translang&
+	simple_means_flag=3&sign=262931.57378&token=163d24277319e8b7b8b191c65dc174ce
+	*/
+	
+	//source = inet.url.encode(source);
+	//var url = "https://fanyi.baidu.com/v2transapi?from=en&to=zh&query=" ++ source ++
+	// "&transtype=translang&simple_means_flag=3&sign=" ++ sign ++ "&token="++ token;
+	
+	//var url = "http://httpbin.org/anything";
+	var url = "https://fanyi.baidu.com/v2transapi";
+	
+	var postdata = "from=en&to=zh&query=" ++ source ++
+	 "&transtype=translang&simple_means_flag=3&sign=" ++ sign ++ "&token="++ token;
+	response = oHttp.post(url, postdata);
+	//console.dump(response);
+	
+	var t = ..web.json.tryParse(response);
+	//console.dump(t);
+	var t1 = (t[["trans_result"]][["data"]]);
+	//console.dump(t1)
+	var res = "";
+	if(t1) {
+		for(i=1;#t1;1){
+			if(t1[[i]][["dst"]]) {
+			    res = res ++ t1[[i]][["dst"]];
+			}
+			
+		}
+	}
+	return res;
+}
+
+// 翻译
+BaiduFanyi = function(source){
+    //source = string.fromto(source,65001,0) 
+    
+    var lines  = ..string.splitEx(source, '\r\n');
+    var res = "";
+    var count = #lines;
+    for(i=1; count; 1){
+    	var line = lines[i];
+    	line = string.trim(line);
+    	if (line and #line > 0) {
+    	    res = res ++ BaiduFanyiLine(line) ;
+    	    if(i < count) {
+    	        res = res ++ '\r\n';
+    	    }
+    	}
+    }
+    return res;
+}
+
+winform.button2.oncommand = function(id,event){
+    var txt = winform.edit2.text;
+	if(#txt) {
+	    //var res = BaiduFanyiLine(txt);
+	    var res = BaiduFanyi(txt);
+	    Logd("翻译结果:", '\r\n', res);
+	}
+}
+
+winform.button3.oncommand = function(id,event){
+	var txt = winform.edit2.text;
+	if(#txt) {
+	    var sign = vm.xcall("e", txt);
+	    Logd("sign:", sign);
+	}
+}
+
+winform.show();
+win.loopMessage();

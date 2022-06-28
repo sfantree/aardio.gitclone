@@ -1,0 +1,49 @@
+﻿
+namespace assetsHelper{
+	// 下载资源到 /assets 目录下
+	download = function(winform){
+		import inet.downBox;
+		var downBox = inet.downBox(winform,"下载资源...",true )
+		var url = "https://github.com/krissss/system-monitor-aardio/archive/refs/heads/assets.zip"
+		var savePath = "/assets/assets.zip"
+		var ok = downBox.test(url , savePath) 
+		if( ok ){
+			winform.msgbox("资源已下载完成、服务器未更新,无需重新下载")
+			return; 
+		} elseif( ok === null ){
+			winform.msgboxErr("下载错误,HTTP错误代码:"+ ( downBox.statusCode : ""));
+			return;
+		}
+	 	
+		if(downBox.download(url, savePath) ){
+	 		//winform.msgbox("下载完成");
+	 		// 解压
+	 		import zlib.unzip;
+	 		import console;
+	 		zlib.unzip.extract(savePath,"/assets",
+				function(fileName,extractPath,fileInfo,size,unitSize,unitName){
+					if( size !== null )
+						console.log( "正在解压文件",fileName,size++ unitName );
+					else {
+						console.log( "正在解压目录",fileName );
+					}
+					return true;
+				}
+			)
+			// 移动解压目录
+			console.log( "移动目录。。。" );
+			import fsys
+			if (!fsys.move("/assets/system-monitor-aardio-assets/assets/**", "/assets/")) {
+				console.log( "移动目录失败！！" );
+				return;
+			}
+			if (!fsys.delete("/assets/system-monitor-aardio-assets")) {
+				console.log( "清理目录失败！！" );
+				return;
+			}
+			// 关闭控制台
+			console.close()
+	 	}
+	}
+	
+}

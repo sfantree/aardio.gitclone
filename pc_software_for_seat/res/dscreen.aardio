@@ -1,0 +1,28 @@
+import win.ui;
+/*DSG{{*/
+var dscreenform = win.form(text="aardio form";right=759;bottom=469;border="none";exmode="toolwindow")
+dscreenform.add()
+/*}}*/
+
+import web.form;
+import sys.monitor
+
+var dscreen = web.form( dscreenform
+				,0x4/*_UIFLAG_NO3DBORDER*/|0x8/*_UIFLAG_SCROLL_NO*/|0x1/*_UIFLAG_DIALOG*/
+				) 
+dscreen.noScriptErr = true;//屏蔽网页的错误提示
+dscreen.showMenu = function(x,y,id,ele){
+	/*定义此事件函数则禁用默认的右键弹出菜单*/
+	return false;
+}
+
+dscreenform.openUrl = function (url){
+	dscreen.go(url);
+}
+
+var sw,sh = win.getScreen()
+dscreenform.setPos(sw,0,1024,768);
+dscreenform.enableDpiScaling();
+dscreenform.show();
+win.loopMessage();
+return dscreenform;

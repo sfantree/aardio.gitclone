@@ -1,0 +1,17 @@
+import console
+import ocrLite;
+
+var ocr = ocrLite(false)
+var ret = ocr.getResult("./santi.png")
+var textBlocks = ret.textBlocks
+for(i=1;#textBlocks){
+	console.log( textBlocks[i].text )
+	console.log( "字符识别置信度:",table.tostring(textBlocks[i].charScores,true) ) //字符识别置信度
+	console.log( "文本框置信度:",textBlocks[i].boxScore ) //文本框置信度
+	for(j=1;#textBlocks[i].point;1){
+		//文本框四角坐标
+		//console.log(textBlocks[i].point[j].x,textBlocks[i].point[j].y)
+	}
+}
+
+console.pause(true);

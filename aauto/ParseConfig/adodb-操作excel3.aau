@@ -1,0 +1,101 @@
+import com;
+ 
+io.open();
+io.print("下面用Sql创建Excel数据库data.xls，其中创建表Persons,Salary");
+
+var conn = com.CreateObject("adodb.connection");
+conn.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;
+						 Persist Security Info=False;
+						 Data Source=" ++ io.fullpath("\data.xls")++";
+						 Extended Properties='Excel 8.0;HDR=Yes'";
+conn.Open();
+
+/* 创建表 Persons */
+conn.execute("CREATE TABLE Persons
+	(
+		Id int,
+		姓名 varchar(10)
+	)"
+)
+/* 创建表 Salary */
+conn.execute("CREATE TABLE Salary
+	(
+		Id int,
+		工资 int,
+		奖金 int
+	)"
+)	
+	
+io.print("下面向表Persons和Salary中各插入5条数据：")
+for(i=1;5;1){
+	conn.execute("INSERT INTO Persons VALUES ("++i++",'姓名"++i++"')");
+	conn.execute("INSERT INTO Salary VALUES ("++i++",2000,"++i*10++")");	
+}
+
+io.print("下面显示表Persons和Salary中的记录：")
+var showData = function(){  
+	var rs = com.CreateObject("ADODB.RecordSet");
+	var sql="select * from Persons";
+	rs.Open(sql,conn,3,3);
+	io.print("表Persons："++'\n'++"Id      姓名");
+	while( not rs.eof){
+		io.print(rs("Id").Value,rs("姓名").Value);
+		rs.movenext();
+	}
+	rs.close();
+	var sql="select * from Salary"; 
+	rs.Open(sql,conn,3,3);
+	io.print("表Salary："++'\n'++"Id      工资   奖金");
+	while( not rs.eof){
+		io.print(rs("Id").Value,rs("工资").Value,rs("奖金").Value);
+		rs.movenext();
+	}
+	rs.close();
+}
+showData(); //显示表中数据
+
+io.print("逐条修改数据：给表Salary中的每个员工增加不同奖金")
+var rs = com.CreateObject("ADODB.RecordSet");
+var sql = "select id,奖金 from Salary"; 
+rs.Open(sql,conn,3,3);
+var i = 10;
+while( not rs.eof ){
+	conn.execute("UPDATE Salary SET 奖金 = "++rs("奖金").Value*i++" WHERE id = "++rs("id").Value);
+	rs.movenext();
+	i = i - 1;	
+}
+rs.close();
+showData(); 
+
+io.print("下面演示多表查询语句，并按新增字段 总收入 降序排序");
+var rs = com.CreateObject("ADODB.RecordSet");
+var sql = "select id,姓名,工资,奖金,总收入 from (
+				SELECT Persons.id,Persons.姓名,Salary.工资,Salary.奖金,Salary.工资+Salary.奖金 as 总收入 from Persons INNER JOIN Salary ON Persons.Id=Salary.Id
+			)
+			order by 总收入 desc";
+rs.Open(sql,conn,3,3);
+io.print("查询演示："++'\n'++"Id      姓名    工资    奖金   总收入")
+while( not rs.eof ){
+	io.print(rs("Id").Value,rs("姓名").Value,rs("工资").Value,rs("奖金").Value,rs("总收入").Value);
+	rs.movenext();
+}
+rs.close();
+
+io.print("下面演示用 Select into 语句从已有表中选择性的创建新表：")  //如果表已经存在可使用 INSERT INTO 语句
+var rs = com.CreateObject("ADODB.RecordSet");
+var sql = "select Persons.id,Persons.姓名,Salary.工资,Salary.奖金,Salary.工资+Salary.奖金 as 总收入 
+		   into 汇总表 
+		   from Persons INNER JOIN Salary on Persons.Id=Salary.Id";
+conn.execute(sql);
+var sql = "select * from 汇总表"; 
+rs.Open(sql,conn,3,3);
+io.print("汇总表："++'\n'++"Id      姓名    工资    奖金   总收入")
+while( not rs.eof ){
+	io.print(rs("Id").Value,rs("姓名").Value,rs("工资").Value,rs("奖金").Value,rs("总收入").Value);
+	rs.movenext();
+}
+rs.close(); 
+//io.print("数据库中删除表Persons,Salary,汇总表，但Excel文件中仍有这三个工作表"); 
+//conn.execute("drop table Persons,Salary,汇总表");
+execute("pause");
+io.close();

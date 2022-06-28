@@ -1,0 +1,418 @@
+NutBrowserVersion = "1.0.0.6"
+//BASEURL = "https://a.maorx.cn/"
+BASEURL = "https://cn.bing.com/"
+
+import win.ui
+/*DSG{{*/
+mainForm = win.form(text="NutBrowser";right=1279;bottom=761;acceptfiles=1;bgcolor=3881787;border="none";mode="popup";sysmenu=false)
+mainForm.add(
+addressBar={cls="edit";text="nut://newtab";left=190;top=6;right=1120;bottom=36;acceptfiles=1;autovscroll=false;aw=1;bgcolor=2829099;border=1;color=16777215;dl=1;dr=1;dt=1;font=LOGFONT(h=-18;name='Microsoft YaHei UI');hidesel=1;tabstop=1;z=4};
+back={cls="plus";left=44;top=4;right=78;bottom=38;bgcolor=3881787;dl=1;dt=1;foreRepeat="scale";foreground="\res\images\direction-left.png";notify=1;paddingBottom=5;paddingLeft=5;paddingRight=5;paddingTop=5;z=5};
+close={cls="plus";left=1240;top=0;right=1280;bottom=40;bgcolor=3881787;dr=1;dt=1;foreRepeat="scale";foreground="\res\images\close.png";notify=1;paddingBottom=5;paddingLeft=10;paddingRight=10;paddingTop=2;z=1};
+forward={cls="plus";left=78;top=4;right=112;bottom=38;bgcolor=3881787;dl=1;dt=1;foreRepeat="scale";foreground="\res\images\direction-right.png";notify=1;paddingBottom=5;paddingLeft=5;paddingRight=5;paddingTop=5;z=6};
+home={cls="plus";left=148;top=4;right=182;bottom=38;bgcolor=3881787;dl=1;dt=1;foreRepeat="scale";foreground="\res\images\home.png";notify=1;paddingBottom=5;paddingLeft=5;paddingRight=5;paddingTop=5;z=8};
+icon={cls="plus";left=6;top=4;right=40;bottom=38;autohscroll=false;autovscroll=false;foreRepeat="scale";foreground="\res\images\app.ico";z=10};
+loading={cls="plus";left=0;top=42;right=1280;bottom=742;bgcolor=3881787;clipch=1;db=1;dl=1;dr=1;dt=1;foreRepeat="center";foreground="\res\images\loading.gif";z=11};
+minus={cls="plus";left=1160;top=0;right=1200;bottom=40;bgcolor=3881787;dr=1;dt=1;foreRepeat="scale";foreground="\res\images\minus.png";notify=1;paddingBottom=5;paddingLeft=10;paddingRight=10;paddingTop=2;z=3};
+refresh={cls="plus";left=112;top=4;right=146;bottom=38;bgcolor=3881787;dl=1;dt=1;foreRepeat="scale";foreground="\res\images\refresh.png";notify=1;paddingBottom=5;paddingLeft=5;paddingRight=5;paddingTop=5;z=7};
+status={cls="static";left=0;top=742;right=1280;bottom=762;bgcolor=3881787;center=1;color=16777215;db=1;dl=1;dr=1;font=LOGFONT(h=-13);nWrap=1;transparent=1;z=12};
+switch={cls="plus";left=1200;top=0;right=1240;bottom=40;bgcolor=3881787;dr=1;dt=1;foreRepeat="scale";foreground="\res\images\switch.png";notify=1;paddingBottom=5;paddingLeft=10;paddingRight=10;paddingTop=2;z=2};
+webview={cls="custom";text="webview";left=0;top=42;right=1280;bottom=742;acceptfiles=1;bgcolor=3881787;color=16777215;db=1;dl=1;dr=1;dt=1;tabstop=1;z=9}
+)
+/*}}*/
+
+import fsys
+import fsys.dlg
+import fsys.dlg.dir
+import gdi
+import inet.url
+import key
+import process
+import string.regex
+import web.cefx.portable
+import web.cefx
+import win
+import win.ui.accelerator
+import win.ui.menu
+import win.ui.minmax
+import win.ui.shadow
+if (_STUDIO_INVOKED) {
+	import console
+}
+
+win.ui.shadow(mainForm)
+win.ui.minmax(mainForm,350,42)
+mainForm.enableDpiScaling()
+//自适应屏幕大小
+var x,y = win.getScreen()
+if (x <= 1280) {
+	mainForm.resize(800,600)
+   	win.center(mainForm.hwnd,0)
+}
+if (_WINE) {
+	win.msgbox("正在运行在Wine"+_WINE+"下","WINE")
+}
+
+webview = web.cefx(mainForm.webview)
+webview.enableHighDpiSupport()
+webview.baseUrl = BASEURL
+//DPI缩放（并不管用）
+var dpi = ::GetDeviceCaps(::GetDC(0) ,0x58/*_BITSPIXEL*/)
+select(dpi) {
+	case >=144 {
+		webview.zoom = 1.6
+	}
+	case >=134 {
+		webview.zoom = 1.4
+	}
+	case >=115 {
+		webview.zoom = 1.2
+	}
+	else {
+		webview.zoom = 1.0
+	}
+}
+//右键菜单
+popmenu = win.ui.popmenu(mainForm)
+popmenu.addTable({
+{"打开";function(id){webview.go(fsys.dlg.open("所有文件|*.*","打开"))}}
+{"打开文件夹";function(id){webview.go(fsys.dlg.dir())}}
+{"刷新";function(id){webview.go(webview.location)}}
+{/*分隔线*/}
+{"检查";function(id){webview.showDevTools()}}
+{"另存为";function(id){webview.saveHTML(fsys.dlg.save("HTML文档|*.html|","另存为",fsys.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/),mainForm))}}
+{"另存为pdf";function(id){webview.savePdf(fsys.dlg.save("PDF文档|*.pdf|","另存为"),false)}}
+{/*分隔线*/}
+{"最小化";function(id){mainForm.hitMin()}}
+{"最大化/还原";function(id){mainForm.hitMax()}}
+{"退出";function(id){mainForm.hitClose()}}
+})
+win.ui.accelerator({
+	{ ctrl = true; vkey = 'E'#; oncommand = function(id,event){ mainForm.addressBar.text="";win.setFocus(mainForm.addressBar.hwnd) } }
+	{ ctrl = true; vkey = 'R'#; oncommand = function(id,event){ webview.go(webview.location) } }
+	{ ctrl = true; vkey = 'S'#; oncommand = function(id,event){ webview.saveHTML(fsys.dlg.save("HTML文档|*.html|","另存为",fsys.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/),mainForm)) } }
+	{ ctrl = true; vkey = 'W'#; oncommand = function(id,event){ mainForm.hitClose() } }
+	{ ctrl = true; vkey = 'F5'#; oncommand = function(id,event){ webview.go(webview.location) } }
+	{ ctrl = false; vkey = 'F4'#; oncommand = function(id,event){ win.setFocus(mainForm.addressBar.hwnd) } }
+	{ ctrl = false; vkey = 'F5'#; oncommand = function(id,event){ webview.go(webview.location) } }
+	{ ctrl = false; vkey = 'F6'#; oncommand = function(id,event){ win.setFocus(mainForm.addressBar.hwnd) } }
+	{ ctrl = false; vkey = 'F11'#; oncommand = function(id,event){ mainForm.webview.fullscreen() } }
+	{ ctrl = false; vkey = 'F12'#; oncommand = function(id,event){ webview.showDevTools() } }
+},winform);
+mainForm.onCancel = function(){
+    mainForm.webview.fullscreen(false)
+}
+mainForm.onDropFiles = function(files){
+	webview.go(files[1])
+	console.log(files[1])
+}
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+    select(message) {
+        case 0x100/*_WM_KEYDOWN*/ {
+            if (key.getState('CTRL')) {
+                select(wparam) {
+                	case 0x45/*E Key*/ {
+            			mainForm.addressBar.text = ""
+            			win.setFocus(mainForm.addressBar.hwnd)
+                	}
+                	case 0x52/*R Key*/ {
+                		webview.go(webview.location)
+                	}
+                	case 0x53/*S Key*/ {
+                		webview.saveHTML(fsys.dlg.save("HTML文档|*.html|","另存为",fsys.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/),mainForm))
+                	}
+                	case 0x57/*W Key*/ {
+                		mainForm.hitClose()
+                	}
+                	case 0x74/*_VK_F5*/ {
+                		webview.go(webview.location)
+                	}
+                }
+                return ;
+            }
+            select(wparam) {
+            	case 0x73/*VK_F4*/ {
+            		win.setFocus(mainForm.addressBar.hwnd)
+            	}
+            	case 0x74/*_VK_F5*/ {
+                	webview.go(webview.location)
+            	}
+            	case 0x75/*VK_F6*/ {
+            		win.setFocus(mainForm.addressBar.hwnd)
+            	}
+            	case 0x7A/*VK_F11*/ {
+            		mainForm.webview.fullscreen()
+            	}
+            	case 0x7B/*VK_F12*/ {
+            		webview.showDevTools()
+            	}
+            	case 0xA6/*VK_BROWSER_BACK*/ {
+            		webview.goBack()
+            	}
+            	case 0xA7/*VK_BROWSER_FORWARD*/ {
+            		webview.goForward()
+            	}
+            	case 0xA8/*VK_BROWSER_REFRESH*/ {
+            		webview.go(webview.location)
+            	}
+            	case 0xA9/*VK_BROWSER_STOP*/ {
+            		webview.stop()
+            	}
+            	case 0xAA/*VK_BROWSER_SEARCH*/ {
+            		mainForm.addressBar.text = ""
+            		win.setFocus(mainForm.addressBar.hwnd)
+            	}
+            	case 0xAB/*VK_BROWSER_FAVORITES*/ {}
+            	case 0xAC/*VK_BROWSER_HOME*/ {
+            		webview.go(webview.baseUrl)
+            	}
+            	case 0xAD/*VK_VOLUME_MUTE*/ {}
+            	case 0xAE/*VK_VOLUME_DOWN*/ {}
+            	case 0xAF/*VK_VOLUME_UP*/ {}
+            }
+        }
+        case 0x201/*_WM_LBUTTONDOWN*/ {
+          	mainForm.hitCaption()
+        }
+        case 0x203/*_WM_LBUTTONDBLCLK*/ {
+          	mainForm.hitMax()
+        }
+        case 0x205/*WM_RBUTTONUP*/ {
+            popmenu.popup()           	
+        }
+    }
+}
+webview.onAddressChange = function(url){
+    if (webview.location==webview.baseUrl) {
+    	mainForm.addressBar.text = "nut://newtab"
+    	return ;
+    }
+    mainForm.addressBar.text = inet.url.decode(webview.location)
+}
+webview.onBrowserReady = function(){
+    webview.downloadScripts = true //允许下载脚本(编辑模式下默认是禁止下载的)
+    if (#_CMDLINE) {
+    	webview.go(#_CMDLINE)
+    } else {
+		webview.go(BASEURL)
+    }
+	webview.refresh()
+   	win.center(mainForm.hwnd,0)
+	win.showForeground(mainForm.hwnd)
+	win.setForeground(mainForm.hwnd)
+}
+webview.onBeforeDownload = function(id,url,originalUrl,mimeType,fullPath,suggestedFileName,totalBytes,receivedBytes,percentComplete,currentSpeed,cancel){
+	fullPath = fsys.dlg.save(,"另存为",fsys.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/),mainForm,,suggestedFileName)
+	//fullPath = io.joinpath(fsys.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/),suggestedFileName)
+	if (!fullPath) { return "","",ture }
+	downForm = win.form(text="正在下载...";right=415;bottom=119;border="thin";clipch=1;composited=1;exmode="none";max=false;mode="popup")
+	downForm.add(
+	cancel={cls="button";text="取消";left=312;top=88;right=392;bottom=112;tabstop=1;z=4};
+	downFrom={cls="static";text="正在从"+url;left=16;top=8;right=400;bottom=24;center=1;nWrap=1;transparent=1;z=2};
+	downTo={cls="static";text="下载到"+fullPath;left=16;top=32;right=400;bottom=48;center=1;nWrap=1;transparent=1;z=3};
+   	messsage={cls="static";text="总大小 "+totalBytes+" 已下载 "+receivedBytes+" 下载速度 "+currentSpeed;left=16;top=88;right=304;bottom=112;center=1;nWrap=1;transparent=1;z=5}
+	progress={cls="progress";left=16;top=56;right=400;bottom=80;edge=1;max=100;min=0;z=1}
+	)
+	downForm.progress.setRange(0,100)
+	downForm.show()
+    return fullPath,suggestedFileName,false
+}
+webview.onDownloadUpdated = function(id,url,originalUrl,mimeType,fullPath,suggestedFileName,totalBytes,receivedBytes,percentComplete,currentSpeed,cancel) {
+    if (downForm) {
+    	cancel = false
+    	downForm.progress.pos = percentComplete
+    	downForm.messsage.text = "总大小 "+totalBytes+" 已下载 "+receivedBytes+" 下载速度 "+currentSpeed
+		downForm.cancel.oncommand = function(id,event){
+			downForm.close()
+		}
+		if (totalBytes == receivedBytes) {
+			downForm.close()
+		}
+    } else {
+    	cancel = true
+    }
+    return cancel;
+}
+webview.onCreate = function(cefSettings,commandLineSwitches){
+    cefSettings.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36 NutBrowser/" + NutBrowserVersion
+    //cefSettings.filter_response = true
+    cefSettings.access_control_allow_origin = "*"
+    cefSettings.remove_response_headers = "x-webkit-csp,content-security-policy,x-content-security-policy";
+	return commandLineSwitches;
+}
+webview.onDocumentComplete = function(url){
+    webview.Preview()
+}
+webview.onTitleChange = function(title){
+    if (title=="青柠起始页" || title=="微软 Bing 搜索 - 国内版" || title=="微软 Bing 搜索 - 国际版") {
+    	mainForm.text = "新标签页 - NutBrowser"
+    }else {
+    	mainForm.text = title + " - " + "NutBrowser"
+    }
+}
+webview.onLoadingStateChange = function(isLoading,canGoBack,canGoForward){
+    if (isLoading) {
+        mainForm.status.text = "正在加载..."
+    } else {
+        mainForm.status.text = "完成."
+    	mainForm.loading.show(false)
+    }
+    if (canGoBack) {
+    	mainForm.back.disabled = false
+    	mainForm.back.foreground = "/res/images/direction-left.png"
+    } else {
+    	mainForm.back.disabled = true
+    	mainForm.back.foreground = "/res/images/direction-left-alpha.png"
+    }
+    if (canGoForward) {
+    	mainForm.forward.disabled = false
+    	mainForm.forward.foreground = "/res/images/direction-right.png"
+    } else {
+    	mainForm.forward.disabled = true
+    	mainForm.forward.foreground = "/res/images/direction-right-alpha.png"
+    }
+    var httpStatus = webview.httpStatus
+    if (webview.httpStatus > 400) {
+    	win.msgboxErr("HTTP ERROR: " + webview.httpStatus,webview.httpStatus)
+    }
+}
+webview.onStatusChange = function(statusText){
+    mainForm.status.text = statusText
+}
+webview.onFullscreenModeChange = function(mode){
+    select(mode) {
+    	case "fullscreen" {
+    		mainForm.webview.fullscreen(true)
+    	}
+    	case "normal" {
+    		mainForm.webview.fullscreen(false)
+    	}
+    }
+}
+webview.onLoadEnd = function(){
+    webview.Preview() //切换到浏览模式
+    //设置允许 cef3.onEvent 回调函数接收的事件
+    webview.Events = 0x1000/*_DOM_EVENT_SELECTSTART*/ 
+    				| 0x100000/*_DOM_EVENT_DOMSUBTREEMODIFIED*/
+                    | 0x4000/*_DOM_EVENT_DOMFOCUSIN*/
+                    | 1/*_DOM_EVENT_CLICK*/
+                    | 0x400000/*_DOM_EVENT_EDITABLE_ELEMENT_CHANGED*/
+    webview.fireOnEventForAllEvents = true
+}
+mainForm.addressBar.onOk = function(){
+    if (string.startWith(mainForm.addressBar.text,"nut://",true)) {
+        if (string.startWith(mainForm.addressBar.text,"nut://newtab",true)) {
+        	webview.go(webview.baseUrl)
+        	return true;
+        }
+        if (string.startWith(mainForm.addressBar.text,"nut://bing",true)) {
+        	webview.go("https://cn.bing.com/")
+        	return true;
+        }
+    }
+    var regex = string.regex("^\w+[^\s]+(\.[^\s]+){1,}")
+    if (regex.find(mainForm.addressBar.text)) {
+		webview.go(mainForm.addressBar.text)
+    } else {
+    	searchTerms = inet.url.encode(mainForm.addressBar.text)
+    	webview.go("https://cn.bing.com/search?q=" + searchTerms + "&hl=zh-CN")
+    }
+    return true; 	
+}
+mainForm.addressBar.onChange = function(){ 
+	if(owner.onModified)owner.onModified(true);
+	mainForm.status.text = "在地址栏输入地址以进入，或输入文本直接搜索（按下Enter）"
+}
+mainForm.back.skin(
+	background = { 
+		hover = "/res/images/#515151.png";
+		active = "/res/images/#5b5b5b.png";
+	}
+)
+mainForm.back.oncommand = function(id,event){
+    webview.goBack()
+}
+mainForm.back.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "后退"
+}
+mainForm.forward.skin(
+	background = { 
+		hover = "/res/images/#515151.png";
+		active = "/res/images/#5b5b5b.png";
+	}
+)
+mainForm.forward.oncommand = function(id,event){
+    webview.goForward()
+}
+mainForm.forward.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "前进"
+}
+mainForm.refresh.skin(
+	background = { 
+		hover = "/res/images/#515151.png";
+		active = "/res/images/#5b5b5b.png";
+	}
+)
+mainForm.refresh.oncommand = function(id,event){
+	webview.go(webview.location)
+	//webview.refresh()//无法重新加载
+}
+mainForm.refresh.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "刷新"
+}
+mainForm.home.skin(
+	background = { 
+		hover = "/res/images/#515151.png";
+		active = "/res/images/#5b5b5b.png";
+	}
+)
+mainForm.home.oncommand = function(id,event){
+	webview.go(webview.baseUrl)
+}
+mainForm.home.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "主页"
+}
+mainForm.minus.skin(
+	background = {
+		hover = "/res/images/#323232.png";
+		active = "/res/images/#494949.png";
+	}
+)
+mainForm.minus.oncommand = function(id,event){
+	mainForm.hitMin()
+}
+mainForm.minus.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "最小化"
+}
+mainForm.switch.skin(
+	background = {
+		hover = "/res/images/#323232.png";
+		active = "/res/images/#494949.png";
+	}
+)
+mainForm.switch.oncommand = function(id,event){
+	mainForm.hitMax()
+	webview.refresh()
+}
+mainForm.switch.onMouseEnter = function(wParam,lParam){
+    if (win.isZoomed(mainForm.hwnd)) {
+		mainForm.status.text = "向下还原"
+    } else {
+		mainForm.status.text = "最大化"
+    }
+}
+mainForm.close.skin(
+	background = {
+		hover = "/res/images/#e81123.png";
+		active = "/res/images/#95151f.png";
+	}
+)
+mainForm.close.oncommand = function(id,event){
+	mainForm.hitClose()
+}
+mainForm.close.onMouseEnter = function(wParam,lParam){
+	mainForm.status.text = "关闭"
+}
+
+mainForm.show();
+return win.loopMessage();

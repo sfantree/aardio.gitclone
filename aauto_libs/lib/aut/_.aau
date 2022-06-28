@@ -1,0 +1,225 @@
+/*
+* AAuto Unit Test(AUT) AAuto 简易测试框架
+* 作者： Morler <morler在163.com>
+* 版本： 0.04
+* 日期： 2011.06.29
+* 备注： 尚处于草创阶段，不建议用于正式项目
+* 用法：
+*		should.equal(arg1, arg2)	两个参数相等则通过测试，否则为失败
+*		should.notequal(arg1, arg2)		两个参数不等则通过测试，否则为失败
+*		is.num(arg)					参数类型为数字，则通过测试，否则为失败
+*		is.tab(arg)					
+*		is.str(arg)
+*		is.tab(arg)
+*		is.bol(arg)
+*		is.nul(arg)
+*
+* 更新记录：
+* 2011-06-20	实现了控制台字体颜色随结果改变，更加直观
+* 2011-06-20	初步实现了equal测试
+* 2011-06-21	实现否定测试notbe
+* 2011-06-22	实现类型检测（string, number, null, boolean, table）
+* 2011-06-22	实现出错信息提示
+* 2011-06-23	实现测试计数和计时功能
+* 2011-06-23	实现中文测试脚本支持
+* 2011-06-23	精简掉notbe，改为should.notequal
+* 2011-06-29	修改了控制台启动语句，将输出窗口独立出来
+* 2011-06-29	美化了输出格式，精简了文字
+* 
+*/
+
+io.open();	//启动控制台准备输出测试结果
+
+//设置控制台字体颜色的准备工作
+kernel32 := raw.loadDll("kernel32.dll");
+GetStdHandle = kernel32.api("GetStdHandle","int(int)" );
+SetConsoleTextAttribute = kernel32.api("SetConsoleTextAttribute","int(int,int)" );
+console = GetStdHandle(0xFFFFFFF5/*_STD_OUTPUT_HANDLE*/);
+
+namespace aut{
+
+	passed = false;
+	all_count = 0;
+	passed_count = 0;
+	time_begin = ..time.tick();
+	
+	namespace should{
+	
+		equal = function(exp, rev){
+			
+			..aut.all_count += 1;
+		
+			if(exp == rev){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			if(..type(exp) != ..type(rev)){
+				
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, exp, rev);
+			..aut.done = true;
+		}
+		
+		notequal = function(exp, rev){
+			
+			..aut.all_count += 1;
+		
+			if(exp == rev){
+			
+				..aut.passed = false;
+			}
+			else{
+			
+				..aut.passed = true;
+			}
+			
+			..aut.report(..aut.passed, exp, rev);
+		}
+	}
+	
+	namespace is{
+	
+		str = function(arg){
+		
+			..aut.all_count += 1;
+			
+			if(..type(arg) == 'string'){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, 'string', ..type(arg));
+		}
+		
+		num = function(arg){
+			
+			..aut.all_count += 1;
+		
+			if(..type(arg) == 'number'){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, 'number', ..type(arg));
+		}
+	
+		bol = function(arg){
+			
+			..aut.all_count += 1;
+		
+			if(..type(arg) == 'boolean'){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, 'boolean', ..type(arg));
+		}
+		
+		tab = function(arg){
+			
+			..aut.all_count += 1;
+		
+			if(..type(arg) == 'table'){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, 'table', ..type(arg));
+		}
+		
+		nul = function(arg){
+			
+			..aut.all_count += 1;
+		
+			if(..type(arg) == 'null'){
+			
+				..aut.passed = true;
+			}
+			else{
+			
+				..aut.passed = false;
+			}
+			
+			..aut.report(..aut.passed, 'null', ..type(arg));
+		}
+	}
+	 
+	description = function(test_text){
+	
+		..SetConsoleTextAttribute(..console, 0xF/*亮白色*/);
+		..io.print('\n' + test_text);
+	}
+		
+	report = function(ispassed,...){
+	
+		var arg = {...}
+		
+		if (ispassed == true) {
+			
+			..aut.passed_count += 1;
+			..SetConsoleTextAttribute(..console, 0xA/*亮绿色*/);
+			..io.print('  PASS!');
+		}
+		
+		else{
+			
+			..SetConsoleTextAttribute(..console, 0xC/*亮红色*/);
+			..io.print('  ERROR! 应该是: ' + ..tostring(arg[1]) + ' ,结果是: ' + ..tostring(arg[2]));
+		}
+		
+	..SetConsoleTextAttribute(..console, 0xF/*亮白色*/);
+	}
+	
+	alldone = function(){
+
+			time_done = ..time.tick();
+			
+			..io.print(..string.format('\n========\n测试结束，共进行%d项测试，通过%d个，通过率%d%s，测试耗时%d毫秒。\n', ..aut.all_count, ..aut.passed_count, (..aut.passed_count / ..aut.all_count) * 100, '%', (..aut.time_done - ..aut.time_begin)));
+			
+			passed = false;
+			all_count = 0;
+			passed_count = 0;
+			
+			//暂停运行并等待用户按任意键退出
+			..execute("pause");
+			..io.close();
+	}
+	
+	//添加中文语法支持
+	应该 = should;
+	应该.相等 = should.equal;
+	应该.不等 = should.notequal;
+	
+	是 = is;
+	是.字符串 = is.str;
+	是.数字 = is.num;
+	是.表 = is.tab;
+	是.真假值 = is.bol;
+	是.空值 = is.nul;
+	
+	内容 = description;
+	结束 = alldone;
+}

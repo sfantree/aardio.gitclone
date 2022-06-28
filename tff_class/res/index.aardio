@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>aardio嵌入electron演示</title>
+    <script>
+      // aardio已自带此模块,外部开发环境可选使用npm i aardio单独安装
+      const aardio = require("aardio");
+
+      if (aardio.studioInvoke) {
+        var remote = require("electron").remote;
+        document.addEventListener("keydown", function(e) {
+          if (e.keyCode === 123) {
+            // F12
+            var window = remote.getCurrentWindow();
+            window.toggleDevTools();
+          }
+        });
+      }
+
+      let win;
+      openWindow = function() {
+        win = aardio.createBrowserWindow({
+          width: 1024, 
+          height: 760, 
+          parent: aardio.getCurrentWindow() // 实际上是指定所有者窗口
+        },"/res/index.aardio");
+
+        win.on("close", () => {
+          win = null;
+        });
+      };
+    </script>
+  </head>
+  <body>
+    <div style="-webkit-app-region: drag">
+      无边框窗口在样式中指定-webkit-app-region: drag 可以支持拖动窗口, <br />
+      拖动元素内可使用样式 -webkit-app-region: no-drag 禁止拖动<br />
+      <br />
+    </div>
+    <button onclick="aardio.hitClose();">点这里调用aardio关闭窗口</button>
+    <br />
+    <br />
+
+    <span
+      >按 Ctrl + Shift + I 打开deltools调试工具（不是按F12)<br />
+      按 Alt 可以显示开发菜单( 无边框窗口不支持 )<br /><br />
+    </span>
+    <button onclick="openWindow();">打开新窗口</button>
+    <button onclick="aardio.exploreMainJs();">
+      浏览启动electron主进程文件
+    </button>
+
+    <webview
+      id="view"
+      src="http://www.so.com"
+      autosize
+      minwidth="576"
+      minheight="1432"
+      style="display:inline-flex; width:100%; height:780px"
+    ></webview>
+
+    <script type="text/javascript">
+      //获取嵌入的浏览器控件（webview)
+      var webview = document.getElementById("view");
+
+      aardio.on("executeJavaScript", js => {
+        //注入JS脚本到打开的远程网页
+        webview.executeJavaScript(js);
+      });
+
+      //监听浏览器事件
+      webview.addEventListener("dom-ready", () => {
+        aardio.$onWebViewDomReady(webview.getURL());
+      });
+    </script>
+  </body>
+</html>

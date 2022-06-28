@@ -1,0 +1,10 @@
+import console; 
+import dblink;
+ if(dblink.link()){
+ 	//console.log(dblink.login("user1","user1123"));
+ 	//console.dump(dblink.queryUserInfo("user1"));
+ 	dblink.test();
+ 	dblink.close();	
+ }
+
+console.pause(true);

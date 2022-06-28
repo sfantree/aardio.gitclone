@@ -1,0 +1,389 @@
+﻿//auto 自动处理加红心、删除
+namespace binFM.auto {
+
+	
+	/*
+	 * 添加当前播放的歌手 - 自动加红心
+	 */	
+	addLikeArtist = function() { 
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var artist = nowPlaying["artist"];
+		else return false;
+		if(artist) {
+			..isLikeByArtist = 1;
+			var title = "";
+			title,artist = ..binFM.string.doTitleArtist(title,artist,",");
+			var temp;
+			if(..autoFormShown) {
+				..wbLayout_auto.queryEle("#isLikeByArtist").value="true";
+				..wbLayout_auto.queryEle("#likeSongArtist").disabled = null;
+				if(..wbLayout_auto.queryEle("#delSongArtist").value) temp = ..wbLayout_auto.queryEle("#delSongArtist").value;
+				else temp = "";
+				if(..string.find(temp,"@@" ++ artist)) {
+					..win.msgbox("已在“自动屏蔽”中添加过，请检查！",.._app);
+					return;
+				} 
+				if(..wbLayout_auto.queryEle("#likeSongArtist").value) temp = ..wbLayout_auto.queryEle("#likeSongArtist").value;
+				else temp = "";
+				if(!..string.find(temp,"@@" ++ artist)) ..wbLayout_auto.queryEle("#likeSongArtist").value += "," ++ artist; 
+				else ..wbLayout_auto.queryEle("#likeSongArtist").value = ..string.replace(temp,"@@" ++ "," ++ artist,"");
+				..binFM.ui.menuToggle("#likeByArtist","normal");
+			}
+			else {
+				temp = ..delArtist;
+				if(..string.find(temp,"@@" ++ artist)) {
+					..win.msgbox("之前已被设为“自动屏蔽”，请检查！",.._app);
+					return;
+				} 
+				temp = ..likeArtist;
+				if(!..string.find(temp,"@@" ++ artist)) {
+					..likeArtist += artist ++ ",";
+					..binFM.to.like(true);
+				}
+				else ..likeArtist = ..string.replace(..likeArtist,"@@" ++ artist ++ ",","");
+				..binFM.monitor.info("自动加心歌手",..likeArtist);
+			}
+			..binFM.ui.menuToggle("#isLikeByArtist");	
+		}
+	}
+	
+	
+	/*
+	 * 添加当前播放的专辑 - 自动加红心
+	 */	
+	addLikeAlbum = function() { 
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var album = nowPlaying["albumtitle"];
+		else return false;
+		if(album) {
+			..isLikeByAlbum = 1;
+			var temp;
+			if(..autoFormShown) {
+				..wbLayout_auto.queryEle("#isLikeByAlbum").value="true";
+				..wbLayout_auto.queryEle("#likeSongAlbum").disabled = null;
+				if(..wbLayout_auto.queryEle("#delSongAlbum").value) temp = ..wbLayout_auto.queryEle("#delSongAlbum").value;
+				else temp = "";
+				if(..string.find(temp,"@@" ++ album)) {
+					..win.msgbox("已在“自动屏蔽”中添加过，请检查！",.._app);
+					return;
+				} 
+				if(..wbLayout_auto.queryEle("#likeSongAlbum").value) temp = ..wbLayout_auto.queryEle("#likeSongAlbum").value;
+				else temp = "";
+				if(!..string.find(temp,"@@" ++ album)) ..wbLayout_auto.queryEle("#likeSongAlbum").value += "," ++ album; 
+				else ..wbLayout_auto.queryEle("#likeSongAlbum").value = ..string.replace(temp,"@@" ++ "," ++ album,"");
+				..binFM.ui.menuToggle("#likeByAlbum","normal");
+			}
+			else {
+				temp = ..delAlbum;
+				if(..string.find(temp,"@@" ++ album)) {
+					..win.msgbox("之前已被设为“自动屏蔽”，请检查！",.._app);
+					return;
+				} 
+				temp = ..likeAlbum;
+				if(!..string.find(temp,"@@" ++ album)) {
+					..likeAlbum += album ++ ",";
+					..binFM.to.like(true);
+				}
+				else ..likeAlbum = ..string.replace(..likeAlbum,"@@" ++ album ++ ",","");
+				..binFM.monitor.info("自动加心专辑",..likeAlbum);
+			}
+			..binFM.ui.menuToggle("#isLikeByAlbum");	
+		}
+	}
+	
+	
+	/*
+	 * 添加当前播放的歌手 - 自动屏蔽
+	 */	
+	addDelArtist = function() { 
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var artist = nowPlaying["artist"];
+		else return false;
+		if(artist) {
+			..isDelByArtist = 1;
+			var title = "";
+			title,artist = ..binFM.string.doTitleArtist(title,artist,",");
+			var temp;
+			if(..autoFormShown) {
+				..wbLayout_auto.queryEle("#isDelByArtist").value="true";
+				..wbLayout_auto.queryEle("#delSongArtist").disabled = null;
+				if(..wbLayout_auto.queryEle("#likeSongArtist").value) temp = ..wbLayout_auto.queryEle("#likeSongArtist").value;
+				else temp = "";
+				if(..string.find(temp,"@@" ++ artist)) {
+					..win.msgbox("已在“自动加红心”中添加过，请检查！",.._app);
+					return;
+				} 
+				if(..wbLayout_auto.queryEle("#delSongArtist").value) temp = ..wbLayout_auto.queryEle("#delSongArtist").value;
+				else temp = "";
+				if(!..string.find(temp,"@@" ++ artist)) ..wbLayout_auto.queryEle("#delSongArtist").value += "," ++ artist; 
+				else ..wbLayout_auto.queryEle("#delSongArtist").value = ..string.replace(temp,"@@" ++ "," ++ artist,"");
+				..binFM.ui.menuToggle("#delByArtist","normal");
+			}
+			else {
+				temp = ..likeArtist;
+				if(..string.find(temp,"@@" ++ artist)) {
+					..win.msgbox("之前已被设为“自动加红心”，请检查！",.._app);
+					return;
+				} 
+				temp = ..delArtist;
+				if(!..string.find(temp,"@@" ++ artist)) {
+					..delArtist += artist ++ ",";
+					..binFM.to.del();
+				}
+				else ..delArtist = ..string.replace(..delArtist,"@@" ++ artist ++ ",","");
+				..binFM.monitor.info("自动删除歌手",..delArtist);
+			}
+		}
+	}
+
+
+	/*
+	 * 添加当前播放的专辑 - 自动屏蔽
+	 */	
+	addDelAlbum = function() { 
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var album = nowPlaying["albumtitle"];
+		else return false;
+		if(album) {
+			..isDelByAlbum = 1;
+			var temp;
+			if(..autoFormShown) {
+				..wbLayout_auto.queryEle("#isDelByAlbum").value="true";
+				..wbLayout_auto.queryEle("#delSongAlbum").disabled = null;
+				if(..wbLayout_auto.queryEle("#likeSongAlbum").value) temp = ..wbLayout_auto.queryEle("#likeSongAlbum").value;
+				else temp = "";
+				if(..string.find(temp,"@@" ++ album)) {
+					..win.msgbox("已在“自动加红心”中添加过，请检查！",.._app);
+					return;
+				} 
+				if(..wbLayout_auto.queryEle("#delSongAlbum").value) temp = ..wbLayout_auto.queryEle("#delSongAlbum").value;
+				else temp = "";
+				if(!..string.find(temp,"@@" ++ album)) ..wbLayout_auto.queryEle("#delSongAlbum").value += "," ++ album; 
+				else ..wbLayout_auto.queryEle("#delSongAlbum").value = ..string.replace(temp,"@@" ++ "," ++ album,"");
+				..binFM.ui.menuToggle("#delByAlbum","normal");
+			}
+			else {
+				temp = ..likeAlbum;
+				if(..string.find(temp,"@@" ++ album)) {
+					..win.msgbox("之前已被设为“自动加红心”，请检查！",.._app);
+					return;
+				} 
+				temp = ..delAlbum;
+				if(!..string.find(temp,"@@" ++ album)) {
+					..delAlbum += album ++ ",";
+					..binFM.to.del();
+				}
+				else ..delAlbum = ..string.replace(..delAlbum,"@@" ++ album ++ ",","");
+				..binFM.monitor.info("自动删除专辑",..delAlbum);			
+			}
+		}
+	}
+
+
+	/*
+	 * 添加 是否屏蔽英文歌曲
+	 */	
+	addDelEnglish = function(from) {
+		if(..autoFormShown) {
+			if(from=="form") {
+				if(..wbLayout_auto.queryEle("#isDelEnglish").value && ..wbLayout_auto.queryEle("#isDelEnglish").value=="true") {
+					..binFM.ui.menuToggle("#isDelEnglish","on");
+					return;
+				}
+				else {
+					..binFM.ui.menuToggle("#isDelEnglish","off");
+					return;
+				}
+			}
+			else if(from=="menu") {
+				if(..binFM.ui.menuToggle("#isDelEnglish","current")=="off") {
+					..binFM.ui.menuToggle("#isDelEnglish","on");
+					..wbLayout_auto.queryEle("#isDelEnglish").value = "true";
+					return;
+				}
+				if(..binFM.ui.menuToggle("#isDelEnglish","current")=="on") {
+					..binFM.ui.menuToggle("#isDelEnglish","off");
+					..wbLayout_auto.queryEle("#isDelEnglish").value = "false";	
+					return;
+				}				
+			}
+		}
+		else {
+			if(..isDelEnglish==1) {
+				..isDelEnglish = 0;
+				..binFM.ui.menuToggle("#isDelEnglish","off");
+			}
+			else {
+				..isDelEnglish = 1;
+				..binFM.ui.menuToggle("#isDelEnglish","on");			
+				checkDel(true);
+			}
+		}
+	}
+	
+	
+	/*
+	 * 检查当前歌曲是否需要自动加红心
+	 * -- 更新ui
+	 */
+	checkLike = function(todo) {
+		if(..autoLikeChecked) return;
+		..autoLikeChecked = true;
+		
+		var result = false;
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var sid = nowPlaying["sid"];
+		else return false;
+		if(!sid) return false;
+		
+		if(..isLikeByTitle==1 && ..likeTitle!="") {
+			var tab = ..string.split(..likeTitle,',');
+			for(i=1;#tab;1) {
+				tab[i] = ..string.trim(tab[i]);
+				if(tab[i]!="" && (..string.find(nowPlaying["title"],"@@" ++ tab[i]) || tab[i]==nowPlaying["title"])) {
+					result = true;
+					break;
+				}
+			}
+		}
+		if(..isLikeByArtist==1) {
+			..binFM.ui.menuToggle("#likeByArtist","normal");
+			if(..likeArtist!="") {
+				var tab = ..string.split(..likeArtist,',');
+				var title,artist = ..binFM.string.doTitleArtist(nowPlaying["title"],nowPlaying["artist"],",");
+				var tabNow = ..string.split(artist,',');
+				for(i=1;#tab;1) {
+					tab[i] = ..string.trim(tab[i]);
+					for(j=1;#tabNow;1) {
+						tabNow[j] = ..string.trim(tabNow[j]);
+						if(tab[i]==tabNow[j]) {
+							result = true;
+							..binFM.ui.menuToggle("#isLikeByArtist","on");
+							break;
+						}
+					}
+				}			
+			}
+		}
+		else {
+			..binFM.ui.menuToggle("#likeByArtist","disabled2");
+		}
+		if(..isLikeByAlbum==1) {
+			..binFM.ui.menuToggle("#likeByAlbum","normal");
+			if(..likeAlbum!="") {
+				var tab = ..string.split(..likeAlbum,',');
+				for(i=1;#tab;1) {
+					tab[i] = ..string.trim(tab[i]);
+					if(tab[i]!="" && (..string.find(nowPlaying["albumtitle"],"@@" ++ tab[i]) || tab[i]==nowPlaying["albumtitle"])) {
+						result = true;
+						..binFM.ui.menuToggle("#isLikeByAlbum","on");
+						break;
+					}
+				}
+			}	
+		}
+		else {
+			..binFM.ui.menuToggle("#likeByAlbum","disabled2");
+		}
+		..binFM.monitor.info("自动加红心",result);
+		if(result && todo) {
+			..songs_noAd[nowPlaying["i"]]["clike"] = 1;
+			..binFM.db.recordSong(sid,1);
+			if(..login) ..binFM.douban.like(nowPlaying,true);
+		}	
+		return result;
+	}
+	
+	
+	/*
+	 * 检查当前歌曲是否需要自动屏蔽
+	 * -- 更新ui
+	 */
+	checkDel = function(todo,title,artist,album,cid) {
+		var result = false;
+
+		if(todo) { // 在播放时通过设置窗体触发的检查
+			var nowPlaying = ..binFM.song();
+			if(nowPlaying) var sid = nowPlaying["sid"];
+			else return false;
+			if(sid) {
+				title = nowPlaying["title"];
+				artist = nowPlaying["artist"];
+				album = nowPlaying["albumtitle"];
+			}
+			else return false;
+			cid = ..channelId_now;
+		}
+		else { // 在..binFM.douban.getSongs() 中触发的检查
+			if(!title) return false;
+		}
+		
+		if(..isDelByTitle==1) {
+			var tab = ..string.split(..delTitle,',');
+			for(i=1;#tab;1) {
+				tab[i] = ..string.trim(tab[i]);
+				if(tab[i]!="" && (..string.find(title,"@@" ++ tab[i]) || tab[i]==title)) {
+					result = true;
+					..binFM.monitor.info("::屏蔽标题",title);
+					break;
+				}
+			}
+		}
+		if(..isDelByArtist==1) {
+			..binFM.ui.menuToggle("#delByArtist","normal");
+			if(..delArtist!="" && artist && artist!="") {
+				var tab = ..string.split(..delArtist,',');
+				var title,artist = ..binFM.string.doTitleArtist(title,artist,",");
+				var tabNow = ..string.split(artist,',');
+				for(i=1;#tab;1) {
+					tab[i] = ..string.trim(tab[i]);
+					for(j=1;#tabNow;1) {
+						tabNow[j] = ..string.trim(tabNow[j]);
+						if(tab[i]==tabNow[j]) {
+							result = true;
+							..binFM.monitor.info("::屏蔽歌手",artist);
+							break;
+						}
+					}
+				}			
+			}
+		}
+		else {
+			..binFM.ui.menuToggle("#delByArtist","disabled2");
+		}
+		if(..isDelByAlbum==1) {
+			..binFM.ui.menuToggle("#delByAlbum","normal");
+			if(..delAlbum!="" && album && album!="") {
+				var tab = ..string.split(..delAlbum,',');
+				for(i=1;#tab;1) {
+					tab[i] = ..string.trim(tab[i]);
+					if(tab[i]!="" && (..string.find(album,"@@" ++ tab[i]) || tab[i]==album)) {
+						result = true;
+						..binFM.monitor.info("::屏蔽专辑",album);
+						break;
+					}
+				}
+			}
+		}
+		else {
+			..binFM.ui.menuToggle("#delByAlbum","disabled2");
+		}
+		if(..isDelEnglish==1) {
+			..binFM.ui.menuToggle("#isDelEnglish","on");
+			if(artist && artist!="" && (cid==61 || cid==5 || cid==4 || cid==3 || cid==7 || cid==8 || cid==76 || cid==10 )) {
+				if(!..string.find(title,":") && !..string.find(artist,":")) { // 在标题及歌手中均未发现中文，则屏蔽
+					result = true;
+					..binFM.monitor.info("::屏蔽英文",title,artist);
+				}
+			}
+		}
+		else {
+			..binFM.ui.menuToggle("#isDelEnglish","off");
+		}
+		if(result && todo) {
+			..binFM.ui.showLoading();
+			..binFM.douban.getSongs(..channelId,true);
+		}	
+		return result;	
+	}	
+}

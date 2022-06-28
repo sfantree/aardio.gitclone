@@ -1,0 +1,92 @@
+﻿namespace data.type{
+	db=..data.db;
+	//初始化类型表
+	init=function(){
+		//创建表 
+		try{
+			if(not db.existsTable("type")) {
+			    db.exec(`CREATE TABLE [type](
+					"uuid" PRIMARY KEY NOT NULL, 
+					"text" NOT NULL, 
+					"addTime" NOT NULL, 
+					"modifyTime" NOT NULL);`);
+				db.exec(`INSERT INTO [type] (uuid,text,addTime,modifyTime) VALUES (@uuid,@text,@addTime,@modifyTime);`,{
+					uuid="0";
+					text="工作";
+					addTime=..time.now();
+					modifyTime=..time.now();
+				});
+			}
+			
+			
+		}
+		catch(e){
+			
+		}
+	};
+	
+	//添加记事类别
+	insert=function(oTable){
+		try{
+			db.exec(`INSERT INTO [type] (uuid,text,addTime,modifyTime) VALUES (@uuid,@text,@addTime,@modifyTime);`,{
+				uuid=oTable.uuid;
+				text=oTable.text;
+				addTime=oTable.addTime;
+				modifyTime=oTable.modifyTime;
+			});
+		}
+		catch(e){
+			
+		}
+	};
+	
+	//删除记事类别
+	delete=function(uuid){
+		try{
+			db.exec(`DELETE FROM [type] WHERE uuid = @uuid`,{
+				uuid=uuid;
+			})
+		}
+		catch(e){
+			
+		}
+	};
+	
+	//修改记事类别
+	update=function(oTable){
+		try{
+			db.exec(`UPDATE [type] SET text=@text,modifyTime=@modifyTime WHERE uuid=@uuid`,{
+				text=oTable.text;
+				modifyTime=oTable.modifyTime;
+				uuid=oTable.uuid;
+			});
+		}
+		catch(e){
+			
+		}
+	}
+	
+	//查询记事类别
+	dbSelect = function(){
+		var _table = {};
+		try{
+			for uuid,text,addTime,modifyTime in db.each("SELECT * FROM type"){
+				var _data={};
+				
+				_data["uuid"]=uuid;
+				_data["text"]=text;
+				_data["addTime"]=addTime;
+				_data["modifyTime"]=modifyTime;
+				
+				..table.push(_table,_data);
+				
+				_data=null;
+			};
+		}
+		catch(e){
+			
+		}
+		return _table;
+	};
+	
+}

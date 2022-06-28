@@ -1,0 +1,64 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="第一个示例";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+SetDataTitle = dll.api("?SetDataTitle@Classless@@YAXPB_WHH@Z", "void(ustring,int,int)");
+SetLegendShow = dll.api("?SetLegendShow@Classless@@YAX_NH@Z", "void(bool,int)");
+
+AddStems = dll.api("?AddStems@Classless@@YAHPANH@Z", "int(struct,int)");
+SetStemLabel = dll.api("?SetStemLabel@Classless@@YAXPB_WH@Z", "void(ustring,int)");
+
+
+CreateChart();
+Attach(winform.static.hwnd,2);//kTypeStem=2 柱图
+
+var data = { double arr[4]={0}; };
+
+data.arr[1]=28;
+data.arr[2]=22;
+data.arr[3]=21;
+data.arr[4]=39;
+
+
+AddStems(data,4);
+//显示图例
+SetLegendShow(true,0)
+SetDataTitle("使用率1",0,0)
+
+SetStemLabel("VB",0);
+SetStemLabel("C++",1);
+SetStemLabel("无名氏",2);
+SetStemLabel("aardio",3);
+
+data.arr[1]=20;
+data.arr[2]=38;
+data.arr[3]=12;
+data.arr[4]=30;
+
+AddStems(data,4);
+SetLegendShow(true,1)
+SetDataTitle("使用率2",1,0)
+
+ReDraw();
+
+winform.button.oncommand = function(id,event){
+	
+}
+
+winform.show();
+win.loopMessage();
+return winform;

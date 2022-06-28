@@ -1,0 +1,71 @@
+﻿import web.json;    
+import inet.http;
+
+namespace sdk;
+class panda{
+	ctor(url){
+		var http = ..inet.http()
+	};
+	getStreamInfo = function(){
+		var html = http.get( url )	this.roomUrl = url;
+		if( !html ){
+			return null, "网络连接有误"; 
+		}
+		var roomInfo = ..string.match( html, "<@_config_roominfo =@>(.+?\})\;" )
+		if( !roomInfo ){
+			return null, "网址数据已更新，暂时不支持"; 
+		}
+		ret = ..web.json.parse(roomInfo)
+		
+		var streamUrl;
+		if( ret.videoinfo.status == "2" ){
+			var url = "https://www.panda.tv/api_room_v3?token="
+			 		++ "&hostid=" ++ ret.hostinfo.rid
+			 		++ "&roomid=" ++ ret.roominfo.id
+			 		++ "&roomkey=" ++ ret.videoinfo.room_key
+			 		++ "&_=" ++ tonumber(..time())
+					++ "&param="  ++ ret.callbackParam.param
+					++ "&time="  ++ ret.callbackParam.time
+					++ "&sign="  ++ ret.callbackParam.sign
+
+			html = http.get( url )
+			if( !html ){
+				return null, "获取直播信息失败"; 
+			}
+			var r = ..web.json.parse( html )
+			if( r.errno == 0 ){
+				var plflag = r.data.videoinfo.plflag;
+				var plflag_list = r.data.videoinfo.plflag_list; 
+				plflagList = ..web.json.parse( plflag_list )
+				
+				var url = "https://pl" ++ ..string.split(plflag,"<_>")[2] ++ ".live.panda.tv/live_panda/" ++ ret.videoinfo.room_key
+				  	 ++ ".flv?sign=" ++ plflagList.auth.sign
+				  	 ++ "&ts=" ++  plflagList.auth.time
+				  	 ++ "&rid=" ++ plflagList.auth.rid
+				  	 
+				streamUrl = http.location( url, "GET" )
+			}
+		}
+		
+		return {
+			website = "panda";
+			ownerName = ret.hostinfo.name;
+			roomName = ret.roominfo.name;
+			avatarUrl = ret.hostinfo.avatar;
+			roomId = ret.roominfo.id;
+			roomUrl = this.roomUrl;
+			isLive = ret.videoinfo.status == "2";
+			streamUrl = streamUrl;
+		} 
+	}
+}
+namespace panda{
+    info = {
+        name = "熊猫";
+        url = "https://www.panda.tv/";
+    }        
+    
+    canHandle = function(url){
+    	return ..string.match( url, "<@www.panda.tv/@>(\d+)" ); 
+    }    	
+}

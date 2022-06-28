@@ -1,0 +1,96 @@
+//popupColor 弹出颜色面板
+class popupColor{
+	ctor( parent ){
+	
+/*DSG{{*/
+this = win.form(text="aardio form";left=1;top=1;right=167;bottom=300;bgcolor=15856113;border="thin";exmode="toolwindow";mode="popup";parent=parent;sysmenu=false;title=false)
+this.add(
+static={cls="static";text="X";left=3;top=2;right=164;bottom=34;align="center";center=1;db=1;dl=1;dr=1;dt=1;notify=1;z=1}
+)
+/*}}*/
+
+		this.base_doModal = this.doModal;
+		this.doModal = function(...){
+			return this.base_doModal(...);
+		}
+		var math = ..math;
+		//色彩顺序:BGR
+		/*
+var color = {
+			red 	= 0x0000ff;			
+			orange 	= 0x00a5ff;
+			yellow 	= 0x00ffff;
+			green 	= 0x00ff00;
+			cyan 	= 0xffff00;
+			blue 	= 0xff0000;
+			fuchsia = 0xff00ff;
+			black	= 0x000000;
+		}
+*/
+		var color = {};
+		var s = ..string.load("/config/Color.table");
+		if(!s){
+			color = wCfg.writeColor("/config/Color.table");
+		}elseif(#s){
+			if(  ! ( s[1] == 0xEF  && s[2] == 0xBB && s[3] == 0xBF )  ) {
+				s = ..string.fromto(s,0,65001);
+			}
+			var ok,t = call(eval,,s);
+			if(! (ok && t) ) {
+				error(t,2)
+			}
+			..table.mixin(color,t );
+		}
+		
+		
+		
+		var staticLeft = 0;
+		var staticTop = 0;
+		var staticSize = 20; 	//格子大小
+		var staticDis = 10; 	//格子间距
+		var marginL = 10; 		//离左边的距离
+		var marginT = 40; 		//离顶部的距离
+		var staticRoom = staticSize + staticDis; //格子占据空间
+		
+		var loop1 = ..table.count(color)
+		var loop2 = 0;
+		var staticTop,staticLeft = 0,0;
+		for(i=1;loop1;1){
+			loop2 = ..table.count(color["row"+i]);
+			staticTop = marginT + (i-1)*staticRoom;
+			for(j=1;loop2;1){
+				staticLeft = marginL + (j-1)*staticRoom;
+				bg = color["row"+i]["column"+j]["value"];
+				//..console.log(bg,staticTop,staticLeft)
+				this.add(
+        			[ "color" ++ i ++ j ] = {
+            			cls="static";dl=1;dt=1;notify=1;bgcolor=bg;bottom=staticTop+staticSize;right=staticLeft+staticSize;left=staticLeft;top=staticTop;z=1;
+            			oncommand = function(id,event){
+                			this.endModal( owner.bgcolor);
+            			};
+        			};
+    			)
+			}
+		}
+		var w = staticLeft + staticSize + marginL+2;
+		var h = staticTop + staticSize + 24;
+		var rect = parent.getRect(true);
+		this.setPos( rect.right,rect.top,w,h );
+		//..console.log(staticLeft,staticSize,marginL,w)
+		
+		this.static.setPos( marginL,10,w-marginL*2-2,marginT-20 );
+		this.static.oncommand = function(id,event){
+			this.endModal();
+		};
+	};
+	type=me;
+	/*对象的所有成员必须用分号分隔*/
+}
+
+namespace popupColor{
+	import win;
+	import win.ui;
+	import wCfg;
+	
+	//import console;
+}

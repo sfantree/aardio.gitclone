@@ -1,0 +1,189 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="插入变更记录";right=663;bottom=303;image=$"\res\SE BG.jpg";bkBottom=0;bkLeft=0;bkRight=0;bkTop=0)
+winform.add(
+button={cls="button";text="OK";left=584;top=256;right=656;bottom=296;db=1;dr=1;z=11};
+button2={cls="button";text="Cancel";left=504;top=256;right=576;bottom=296;db=1;dr=1;z=12};
+button3={cls="button";text='\uF062';left=416;top=24;right=440;bottom=47;bgcolor=16777215;dl=1;dt=1;flat=1;font=LOGFONT(name='FontAwesome');z=14};
+button4={cls="button";text='\uF06E';left=448;top=24;right=472;bottom=47;bgcolor=16777215;dl=1;dt=1;flat=1;font=LOGFONT(name='FontAwesome');z=18};
+cbAddBalloon={cls="checkbox";text="同时添加此球标";left=160;top=32;right=304;bottom=48;bgcolor=16777215;checked=1;dl=1;dt=1;z=16};
+cb_approve_date={cls="edit";left=216;top=192;right=336;bottom=216;dl=1;dt=1;multiline=1;transparent=1;z=10};
+cb_approver={cls="combobox";left=88;top=192;right=208;bottom=216;dl=1;dt=1;edge=1;items={};mode="dropdown";z=9};
+cb_design_date={cls="edit";left=216;top=160;right=336;bottom=184;dl=1;dt=1;multiline=1;transparent=1;z=7};
+cb_designer={cls="combobox";left=88;top=160;right=208;bottom=184;dl=1;dt=1;edge=1;items={};mode="dropdown";z=6};
+cb_desp={cls="combobox";left=88;top=72;right=656;bottom=96;aw=1;dl=1;dr=1;dt=1;edge=1;items={};mode="dropdown";multiline=1;tabstop=1;z=4};
+cb_mark={cls="combobox";left=88;top=32;right=136;bottom=56;dl=1;dt=1;edge=1;items={"a";"b";"c";"d";"e";"f";"g";"h";"i";"j";"k";"l";"m";"n";"o";"p";"q";"r";"s";"t";"u";"v";"w";"x";"y";"z"};mode="dropdown";z=2};
+chkCCRV={cls="checkbox";text="同时递增CCR版本";left=40;top=272;right=184;bottom=288;checked=1;db=1;dl=1;z=17};
+static={cls="static";text="标记";left=32;top=32;right=64;bottom=56;align="right";dl=1;dt=1;transparent=1;z=1};
+static2={cls="static";text="描述";left=32;top=72;right=64;bottom=96;align="right";dl=1;dt=1;transparent=1;z=3};
+static3={cls="static";text="设计";left=32;top=160;right=64;bottom=184;align="right";dl=1;dt=1;transparent=1;z=5};
+static4={cls="static";text="唤起快捷键 Alt+R";left=392;top=272;right=496;bottom=288;align="right";color=32768;db=1;dr=1;transparent=1;z=19};
+static5={cls="static";text="版本";left=360;top=32;right=390;bottom=51;dl=1;dt=1;transparent=1;z=15};
+static7={cls="static";text="批准";left=32;top=192;right=64;bottom=216;align="right";dl=1;dt=1;transparent=1;z=8};
+version={cls="edit";left=392;top=32;right=416;bottom=58;align="center";dl=1;dt=1;font=LOGFONT(h=-13);multiline=1;z=13}
+)
+/*}}*/
+
+import solidedge.application;
+import solidedge.DraftDocument;
+import config;
+
+var seApp, seDFT, seSht, seLbs;
+var initDeclare = function(){
+	seApp := solidedge.application();
+	if (! seApp) return false; 
+	if (seApp.Documents.Count==0) return false; 
+	if (seApp.ActiveDocumentType !== 2 /*Draft Document Type*/) return false; 
+	seDFT = solidedge.DraftDocument(seApp.ActiveDocument);
+	if (seDFT.Sheets.Count == 0) return ; 
+	seSht = seDFT.ActiveSheet;
+	seLbs = seDFT.getLabelTable(seDFT.getTitleBlock(seSht));	//获取titleblock lable
+	if seLbs return true; 
+	else return false; 
+}
+/*loadDefaults{{*/
+
+var savesetting = function(){
+	var t = config.revmgr.desp;
+	var txt = winform.cb_desp.text;
+	table.unshift(t, txt);
+	t = table.unique(t);
+	if #t > 20 table.pop(t);
+	winform.cb_desp.items = t;
+	winform.cb_desp.text = txt;
+	config.revmgr.desp = t;
+	config.revmgr.save();
+}
+
+var loadDefaults = function(){
+	winform.cb_designer.text = config.tbm.Designer;
+	winform.cb_approver.text = config.tbm.Approver;
+	winform.cb_design_date.text = time(,"%Y.%m.%d");
+	winform.cb_approve_date.text = time(,"%Y.%m.%d");
+	if seDFT var mark = seDFT.getTopRecordMark(seSht);
+	if mark winform.cb_mark.text = string.pack(mark[1] + 1);
+}
+
+/*}}*/
+/*loadLists{{*/
+var loadPromptList = function(winform){
+	import config;
+	winform.cb_desp.items = config.revmgr.desp;
+	
+	import sqlite;
+	var dbpath = config.dbServer.path + "tbm.db"
+	var dbRs = sqlite(dbpath);	//打开数据库连接
+	import tarray;
+	var tab = dbRs.getTable("select * from SE_TBM_Lists");
+	var addlist = function(ctrl,keyword){
+		ctrl.items = tarray.getCol(
+			table.filter(tab, function(v, index){
+				return v.ListName == keyword;
+			}) , "Title"
+		)
+	}
+	addlist(winform.cb_designer, "designer");
+	addlist(winform.cb_approver, "approver");
+	dbRs.close();
+}
+/*}}*/
+/*其它基础函数{{*/
+var writeToRec = function(Lbs){
+    Lbs["标记"].Value = winform.cb_mark.text;
+    Lbs["变更描述"].Value = winform.cb_desp.text;
+    Lbs["设计"].Value = winform.cb_designer.text;
+    Lbs["批准"].Value = winform.cb_approver.text ;
+    Lbs["设计日期"].Value = winform.cb_design_date.text;
+    Lbs["审核日期"].Value = winform.cb_approve_date.text; //日期重名问题,此处使用审核日期
+}
+var writeToTB = function(Lbs){
+	Lbs["版本"].Value = winform.version.text;
+}
+var writeToCCRV = function(Lbs){
+    var v = tonumber(Lbs["版本"].value);
+	v += 1;
+	Lbs["版本"].value =  (v >= 10) ? v : "0" ++ v;
+}
+var addBalloon = function(txt,txtColor,bShape){
+    bShape := 1 /* DimBalloonTypeConstants.igDimBalloonCircle */
+    txtColor := 255	/* ColorConstants.seColorRed */
+	var BBS = seSht.Balloons;
+	var bb = BBS.Add(0.25, 0.25, 0);
+	bb.BalloonText = txt;
+	bb.BalloonType = bShape;
+	bb.BalloonSize = 2; /* 形状是字体几倍数 */
+	bb.Leader = false; 
+	bb.Style.DrivenColor = txtColor;
+	return bb; 
+}
+/*}}*/
+/*loadFromTab{{*/
+var loadFromTab = function(_blk){
+	winform.version.text = _blk["版本"];
+}
+
+
+/*}}*/
+
+/*界面控件事件{{*/
+winform.button.oncommand = function(id,event){
+	mainForm.show(false); //隐藏窗口
+	if (seApp) winex.attach(seApp.hWnd);
+	win.setActive(seApp.hWnd);
+	win.setForeground(seApp.hWnd)
+	
+	initDeclare();
+	if #winform.cb_desp.text savesetting()
+	//写入记录表
+	writeToRec(seDFT.getLabelObjectTable(seDFT.insertRecordTabLine(seSht))); 
+	//写入CCR版本
+	if (winform.chkCCRV.checked)
+		if seDFT.getBlkByName("Version_CCR 2020",seSht)
+			writeToCCRV(seDFT.getLabelObjectTable(seDFT.getBlkByName("Version_CCR 2020",seSht)));
+	//写入QHC版本
+	if (winform.version.changed) 
+		writeToTB(seDFT.getLabelObjectTable(seDFT.getTitleBlock(seSht)));
+	//写入球标
+	if ( winform.cbAddBalloon.checked ){
+		var b = addBalloon (winform.cb_mark.text);
+		b.Cut();
+		win.delay(0.1*1000);
+		winex.key.combine(seApp.hWnd,"CTRL","V"); //调用前必须先winex.attach
+		//seApp.ActiveWindow.Paste();
+	}
+
+}
+winform.button2.oncommand = function(id,event){
+    mainForm.show(false); //隐藏窗口
+	win.setActive(seApp.hWnd);
+}
+winform.button3.oncommand = function(id,event){
+    winform.version.changed = true
+    var v = 0;
+    if #winform.version.text v = tonumber(winform.version.text);
+	v += 1;
+	winform.version.text =  (v >= 10) ? v : "0" ++ v;
+}
+/*}}*/
+
+winform.show();
+var frmReLoad = function(){
+    var initSucc = initDeclare()
+	if  (initSucc){
+		loadFromTab(seLbs);	//读取当前内容
+		winform.cb_desp.setFocus();
+		loadDefaults();	//读取默认值(新图纸)
+	}
+//	winform.redraw();
+}
+
+winform.button4.oncommand = function(id,event){
+    var pcode = seDFT ? string.match(seDFT.FullName,"\d+") : null;
+	loadcodex("\forms\main\check_QHC_Release.aardio", pcode);
+}
+
+subscribe("refresh",frmReLoad);
+thread.invoke(loadPromptList, winform)	
+win.loopMessage();
+return winform;

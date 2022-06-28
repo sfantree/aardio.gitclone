@@ -1,0 +1,46 @@
+
+loadcodex("\res\action\show.aardio");
+loadcodex("\res\action\mdf.aardio");
+loadcodex("\res\action\new.aardio");
+loadcodex("\res\action\ls.aardio");
+
+analyse=function(c){//开始分析输入字符
+
+var zz=preg('([a-z0-9]+)');
+//zz.math(c);
+for ac in zz.gmatch(c) {
+    //console.log('recgonise comdline:'+ac);
+   
+    	if(ac){
+    		if(ac=='exit'){
+    		return  true; 
+    		}else if(ac=="cp"){
+    		 cp(c);
+    		}else if(ac=="new"){
+    		 new(c);    		
+    		}else if(ac=="del"){
+    		 del(c);    		
+    		}else if(ac=="mdf"){
+    		 mdf(c);    		
+    		}else if(ac=="find"){
+    		// find(c);    		
+    		}else if(ac=="ls"){
+    		 ls(c);    		
+    		}else if(ac=="show"){
+    		 show(c);    		
+    		}else if(ac=="cls"){
+    		 console.clearScreen (); 
+    		 console.setTextAttribute(0x0A)		
+    		}else if(ac=='quit'){
+    			login();    
+    			return true; 		
+    		}else{
+    		 console.log("ilgrue cmd line.")
+    		}
+    	
+    	}
+    break;
+}
+
+return  false;
+ }

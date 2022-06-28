@@ -1,0 +1,72 @@
+import win.ui;
+import fsys.watch;
+/*DSG{{*/
+var winform = ..win.form( text="请拖动需要监视的文件到下面的文件列表内";bottom=387;max=false;right=599;parent=...)
+winform.add( 
+lvChange={ bgcolor=16777215;bottom=334;right=587;left=7;top=6;acceptfiles=1;z=1;edge=1;cls="listview" };
+)
+/*}}*/
+
+winform.lvChange.onnotify = function(id,code,ptr){
+	//var nmdr = win.ui.NMHDR(); raw.convert( ptr,nmdr );;
+	
+	
+}
+
+var watchObj;
+watchFiles = function(){
+	watchObj = fsys.watch(winform.files) 
+	watchObj.onChange = function(path) {   
+		/*
+		var item = winform.lvChange.findItem(path);
+		io.print( item )
+		if( item ){
+			winform.lvChange.setItemText("改变",item,2);
+			winform.lvChange.setItemText(tostring(time.now()),item,3);
+		}
+		*/
+		win.msgbox(path++"改变了！");
+	} 
+	watchObj.run() 	
+}
+
+stopWatchFiles = function(){
+	watchObj.stop()
+}
+
+/*
+winform.btnWatch.oncommand = function(id,event){
+	if( winform.btnWatch.text == "开始监视"){
+		winform.btnWatch.text = "停止监视";
+		winform.setTimeout( watchFiles ); 
+	} else {
+		winform.btnWatch.text = "开始监视"; 
+		winform.setTimeout(stopWatchFiles);
+	} 
+}
+*/
+
+winform.lvChange.wndproc = {
+	[0x233/*_WM_DROPFILES*/] = function(hwnd,message,wParam,lParam){
+		var files = win.getDropFile(wParam)
+		for(i=1;#files;1){
+			winform.lvChange.addItem(files[i])  
+		}
+		winform.files = table.concat(files,winform.files : {} );
+		//希望接受拖放后立即开始监控文件，而不是手动点击按钮
+		winform.setTimeout( watchFiles ); 
+	}
+}
+
+//希望点击窗体关闭按钮时停止监视，退出程序
+winform.onClose = function(hwnd,message,wParam,lParam){
+    winform.setTimeout(stopWatchFiles);
+}
+
+winform.lvChange.insertColumn("文件",100) 
+winform.lvChange.insertColumn("状态",100) 
+winform.lvChange.insertColumn("时间",200) 
+winform.lvChange.fillParent(1);
+
+winform.show() 
+win.loopMessage();

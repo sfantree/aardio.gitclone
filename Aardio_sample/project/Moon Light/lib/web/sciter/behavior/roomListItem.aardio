@@ -1,0 +1,51 @@
+﻿//roomListItem 房间列表项
+import process.openUrl;
+import win.clip;
+import public;
+import web.sciter.behavior;
+
+namespace web.sciter.behavior.roomListItem{	
+
+	onContextMenuSetup = function (scTarget,scOwner,reason,behaviorParams) {
+		var scPopupOwner = ..web.sciter.element( behaviorParams.he )
+		
+	}
+sinking = {
+	onMenuItemClick = function (scTarget,scOwner,reason,behaviorParams) { 
+    	// 在谁的上面点击右键
+		var scPopupOwner = ..web.sciter.element( behaviorParams.he );
+/*
+		var scPopupOwnerUp;
+		scPopupOwnerUp = function(scPopupOwner){
+			var p = scPopupOwner.parent();
+			return p.querySelector("li") ? p : scPopupOwnerUp(p);
+		} 
+*/
+		scPopupOwner = scPopupOwner.queryParent("li");
+		// 点击到右键菜单哪个项目
+
+		if(scPopupOwner){
+			select( scTarget.command ) {
+			case "open-url" {
+				..process.openUrl( scPopupOwner["room-url"] )
+			}
+			case "copy-url"{
+				..win.clip.write( scPopupOwner["room-url"] )
+			}
+			case "delete-room" {
+				scPopupOwner.delete()
+			}
+			}
+		}
+
+		return true;
+	}
+} 
+
+	onButtonStateChanged = function (scTarget,scOwner,reason,behaviorParams) {
+    	var url = scTarget["room-url"]  
+    	if( url ){
+        	..public.playUrl( url )	
+    	}		
+	}		
+}

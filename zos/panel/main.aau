@@ -1,0 +1,408 @@
+﻿import win.ui;
+import win.ui.menu;
+import process;
+import win.util.tray;
+import com.picture;
+import web.layout;
+import web.json;
+import process;
+import process.popen;
+import win.reg;
+
+var WIN_WIDTH  = 500;
+var WIN_HEIGHT = 300;
+var winform  = ..win.form( right=WIN_WIDTH;bottom=WIN_HEIGHT;parent=...;max=false;border="thin";text="禅道管理系统控制面板1.0";topmost=1;mode="popup" )
+deskRect   = winform.getRect();
+clientRect = winform.getClientRect();
+deskWidth  = deskRect.left + deskRect.right;
+deskHeight = deskRect.top  + deskRect.bottom;
+winform.setPos(deskWidth - WIN_WIDTH - 8, deskHeight - WIN_HEIGHT - 35);
+
+langFile = loadcode("./lang/zh-cn.aau");
+langFile("./lang/zh-cn");
+
+tray         = win.util.tray(winform);
+tray.message = 0x400+9981/*_WM_TRAYMESSAGE*/
+tray.tip     = lang.panelName;
+winform.popmenu = win.ui.popmenu(winform);
+winform.popmenu.add(lang.popmenu.exit, function(id){ exit() });
+
+winform.wndproc = function(hwnd,message,wParam,lParam)
+{
+	select(message) 
+	{
+		case( 0x400+9981/*_WM_TRAYMESSAGE*/ ) 
+		{ 
+			if(lParam = 0x203/*_WM_LBUTTONDBLCLK*/)
+			{
+				winform.show(); 
+			}
+		
+	    	if( lParam = 0x205/*_WM_RBUTTONUP*/ )
+	    	{
+	    		import mouse;
+	    		x,y = mouse.getPos();	    		
+	    		win.setForeground(winform.hwnd)
+	    		winform.popmenu.popup( x,y,true )
+	    	}
+		} 
+		case( 0x112/*_WM_SYSCOMMAND*/ ) 
+		{ 		
+			if( wParam == 0xF020/*_SC_MINIMIZE*/ )
+			{		
+				winform.show(false); 
+				tray.pop(lang.prompt.minToTray, lang.prompt.common);
+  			}
+  			if( wParam == 0xF060/*_SC_CLOSE*/) 
+  			{
+  				exit();
+  			}
+		}
+	}	
+}
+
+var wbLayout = web.layout(winform);
+wbLayout.go("/layout/index.html");
+wbLayout.onButtonClick = function (ltTarget,ltEle,reason,behaviorParams)
+{
+	if(ltEle.name == 'start')    start();
+	if(ltEle.name == 'access')   access();
+	if(ltEle.name == 'stop')     stop();
+	if(ltEle.name == 'snapshot') snapshot();
+	if(ltEle.name == 'exit')     exit();
+}
+
+now = time();
+now.format="%Y-%m-%d";
+today = tostring(now);
+
+now.format   = "%Y-%m-%d %H:%M";
+snapshotName = tostring(now);
+
+var TMP_FILE    = ".\tmp\tmp";
+var TMP_BAT     = ".\tmp\tmp.bat";
+var OK_FILE     = ".\tmp\ok";
+var CONFIG_FILE = ".\tmp\config";
+var LOG_FILE    = ".\log\" + today + '.txt';
+
+var isInstall  = false;
+var vboxManageExe = "";
+
+var testVboxManage = ".\bin\testVboxManage.bat";
+
+var isExist    = false;
+var isExistBat = ".\bin\isExist.bat";
+
+var isRunning    = false;
+var isRunningBat = ".\bin\isRunning.bat";
+
+var startBat     = ".\bin\start.bat";
+var installBat   = ".\bin\install.bat";
+var uninstallBat = ".\bin\uninstall.bat";
+var accessBat    = ".\bin\access.bat";
+var stopBat      = ".\bin\stop.bat";
+var snapshotBat  = ".\bin\snapshot.bat";
+var getHttpPort  = ".\bin\getHttpPort.bat";
+
+function log(content)
+{
+	now = time();
+	now.format = "%H:%M:%S";
+	content = tostring(now) + ' ' + content + '\n';
+	string.save(LOG_FILE, content,true);
+}
+
+function print(content)
+{
+	log(content);
+	wbLayout.getEle("output").value += '\n' + tostring(content);
+}
+
+ function exit()
+ {
+ 	tray.delete();
+ 	winform.close();
+ 	win.quitMessage();
+ }
+ 
+ function exec(command, config)
+ {
+ 	var batFile = '';
+ 	var execCmd = '';
+ 	
+ 	select(command)
+ 	{
+ 	    case 'testVboxManage'{ batFile = testVboxManage;}
+ 		case 'isExist'  	 { batFile = isExistBat;}
+ 		case 'isRunning'	 { batFile = isRunningBat;}
+ 		case 'install'		 { batFile = installBat;}
+ 		case 'uninstall'	 { batFile = uninstallBat;}
+ 		case 'start'      	 { batFile = startBat;}	
+ 		case 'access'  		 { batFile = accessBat;}
+ 		case 'stop'    		 { batFile = stopBat;}
+ 		case 'snapshot'    	 { batFile = snapshotBat;}
+ 		case 'getHttpPort'   { batFile = getHttpPort;}
+ 		else                 { execCmd = command + ' > ' + TMP_FILE + ' 2>&1 & echo ok > ' + OK_FILE;}
+ 	}
+ 	
+	if(execCmd != '') 
+	{
+		log(execCmd);
+		io.remove(OK_FILE);
+		string.save(TMP_BAT, execCmd);
+		process.execute('spawn.vbs');
+		while(!io.exist(OK_FILE)){ sleep(100);}
+		io.remove(OK_FILE);			
+		return;
+	}
+		 
+	if(!io.open(batFile, 'r'))
+	{
+	    win.msgbox(lang.prompt.fileNotFound + batFile, lang.prompt.common);
+		exit();
+	}
+	
+	for line in io.lines(batFile) 
+	{
+		if(string.find(line, "\%VBoxManage\%"))
+		{
+			line = string.replace(line, "\%VBoxManage\%", vboxManageExe);
+			if(command == 'snapshot')
+			{	
+				line = string.replace(line, "\%snapshotName\%", '"' + tostring(snapshotName) + '"');					
+			}
+		
+			if(command == 'install')
+			{
+				line = string.replace(line, "\%memory\%",   tostring(config.memory));
+				line = string.replace(line, "\%cpus\%",     tostring(config.cpus));
+				line = string.replace(line, "\%httpPort\%", tostring(config.httpPort));
+				line = string.replace(line, "\%sshPort\%",  tostring(config.sshPort));
+			}
+		}
+			
+
+		execCmd = line + ' > ' + TMP_FILE + ' 2>&1 & echo ok > ' + OK_FILE;
+		log(execCmd);
+		io.remove(OK_FILE);
+		string.save(TMP_BAT, execCmd);
+		process.execute('spawn.vbs');
+		while(!io.exist(OK_FILE)){ sleep(100);}
+		io.remove(OK_FILE);			
+	}
+ }
+ 
+ function setButtonStatus()
+ {
+ 	var startButton    = wbLayout.getEle("start");
+ 	var accessButton   = wbLayout.getEle("access");
+ 	var stopButton     = wbLayout.getEle("stop");
+ 	var snapshotButton = wbLayout.getEle("snapshot");
+
+ 	if(isRunning)
+ 	{
+		startButton.setAttribute("disabled", "disabled");
+		accessButton.setAttribute("disabled", null);
+		stopButton.setAttribute("disabled", null);	
+	}
+	else
+	{
+		startButton.setAttribute("disabled", null);
+		accessButton.setAttribute("disabled", "disabled");
+		stopButton.setAttribute("disabled", "disabled");	
+	}		
+ }
+ 
+ function setVboxManage()
+ {
+ 	vboxManageExe = win.regWow64("HKEY_LOCAL_MACHINE\SOFTWARE\Oracle\VirtualBox", true).queryValue("InstallDir");
+
+ 	if(vboxManageExe) isInstall = true;
+
+ 	if(isInstall)
+ 	{
+ 	    vboxManageExe = string.replace(vboxManageExe, "\\", "\\\\");
+ 		vboxManageExe += "VBoxManage.exe";
+ 		vboxManageExe = '"' + vboxManageExe + '"';
+ 		return true;
+ 	}
+ 	else
+ 	{
+ 		win.msgbox(lang.prompt.vbNotFound, lang.prompt.common);
+ 		exec('start https://www.virtualbox.org/wiki/Downloads');
+ 		return false;
+ 	}	
+ }
+ 
+ function setIsExist()
+ {
+  	exec('isExist');
+
+ 	if(string.find(string.load(TMP_FILE), 'zentaomos')) 
+ 	{
+ 		isExist = true;
+ 	}
+ 	else 
+ 	{
+ 		isExist = false;
+ 	}
+ }
+ 
+ function setIsRunning()
+ {
+ 	exec('isRunning');
+ 	if(string.find(string.load(TMP_FILE), 'zentaomos')) 
+ 	{
+ 		isRunning = true;
+ 	}
+ 	else 
+ 	{
+ 	 	isRunning = false;
+ 	}
+ }
+ 
+ function init()
+ {
+ 	if(!setVboxManage()) return false;
+ 	setIsExist();
+ 	if(isExist) 
+	{
+		setIsRunning();
+		if(isRunning) 
+		{
+			print(lang.prompt.mosIsRunning);
+			print(lang.prompt.clickToAccess);
+		}
+		else 
+		{
+			print(lang.prompt.mosNotStarted);
+		}
+	}
+	else 
+	{
+		print(lang.prompt.mosNotInstalled);
+		print(lang.prompt.clickToInstall);
+	}
+	setButtonStatus();
+	return true;	
+ }
+ if(!init()) exit();
+ 
+ configform = ..win.form( right=400;bottom=250;parent=...;max=false;border="thin";text="参数配置";topmost=1;mode="popup" )
+ config = {};
+ function getAvailablePort(connectType)
+ {
+ 	var defaultPort = connectType == 'http' and 80 or 22;
+ 	var netstat = process.popen("netstat","-an");
+	var strRet  = netstat.read(-1);
+	for ip,port in string.gmatch( strRet,"<TCP>|<UDP>\s+([\d\.]+)\:(\d+)")
+	{ 
+		if(port == defaultPort)	defaultPort++;
+	}
+	
+	return tostring(defaultPort);
+ }
+ 
+ function configAndInstall()
+ {
+	configLayout = web.layout(configform);
+	configLayout.go("/layout/config.html");	
+	configLayout.getEle('httpPort').value = getAvailablePort('http');
+	configLayout.getEle('sshPort').value = getAvailablePort('ssh');
+	
+	
+	configLayout.onButtonClick = function (ltTarget,ltEle,reason,behaviorParams)
+	{
+		if(ltEle.name == 'save') saveConfig();
+	}
+	configform.show();
+	
+	
+	function saveConfig()
+	{	
+		config.memory   = tonumber(configLayout.getEle('memory').value);  
+		config.cpus     = tonumber(configLayout.getEle('cpus').value);
+		config.httpPort = tonumber(configLayout.getEle('httpPort').value);
+		config.sshPort  = tonumber(configLayout.getEle('sshPort').value);
+		if(config.memory == null or config.memory < 128) 
+		{
+			configform.msgbox(lang.prompt.wrongMemory, lang.prompt.common);
+			return false;
+		}
+		if(config.cpus == null or config.cpus < 1 or config.cpus > 4) 
+		{
+			configform.msgbox(lang.prompt.wrongCpus, lang.prompt.common);
+			return false;
+		}
+		if(config.httpPort == null or config.httpPort < 1 or config.httpPort > 65535)
+		{
+			configform.msgbox(lang.prompt.wrongHttpPort, lang.prompt.common);
+			return false;
+		}
+		if(config.sshPort == null or config.sshPort < 1 or config.sshPort > 65535) 
+		{
+			configform.msgbox(lang.prompt.wrongSshPort, lang.prompt.common);
+			return false;
+		}
+		string.save(CONFIG_FILE, web.json.stringify(config,true));
+		configform.show(false);
+		print(lang.prompt.mosIsInstalling);
+		exec('install', config);
+		setIsExist();
+		if(!isExist) { print(lang.prompt.mosInstallFailed); return;}
+		print(lang.prompt.mosIsStarting);
+		exec('start');
+		setIsRunning();
+		setButtonStatus();
+		if(isRunning) return print(lang.prompt.mosIsRunning + '\n' + lang.prompt.clickToAccess);
+		print(lang.prompt.mosStartFailed);
+	}
+ }
+ 
+ function start()
+ {	
+ 	setIsExist();
+	if(isExist) 
+	{
+		print(lang.prompt.mosIsStarting);
+		exec('start');
+		setIsRunning();
+		setButtonStatus();
+		if(isRunning) return print(lang.prompt.mosIsRunning + '\n' + lang.prompt.clickToAccess);
+		print(lang.prompt.mosStartFailed);
+	}
+	else 
+	{
+		configAndInstall();	
+	}	
+ }
+ 
+ function access()
+ {	
+ 	exec('getHttpPort');
+ 	var httpPort = string.load(TMP_FILE);
+ 	var start = string.find(httpPort, "host port");
+ 	httpPort = string.sub(httpPort,string.find(httpPort, "\d+", start));
+ 	exec('start http://localhost:' + httpPort);
+ }
+ 
+ function stop()
+ {	
+ 	print(lang.prompt.mosIsStopping);
+ 	exec('stop');
+ 	setIsRunning();
+ 	while(isRunning) {sleep(100);setIsRunning();}
+ 	print(lang.prompt.mosStopped);
+ 	setButtonStatus();
+ }
+ 
+ function snapshot()
+ {
+ 	print(lang.prompt.mosIsSnapshoting);
+ 	exec('snapshot') 
+ 	if(#string.load(TMP_FILE)) return print(lang.prompt.mosSnapshotted + '"' + tostring(snapshotName) + '"');
+ 	print(lang.prompt.mosSnapshotFailed);
+ }
+ 
+winform.show();
+win.loopMessage();

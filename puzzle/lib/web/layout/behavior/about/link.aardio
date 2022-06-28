@@ -1,0 +1,12 @@
+﻿
+namespace web.layout.behavior.about.link {
+	
+	onMouseClick = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+		
+		var link = ltOwner.getCustomAttribute("link");
+		if(link) {
+			import process;
+			process.execute(link);
+		}
+	}
+}

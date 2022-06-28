@@ -1,0 +1,42 @@
+import dblink;
+if(request){
+	var username = request.query("username");
+	var password = request.query("password");
+	var result = dblink.login(username,password);
+	if(!result ){
+		?>
+		<script type="text/javascript">alert("登录名或密码错误！");</script>
+		<?
+		response.loadcode("light/login.aardio");
+	}
+	elseif(result == "admin"){
+		response.cookies["usertype"] = {
+			value = "admin";
+			expires = time().addday(7);
+			maxAge = 3600;
+		}
+		response.cookies["username"] = {
+			value = request.query("username");
+			expires = time().addday(7);
+			maxAge = 3600;
+		}
+		response.loadcode("light/admin.aardio");
+	}
+	elseif(result == "user"){
+		response.cookies["usertype"] = {
+			value = "user";
+			expires = time().addday(7);
+			maxAge = 3600;
+		}
+		response.cookies["username"] = {
+			value = request.query("username");
+			expires = time().addday(7);
+			maxAge = 3600;
+		}
+		response.loadcode("light/user.aardio");
+	}
+	
+	
+	
+	
+}

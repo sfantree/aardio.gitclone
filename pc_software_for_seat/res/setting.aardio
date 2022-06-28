@@ -1,0 +1,341 @@
+import win.ui;
+import win.ui.atom;
+import internationalData;
+/*DSG{{*/
+var winform = win.form(text="设置";right=383;bottom=271;bgcolor=16777215;border="dialog frame";exmode="none";max=false;min=false;mode="popup";topmost=1)
+winform.add(
+autostart={cls="checkbox";left=150;top=94;right=220;bottom=112;bgcolor=16777215;tabstop=1;z=3};
+buttonCancel={cls="button";text="关闭";left=72;top=200;right=152;bottom=239;font=LOGFONT(h=-16);tabstop=1;z=4};
+buttonEnter={cls="button";text="确定";left=224;top=200;right=307;bottom=239;font=LOGFONT(h=-16);tabstop=1;z=5};
+combo_language={cls="combobox";left=152;top=120;right=320;bottom=146;edge=1;items={};mode="dropdownlist";z=11};
+pro_ver_txt={cls="static";left=16;top=248;right=155;bottom=266;transparent=1;z=9};
+server_ip={cls="ipaddress";left=150;top=20;right=320;bottom=40;edge=1;tabstop=1;transparent=1;z=1};
+server_port={cls="edit";text="80";left=150;top=58;right=320;bottom=78;edge=1;num=1;tabstop=1;z=2};
+static={cls="static";text="服务器端口：";left=0;top=57;right=146;bottom=79;align="right";font=LOGFONT(h=-16);transparent=1;z=6};
+static2={cls="static";text="界面缩放比例：";left=0;top=160;right=146;bottom=181;align="right";font=LOGFONT(h=-16);transparent=1;z=12};
+static5={cls="static";text="开机启动：";left=0;top=93;right=146;bottom=114;align="right";font=LOGFONT(h=-16);transparent=1;z=7};
+static7={cls="static";text="语言：";left=0;top=126;right=146;bottom=147;align="right";font=LOGFONT(h=-16);transparent=1;z=10};
+static_s={cls="static";text="服务器地址：";left=0;top=18;right=146;bottom=39;align="right";font=LOGFONT(h=-16);transparent=1;z=8};
+windowSize={cls="combobox";left=152;top=160;right=320;bottom=184;edge=1;items={};mode="dropdownlist";z=13}
+)
+/*}}*/
+
+winform.buttonEnter.oncommand = function(id,event){
+	//winform.msgbox( winform.buttonEnter.text );
+	
+	
+}
+
+
+winform.combo_language.oncommand = function(id,event){
+	//winform.msgbox( winform.combo_language.text );
+	
+	
+}
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = winform.atom("AD0A174B-39BA-45EC-8022-ACA82F1C34D0");
+if(!atom){
+	/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+	win.quitMessage();	return;
+}
+
+
+import fsys.ini;
+import win.reg;
+import fsys.lnk;
+import win;
+import string;
+import console;
+import fsys.version
+import fsys
+import internationalData;
+import constant;
+
+winform.enableDpiScaling();
+
+winform.server_ip.setRange("0.0.0.0","255.255.255.255");
+winform.server_ip.address = 10 << 24 | 1 << 16;
+//
+winform.windowSize.add("100%");
+winform.windowSize.add("110%");
+winform.windowSize.add("120%");
+winform.windowSize.add("130%");
+winform.windowSize.add("140%");
+winform.windowSize.add("150%");
+winform.windowSize.add("160%");
+winform.windowSize.add("170%");
+winform.windowSize.add("180%");
+winform.windowSize.add("190%");
+winform.windowSize.add("200%");
+
+//保存设置到配置文件
+winform.save_setting = function(){	
+	constant.removeReadonlyAttr(constant.getUserConfPath())
+	ini=fsys.ini(constant.getUserConfPath())
+	//读取小节对象
+	sec = ini.getSection("server")
+	sec.server_ip = winform.server_ip.text;
+	sec.server_port = winform.server_port.text;
+	sec.save();
+	
+	sec_ot = ini.getSection("other")
+	sec_ot.autostart = winform.autostart.checked;
+	
+	//语言保存
+	var languageList = internationalData.getLanguageList();
+	var selectedLanguage;
+	for(k,v in languageList){
+		if(string.find(winform.combo_language.text,v)){
+			selectedLanguage = k;
+		}
+	}
+	sec_ot.oldSelectedLanguage = sec_ot.selectedLanguage;
+	sec_ot.selectedLanguage = selectedLanguage;
+	sec_ot.save();
+	
+	//saveHosts(sec.server_ip);
+	
+	set_autostart(sec_ot.autostart);
+//	createlnk();
+
+    //缩放
+    var ss = winform.windowSize.text;
+    var setSS = 1;
+    select(ss) {
+    	case "100%" {
+    		setSS = 1;
+    	}
+    	case "110%" {
+    		setSS = 1.1;
+    	}
+    	case "120%" {
+    		setSS = 1.2;
+    	}
+    	case "130%" {
+    		setSS = 1.3;
+    	}
+    	case "140%" {
+    		setSS = 1.4;
+    	}
+    	case "150%" {
+    		setSS = 1.5;
+    	}
+    	case "160%" {
+    		setSS = 1.6;
+    	}
+    	case "170%" {
+    		setSS = 1.7;
+    	}
+    	case "180%" {
+    		setSS = 1.8;
+    	}
+    	case "190%" {
+    		setSS = 1.9;
+    	}
+    	case "200%" {
+    		setSS = 2;
+    	}
+    	else {
+    		setSS = 1;
+    	}
+    }
+    sec_ot.viewZoom = setSS;
+    sec_ot.save();
+	
+	return true	
+}
+
+//从配置文件读取配置，显示到控件
+function get_setting(){
+	//保存设置到数据库
+	ini=fsys.ini(constant.getUserConfPath())
+	
+	//读取小节对象
+	sec = ini.getSection("server")
+	if(sec.server_ip == null){
+		sec.server_ip = '127.0.0.1'
+	}
+	if(sec.server_port == null){
+		sec.server_port = '8888'
+	}
+	
+	winform.server_ip.text = sec.server_ip;
+	winform.server_port.text = sec.server_port;
+	
+	sec_ot = ini.getSection("other")
+	
+	if(sec_ot.autostart == null){
+		sec_ot.autostart = 1
+	}
+	
+	if(sec_ot.autostart == 1){
+		winform.autostart.checked = true;
+	}else {
+		winform.autostart.checked = false
+	}
+	
+	//缩放
+	var viewZoom = sec_ot.viewZoom;
+
+	var selText = "100%";
+	select(viewZoom) {
+    	case "1" {
+    		selText = "100%";
+    	}
+    	case "1.1" {
+    		selText = "110%";
+    	}
+    	case "1.2" {
+    		selText = "120%";
+    	}
+    	case "1.3" {
+    		selText = "130%";
+    	}
+    	case "1.4" {
+    		selText = "140%";
+    	}
+    	case "1.5" {
+    		selText = "150%";
+    	}
+		case "1.6" {
+    		selText = "160%";
+    	}
+    	case "1.7" {
+    		selText = "170%";
+    	}
+    	case "1.8" {
+    		selText = "180%";
+    	}
+    	case "1.9" {
+    		selText = "190%";
+    	}
+    	case "2" {
+    		selText = "200%";
+    	}
+    	else {
+    		selText = "100%";
+    	}
+    }
+    winform.windowSize.selText = selText;
+	
+}
+
+//设置开机启动
+function set_autostart(auto){
+	if(auto == 1){
+		//winform.msgbox("开机启动")	
+		reg = win.reg("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run")
+		reg.setSzValue("pdjh_callpad", io._exepath )
+		reg.close()
+	}else {
+		//winform.msgbox("不开机启动")
+		reg = win.reg("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run")
+		reg.setSzValue("pdjh_callpad", "" )
+		reg.close()
+	}	
+}
+
+//写hosts
+function saveHosts(server_ip){
+	var hosts = fsys.getWinDir()+"\System32\drivers\etc\hosts";
+//	console.log(hosts)
+	
+	//open file
+	file = io.open(hosts,'r')
+	var data = string.load(hosts);
+	var replaceStr = data;
+	var isHaveFind = false;
+	while(file.read(0)){
+		var lineText = file.read();
+		if(string.find(lineText,"www.gzhonyi.com")){
+		 	replaceStr = string.replace(replaceStr,lineText,server_ip+"  www.gzhonyi.com")
+			isHaveFind = true;
+		}
+	}
+	if(not isHaveFind){
+		replaceStr = data+'\r\n'
+		replaceStr = replaceStr+server_ip+"  www.gzhonyi.com";
+	}
+	file.close()
+	
+	//if the file is readonly
+	removeReadonlyAttr(hosts)
+
+	file = io.open(hosts,"w+b");
+	file.write(replaceStr);
+	file.close();
+	//io.popen("ipconfig /flushdns","r").read(-1)
+}
+
+
+//创建桌面快捷方式
+function createlnk(){
+	lnk = fsys.lnk(); 
+	lnk.name = "取号器"
+	
+	lnk.path = io._exepath //设置目标路径
+	lnk.setIcon(io._exepath,0); //设置图标
+	
+	lnk.save(
+	fsys.joinpath( 
+		fsys.getSpecial(0x0010 /*_CSIDL_DESKTOPDIRECTORY*/ )
+		,"取号器.lnk" 
+		)
+	) 
+}
+
+//get program version info
+function getProVerInfo(){
+	var proVer = fsys.version.getInfo(io._exepath).productVersion;
+	var verInfo =  'V '+ proVer.major + '.' + proVer.minor + '.' + proVer.build + '.' + proVer.revision
+	winform.pro_ver_txt.text = verInfo
+}
+
+/**初始化语言**/
+initLanguage = function(){
+
+	ini=fsys.ini(constant.getUserConfPath())
+	sec_ot = ini.getSection("other");
+
+	if(sec_ot.selectedLanguage == null){
+		var id = ::Kernel32.GetUserDefaultUILanguage();
+		var nowLanguage = internationalData.LanguageTable[id];
+		if(nowLanguage == null){
+				nowLanguage = "en"
+			}
+		sec_ot.selectedLanguage = nowLanguage;
+	}
+		
+	var languageList = internationalData.getLanguageList();
+	var selectedLanguage;
+	for(k,v in languageList){
+		winform.combo_language.add(v)
+		if(string.find(sec_ot.selectedLanguage,k)){
+			selectedLanguage = v;
+		}
+	}
+ 	winform.combo_language.selText = selectedLanguage
+ 	
+ 	
+ 	//控件文本设置
+ 	winform.static_s.text = internationalData.getValue("ip")
+ 	winform.static.text = internationalData.getValue("port")
+ 	winform.static5.text = internationalData.getValue("startUp")
+ 	winform.static7.text = internationalData.getValue("language")
+ 	winform.buttonCancel.text = internationalData.getValue("cancel")
+ 	winform.buttonEnter.text = internationalData.getValue("enter")
+ 	winform.text = internationalData.getValue("setting")
+ 	winform.static2.text = internationalData.getValue("zoom")
+ 	
+}
+
+initLanguage();
+
+getProVerInfo()
+get_setting();
+
+winform.enableDpiScaling();
+winform.show(true);
+win.loopMessage();
+
+
+return winform;

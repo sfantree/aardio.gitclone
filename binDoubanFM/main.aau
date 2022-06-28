@@ -1,0 +1,1112 @@
+﻿/*
+ ***************************
+ *                         *
+ * 豆瓣FM 第三方客户端     *
+ *                         *
+ * by 武斌 http://wubin.in *
+ *                         *
+ ***************************
+ */
+
+_app = "斌哥豆瓣FM桌面版";
+_blank = "~ 优雅地欣赏音乐 ~";
+_ver = "1.2.1 build 20141102";
+_update = "http://wubin.in/app/doubanFM.exe?r=" ++ tostring(math.random(0,1000));
+
+import win.ui;
+import win.ui.atom;
+import win.ui.menu;
+import win.timer;
+import win.clip;
+import win.util.popup2;
+import win.util.tray;
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.tabs;
+import web.layout.behavior.dropdown;
+import com;
+import com.interface.ITaskbarList3;
+import process;
+
+import binFM;
+import binFM.aero;
+import binFM.auto;
+import binFM.db;
+import binFM.douban;
+import binFM.download;
+import binFM.hotkey;
+import binFM.init; // 导入即声明常量及变量
+import binFM.lrc;
+import binFM.play;
+import binFM.search;
+import binFM.string;
+import binFM.to;
+import binFM.ui;
+// 导入bass库 于 onBassError()之后;
+
+import binFM.monitor; // 监视程序运行状态，方便调试
+
+/*
+ *用于自动更新的临时文件
+ * -- 参数为 -update "路径"
+ */
+var cmd = _CMDLINE;
+if(cmd && string.trim(cmd)!="") {
+	if(string.indexOf(cmd,'-update \"')==1) {
+		binFM.toUpdate(cmd);
+		win.quitMessage();
+		return true;
+	}
+}
+
+if(io.exist(io._exedir ++ "doubanFM_lastest.exe") && !io.exist(io._exedir ++ "doubanFM_lastest.exe.dowload") && io._exefile!="doubanFM_lastest.exe") {
+	win.msgbox(_app++'最新版已下载完毕！\r\n\r\n请您手动删除' ++ io._exefile ++ '，\r\n并将doubanFM_lastest.exe重命名为' ++ io._exefile ++ '。',_app);
+}
+if(io._exefile=="doubanFM_lastest.exe") {
+	win.msgbox(_app++'最新版已下载完毕！\r\n\r\n请将doubanFM_lastest.exe重命名为' ++ _app ++ '.exe，\r\n以便下次更新。',_app);
+	return false;
+}
+
+mainForm = win.form( 
+	bgcolor=0;
+	bottom=492;
+	right=312;
+	border="none";
+	text=_app
+)
+
+wbLayout = web.layout(mainForm,0xFFFF/*_HL_HANDLE_ALL*/|0x200/*_HL_HANDLE_METHOD_CALL*/); // 接受onkeydown事件
+wbLayout.go("/res/index.html");
+wbLayout.setOption(5/*_HL_OPTIONS_ANIMATION_THREAD*/,0);
+
+mainForm.transparent(true);
+
+if(_STUDIO_INVOKED) {
+	import web.layout.debug; 
+	wbLayout.attachEventHandler( web.layout.debug ); 
+	binFM.ui.showMonitorForm();
+}
+
+if(cmd && string.find(cmd,"@noapng")) noAPNG = true;
+if(cmd && string.find(cmd,"@monitor")) binFM.ui.showMonitorForm();
+
+binFM.ui.splash("update");
+
+
+
+
+/* ======================================================= */
+/* HTMLayout 控件部分 ==================================== */
+/* ======================================================= */
+
+
+
+
+/*
+ * 响应菜单点击事件
+ * -- 包括 标题栏上的菜单 专辑封面右键菜单 曲目列表右键菜单
+ */
+wbLayout.onMenuItemClick =  {
+	// =============================
+	// 退出程序菜单
+	// =============================-;
+	exit = function (ltTarget,ltEle,reason,behaviorParams) {
+		mainForm.close();
+	}
+	// =============================
+	// 我的豆瓣主页菜单
+	// =============================
+	myDouban = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(login) process.execute("http://www.douban.com/people/" ++ userId ++ "/");
+	}
+	// =============================
+	// 转到红心兆赫菜单
+	// =============================		
+	toFavChannel = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.favChannel();
+	}
+	// =============================
+	// 显示收听历史菜单
+	// =============================
+	toHistory2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showHistory();
+	}
+	// =============================
+	// 退出登录菜单
+	// =============================	
+	toLogout = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.logout();
+	}
+	// =============================
+	// 下载歌曲菜单
+	// =============================	
+	saveMusic = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.search.download("douban");
+	}	
+	saveMusic_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid,title,url;
+		sid = binFM.ui.$("#listbox").value;
+		binFM.search.download("douban",sid);
+	}
+	// =============================
+	// 是否同时下载歌词
+	// =============================
+	withLrc = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(isWithLrc) {
+			isWithLrc = false;
+			binFM.ui.menuToggle("#isWithLrc","off");
+		}
+		else {
+			isWithLrc = true;
+			binFM.ui.menuToggle("#isWithLrc","on");	
+		}
+	}		
+	// =============================
+	// 查看下载任务菜单
+	// =============================
+	openDownloads = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showDownloads();
+	}
+	// =============================
+	// 保存歌词菜单
+	// =============================
+	saveLrc_copy = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.lrc.save("copy");
+	}
+	saveLrc_copytext = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.lrc.save("copyText");	
+	}
+	saveLrc_file = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.lrc.save("file");	
+	}
+	// =============================
+	// 复制歌曲名称
+	// =============================
+	copyTitle = function (ltTarget,ltEle,reason,behaviorParams) {
+		var nowPlaying = binFM.song();
+		if(nowPlaying) win.clip.write(nowPlaying["title"]);	
+	}
+	copyTitle_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		if(sid) var title = binFM.song(sid)["title"];	
+		if(title && title!="") win.clip.write(title);
+	}
+	// =============================
+	// 百度搜索
+	// =============================
+	baidu = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.search.music("baidu");
+	}
+	baidu_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		binFM.search.music("baidu",sid);
+	}
+	baidu_img = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.search.image("baidu");
+	}
+	baidu_img2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		binFM.search.image("baidu",sid);
+	}	
+	// =============================
+	// 转到豆瓣专辑介绍
+	// =============================
+	toDoubanAlbum = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;	
+		if(sid) {
+			var albumUrl = binFM.song(sid)["album"];
+			if(albumUrl) process.execute("http://music.douban.com" ++ albumUrl);
+		}
+	}
+	// =============================
+	// 转到艺术家简介
+	// =============================
+	musician = function (ltTarget,ltEle,reason,behaviorParams) {
+		var nowPlaying = binFM.song();
+		if(nowPlaying) {
+			var artist_id = binFM.artistId();
+			if(artist_id) process.execute("http://music.douban.com/musician/" ++ artist_id ++ "/");
+		}
+	}
+	// =============================
+	// 复制艺术家名称
+	// =============================
+	musician_copy = function (ltTarget,ltEle,reason,behaviorParams) {
+		var artist = binFM.song()["artist"];
+		if(artist)  win.clip.write(artist);
+	}	
+	// =============================
+	// 删除歌曲菜单
+	// =============================
+	toDel_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		if(sid) {
+			// 在播放列表中删除当前项
+			binFM.to.del(sid);
+		}
+	}
+	// =============================
+	// 自动加心 / 屏蔽菜单
+	// =============================		
+	likeByArtist = function (ltTarget,ltEle,reason,behaviorParams) { 
+		if(isLikeByArtist==1 || (isLikeByArtist==0 && autoFormShown)) binFM.auto.addLikeArtist();
+		else if(isLikeByArtist==0 && !autoFormShown) binFM.ui.showAutoLikeDel(); 
+	}
+	likeByAlbum = function (ltTarget,ltEle,reason,behaviorParams) { 
+		if(isLikeByAlbum==1 || (isLikeByAlbum==0 && autoFormShown)) binFM.auto.addLikeAlbum();
+		else if(isLikeByAlbum==0 && !autoFormShown) binFM.ui.showAutoLikeDel(); 
+	}
+	delByArtist = function (ltTarget,ltEle,reason,behaviorParams) { 
+		if(isDelByArtist==1 || (isDelByArtist==0 && autoFormShown)) binFM.auto.addDelArtist();
+		else if(isDelByArtist==0 && !autoFormShown) binFM.ui.showAutoLikeDel(); 
+	}
+	delByAlbum = function (ltTarget,ltEle,reason,behaviorParams) { 
+		if(isDelByAlbum==1 || (isDelByAlbum==0 && autoFormShown)) binFM.auto.addDelAlbum();	
+		else if(isDelByAlbum==0 && !autoFormShown) binFM.ui.showAutoLikeDel(); 
+	}
+	delEnglish = function (ltTarget,ltEle,reason,behaviorParams) { 
+		binFM.auto.addDelEnglish("menu");
+	}
+	// =============================
+	// 显示 / 隐藏 歌词菜单
+	// =============================
+	displayLrc = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showLrc();
+	}
+	// =============================
+	// 显示 / 隐藏 音乐频谱
+	// =============================
+	displayFFT = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showFFT();
+	}
+	// =============================
+	// 开启 / 关闭 Aero效果
+	// =============================	
+	doAero = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.aero.toggle();
+	}
+	// =============================
+	// 开启 / 关闭 右下角弹窗
+	// =============================	
+	popWin = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.popToggle();
+	}	
+	// =============================
+	// 设置均衡器
+	// =============================	
+	showEQForm = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showEQForm();
+	}
+	// =============================
+	// 设置热键菜单
+	// =============================	
+	showHotkeySetups = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showHotkeySetups();
+	}
+	// =============================
+	// 设置歌词字体菜单
+	// =============================	
+	showFontsSetups = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showFontsSetups();
+	}
+	// =============================
+	// 是否随即排列歌曲
+	// =============================
+	randomSongs = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(randomSongs) {
+			randomSongs = false;
+			binFM.ui.menuToggle("#isRandomSongs","off");
+		}
+		else {
+			randomSongs = true;
+			binFM.ui.menuToggle("#isRandomSongs","on");	
+		}
+	}
+	// =============================
+	// 收藏歌手及专辑菜单
+	// =============================	
+	addFavArtist = function (ltTarget,ltEle,reason,behaviorParams) {
+		var nowPlaying = binFM.song();
+		if(nowPlaying) {
+			var artist_id = binFM.artistId();
+			if(artist_id) binFM.db.saveArtist(artist_id,nowPlaying["artist"],,,,"fav");
+		}
+		binFM.ui.loadFavList();
+	}
+	addFavArtist_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		if(sid) {
+			var artist_id = binFM.artistId(sid);
+			var artist = binFM.song(sid)["artist"];
+			if(artist_id && artist) binFM.db.saveArtist(artist_id,artist,,,,"fav");
+		}
+		binFM.ui.loadFavList();
+	}
+	addFavAlbum = function (ltTarget,ltEle,reason,behaviorParams) {
+		var nowPlaying = binFM.song();
+		if(nowPlaying) {
+			if(nowPlaying["aid"] && nowPlaying["albumtitle"]) binFM.db.saveAlbum(nowPlaying["aid"],nowPlaying["albumtitle"],,,,,"fav");
+		}
+		binFM.ui.loadFavList();
+	}
+	addFavAlbum_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = binFM.ui.$("#listbox").value;
+		if(sid) var song = binFM.song(sid);
+		if(song) {
+			if(song["aid"] && song["albumtitle"]) binFM.db.saveAlbum(song["aid"],song["albumtitle"],,,,,"fav");
+		}
+		binFM.ui.loadFavList();
+	}
+	// =============================
+	// 设置自动加红心/屏蔽菜单
+	// =============================	
+	showAutoLikeDel = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showAutoLikeDel();
+	}
+	// =============================
+	// 单曲循环菜单
+	// =============================	
+	playSingle = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(single) {
+			single = false;
+			binFM.ui.toggleSingle(false);
+			binFM.play.loop(false);
+		}
+		else {
+			single = true;
+			binFM.ui.toggleSingle(true);
+			binFM.play.loop(true);
+		}
+	}	
+	// =============================
+	// 关于菜单
+	// =============================
+	showAbout = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(!aboutForm) aboutForm = mainForm.loadForm("\forms\aboutForm.aau",mainForm);
+		aboutForm.show();
+		win.setForeground(aboutForm.hwnd);		
+	}
+	// =============================
+	// 软件主页菜单
+	// =============================
+	home = function (ltTarget,ltEle,reason,behaviorParams) {
+		process.execute("http://wubin.in/doubanFM.html?app");
+	}
+	// =============================
+	// 转到豆瓣fm官方网站菜单
+	// =============================
+	doubanFM = function (ltTarget,ltEle,reason,behaviorParams) {
+		process.execute("http://douban.fm");
+	}
+	// =============================
+	// --
+	// =============================	
+	default = function (ltTarget,ltEle,reason,behaviorParams) {
+		win.msgboxTimeout("此功能尚未完成...",_app,3000);
+	}
+}
+
+
+
+
+/*
+ * 响应按钮点击事件
+ */
+wbLayout.onButtonClick = {
+	// =============================
+	// 登录按钮
+	// =============================
+	showLoginForm = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.login();	
+	}
+	// =============================
+	// 频道选择按钮 - 主面板右滑
+	// =============================
+	channels = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.slideRight();
+	}
+	// =============================
+	// 频道按钮
+	// =============================
+	clike = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.channel("-3");
+	}
+	cprivate = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.channel("0");
+	}	
+	channel = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.channel(ltTarget.cId);
+	}
+	channel_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.channel(ltTarget.cId);
+		binFM.db.saveChannel(ltTarget.cId,ltTarget.cName,"fav");
+	}
+	// =============================
+	// 搜索频道按钮
+	// =============================	
+	leftSearch = function (ltTarget,ltEle,reason,behaviorParams) {	
+		binFM.search.doubanMusic(binFM.ui.$("#keywords").value);
+	}
+	searchPre = function (ltTarget,ltEle,reason,behaviorParams) {	
+		binFM.search.doubanMusic(binFM.ui.$("#keywords").value,"pre");
+	}
+	searchNext = function (ltTarget,ltEle,reason,behaviorParams) {	
+		binFM.search.doubanMusic(binFM.ui.$("#keywords").value,"next");
+	}	
+	// =============================
+	// 加歌按钮
+	// =============================
+	toAddMusic = function(ltTarget,ltEle,reason,behaviorParams){
+		binFM.douban.getSongs(channelId,false);
+	}
+	listToAdd = function(ltTarget,ltEle,reason,behaviorParams) {
+		binFM.douban.getSongs(channelId,false);
+	}
+	// =============================
+	// 专辑封面 转到专辑介绍
+	// =============================
+	album_cover = function(ltTarget,ltEle,reason,behaviorParams){
+		binFM.ui.showAlbum();
+	}
+	song_title = function(ltTarget,ltEle,reason,behaviorParams){
+		binFM.ui.showAlbum();
+	}
+	// =============================
+	// 红心按钮
+	// =============================
+	like_liked = function(ltTarget,ltEle,reason,behaviorParams){ 
+		binFM.to.like();
+	}
+	listToLike = function(ltTarget,ltEle,reason,behaviorParams){ 
+		binFM.to.like(,ltTarget.sid);
+	}
+	// =============================
+	// 下一首按钮
+	// =============================
+	toNext = function(ltTarget,ltEle,reason,behaviorParams){ 
+		binFM.to.next();
+	}
+	// =============================
+	// 删除歌曲按钮
+	// =============================	
+	toDel = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.del();
+	}
+	// =============================
+	// 播放/暂停按钮
+	// =============================
+	pause_play = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.play();	
+	}
+	// =============================
+	// 只听此专辑按钮
+	// =============================
+	play_album = function (ltTarget,ltEle,reason,behaviorParams) {
+		nowPlaying = binFM.song();
+		if(nowPlaying) {
+			if(nowPlaying["aid"] && nowPlaying["albumtitle"]) binFM.to.playAlbum(nowPlaying["aid"],nowPlaying["albumtitle"]);
+		}
+	}
+	// =============================
+	// 专辑搜索结果按钮
+	// =============================
+	play_album_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(ltTarget.cid && ltTarget.title) binFM.to.playAlbum(ltTarget.cid,ltTarget.title);
+	}
+	// =============================
+	// 只听此歌手按钮
+	// =============================
+	play_artist = function (ltTarget,ltEle,reason,behaviorParams) {
+		nowPlaying = binFM.song();
+		if(nowPlaying) {
+			var artist_id = binFM.artistId();
+			if(artist_id) binFM.to.playArtist(artist_id,nowPlaying["artist"]);
+		}
+	}
+	// =============================
+	// 歌手搜索结果按钮
+	// =============================
+	play_artist_2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(ltTarget.cid && ltTarget.title) binFM.to.playArtist(ltTarget.cid,ltTarget.title);
+	}
+	// =============================
+	// 删除收藏项目按钮
+	// =============================
+	fav_del = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(ltTarget.cids && ltTarget.group) binFM.to.favDel(ltTarget.cids,ltTarget.group);
+	} 
+	// =============================
+	// 单曲循环按钮
+	// =============================
+	play_single = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(single) {
+			single = false;
+			binFM.ui.toggleSingle(false);
+			binFM.play.loop(false);
+		}
+		else {
+			single = true;
+			binFM.ui.toggleSingle(true);
+			binFM.play.loop(true);		
+		}
+	}
+	// =============================
+	// 显示收听历史按钮
+	// =============================
+	toHistory = function(ltTarget,ltEle,reason,behaviorParams){
+		binFM.ui.showHistory();
+	}
+	// =============================
+	// 播放进度滑块
+	// =============================
+	postBar_hslider = function (ltTarget,ltEle,reason,behaviorParams) {
+			var duration = binFM.play.duration();
+		
+			if(ltTarget.value == 0) ltTarget.value = 1;
+			var postBarValue = math.round(ltTarget.value / 3);
+			binFM.ui.css("#posBar","width",ltTarget.value);
+			binFM.play.setPosition(math.floor(duration * postBarValue / 100)); 
+			posChanged = true;
+			lrc_last = 1;
+	}
+	// =============================
+	// 显示/隐藏歌词按钮
+	// =============================	
+	showLrc = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.showLrc();
+	}
+	// =============================
+	// 静音按钮
+	// =============================
+	toMute = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(binFM.play.volume()>0) {
+			binFM.ui.volume("mute");
+			volume0 = volume;
+			binFM.play.setVolume(0);
+			volume = 0;
+		}
+		else{
+			volume = volume0;
+			binFM.ui.volume("unmute");
+			binFM.play.setVolume(volume0);
+		}
+		
+	}
+	// =============================
+	// 武斌主页按钮
+	// =============================
+	wubin = function (ltTarget,ltEle,reason,behaviorParams) {
+		process.execute("http://wubin.in/doubanFM.html?app");
+	}
+	// =============================
+	// 退出程序按钮
+	// =============================
+	main_close = function (ltTarget,ltEle,reason,behaviorParams) {
+		mainForm.close();
+	}
+}
+
+
+
+
+/*
+ * 曲目列表框事件
+ */
+wbLayout.onSelectStateChanged = {
+	listbox = function (ltTarget,ltEle,reason,behaviorParams) {
+		// 获取选中曲目的信息
+		var selectedIndex;
+		var selectedSid = ltTarget.value;
+		if(!tonumber(selectedSid)) return false;
+		var selectedItem = binFM.song(selectedSid);
+		
+		// 获取当前曲目信息
+		var nowPlaying = binFM.song();
+		if(!nowPlaying) return false;
+			
+		if(selectedSid != nowPlaying["sid"]) {
+			binFM.monitor.info("用户动作：播放第" ++ tostring(selectedItem["i"]) ++ "首");
+			timer.disable();
+			// 标记选中曲目
+			binFM.ui.playlistItem(nowPlaying["sid"],selectedSid);
+
+			// 播放选中曲目
+			binFM.play.start(selectedItem["i"]);
+	
+			if(fftShowing) fftForm.close();			
+
+			// 生成发送至豆瓣的跳过曲目报告
+			var sid = nowPlaying["sid"];
+			binFM.douban.historyString("skip");
+			
+			collectgarbage("collect"); // 内存回收
+		}		
+	}
+}
+
+
+
+
+/* 
+ * 滑块滑动事件
+ */
+wbLayout.onButtonStateChanged = {
+	// =============================
+	// 播放进度滑块
+	// =============================
+	postBar_hslider = function (ltTarget,ltEle,reason,behaviorParams) {
+		posChanged = false;
+		lrc_last = 1; // 重新从歌词数组中搜索歌词行来显示
+	}
+	// =============================
+	// 音量控制滑块
+	// =============================
+	volumeBar_hslider = function (ltTarget,ltEle,reason,behaviorParams) {
+		var volume_ = math.round(ltTarget.value * 1.724); // 100 / 58 = 1.724
+    	if(volume_!=0) {
+    		if(volume!=volume_){
+    			volume = volume_;
+    			binFM.play.setVolume(volume);
+    		}
+		}
+		else {
+			volume = 0;
+			volume0 = 10;
+    		binFM.ui.volume("mute");
+    		binFM.play.setVolume(0);
+    	}
+    	binFM.ui.volume(volume);
+	}
+}
+
+
+
+
+/*
+ * 选项卡事件: 专辑封面 播放列表
+ */
+wbLayout.onElementExpanded = {
+	album_area = function (ltTarget,ltEle,reason) { 
+		binFM.ui.onAlbumArea();
+	}
+	playlist = function (ltTarget,ltEle,reason) {
+		binFM.ui.onPlaylist();
+	}
+	favChannels = function (ltTarget,ltEle,reason) { 
+		binFM.ui.loadFavList();
+	}	
+	searchChannels = function (ltTarget,ltEle,reason) { 
+		binFM.ui.$("#keywords").state.focus=true;
+	}
+}
+
+
+	
+
+/*
+ * 回车键事件
+ */
+wbLayout.onKeyDown = function (ltTarget,ltEle,keyCode, altState, ltKeyParams) {
+    if( keyCode == 0xD/*_VK_RETURN*/ ){
+		binFM.search.doubanMusic(binFM.ui.$("#keywords").value);
+        return true;
+    }
+}
+
+
+
+
+/*
+ * 显示/隐藏专辑右侧按钮
+ */
+with wbLayout{
+	toggleControls = function(ltEle,todo) {
+		if(todo=="show") ..binFM.ui.toggleControls("show");
+		if(todo=="hide") ..binFM.ui.toggleControls("hide");
+	}
+}
+
+
+
+
+/* ======================================================= */
+/* 窗体事件部分 ========================================== */
+/* ======================================================= */
+
+
+
+
+/*
+ * 托盘右键菜单
+ */
+mainForm.popmenu = win.ui.popmenu(mainForm);
+mainForm.popmenu.addTable({
+	/*
+	{_app;function(id){
+		process.execute("http://wubin.in/doubanFM.html?app");
+	}};
+	{}	
+	*/
+	{"专辑";{
+		{"查看专辑介绍";function(id){
+			binFM.ui.showAlbum();
+		}};
+		{"转到专辑详情";function(id){
+			var nowPlaying = binFM.song();
+			if(nowPlaying) {
+				var album_id = nowPlaying["aid"];
+				if(album_id) process.execute("http://music.douban.com/subject/" ++ album_id ++ "/");
+			}
+		}};
+	}};
+	{"艺术家";{
+	{"转到艺术家详情";function(id){
+			var artist_id = binFM.artistId();
+			if(artist_id) process.execute("http://music.douban.com/musician/" ++ artist_id ++ "/");
+		}};
+		{"百度艺术家图片";function(id){
+			binFM.search.image("baidu",sid);
+		}};
+	}};
+	{"曲目";{
+		{"百度搜索曲目";function(id){
+			binFM.search.music("baidu");
+		}};
+		{"复制曲目标题";function(id){
+			var nowPlaying = binFM.song();
+			if(nowPlaying) win.clip.write(nowPlaying["title"]);	
+		}};
+		{/*分隔线*/};
+		{"另存为";function(id){
+			binFM.search.download("douban");
+		}};		
+	}};
+	{/*分隔线*/};
+	{"保存歌词";{
+		{"复制到剪贴板";function(id){
+			binFM.lrc.save("copy");
+		}};
+		{"仅复制歌词文本";function(id){
+			binFM.lrc.save("copyText");
+		}};
+		{/*分割线*/};
+		{"另存为lrc文件";function(id){
+			binFM.lrc.save("file");
+		}};
+	}};
+	{"设置歌词字体";function(id){
+		binFM.ui.showFontsSetups();
+	}};
+	{"显示 / 隐藏歌词";function(id){
+		binFM.ui.showLrc();
+	}};
+	{/*分割线*/}
+	{"加红心（不取消）";function(id){
+		binFM.to.like(true);
+	}};
+	{"不再听";function(id){
+		binFM.to.del();
+	}};
+	{"下一首";function(id){
+		binFM.to.next();
+	}};
+	{"播放 / 暂停";function(id){
+		binFM.to.play();
+	}};
+	{/*分隔线*/};
+	{"显示主面板";function(id){
+		win.setForeground(mainForm.hwnd);
+	}};     
+	{"退出豆瓣FM";function(id){
+		mainForm.close();
+	}};   
+});
+
+
+
+/*
+ * 窗体事件
+ */
+RegisterWindowMessage := ::User32.api( "RegisterWindowMessageA", "Long(String lpString)");
+var msgTaskbarRestart = RegisterWindowMessage("taskbarcreated");
+mainForm.wndproc = {
+    [0x6/*_WM_ACTIVATE*/] = function (hwnd, message, wParam, lParam) {
+        if ( ::HIWORD(wParam) !== 0 ){
+			// 最小化
+			binFM.ui.toggleControls("hide");
+			if(fftShowing) fftForm.close();
+			mainFormActive = false;
+			mainForm.show(false);
+			if(!tray) {
+				tray = win.util.tray(mainForm);
+				tray.pop('单击打开/关闭悬浮窗口\r\n右键打开菜单\r\n双击打开主面板',_app);
+				tray.message = 0x400+9981/*_WM_TRAYMESSAGE*/ //设置托盘图标回调消息
+			}
+			if(enablePopWin) binFM.ui.showMiniForm();
+			return true;//阻击默认消息传递，取消最小化过程
+        }
+        else
+			// 正常
+			mainFormActive = true;      
+		select ( ::LOWORD(wParam) ) {
+			case 0x1 {/*_WA_ACTIVE*/ // 被激活
+				mainFormActive = true;
+				fftFormActive = true;
+				if(popupForm) popupForm.close();
+				if(fftShowing && !playlistShown && slided=="close") fftForm.show();
+				popupShowing = false;
+			}
+			case 0x2 { /*_WA_CLICKACTIVE*/  // 被鼠标点击激活
+				mainFormActive = true;
+				fftFormActive = true;
+				if(popupForm) popupForm.close();
+				if(miniForm) miniForm.close();
+				if(fftShowing && !playlistShown && slided=="close") fftForm.show();
+				popupShowing = false;
+				win.setForeground(mainForm.hwnd);
+				if(albumForm && albumFormShown) binFM.ui.showAlbum();
+			}
+			case 0x0 { /*_WA_INACTIVE*/  // 失去焦点
+				mainFormActive = false;
+				binFM.ui.toggleControls("hide");
+			}
+		}
+	}
+	
+	[msgTaskbarRestart] = function(hwnd,message,wParam,lParam) { // 当重建任务栏时
+		if(tray) {
+			win.util.tray.Shell_NotifyIcon(0x2/*_NIM_DELETE*/,tray.m_tnd);
+			win.util.tray.Shell_NotifyIcon(0x0/*_NIM_ADD*/,tray.m_tnd);
+		}
+	}
+	
+	[0x400+9981/*_WM_TRAYMESSAGE*/] = function(hwnd,message,wParam,lParam) {
+		if(lParam==0x203/*_WM_LBUTTONDBLCLK)*/) { // 左键双击
+			if(miniShown && miniForm) {
+				miniForm.close();
+				miniShown = false;
+			}
+			win.setForeground(mainForm.hwnd);            		
+			return;
+        }
+		if(lParam==0x202/*_WM_LBUTTONUP*/) { // 左键单击
+			if(miniShown && miniForm) {
+				miniForm.close();
+				miniShown = false;
+			}
+			else binFM.ui.showMiniForm();
+			return;
+        }
+		if(lParam==0x205/*_WM_RBUTTONUP*/) { // 右键单击
+   			import mouse;
+   			var x,y = mouse.getPos();
+   			win.setForeground(mainForm.hwnd);
+   			mainForm.popmenu.popup(x,y,true);
+        }
+	}
+	
+	[534/*_WM_MOVING*/] = function(hwnd,message,wParam,lParam) {
+		if(fftShowing) setFFTPos();
+		return;
+	}
+
+	[0x3/*_WM_MOVE*/] = function(hwnd,message,wParam,lParam) {
+		if(fftShowing) setFFTPos();
+		return;
+	}
+
+	[49312/*_WM_TASKBARBUTTONCREATED*/] = function(hwnd,message,wParam,lParam) {
+		// 创建win7任务条进度
+		mainForm.taskbar = com.interface.ITaskbarList3.Create(); 
+	}
+	
+	[0x10/*_WM_CLOSE*/] = function(hwnd,message,wParam,lParam) {
+		// 当窗体关闭时
+		binFM.quit();
+	}
+}
+
+
+
+
+/* 
+ * 原子窗体
+ */
+if(io._exefile!="doubanFM_update_"++_ver) {
+	var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = mainForm.atom("14959179-09B5-4B65-9291-F62090993C40");
+	if(!atom){
+		/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+		win.quitMessage();	
+		return;
+	}
+	else {
+		mainForm.show();
+		mainFormActive = true;
+		win.delay(50);
+	}
+}
+
+
+
+
+/* ======================================================= */
+/* 播放状态部分 ========================================== */
+/* ======================================================= */
+
+
+
+
+/*
+ * 播放进度计时器
+ */
+timer = win.timer(mainForm);
+binFM.ui.position(,,"init");
+
+timer.onTimer = function(hwnd,msg,id,tick){
+	// 显示播放进度
+	var position = binFM.play.position();
+	var duration = binFM.play.duration();
+	if(position && duration){
+		binFM.ui.position(position,duration);
+	}
+	// 显示歌词
+	binFM.lrc.show(binFM.song()["sid"]);
+	// 显示音乐频谱
+	if(fftShowing && fftFormActive) {
+		fftData = bass.getFFT(256);
+		drawFFT(fftData); //fftForm.aau
+	}
+}
+
+
+
+
+/*
+ * 播放状态回调函数
+ */
+onBassError = function(errorCode) {
+	binFM.monitor.info("音频错误",errorCode,now_i);
+	select(errorCode) {
+		case 2,32,40 {
+			now_i = now_+1;
+			binFM.play.stop();
+			timer.disable();	
+			if(errorTime<=3) {
+				errorTime++;
+				binFM.ui.alert("貌似网络不通畅");
+				if(timeNext) mainForm.killtimer(timeNext);
+				timeNext = mainForm.setTimeout(tryNext,5000);
+			}
+		}
+		case 39 {
+			win.msgbox("未安装DirectX或其版本过低",_app);
+			win.quitMessage();
+		}
+		case 3,23,42,46 {
+			win.msgbox("音频硬件或驱动程序故障",_app);
+			win.quitMessage();
+		}
+		else {
+		}
+	}
+}
+
+
+import bass;
+
+
+// 播放状态
+var timeNext; // setTimeout句柄，用于卡住时尝试播放下一首
+
+
+onBassStart = function(){
+	binFM.monitor.info("++开始播放++");
+	timer.enable();	
+	if(timeNext) mainForm.killtimer(timeNext);
+	lrc_last = 1;
+	var nowPlaying = binFM.song();
+	if(!nowPlaying) return false;
+	// 显示当前曲目信息、加红心状态、右下角弹窗 并 在播放列表中标注正在播放的歌曲 
+	binFM.ui.showCurrent(nowPlaying);
+	if(!started) {
+		binFM.monitor.showId(nowPlaying);
+		// 获取歌曲详细信息，并显示歌词
+		if(!gettingLrc && !lrcGot) binFM.lrc.get(nowPlaying["title"], nowPlaying["artist"], nowPlaying["sid"]);
+		// 是否需要自动加红心
+		binFM.auto.checkLike(true);
+		// 播放到列表尽头时获取歌曲
+		binFM.monitor.info("当前"++tostring(now_i),"列表共"++tostring(#songs_noAd));
+		if(now_i==#songs_noAd) binFM.douban.getSongs(channelId,false);
+		// 准备报告给豆瓣的信息
+		binFM.douban.historyString(nowPlaying["sid"],"play");
+		// 首次隐藏splash层
+		mainForm.setTimeout(binFM.ui.splash,200,"hide");
+	}
+	binFM.ui.playToggle("play");
+	if(fftShowing && !playlistShown && slided=="close") fftForm.show();
+	started = true;
+	errorTime = 0;
+}
+
+
+onBassEnd = function() {
+	binFM.monitor.info("--结束播放--");
+	timer.disable();
+	if(timeNext) mainForm.killtimer(timeNext);
+	binFM.play.stop();
+	var nowPlaying = binFM.song();
+	if(!nowPlaying) return false;
+	
+	if(!single) { // 如果不是单曲循环，则播放下一首
+		binFM.ui.playlistItem(nowPlaying["sid"]); // 取消列表中当前歌曲的正在播放标记
+		binFM.play.start(now_i+1);
+		started = false;
+		gettingLrc = false;
+		lrcGot = false;
+	}
+	else binFM.play.resume();
+	
+	binFM.douban.sendEnded(nowPlaying["sid"]);
+	binFM.db.recordSong(nowPlaying["sid"],0);
+	if(fftShowing) fftForm.close();
+	
+	collectgarbage("collect"); // 内存回收
+}
+
+
+/* 
+ * 当卡住时尝试播放下一首
+ */
+tryNext = function() {
+	binFM.monitor.info("tryNext - started",started);
+	if(!started) binFM.to.next();
+}
+
+
+
+
+/* ======================================================= */
+/* 初始化部分 ============================================ */
+/* ======================================================= */
+
+
+
+ 
+// 检查数据库
+binFM.db.checkDB();
+
+// 获取并应用用户配置
+binFM.init.profile();
+
+// 开始播放
+// -- 在binFM.douban.getSongs()中
+
+// 注册热键	
+binFM.hotkey.read("db");
+binFM.hotkey.reg();
+
+// 检查更新
+binFM.checkUpdate();
+
+
+win.loopMessage();

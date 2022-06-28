@@ -1,0 +1,68 @@
+import config;
+/*sqliteDB{{*/
+import sqlite;
+var sapdb = config.dbServer.path + "qhcsap.db";
+var db,err = sqlite(sapdb);	//打开数据库连接
+
+if (err) error(err)
+/*}}*/
+
+/*searchSapDB{{*/
+var getSapItem = function(hcode){
+		if !hcode return null; 
+		var sqlstr = "SELECT * FROM [所有物料]";
+		var t = db.stepQuery(sqlstr, {物料 = hcode} )
+
+//		if (t and #t>0) return t[1];
+//		else return null; 
+		return t; 
+}
+/*}}*/
+import com.excel;
+import console;
+import console.progress;
+var bar = console.progress();
+
+import etip; 	//提示字母变序数
+
+console.open();
+
+var excel = com.excel(false) ;
+//var osht = excel.WorkBooks("Service Counter Item_Master.xlsx").Sheets("part list");
+var osht = excel.ActiveWorkbook.ActiveSheet;
+if osht.Cells(2,"A").value2 !== "专用号" or osht.Cells(2,"P").value2 !== "SAP系统价格" error("不是item master");
+
+
+var euCount = osht.UsedRange.Rows.Count;
+
+var eTab = osht.range("A3:E" ++ euCount).value2;
+var cTab = osht.range("P3:P" ++ euCount).value2;
+
+var tc = #eTab;
+
+for(i=1; tc){
+	bar.setProgress(math.round(i*100/tc), math.round(i*100/tc) + "% processing ......");
+    var sapItem = getSapItem(eTab[i][1 /* A */]);
+    if sapItem {
+        //console.dumpTable(sapItem);
+		eTab[i][2 /* B */] = sapItem.物料描述
+		eTab[i][3 /* C */] = sapItem.物料组
+		eTab[i][4 /* D */] = sapItem.MTyp
+		eTab[i][5 /* E */] = sapItem.物料是可配置的 == "X" ? "配置" : ""
+		cTab[i][1] = sapItem.价格 ? (tonumber(sapItem.价格)) : ""
+	}else {
+		eTab[i][3 /* C */] = ""
+		eTab[i][4 /* D */] = ""
+		eTab[i][5 /* E */] = ""
+		cTab[i][1] = ""
+	}
+	if #eTab[i] !== 5 console.dump(i,eTab[i]);
+	if #cTab[i] !== 1 console.dump(i,cTab[i]);
+}
+
+osht.range("A3:E" ++ euCount).value2 = eTab;
+osht.range("P3:P" ++ euCount).value2 = cTab;
+
+console.log("完成",time())
+
+console.pause(true)

@@ -1,0 +1,552 @@
+//menu 菜单
+import win.ui;
+import util.metaProperty;
+namespace win.ui 
+
+getSysMenu = function(winform,revert){
+	if( revert === null ) revert = false; 
+	var hmenu = ::User32.GetSystemMenuP( winform[["hwnd"]] : winform, revert );
+	return popmenu(winform,hmenu)
+}
+
+getMenu = function( winform ){
+	var hmenu = ::User32.GetMenuP( winform[["hwnd"]] : winform  );
+	return menu(winform,hmenu)
+} 
+
+var handle2menu = { @{ _weak = "kv" } } 
+class menubase {
+
+	ctor( winform,resid,inst){
+		if( ! winform[["hwnd"]] ){
+			if(type(winform)==type.number){
+				winform = {hwnd=winform;_mapCommandProc={}}
+			}
+			else {
+				error("第一个构造参数必须指定有效窗口",3)
+			} 
+		} 
+   		this.parent = winform; 
+   		
+   		if( type(resid) == type.number ){ 
+   			if( type(inst) == type.string  ){
+   				this.dll = ..raw.loadDll(inst);
+   				inst = this.dll.gethandle();
+   			}
+   			this.handle = LoadMenu(inst,topointer(resid):resid); 
+   			handle2menu[this.handle] = this;
+   		}
+   		else if( type(resid) == type.pointer ){ 
+   			this.handle = resid;
+   			handle2menu[this.handle] = this;
+   		} 
+   	}; 
+   	 
+   	//如果在第三个参数里传入 0x4/*_MF_BITMAP*/ 则第一个参数必须是位图句柄(指针)
+	add = function(label,proc,flag,id){  
+		if( type(flag) == "function") flag = flag();
+		if( flag === null ) flag = 0;
+    	var subMenu,bitmap,bmpUnchecked;
+    	if( this.ownerDraw ) flag |= 0x100/*_MF_OWNERDRAW*/;
+    	
+     	if( type(label) == "table"){
+     		bitmap = label.bitmap;
+     		bitmapCheckd = label.bitmapCheckd; 
+     		proc = label.proc ;
+     		flag = label.flag : 0;
+     		id = label.id;
+     		subMenu = label.menu;
+     		
+     		label = label.text;
+     	}
+     	else if( type(proc)==type.table ){
+     		subMenu = proc;
+     		proc = null;
+     	}
+     			
+    	if( !label ){
+         	AppendMenu(this.handle,0x800/*_MF_SEPARATOR*/ | flag , 0,null );
+         	return;
+     	}
+     	
+    	if( subMenu ){
+    		if( ! subMenu[["handle"]] ){
+    			subMenu = ..win.ui.popmenu( this.parent ).addTable( subMenu ,2 )  
+			}  
+         	AppendMenu(this.handle,0x10/*_MF_POPUP*/ | flag ,tonumber(subMenu.handle),label );
+         	return subMenu; 
+    	}
+    	else{
+    		if(!id){
+    			if(!this.parent@) error("该窗口不支持自动分配id",2);
+    			id = this.parent._getFreeCommandId();
+    		}
+    		
+    		if(proc === null) proc = this[["onMenuItemClick"]];
+    		
+    		if(proc){
+    			if( type(proc)!=type.function) { 
+    				error("参数二必须是一个回调函数",2	);
+    			}
+    				
+    			this.parent._mapCommandProc[id] = proc; 
+    		}
+    		
+    		AppendMenu(this.handle,0/*_MF_STRING*/ | flag,id ,label );
+    		if( bitmap || bitmapCheckd){
+            	this.setBitmap(id,bitmap,bitmapCheckd,0x0/*_MF_BYCOMMAND*/)
+        	}  
+    		return id;
+    	} 
+    		
+	} 
+	addTable = function(args,lev){
+		if( lev === null ) lev = 1; 
+		var arg;  
+		for(i=1;#args;1){
+			arg = args[i] 
+			if(type(arg)!="table")
+				error("包含无效的菜单项参数 " + tostring(arg),lev+1)
+			
+			if(#arg){	
+				if( type(arg[2])==type.table && ( ! arg[2].handle) ){ 
+					this.add(arg[1],..win.ui.popmenu( this.parent ).addTable( arg[2] ,lev+1 ) ,arg[3],arg[4]);
+				} 
+				else {
+					this.add(arg[1],arg[2],arg[3],arg[4]);
+				}
+			}
+			else{
+				if( arg.menu && ( ! arg.menu.handle) ){
+					arg.menu = ..win.ui.popmenu( this.parent ).addTable( arg.menu ,lev+1 ) 
+				} 
+				this.add( arg ); 
+			}
+		} 
+		if( this.redraw ) this.redraw();
+		return this;  
+	}  
+	insert = function(position ,label,proc,flag,id){
+		if( position === null ) position = 1;
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		var subMenu,bitmap,bmpUnchecked;
+		if( this.ownerDraw ) flag |= 0x100/*_MF_OWNERDRAW*/;
+		
+     	if( type(position) == "table"){
+     		bitmap = position.bitmap;
+     		bitmapCheckd = position.bitmapCheckd;
+     		label = position.text;
+     		proc = position.proc;
+     		flag = position.flag : 0x400/*_MF_BYPOSITION*/;
+     		id = position.id;
+     		subMenu = position.menu;
+     		
+     		position = position.position;
+     	}
+     	else if( type(proc)==type.table ){
+     		subMenu = proc;
+     		proc = null;
+     	}
+     	
+		var realpos = position; 
+		if( flag&0x400==0x400 ){
+			position = position - 1; 
+		} 
+		 
+		if( !label ){
+         	InsertMenu(this.handle,position,0x800/*_MF_SEPARATOR*/| flag, 0,null );
+         	return;
+     	}
+     	 
+    	if(  subMenu ){
+    		if( ! subMenu[["handle"]] ){
+    			subMenu = ..win.ui.popmenu( this.parent ).addTable( subMenu ,2 )  
+			}  
+         	InsertMenu(this.handle,position,0x10/*_MF_POPUP*/| flag,tonumber(subMenu.handle),label );
+    	}
+    	else{
+    		if( (proc!==null) ? type(proc)!=type.function)
+    			error("参数二必须是一个回调函数",2) ;
+    			
+    		if(!id){
+    			if(!this.parent@) error("该窗口不支持自动分配id",2);
+    			id = this.parent._getFreeCommandId();
+    		}
+    	 
+    		this.parent._mapCommandProc[id] = proc : this.oncommand; 
+    		InsertMenu(this.handle,position,0/*_MF_STRING*/ | flag,id ,label );
+    		
+    		if( bitmap || bitmapCheckd){
+            	this.setBitmap(id,bitmap,bitmapCheckd,0/*_MF_BYCOMMAND*/)
+        	}    
+    		return id;
+    	}
+	}
+	delete = function(position,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		this.reset(null,position,flag);
+		if( flag&0x400==0x400 ){ 
+			position = position - 1;  
+		}   
+		return DeleteMenu(this.handle, position, flag); 
+	}
+	remove = function(position,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		this.reset(null,position,flag);
+		if( flag&0x400==0x400 ){ 
+			position = position - 1;  
+		}   
+		return RemoveMenu(this.handle, position, flag); 
+	}  
+	subMenu = function(position){
+		var h = GetSubMenu(this.handle,position-1);
+		return h ? handle2menu[h] : ..win.ui.menubase( this.parent,h );
+	} 
+	getSubMenu = function(position){
+		var h = GetSubMenu(this.handle,position);
+		return h ? handle2menu[h] : ..win.ui.menubase( this.parent,h );
+	} 
+	getId = function(position,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		if( flag&0x400==0x400 ){
+			return GetMenuItemID(this.handle,position-1);
+		}  
+		return position;
+	}   
+	getPos = function(id,flag){
+		if( flag === null ) flag = 0x0/*_MF_BYCOMMAND*/;
+		if( flag&0x400==0x400 ){
+			return id;
+		}  
+		for(i=1;this.count() ){ 
+			if(this.getId(i)==id)
+				return i;	 
+		} 
+	} 
+	count = function(){
+		return GetMenuItemCount(this.handle);
+	}
+	reset = function(proc,position ,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		if( position === null ) position = 1;
+		var id = this.getId(position,flag);
+		if(id)
+			this.parent._mapCommandProc[id] = proc;
+	}  
+	close = function(){
+		handle2menu[this.handle] = null;
+		DestroyMenu(this.handle)
+		
+		//如果是主菜单
+		if( this._onClose ){ 
+		    this._onClose(); 
+		}
+		this.handle = null;
+	} 
+	check = function(id,chk=true,flag){ 
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		chk = chk ? 0x8/*_MF_CHECKED*/ : 0x0/*_MF_UNCHECKED*/ 
+		CheckMenuItem(this.handle,flag&0x400==0?id:id-1,flag | chk );
+	}
+	enable = function(id,enb,flag=0x400/*_MF_BYPOSITION*/ ){ 
+		enb = ( (enb !== null)  ? ( !enb ) ) ? 0x1/*_MF_GRAYED*/  : 0;
+		EnableMenuItem(this.handle,flag&0x400==0?id:id-1,flag | enb );
+	}
+	checked = function(id ,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		return ( GetMenuState(this.handle,flag&0x400==0?id:id-1, flag ) & 0x8/*_MF_CHECKED*/ ) == 0x8/*_MF_CHECKED*/
+	}
+	getString = function(id,flag ){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		var len,str = GetMenuString(this.handle,flag&0x400==0?id:id-1, 128,128,flag ) 
+		if(len)return str;
+	}
+	setString = function(id,str,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		var len,str = ModifyMenuString(this.handle,flag&0x400==0?id:id-1, flag | 0x0/*_MF_STRING*/,this.getId(id,flag),str) 
+		if(len)return str;
+	};
+	setBitmap = function(position,bitmap,bmpUnchecked,flag){
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+    	if( type(bitmap) == "string") {
+    		var img = ..com.picture.load(bitmap);//转化为句柄
+    		bitmap = img.CopyHandle();
+    	}
+    	if( type(bitmapCheckd) == "string") {
+    		var img = ..com.picture.load(bitmapCheckd);//转化为句柄
+    		bitmapCheckd = img.CopyHandle();
+    	}
+    	
+    	return SetMenuItemBitmaps(this.handle,this.getId(position,flag),0x111/*_WM_COMMAND*/,bitmap,bitmapCheckd);
+	};
+	click = function(position,flag){ 
+		if( flag === null ) flag = 0x400/*_MF_BYPOSITION*/;
+		::PostMessage(this.parent.hwnd, 0x111/*_WM_COMMAND*/,this.getId(position,flag) ,0);
+	} 
+	@_metaProperty;  
+}
+var menubase = menubase;
+
+namespace menubase{ 
+	var u = ::User32;
+	ModifyMenuString = u.api("ModifyMenu","int(pointer menu,int nPosition,int wFlags,int wIDNewItem,ustring lpString)")
+	GetMenuString = u.api("GetMenuString","int(pointer menu,int wIDItem,ustring& lpString,int nMaxCount,int wFlag)")
+	AppendMenu = u.api("AppendMenu","int(pointer menu,INT flags,INT newId,ustring newItem)" ) 
+	InsertMenu = u.api("InsertMenu","int(pointer menu,INT position,INT flag,INT idNew,ustring newItem)");
+	DestroyMenu  = u.api("DestroyMenu","int(pointer menu)" ) 
+	
+	GetMenuState = u.api("GetMenuState","int(pointer menu,int wID,int wFlags)")
+	CheckMenuItem = u.api("CheckMenuItem","INT(pointer menu,INT uIDCheckItem,INT uCheck)");
+	EnableMenuItem = u.api("EnableMenuItem","INT(pointer menu,INT uIDEnableItem,INT uEnable)");
+	DeleteMenu = u.api("DeleteMenu","int(pointer menu,int position,int flags)")
+	RemoveMenu = u.api( "RemoveMenu", "bool(pointer menu,INT position,INT flags)");
+	GetMenuItemID = u.api("GetMenuItemID","int(pointer menu,int nPos)")
+	
+	LoadMenu = u.api("LoadMenu","pointer(pointer hinst,ustring string)") 
+	GetSubMenu = u.api("GetSubMenu","pointer(pointer menu,int position)")
+	GetMenuItemCount = u.api("GetMenuItemCount","int(pointer menu)")
+	
+	SetMenuItemBitmaps = u.api("SetMenuItemBitmaps","bool(pointer menu,int position,int flags,pointer hBmp,pointer hBmpChecked)");
+
+	_metaProperty = ..util.metaProperty(
+		selIndex = {
+			_get = function(){
+				for(i=1; owner.count()) if(owner.checked(i)) return i;
+			}
+			_set = function( idx ){
+				var i = owner.selIndex;
+				if( i ) owner.check(i,false)
+				owner.check(idx,true)
+			} 	
+		}; 
+		selId = {
+			_get = function(){ 
+				return owner.getId(owner.selIndex);
+			}
+			_set = function( id ){
+				owner.selIndex = owner.getPos(id); 
+			} 	
+		}; 
+		selText = {
+			_get = function(){ 
+				return owner.getString(owner.selIndex);
+			}
+			_set = function( text ){
+				for(i=1;owner.count()) if(owner.getString(i) == text){
+					owner.selIndex = i;
+					break ;
+				} 
+			} 	
+		};
+		
+	)
+}
+
+menu = class{
+	ctor( winform,resid,inst )begin 
+		if(winform[["menu"]])
+    		winform.menu.close(); 
+    	
+   		this = menubase(winform,resid,inst);//继承基类
+   		
+   		if(!this.handle){
+   			this.handle = ::User32.CreateMenuP();
+   			handle2menu[this.handle] = this;
+   		}
+    	::User32.SetMenu(winform.hwnd,this.handle);  
+    	winform.menu = this;
+	end; 
+	
+	redraw = function(){
+		::User32.DrawMenuBar(this.parent.hwnd);
+	}
+	_onClose = function(){
+		::User32.SetMenu(this.parent.hwnd,null );
+		this.parent.menu = null; //取消绑定
+		this.redraw()
+	}  
+}
+
+namespace menu{
+
+	_handle2menu = handle2menu;
+	findByHandle = function(hMenu){
+		return handle2menu[topointer(hMenu)];
+	};
+}
+ 
+popmenu = class{
+	
+	ctor( winform,resid,inst ) { 
+   		this = menubase(winform,resid,inst);//继承基类 
+   		winform = this.parent;
+   		
+   		if(!this.handle){
+   			this.handle = CreatePopupMenu(); 
+   			handle2menu[this.handle] = this;
+   		}
+	}  
+ 
+	popup = function(x,y,screen,flag){ 
+		if( flag === null ) flag = 2; 
+		//在指定坐标(x,y)弹出菜单
+		if( type(x) == type.table ) {
+			y = x.y;
+			x = x.x;
+		}
+		elseif( x===null || y===null  ){
+			var pt = ::POINT();
+			::User32.GetCursorPos(pt);
+			
+			x,y = pt.x,pt.y;
+			screen = true;
+		}
+		 
+		if( (type(x)!=type.number) || (type(y) != type.number) )
+			error("菜单弹出坐标必须是数字",2)
+		
+		var pt = ::POINT();
+		pt.x = x;
+		pt.y = y;
+		
+		if(!screen){
+			::ClientToScreen( this.parent.hwnd,pt);
+		} 
+		return TrackPopupMenu( this.handle,flag ,pt.x,pt.y , 0,this.parent.hwnd,null);
+	} 
+	popId = function(x,y,screen,flag){ 
+		if( flag === null ) flag = 2; 
+		return this.popup(x,y,screen,flag | 0x0100/*_TPM_RETURNCMD*/)
+	}
+	fireId = function(id,hwnd,...){ 
+		var func = id ? this.parent._mapCommandProc[id];
+		if( func ){ 
+			func(id,hwnd,...);	
+		}
+		else{ 
+			::PostMessage( hwnd[["hwnd"]] : hwnd : this.parent.hwnd, 0x111/*_WM_COMMAND*/, id,0)
+		}
+	}  
+}
+
+namespace popmenu { 
+	var u = ::User32;
+	CreatePopupMenu := u.api("CreatePopupMenu","pointer()" )
+	TrackPopupMenu := u.api("TrackPopupMenu","int(pointer menu,INT uFlags,int x,int y,int nReserved,int hWnd, pointer prcRect)" );
+}
+ 
+/**intellisense()
+!menu.handle = 菜单句柄
+!menu.redraw() = 重绘菜单
+!menu.add( =  添加菜单，返回菜单项ID
+!menu.add(.() = 添加分隔线 
+!menu.add(.(标题,回调函数) = @.add("菜单标题",function(){\n	__/*回调函数*/\n	\n})
+!menu.add(.(参数表) = @.add(\n	text = "标题";\n	bitmap = "位图句柄或路径、或图像数据,可选参数";\n	bitmapCheckd = "选中位图句柄或路径、或图像数据,可选参数";\n	proc = function(id){\n		__/*回调函数*/\n	};\n	id = 可选参数;\n	flag = 可选参数;\n);
+!menu.addTable = @.addTable( {\n	{ "菜单文本";  function(id){\n		__/*菜单事件回调函数*/\n	} }; { /*分隔线*/ }\n	{ "退出程序"; function(id){  \n		winform.close() \n 	} };\n} )
+!menu.insert( 1__ ) = 在指定位置插入分隔线
+!menu.insert(位置,标题,回调函数) = @.insert(1,"菜单标题",function(){\n	__/*回调函数*/\n	\n})
+!menu.insert(参数表) = @.insert(\n	position = 1;\n	text = "标题";\n	bitmap = "位图句柄或路径、或图像数据,可选参数";\n	bitmapCheckd = "选中位图句柄或路径、或图像数据,可选参数";\n	proc = function(id){\n		__/*回调函数*/\n	};\n	id = 可选参数;\n	flag = 可选参数;\n);
+!menu.delete( 1__ ) = 删除指定位置菜单\n被移除的如果是子菜单则销毁,不可重用
+!menu.delete( 1__,0x0/*_MF_BYCOMMAND*/) = 删除指定ID菜单\n被移除的如果是子菜单则销毁,不可重用
+!menu.remove( 1__ ) = 移除指定位置菜单\n被移除的如果是子菜单并不销毁,可重用
+!menu.remove( 1__,0x0/*_MF_BYCOMMAND*/) = 移除指定ID菜单\n被移除的如果是子菜单并不销毁,可重用
+!menu.getId( 1__ ) = 返回指定位置菜单ID 
+!menu.click( 1__ ) = 模拟点击指定位置菜单
+!menu.getPos( id__ ) = 根据菜单ID返回菜单位置
+!menu.count() = 返回菜单子项数目
+!menu.subMenu(1__) = 返回指定位置子菜单
+!menu.subMenu() = !menu.
+!menu.reset(.(新的回调函数,菜单位置) = 重设菜单回调函数 
+!menu.reset(.(新的回调函数,菜单ID,0/*_MF_BYCOMMAND*/) = 重设菜单回调函数
+!menu.close() = 关闭菜单
+!menu.check(.(菜单项序号) = 选中菜单项
+!menu.check(.(菜单项序号,是否选中) = 设置是否选中菜单项
+!menu.check(.(菜单项ID,是否选中,0/*_MF_BYCOMMAND*/) = 取消选中菜单项
+!menu.enable(.(菜单项序号) = 启用菜单项
+!menu.enable(.(菜单项序号,false) = 禁用菜单项
+!menu.checked(__/*菜单项序号*/) = 返回菜单项是否选中状态 
+!menu.getString(__/*菜单项序号*/) = 返回菜单文本
+!menu.setString(__/*菜单项序号*/,"") = 设置菜单文本
+!menu.setBitmap(.(菜单序号或ID,位图,选中位图) = 选中位图为可选参数,\n图像可以是句柄指针,也可以是图像文件路径或数据
+!menu.ownerDraw = 启用自绘\n系统菜单自绘没多大意义,建议使用弹出窗口模拟菜单即可
+!menu.onMenuItemClick = @.onMenuItemClick = function(id){
+	menuFile.selId = id;__/*指定默认菜单回调函数*/
+}
+!menu.selIndex = 获取或修改当前选中项索引,单选模式
+!menu.selId = 获取或修改当前选中项命令ID,单选模式
+!menu.selText = 获取或修改当前选中项文本,单选模式
+!popmenu.handle = 菜单句柄
+!popmenu.add() = 添加分隔线
+!popmenu.add("标题",__/*子菜单*/) = 添加子菜单
+!popmenu.add("标题",回调函数) = @.add("菜单标题",function(){\n	__/*回调函数*/\n	\n})//返回菜单ID
+!popmenu.add(参数表) = @.add(\n	text = "标题";\n	bitmap = "位图句柄或路径、或图像数据,可选参数";\n	bitmapCheckd = "选中位图句柄或路径、或图像数据,可选参数";\n	proc = function(id){\n		__/*回调函数*/\n	};\n	id = 可选参数;\n	flag = 可选参数;\n);
+!popmenu.addTable = @.addTable( {\n	{ "菜单文本";  function(id){\n		__/*菜单事件回调函数*/\n	} }; { /*分隔线*/ }\n	{ "退出程序"; function(id){  \n		winform.close() \n 	} };\n} )
+!popmenu.insert( 1__ ) = 在指定位置插入分隔线
+!popmenu.insert(位置,标题,回调函数) = @.insert(1,"菜单标题",function(){\n	__/*回调函数*/\n	\n})
+!popmenu.insert(参数表) = @.insert(\n	position = 1;\n	text = "标题";\n	bitmap = "位图句柄或路径、或图像数据,可选参数";\n	bitmapCheckd = "选中位图句柄或路径、或图像数据,可选参数";\n	proc = function(id){\n		__/*回调函数*/\n	};\n	id = 可选参数;\n	flag = 可选参数;\n);
+!popmenu.delete( 1__ ) = 删除指定位置菜单\n被移除的如果是子菜单则销毁,不可重用
+!popmenu.delete( 1__,0x0/*_MF_BYCOMMAND*/) = 删除指定ID菜单\n被移除的如果是子菜单则销毁,不可重用
+!popmenu.remove( 1__ ) = 移除指定位置菜单\n被移除的如果是子菜单并不销毁,可重用
+!popmenu.remove( 1__,0x0/*_MF_BYCOMMAND*/) = 移除指定ID菜单\n被移除的如果是子菜单并不销毁,可重用
+!popmenu.getId( 1__ ) = 返回指定位置菜单ID
+!popmenu.click( 1__ ) = 模拟点击指定位置菜单
+!popmenu.getPos( id__ ) = 根据菜单ID返回菜单位置
+!popmenu.count() = 返回菜单子项数目
+!popmenu.subMenu(1__) = 返回指定位置子菜单
+!popmenu.subMenu() = !menu.
+!popmenu.reset(.(新的回调函数,菜单位置) = 重设菜单回调函数
+!popmenu.reset(.(新的回调函数,菜单ID,0x0/*_MF_BYCOMMAND*/) = 重设菜单回调函数
+!popmenu.fireId(.(id,hwnd) = 调用菜单回调函数\n可选指定接收命令的窗体句柄\n可添加任意个附加参数
+!popmenu.close() = 关闭菜单
+!popmenu.check(.(菜单项序号) =选中菜单项
+!popmenu.check(.(菜单项序号,false) =取消选中菜单项
+!popmenu.enable(.(菜单项序号) = 启用菜单项
+!popmenu.enable(.(菜单项序号,false) = 禁用菜单项
+!popmenu.checked(__/*菜单项序号*/) = 返回菜单项是否选中状态 
+!popmenu.getString(__/*菜单项序号*/) = 返回菜单项文本
+!popmenu.setString(__/*菜单项序号*/,"") = 设置菜单项文本
+!popmenu.setBitmap(.(菜单序号或ID,位图,选中位图) = 选中位图为可选参数,\n图像可以是句柄指针,也可以是图像文件路径或数据
+!popmenu.popup(.(x坐标,y坐标,是否屏幕坐标,选项) = 弹出菜单\n如果不指定坐标,则自动获取鼠标当前位置,\n可选用参数@4指定 _TPM_ 前缀的选项,\n例如 _TPM_BOTTOMALIGN 指定坐标 y 指定菜单底部位置
+!popmenu.popId(.(x坐标,y坐标,是否屏幕坐标,选项) = 弹出菜单\n并返回用户点选ID\n未选择或发生错误则返回零,\n如果不指定坐标,则自动获取鼠标当前位置,\n可选用参数@4指定 _TPM_ 前缀的选项,\n例如 _TPM_BOTTOMALIGN 指定坐标 y 指定菜单底部位置
+_TPM_CENTERALIGN=@0x4/*_TPM_CENTERALIGN*/
+_TPM_LEFTALIGN=@0/*_TPM_LEFTALIGN*/
+_TPM_RIGHTALIGN=@0x8/*_TPM_RIGHTALIGN*/
+_TPM_BOTTOMALIGN=@0x20/*_TPM_BOTTOMALIGN*/
+_TPM_TOPALIGN=@0/*_TPM_TOPALIGN*/
+_TPM_VCENTERALIGN=@0x10/*_TPM_VCENTERALIGN*/
+
+!popmenu.ownerDraw = 启用自绘\n系统菜单自绘没多大意义,建议使用弹出窗口模拟菜单即可
+!popmenu.onMenuItemClick = @.onMenuItemClick = function(id){
+	menuFile.selId = id;__/*指定默认菜单回调函数*/
+}
+!popmenu.selIndex = 获取或修改当前选中项索引,单选模式
+!popmenu.selId = 获取或修改当前选中项命令ID,单选模式
+!popmenu.selText = 获取或修改当前选中项文本,单选模式
+win.ui.menu.onMeasureItem = @.onMeasureItem = function(measureItem,dpiScaleX,dpiScaleY){ 
+	measureItem.itemWidth = 80;  
+	measureItem.itemHeight = ::GetSystemMetrics(0xF/*_SM_CYMENU*/);
+}
+win.ui.menu.onDrawItem = @.onDrawItem = function(drawItem,dpiScaleX,dpiScaleY){
+
+	return 1; 
+}
+win.ui.menu() = !menu.
+win.ui.getSysMenu()  = !popmenu.
+win.ui.popmenu() = !popmenu.
+win.ui.menu() = !menu.
+win.ui.getMenu() = !menu.
+win.ui.getMenu(hwnd) = 返回窗口菜单\n参数@1可指定窗体对象或窗体句柄
+win.ui.getSysMenu(winform) = 返回系统菜单\n参数@1可指定窗体对象或窗体句柄\n请事先导入win.ui.menu
+win.ui.getSysMenu(winform,true) = 返回系统菜单\n并重置为缺省状态\n参数@1可指定窗体对象或窗体句柄\n请事先导入win.ui.menu
+win.ui.menu = 菜单支持库
+win.ui.menu( = 创建窗口菜单\n需要先调用 import win.ui.menu，不然发布后会报错。\n开发环境下运行，为了加快启动速度，不会百分百排除所有没有引用的库
+win.ui.menu(.(窗口) = 创建窗口菜单
+win.ui.menu(.(窗口,菜单句柄) = 使用存在的菜单句柄创建菜单对象
+win.ui.menu._handle2menu = 句柄到菜单对象映射表
+win.ui.menu.findByHandle(.(菜单句柄) = 查找菜单对象
+win.ui.menu.findByHandle() = !menu.
+win.ui.popmenu( = 创建弹出菜单\n需要先调用 import win.ui.menu，不然发布后会报错。\n开发环境下运行，为了加快启动速度，不会百分百排除所有没有引用的库
+win.ui.popmenu(.(窗口) = 创建弹出菜单
+win.ui.popmenu(.(窗口,菜单句柄) = 使用存在的菜单句柄创建弹出菜单对象
+_MENU_ITEM_IS_SUBMENU = @0xFFFFFFFF/*_MENU_ITEM_IS_SUBMENU*/
+end intellisense**/

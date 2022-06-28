@@ -1,0 +1,9 @@
+import console; 
+import inet.whttp;
+var http=inet.whttp();
+var url="http://www.jiandan.net/ooxx";
+var str=http.get(url);
+try{
+	str=string.save("f:\test.txt",str); //保存到本地
+}
+console.pause(true);

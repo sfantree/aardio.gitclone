@@ -1,0 +1,70 @@
+﻿namespace hge.interFace.alg;
+
+getRange = function(x1,y1,x2,y2){ //取距离
+	return ..math.sqrt((x1-x2)**2)+(y1-y2)**2)
+}
+getRad = function(x1,y1,x2,y2){//取弧度
+	return math.atan2(x2-x1,y2-y1);
+}
+getAngle = function(x1,y1,x2,y2){
+	return radToAngle(..math.atan2(x2-x1,y2-y1));
+}
+
+radToAngle = function(rad){ //弧度转角度
+	return ..math.round(180 - rad/..math.pi*180); 
+}
+
+aniSlow = function(n1,n2,num){ //缓减速
+	if n1 = n2 return ;  
+	n1 += (n2-n1)*num
+	return n1
+}
+aniAccelerate = function(n1,n2,num){ //缓加速
+	n1 += (n2+n1)*num 
+	return n1
+}
+retArgs = function(val,num = 1){//返回多个相同值。
+	return ..table.unpackArgs(..table.array(num,val)); 
+}
+getMax = function(...){//取最大值
+	var arg = {...}
+	var max = 0;
+	for(i=1;#arg;1){
+		max = max > arg[i]? max : arg[i]
+	}
+	return max; 
+}
+getMin = function(...){//取最小值
+	var arg = {...}
+	var max = 0;
+	for(i=1;#arg;1){
+		max = max < arg[i]? max : arg[i]
+	}
+	return max; 
+}
+
+elastic = function(x1,y1,x2,y2,ela,fri,dts=1){//弹性
+	var vx = (x2-x1)*ela
+	var vy = (y2-y1)*ela
+	vx*=fri;
+	vy*=fri;
+	x1 += vx*dts
+	y1 += vy*dts
+	return x1,y1; 
+}
+
+rotatRound = function(x1,y1,x2,y2,angle= 0,radius,speed,dts=1){
+	x1 = x2 + ..math.cos(angle)*radius*dts
+	y1 = y2 + ..math.sin(angle)*radius*dts
+	angle+= speed
+	return x1,y1,angle; 
+}
+
+
+angleToRad = function(angle){//角度转弧度
+	return ..math.round(angle*..math.pi/180); 
+}
+
+dotProduct = function(x1,y1,x2,y2){//点积
+	return x1*y1+x2*y2; 
+}

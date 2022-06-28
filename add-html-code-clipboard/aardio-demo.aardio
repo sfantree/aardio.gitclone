@@ -1,0 +1,21 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=338;bottom=185)
+winform.add(
+button={cls="button";text="copy";left=90;top=59;right=255;bottom=123;z=1}
+)
+/*}}*
+var dll  = raw.loadDll("/clipHtml.dll") 
+CopyHTML = dll.api("CopyHTML","void(string)" )
+ 
+winform.button.oncommand = function(id,event){
+CopyHTML(`
+    <b>This is a 12435 program .这是一个测试。</b>
+    <hr>
+    <li>entry 1
+    <li>entry 2
+    <img src="C:\Users\22222\Desktop\28.png" />
+    `);
+}
+winform.show();
+win.loopMessage();

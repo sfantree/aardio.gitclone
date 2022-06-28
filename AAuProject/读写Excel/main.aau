@@ -1,0 +1,88 @@
+import win.ui;
+import com.excel;
+/*DSG{{*/
+mainForm = ..win.form( bottom=400;parent=...;right=600;text="AAuto Form" )
+mainForm.add(  )
+/*}}*/
+
+/***
+import config;
+mainForm.bindConfig( config.mainForm,{
+	edit = "text"; //绑定edit控件的text属性值到配置文件
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+} );
+***/
+
+//mainForm.show() 
+
+var excel = com.excel(false);
+//excel.Open("C:\Documents and Settings\Administrator\桌面\投保人信息导入.xls");
+io.open()
+var file = "C:\Documents and Settings\Administrator\桌面\保险导入.sql";
+io.remove(file)
+var logFile = io.open(file,"a");
+//var content = "";
+var j = 1;
+for(i,values in excel.eachValue(1) ){
+    if(i>1){
+    	var id = i-1;
+    	if(values[1]==null){
+    		break;
+    	}else{
+    		io.print("行号"+id,values[1],values[2],values[3]) ;
+    	}	
+    	var sqlHead = "insert into TB_EMP_INSURANCE (DIST_CODE, DISTRICT, DEPT_CODE, ORG_NAME, EMP_NAME, EMP_CODE, IN_TIME, ISBUY, ISSURE, CREATE_PERSON, CREATE_TM, UPDATE_PERSON, UPDATE_TM, ID)"
+		var sqlBody = "values (null, '"+tostring(values[1])+"', '"+tostring(values[2])+"', '"+tostring(values[3])+"', '"+tostring(values[4])+"', '"+tostring(values[5])+"', to_date('"+tostring(values[6])+"', 'yyyy-mm-dd'), '否', null, 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), "+id+");"+'\n'
+		//content = content+sqlHead+sqlBody;
+		logFile.write(sqlHead+sqlBody);
+		j = id+1;
+    }
+}
+logFile.write('commit;\n');
+logFile.write('----------------------------------------------------\n');
+
+var k = 1;
+for(i,values in excel.eachValue(2) ){
+    if(i>1){
+    	if(values[1]==null){
+    		break;
+    	}else{
+    		io.print("行号"+j,values[1],values[2],values[3]) ;
+    	}	
+    	var sqlHead = "insert into TB_EMP_INSURANCE (DIST_CODE, DISTRICT, DEPT_CODE, ORG_NAME, EMP_NAME, EMP_CODE, IN_TIME, ISBUY, ISSURE, CREATE_PERSON, CREATE_TM, UPDATE_PERSON, UPDATE_TM, ID)"
+		var sqlBody = "values (null, '"+tostring(values[1])+"', '"+tostring(values[2])+"', '"+tostring(values[3])+"', '"+tostring(values[4])+"', '"+tostring(values[5])+"', to_date('"+tostring(values[6])+"', 'yyyy-mm-dd'), '否', null, 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), "+j+");"+'\n'
+		//content = content+sqlHead+sqlBody;
+		logFile.write(sqlHead+sqlBody);
+		j = j+1;
+		k = j;
+    }
+}
+logFile.write('commit;\n');
+logFile.write('----------------------------------------------------\n');
+
+for(i,values in excel.eachValue(3) ){
+    if(i>1){
+    	if(values[1]==null){
+    		break;
+    	}else{
+    		io.print("行号"+k,values[1],values[2],values[3]) ;
+    	}
+    	var sqlHead = "insert into TB_EMP_INSURANCE (DIST_CODE, DISTRICT, DEPT_CODE, ORG_NAME, EMP_NAME, EMP_CODE, IN_TIME, ISBUY, ISSURE, CREATE_PERSON, CREATE_TM, UPDATE_PERSON, UPDATE_TM, ID)"
+		var sqlBody = "values (null, '"+tostring(values[1])+"', '"+tostring(values[2])+"', '"+tostring(values[3])+"', '"+tostring(values[4])+"', '"+tostring(values[5])+"', to_date('"+tostring(values[6])+"', 'yyyy-mm-dd'), '否', null, 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), 'admin', to_date('08-08-2012 16:30:35', 'dd-mm-yyyy hh24:mi:ss'), "+k+");"+'\n'
+		//content = content+sqlHead+sqlBody;
+		logFile.write(sqlHead+sqlBody);
+		k = k+1;
+    }
+}
+logFile.write('commit;\n');
+logFile.write('----------------------------------------------------\n');
+io.print(k);
+//logFile.write(i);
+//logFile.write(content);
+logFile.flush();
+logFile.close();
+execute("pause")
+io.close()
+win.loopMessage(); 

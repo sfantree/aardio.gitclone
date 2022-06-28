@@ -1,0 +1,97 @@
+//expandableList 扩展列表
+namespace web.sciter.behavior.expandableList;
+
+onAttach = function( scOwner ){ 
+	var gotOne = false;
+	
+	for(i,child in scOwner.eachChild() ){ 
+		if( child.getAttribute("default") && !gotOne) {
+			child.modifyState( 0x20/*_HL_STATE_CURRENT*/ |  0x200/*_HL_STATE_EXPANDED*/,0,false);
+			gotOne = true;
+		}  
+		else{
+			child.modifyState(0x400/*_HL_STATE_COLLAPSED*/,0,false);
+		}
+	} 
+}
+
+setCurrentItem = function( scOwner, item )  {
+	// get previously selected item:
+	var  prevCurrent = scOwner.querySelector(":root > :current");
+	var  prev = scOwner.querySelector(":root > :expanded");
+	
+	if(prevCurrent != item && prevCurrent)
+		prevCurrent.modifyState(0,0x20/*_HL_STATE_CURRENT*/);
+	
+	if( prev ) {
+		if( prev == item ) 
+			return; // already here, nothing to do.
+			
+		prev.modifyState(0, 0x20/*_HL_STATE_CURRENT*/ |  0x200/*_HL_STATE_EXPANDED*/); 
+		
+		// notify all parties involved
+		prev.postEvent(0x90/*_HL_ELEMENT_COLLAPSED*/,0, prev); // source here is old collapsed tab itself
+	} 
+	item.modifyState( 0x20/*_HL_STATE_CURRENT*/ |  0x200/*_HL_STATE_EXPANDED*/); // set state flags
+	item.postEvent(0x91/*_HL_ELEMENT_EXPANDED*/,0, item);  // source here is new expanded tab itself
+} 
+
+targetItem = function( scOwner,scTarget) {
+	if( scTarget == scOwner )
+		return;
+	
+	if( !scTarget )
+		return;
+	
+	var  ltTargetParent = scTarget.parent();
+	if( !ltTargetParent )
+		return;
+	
+	if( scTarget.test("li > .caption") )
+		return ltTargetParent; // only if click on "caption" element of <li>. Returns that <li> element.
+	
+	return targetItem( scOwner, scTarget.parent() );
+}
+    
+onMouseDown = function (scTarget,scOwner,x,y,mouseParams) { 
+	if( mouseParams.button_state != 1/*_HL_MAIN_MOUSE_BUTTON*/ )
+		return;
+		
+ 	// el is presumably <li>; 
+    var  item = targetItem(scOwner, scTarget);
+
+    if(item) // click on the item caption
+        owner.setCurrentItem(scOwner, item);
+
+    return true; // as it is always ours then stop event bubbling
+}
+
+onMouseDblClick = onMouseDown;
+
+onActiveChild = function (scTarget,scOwner,reason,behaviorParams) {
+	var  item = targetItem(scOwner, scTarget);
+	if(item) {
+		// click on the item caption 
+		owner.setCurrentItem(he, item);
+		return true; 
+	}	
+}
+
+onKeyDown = function (scTarget,scOwner,keyCode, altState, keyParams) {
+	select(keyCode) {
+		case 0x28/*_VK_DOWN*/ {
+			var  c = scOwner.querySelector(":current");
+			var idx = c? (c.index() + 1):0;
+			if( idx <= scOwner.childCount() ) { 
+   				owner.setCurrentItem(scOwner, scOwner.child(idx) ); 
+			}
+		}
+		case 0x26/*_VK_UP*/ {
+			var  c = scOwner.querySelector(":current");
+			var idx = c? (c.index() - 1):(scOwner.childCount() - 1);
+			if( idx >= 1 ) {
+            	owner.setCurrentItem(scOwner, scOwner.child(idx)); 
+        }
+		} 
+	}
+}

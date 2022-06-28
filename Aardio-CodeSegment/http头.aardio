@@ -1,0 +1,23 @@
+﻿//http头
+import wsock.tcp.client; 
+var tcp = wsock.tcp.client() 
+tcp.connect("bbs.aardio.com",80) 
+
+sendData =/***********
+GET /  HTTP/1.1
+Host: bbs.aardio.com
+Connection: close
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) 
+Cache-Control: max-age=0
+Accept: application/xml,application/xhtml+xml,text/html;q=0.9,text/plain,image/png,*/*;  
+Accept-Language: zh-CN,zh; 
+Accept-Charset: GBK,utf-8;  
+***********/
+tcp.write( sendData + '\r\n\r\n' )
+
+io.open()
+for(str,size in tcp.eachRead() ){ 
+    io.print( str );
+} 
+
+tcp.close()

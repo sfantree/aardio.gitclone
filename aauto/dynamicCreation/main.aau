@@ -1,0 +1,51 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form( bgcolor=16777215;bottom=249;parent=...;text="AAuto Form";right=349 )
+winform.add( 
+button2={ bottom=218;right=278;left=182;top=189;font=LOGFONT( name='宋体' );z=3;text="销毁";cls="button" };
+button={ bottom=218;right=154;left=61;top=191;font=LOGFONT( name='宋体' );z=1;text="创建";cls="button" };
+edit={ right=306;bottom=61;text="本文本框动态创建、销毁";left=40;top=32;font=LOGFONT( name='宋体' );z=2;edge=1;cls="edit" }
+)
+/*}}*/
+
+winform.button2.oncommand = function(id,event){
+	winform.edit.close();
+}
+index = 0;
+latestRight = 306;
+latestLeft = 40;
+latestTop = 32;
+latestBottom = 61;
+
+editHeight = latestBottom - latestTop;
+editWidth = latestRight - latestLeft;
+
+editGap = 10;
+
+
+calcuateTop = function(editGap, _latestTop){
+	return editGap + _latestTop + editHeight;
+}
+
+calcuateBottom = function(editGap, _latestBottom){
+	return editGap + _latestBottom + editHeight;
+}
+
+calcuateIndex = function(index, _count){
+	return index + _count;
+}
+
+winform.button.oncommand = function(id,event){
+ index = calcuateIndex(index, 1);
+ latestTop   = calcuateTop(editGap, latestTop);
+ latestBottom   = calcuateBottom(editGap, latestBottom);
+ winform.add(["edit"++index]={left=39;right=305;top=latestTop;bottom=latestBottom;font=LOGFONT( name="宋体";h=-12 );z=1;text=latestTop++":"++latestBottom++":"+index;edge=1;cls="edit" });
+ win.msgbox(latestTop++":"++latestBottom++":"+index);
+}
+
+winform.show()
+win.loopMessage();
+return winform;
+
+
+//动态创建的 static 控件 默认是不响应 oncommand 事件的,要在参数里加上 notify=1 启用响应 oncommand 事件.

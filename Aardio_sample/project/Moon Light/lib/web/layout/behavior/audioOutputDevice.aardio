@@ -1,0 +1,25 @@
+﻿//audioOutputDevice 音频输出设备列表
+import web.layout.behavior.player;
+
+var mpv = web.layout.behavior.player.mpv;
+
+var deviceList = mpv.getAudioOutputDeviceList()
+var deviceAlias = {
+	["Autoselect device"] = "自动选择";
+	["Default (openal)"] = "默认";
+}
+
+namespace web.layout.behavior.audioOutputDevice{
+	onAttach = function( ltOwner ){
+		var menu = ltOwner.$1("menu")
+		
+		for(i=1;#deviceList;1){
+			var description = deviceList[i].description
+			
+			var li = menu.createElement("li")
+			li.innerText = deviceAlias[description] ?  deviceAlias[description] : description
+			li["device-name"] = deviceList[i].name
+			li.class = "output-device-item"
+		}
+	}	
+}

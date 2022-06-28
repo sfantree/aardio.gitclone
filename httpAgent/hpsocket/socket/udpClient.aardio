@@ -1,0 +1,26 @@
+﻿import hpsocket.socket.client;
+namespace hpsocket.socket;
+
+class udpClient{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.client(obj);
+	};
+	getMaxDatagramSize = function(){
+		return ::HPSocket.HP_UdpClient_GetMaxDatagramSize(this.pSocket);
+	}
+	setMaxDatagramSize = function(size){
+		::HPSocket.HP_UdpClient_SetMaxDatagramSize(this.pSocket,size);
+	}
+	getDetectAttempts = function(){
+		return ::HPSocket.HP_UdpClient_GetDetectAttempts(this.pSocket);
+	}
+	setDetectAttempts = function(attempts){
+		::HPSocket.HP_UdpClient_SetDetectAttempts(this.pSocket,attempts);
+	}
+	getDetectInterval = function(){
+		return ::HPSocket.HP_UdpClient_GetDetectInterval(this.pSocket);
+	}
+	setDetectInterval = function(interval){
+		::HPSocket.HP_UdpClient_SetDetectInterval(this.pSocket,interval);
+	}
+}

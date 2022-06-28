@@ -1,0 +1,54 @@
+io.open()
+
+// https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore
+
+import aaz.libchakraCore;
+
+// 创建一个新的运行时
+var runtime = aaz.libchakraCore.createRuntime();
+// 创建用于运行脚本的脚本上下文
+var context = runtime.createContext();
+// 在线程上设置当前脚本上下文
+aaz.libchakraCore.context.current = context;
+
+// 运行脚本
+var jsScript = "(()=>{return 'Hello world!';})()"
+var jsValue, err = aaz.libchakraCore.context.runScript(jsScript, 1, "");
+if(!jsValue){
+	io.print("脚本错误：" ++ err)
+	execute("pause")
+}
+
+// 使用 jsValue 前增加引用次数，防止中间被垃圾回收。 注：使用已被垃圾回收的 jsValue 会导致程序崩溃
+jsValue.addRef();
+
+// 把 js 字符串转为 aardio 字符串
+
+// 方法一， 提前知道 jsValue 是字符串
+var result = jsValue.toString();
+io.print(result)
+
+// 方法二 ，使用辅助函数检测类型后自动转换
+var result = jsValue.parse();
+io.print(result)
+
+// 使用 jsValue 后要释放，减少引用次数
+jsValue.release();
+
+
+
+// 测试创建一个 jsValue ， 注意创建前要有一个活动的上下文，这里使用上面已创建的
+var testValue = aaz.libchakraCore.value("中a1");
+testValue.addRef();
+
+// 读取里面的内容
+io.print( testValue.parse() )
+testValue.release();
+
+// 释放资源
+// 在线程上删除当前上下文
+aaz.libchakraCore.context.current = null;
+// 释放运行时
+runtime.dispose();
+
+execute("pause")

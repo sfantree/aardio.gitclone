@@ -1,0 +1,88 @@
+﻿//config 配置文件
+import v2ray.config;
+import fsys.config;
+config  = fsys.config( io.appData("/win2ray-v2/") ); 
+
+namespace config {
+	__appName = "win2ray"; 
+	__loadDefaultOutbounds = function(){
+	    var serverData =  ..string.load("/v2ray-core/win2ray-default-servers.json") 
+	    	: $"/v2ray-core/win2ray-default-servers.json"
+    	
+    	proxy.outbounds = ..v2ray.config.importFromString(..string.removeBom(serverData));
+    	
+    	..publish("outbounds.updateConfigJson",)
+	}
+	
+	if(!proxy.outbounds){
+		__loadDefaultOutbounds();
+	}
+}
+
+if(!config.proxy.mode) config.proxy.mode = "pac";
+
+if(!config.core.default){
+	config.core.default =  {
+		inbounds={
+			{
+				listen="127.0.0.1";
+				port=0;
+				protocol="socks";
+				settings={
+					auth="noauth";
+					udp=true;
+				};
+				sniffing={
+					destOverride={
+						"http";
+						"tls"
+					};
+					enabled=true
+				};
+				tag="proxy";
+			};
+		};
+		log={
+			access="";
+			error="";
+			loglevel="warning"
+		};
+		outbounds={
+			{
+				tag="proxy"
+			};
+			{
+				protocol="freedom";
+				settings={};
+				tag="direct";
+			};
+			{
+				protocol="blackhole";
+				settings={
+					response={
+						type="http"
+					};
+				};
+				tag="block";
+			}
+		};
+		routing={
+			domainStrategy="IPIfNonMatch";
+			rules={
+				{
+					inboundTag={
+						"api"
+					};
+					outboundTag="api";
+					type="field";
+				}
+			}
+		};
+	}
+}
+
+
+/**intellisense(config)
+__appName = 应用程序名
+? = 配置文件名,\n读写配置并序列化为一个表对象,\n表的成员值可以是支持序列化的普通变量,支持table对象\n配置文件在首次使用时自动加载,退出程序时自动保存\n!fsys_table.
+end intellisense**/

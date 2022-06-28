@@ -1,0 +1,150 @@
+import win.ui;
+import win.ui.statusbar;
+import debug.log4a;
+
+debug.log4a.init("main", "/log/main");
+/*DSG{{*/
+mainForm = win.form(text="hummer";right=836;bottom=555;image=$"\include\images\bg.gif";bkBottom=2;bkLeft=83;bkRight=255;bkTop=110;border="none";max=false)
+mainForm.add(
+btnNavLog={cls="plus";text="日志";left=514;top=7;right=590;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\notepad.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=5};
+btnNavLogin={cls="plus";text="登录";left=131;top=7;right=207;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\user.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=1};
+btnNavOrder={cls="plus";text="订单";left=323;top=7;right=399;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\carton.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=3};
+btnNavOther={cls="plus";text="其它";left=614;top=7;right=690;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\info.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=6};
+btnNavPurchase={cls="plus";text="抢购";left=227;top=7;right=303;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\bookmark.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=2};
+btnNavSetup={cls="plus";text="设置";left=416;top=7;right=492;bottom=88;background="\res\images\icon_bg.jpg";bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;color=16777215;dl=1;dt=1;foreground="\res\images\tools.png";notify=1;paddingBottom=7;paddingLeft=5;paddingRight=5;paddingTop=5;valign="bottom";x=0.5;y=0.20000000298023;z=4};
+custom={cls="custom";left=0;top=92;right=838;bottom=556;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;z=7};
+customWeb={cls="custom";left=2;top=504;right=3;bottom=505;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;hide=1;repeat="center";z=9};
+staticUserName={cls="static";left=11;top=27;right=132;bottom=66;color=255;font=LOGFONT(h=-19);transparent=1;z=8}
+)
+/*}}*/
+
+//添加自定义的标题栏、窗口边框、阴影等
+import win.ui.simpleWindow;
+win.ui.simpleWindow( mainForm );
+
+//创建高级选项卡
+import win.ui.tabs;
+
+//至少要添加2个创建好的选项卡作为设计模板
+var tbs = win.ui.tabs( 
+    mainForm.btnNavLogin,
+	mainForm.btnNavPurchase,
+	mainForm.btnNavOrder,
+	mainForm.btnNavSetup,
+	mainForm.btnNavLog,
+	mainForm.btnNavOther
+);
+
+var cookieData = "";
+
+//指定选项卡的外观样式
+tbs.skin( {
+	background = { 
+		hover = "/res/images/main-nav-bg-hover.png"; 
+		active = "/res/images/main-nav-bg-hover.png"; 
+		default = "/res/images/main-nav-bg.png"; 
+	}
+	checked = { //指定选中状态的样式
+		background = { 
+			hover = "/res/images/main-nav-bg-hover.png"; 
+			active = "/res/images/main-nav-bg-hover.png"; 
+			default = "/res/images/main-nav-bg-hover.png";  
+		} 
+	} 
+} )  
+
+//加载窗口,绑定第一个登录选项卡
+tbs.loadForm(1,"\forms\login.aardio");
+
+//加载窗口, 绑定第二个抢购选项卡
+tbs.loadForm(2,"\forms\purchaselist.aardio");
+
+//加载窗口, 绑定订单选项卡
+tbs.loadForm(3,"\forms\order.aardio")
+
+//加载窗口, 绑定设置选项卡
+tbs.loadForm(4,"\forms\setup.aardio");
+
+//加载窗口, 绑定日志选项卡
+tbs.loadForm(5,"\forms\log.aardio");
+
+//加载窗口, 绑定其它选项卡
+tbs.loadForm(6,"\forms\other.aardio");
+
+//必须指定默认选中项
+tbs.selIndex = 1;
+
+
+
+//单击选项卡触发此事件,strip为被单击的选项卡
+tbs.oncommand = function(strip,id,event){
+  if(mainForm.staticUserName.text==""){
+    //指定登录选中项
+    //tbs.selIndex = 1;
+  }
+}
+
+//切换选项卡会触发此事件,strip为选中的选项卡
+tbs.onSelchange = function(idx,strip,form){
+	
+}
+
+//关闭窗口
+mainForm.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {//判断消息类型
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+            var res = win.msgboxTest("确定退出系统?","是否退出系统");
+            
+            defaultOpenShopCatPage();
+            debug.log4a.debug("mainForm.wndproc" + tostring(res));
+            //aardioOpenShopCatPage();
+            if(res == true){
+                debug.log4a.debug("mainForm.wndproc is true");
+                
+                loginout();
+                debug.log4a.close();
+                mainForm.close();
+                //return wparam; 
+            }
+        }   
+    }
+    //无返回值则继续调用默认回调函数
+}
+
+mainForm.custom.oncommand = function(id,event){
+	
+}
+
+//退出登录
+loginout = function(){
+    debug.log4a.debug("main loginout");
+    import sqlite;
+    import inet;
+    import inet.whttp;
+    var db = sqlite("/hummer.dll");//打开数据库连接
+    var loginInfoResult = db.stepQuery("SELECT user_id,cookie_data from [login_info] ",{
+        user_name = mainForm.staticUserName.text;
+    });
+    
+    if(loginInfoResult){
+		var cookies = loginInfoResult.cookie_data;
+		//更新登出状态 		
+ 		db.exec("UPDATE login_info SET login_status = '1',cookie_data='' WHERE user_name = @userName;",{
+			userName = mainForm.staticUserName.text;
+		} );
+		debug.log4a.debug("loginOut cookies:" + cookies);
+		//login.taobao.com/member/logout.jhtml?spm=a21bo.2017.754894437.7.5af911d9iBugom&amp;f=top&amp;out=true&amp;redirectURL=https%3A%2F%2Fwww.taobao.com%2F
+		whttp  = inet.whttp();
+		whttp.beforeSend = function(){whttp.writeHeader("Cookie: " ++ cookies);}
+    	whttp.afterSend = function(statusCode,contentLength){whttp.readHeader();}
+		var loginOutResult = whttp.get("https://login.taobao.com/member/logout.jhtml?f=top&amp;out=true&amp;redirectURL=https%3A%2F%2Fwww.taobao.com%2F");
+    	debug.log4a.debug("loginOutResult:" + loginOutResult);
+    	
+		inet.clearCookie("taobao.com");
+    	inet.clearCache("taobao.com");
+    	inet.clearSesseion();
+	}	
+}
+
+mainForm.show(); 
+win.loopMessage();

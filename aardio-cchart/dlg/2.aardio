@@ -1,0 +1,54 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="第一个示例";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+//调用CChart波形图动态库函数
+var dll = raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");
+
+//静态回调函数
+SetFieldFcn = dll.api("?SetFieldFcn@Classless@@YAXP6ANNN@Z@Z", "void(pointer fun)");//void __cdecl SetFieldFcn(double (__cdecl*)(double,double))
+SetPlotRange = dll.api("?SetPlotRange@Classless@@YAXNNNN@Z", "void(double, double, double, double)");//(void __cdecl SetPlotRange(double,double,double,double))
+SetContourPrecision = dll.api("?SetContourPrecision@Classless@@YAXH@Z", "void(int)");
+SetContourLineNum = dll.api("?SetContourLineNum@Classless@@YAXH@Z", "void(int)");
+
+CreateChart();
+Attach(winform.static.hwnd,4);//kTypeContourLine=4 等高线图
+
+//定义静态回调函数
+func = function(x,y){
+    var ret = 1.0/((x-1.0)*(x-1.0)+y*y+1.0);
+    return ret;
+}
+//dll中在别的线程中调用,所以这里用thread
+func_c = thread.tocdecl(func,"double(double,double)");
+
+SetFieldFcn(func_c);
+SetPlotRange(-2.0, 2.0, -2.0, 2.0);
+SetTitle("Cchart等高线");
+//设置等高线的精度，一般设置为5或者6就可以了。设置得越高，第一次绘制的时候延迟就越长
+SetContourPrecision(8);
+//设置等高线高度的个数
+SetContourLineNum(50);
+ReDraw();
+
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    Detach(winform.static.hwnd);
+    DestroyChart();
+}
+
+
+winform.show();
+win.loopMessage();
+return winform;

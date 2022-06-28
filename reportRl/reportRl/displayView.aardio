@@ -1,0 +1,368 @@
+﻿//displayView 查询显示器
+
+/************************************/
+/*  2017-04 daheian daheian@qq.com  */
+/************************************/
+
+namespace reportRl;
+
+class displayView{
+	ctor( winform ){
+		var display,err = winform.tryCreateEmbed("gregn.GRDisplayViewer.6") or winform.tryCreateEmbed("grpro.GRDisplayViewer.6");
+		if(!display){
+			return null,"报表查询组件加载失败！"++'\r\n'++err; 
+		}
+		else {
+			this = display._object;
+			
+			//关联事件接口
+			this.eventTab = {};
+			..com.Connect(this, this.eventTab);
+			
+			this.eventTab.BatchFetchRecord = function(){
+				if(this.BatchFetchRecord){
+					return this.BatchFetchRecord();
+				}
+			}
+			this.eventTab.ChartClickLegend = function(pSender,SeriesIndex,GroupIndex){
+				if(this.ChartClickLegend){
+					return this.ChartClickLegend(pSender,SeriesIndex,GroupIndex);
+				}
+			}
+			this.eventTab.ChartClickSeries = function(pSender,SeriesIndex,GroupIndex){
+				if(this.ChartClickSeries){
+					return this.ChartClickSeries(pSender,SeriesIndex,GroupIndex);
+				}
+			}
+			this.eventTab.ChartDblClickLegend = function(pSender,SeriesIndex,GroupIndex){
+				if(this.ChartDblClickLegend){
+					return this.ChartDblClickLegend(pSender,SeriesIndex,GroupIndex);
+				}
+			}
+			this.eventTab.ChartDblClickSeries = function(pSender,SeriesIndex,GroupIndex){
+				if(this.ChartDblClickSeries){
+					return this.ChartDblClickSeries(pSender,SeriesIndex,GroupIndex);
+				}
+			}
+			this.eventTab.Click = function(){
+				if(this.Click){
+					return this.Click();
+				}
+			}
+			this.eventTab.CloseButtonClick = function(){
+				if(this.CloseButtonClick){
+					return this.CloseButtonClick();
+				}
+			}
+			this.eventTab.ColumnLayoutChange = function(){
+				if(this.ColumnLayoutChange){
+					return this.ColumnLayoutChange();
+				}
+			}
+			this.eventTab.ContentCellClick = function(pSender){
+				if(this.ContentCellClick){
+					return this.ContentCellClick(pSender);
+				}
+			}
+			this.eventTab.ContentCellDblClick = function(pSender){
+				if(this.ContentCellDblClick){
+					return this.ContentCellDblClick(pSender);
+				}
+			}
+			this.eventTab.ControlClick = function(pSender){
+				if(this.ControlClick){
+					return this.ControlClick(pSender);
+				}
+			}
+			this.eventTab.ControlDblClick = function(pSender){
+				if(this.ControlDblClick){
+					return this.ControlDblClick(pSender);
+				}
+			}
+			this.eventTab.CustomButtonClick = function(BtnID){
+				if(this.CustomButtonClick){
+					return this.CustomButtonClick(BtnID);
+				}
+			}
+			this.eventTab.DblClick = function(){
+				if(this.DblClick){
+					return this.DblClick();
+				}
+			}
+			this.eventTab.KeyDown = function(Shift,Key){
+				if(this.KeyDown){
+					return this.KeyDown(Shift,Key);
+				}
+			}
+			this.eventTab.KeyPress = function(Key){
+				if(this.KeyPress){
+					return this.KeyPress(Key);
+				}
+			}
+			this.eventTab.KeyUp = function(Shift,Key){
+				if(this.KeyUp){
+					return this.KeyUp(Shift,Key);
+				}
+			}
+			this.eventTab.MouseDown = function(Button,Shift,xPos,yPos){
+				if(this.MouseDown){
+					return this.MouseDown(Button,Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.MouseMove = function(Shift,xPos,yPos){
+				if(this.MouseMove){
+					return this.MouseMove(Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.MouseUp = function(Button,Shift,xPos,yPos){
+				if(this.MouseUp){
+					return this.MouseUp(Button,Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.SectionClick = function(pSender){
+				if(this.SectionClick){
+					return this.SectionClick(pSender);
+				}
+			}
+			this.eventTab.SectionDblClick = function(pSender){
+				if(this.SectionDblClick){
+					return this.SectionDblClick(pSender);
+				}
+			}
+			this.eventTab.SelectionCellChange = function(OldCol,OldRow){
+				if(this.SelectionCellChange){
+					return this.SelectionCellChange(OldCol,OldRow);
+				}
+			}
+			this.eventTab.StatusChange = function(){
+				if(this.StatusChange){
+					return this.StatusChange();
+				}
+			}
+			this.eventTab.TitleCellClick = function(pSender){
+				if(this.TitleCellClick){
+					return this.TitleCellClick(pSender);
+				}
+			}
+			this.eventTab.TitleCellDblClick = function(pSender){
+				if(this.TitleCellDblClick){
+					return this.TitleCellDblClick(pSender);
+				}
+			}
+		}
+		
+		winform.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		if(winform.parent){
+			winform.parent.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		}
+	};
+	
+}
+
+namespace displayView{
+	import reportRl;
+}
+
+/**intellisense()
+reportRl.displayView = 锐浪报表查询显示器
+reportRl.displayView(__) = 创建报表查询显示器嵌入对象。\n参数：要嵌入的窗体对象
+reportRl.displayView() = !displayObj.
+!displayObj.Report = 关联报表主对象的接口引用。可读写
+!displayObj.AlwaysShowHScrollBar = 是否始终显示明细表格的水平滚动条的标志。\n可读写，默认值false
+!displayObj.AlwaysShowSelection = 指定是否始终显示选中的内容格或内容行。\n可读写，默认值true
+!displayObj.AlwaysShowVScrollBar = 是否始终显示明细网格的垂直滚动条。\n可读写，默认值false
+!displayObj.AutoRun = 仅适用于WEB报表插件\n可读写，默认值true\n指示本控件在显示之后是否自动启动运行报表
+!displayObj.BackgroundColor = 当明细网格不能完整充满查询显示器的显示区域时，指定明细网格外围的空白区域的背景填充色。\n可读写，默认值grclWindow
+!displayObj.BatchFinished = 指示在分批次获取报表明细记录时，所有数据已经全部获取完备。\n可读写，此属性只能在 BatchFetchRecord 事件上设置。\nGrid++Report 会根据返回的记录数自动确定数据是否全部取完。\n报表开发者也可以在在 BatchFetchRecord 事件上设置 BatchFinished 属性值为 TRUE 指示数据已经取完，这样报表将不会再请求批次数据，BatchFetchRecord 事件也不会再被触发。
+!displayObj.BatchGetRecord = 指定是否为分批获取报表明细记录数据。\n可读写，默认值false\n当报表的明细数据量比较大时，可以将此属性设置为TRUE，指示报表的明细数据将分批获取。\n分批获取报表数据时，WEB报表插件在请求数据时将触发本控件的 BatchFetchRecord 事件，C/S报表组件在请求数据时将触发报表主对象的 FetchRecord 事件，在事件中将一个批次的数据填入到报表中。
+!displayObj.BatchNo = 指示在分批次获取报表明细记录时，指示当前请求数据的批次序号，序号从1开始。\n只读，此属性只有在 BatchFetchRecord 事件上读取才有意义，报表开发者根据其值获取对应批次的数据。
+!displayObj.BatchStartRecNo = 指示在分批次获取报表明细记录时，指示当前请求数据的开始记录序号，记录序号从0开始。\n只读，此属性只有在 BatchFetchRecord 事件上读取才有意义，报表开发者根据其值获取对应批次的数据。
+!displayObj.BatchWantRecords = 指定一个批次希望获取的记录数量，如果为0，将由数据提供者自己确定一个批次获取的记录数量。\n可读写，默认值0\n如果本属性值大于0，当某批次取得的记录数小于本属性值，报表将认为数据已经全部取完。反之只有当某批次取得的记录数为0，报表认为数据已经全部取完。
+!displayObj.BorderStyle = 指定查询显示器的边框样式。\n可读写
+!displayObj.BottomGap = 下边留出的空白间距，以像素为单位。\n可读写，默认值0
+!displayObj.ColumnMove = 指定是否可以用鼠标拖放改变明细网格列的显示顺序。\n可读写，默认值true
+!displayObj.ColumnResize = 指定是否可以通过鼠标拖放改变明细网格列的显示宽度。\n可读写，默认值true
+!displayObj.CurPageNo = 当分页显示报表时，指定对当前页号。\n可读写，仅运行时可用
+!displayObj.DataParam = 仅适用于WEB报表插件\n可读写\n指定向服务器提供的参数
+!displayObj.DataURL = 仅适用于WEB报表插件\n可读写\n指定插件要展现的报表数据来源 URL 值，在运行时从此 URL 载入 XML 或 JSON 格式的报表明细记录集数据
+!displayObj.DefaultToolbarCommand = 在响应工具栏命令事件时，指定是否再继续执行任务对应的内部行为。\n只写，默认值true\n此属性只能在 CustomButtonClick 事件响应函数中使用，默认是 true，即在事件响应后再执行命令对应的任务，如打印命令在事件后继续执行弹出打印对话框，然后再进行打印的任务。如果在事件响应函数中将此属性设置为 false，则命令对应的任务在事件后就不会执行
+!displayObj.GridCanShrink = 当明细网格数据较少时，是否缩小明细网格显示高度以适应数据。\n可读写，默认值true
+!displayObj.GridCenterView = 当报表明细网格所有列的总宽度小于本控件的宽度时，指定明细网格是否水平居中显示在本控件中。\n可读写，默认值true\n当报表明细网格所有列的总宽度小于本控件的宽度时，指定明细网格是否水平居中显示在本控件中。如果明细网格居中显示，报表头与报表尾也会跟随居中显示\n如果报表不具备明细网格，此属性为真将指定报表头与报表尾在控件窗口中水平居中显示
+!displayObj.GridTitle3D = 指定是否将明细网格的列标题显示为3D形状。\n可读写，默认值false
+!displayObj.HScrollPos = 在运行时，获取与设置水平滚动条的位置。\n可读写，仅运行时可用
+!displayObj.LeftGap = 左边留出的空白间距，以像素为单位。\n可读写，默认值0
+!displayObj.PageCount = 获取当前数据的页数。\n可读写，仅运行时可用
+!displayObj.ReportURL = 仅适用于WEB报表插件\n可读写\n指定插件要展现报表的报表模板文件或数据的 URL 值，在运行时从此 URL 载入报表模板数据
+!displayObj.ResizeToFit = 指定是否对报表节的大小进行缩放，以适应本控件窗口的大小，以便所有报表节都完整显示出来。\n可读写，默认值false\n此属性仅当控件中显示的报表没有明细网格时有效。如果本属性值为真，报表中的所有报表头尾节的高度将按加权比例进行伸缩，高度之和与本控件的高度保持一样，所有报表头尾节的宽度也将伸缩与本控件的宽度一样。\n如果本属性值为假，则所有报表头尾节的大小保持不变，如果超出范围，本控件将自动产生滚动条，通过滚动可以完整查看整个报表的内容。
+!displayObj.Resortable = 指定是否可以通过点击明细网格的列标题对明细记录进行重新排序。\n可读写，默认值false
+!displayObj.ResortCaseSensitive = 指定点击列标题进行排序时，对字符进行排序比较是否大小写敏感。\n可读写，默认值false
+!displayObj.ResortDefaultAsc = 当点击列标题进行排序时，首先是否按升序进行排序。\n可读写，默认值true
+!displayObj.RightGap = 右边留出的空白间距，以像素为单位。\n可读写，默认值0
+!displayObj.RowCount = 运行时，当前查看报表的总行数。\n只读，仅运行时可用\n每个记录对应的显示行为一行，每个显示的分组头算一行，每个显示的分组尾算一行，总行数为以上三种数据的合计。
+!displayObj.RowSelection = 指定在查询显示报表时是否整行选中内容行。如果不是，选中仅为一个格。\n可读写，默认值true
+!displayObj.RowsPerPage = 指定浏览数据时的分页方式。\n可读写，默认值1\n当本属性为以下几种情况时，查询显示器以不同的方式对数据进行分页处理：\n=0：不进行分页，所有数据以不间断的表格显示。\n<0：按控件的大小自动进行分页。\n>0：由本属性指定每页数据的行数。
+!displayObj.Running = 指示查询显示器是否正在运行显示报表中。\n只读
+!displayObj.Searchable = 指示是否提供默认的文字查找功能。\n可读写，默认值true\n如果本属性置为真，当查询显示器控件获得键盘输入焦点时，按下 Ctrl+F 键会弹出文字查找对话框，按下  F3 键会进行继续查找。
+!displayObj.SelColumnName = 获取或设置明细网格中当前选中列的名称。\n可读写，仅运行时可用
+!displayObj.SelColumnNo = 选中单元格的列序号。\n可读写，仅运行时可用\n列序号从零开始计数
+!displayObj.SelectionBackColor = 查询显示时，选中格或行的背景填充色。\n可读写，默认值grclHighlight
+!displayObj.SelectionFollowScroll = 指示选中格或行是否跟随表格的垂直滚动而滚动。\n可读写，默认值false
+!displayObj.SelectionForeColor = 查询显示时，选中格或行的前景色。\n可读写，默认值grclHighlightText
+!displayObj.SelRowNo = 选中单元格的行序号。\n可读写，仅运行时可用\n行序号从零开始计数。
+!displayObj.SerialNo = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册序列号
+!displayObj.ShowFooter = 是否显示报表尾的标志。\n可读写，默认值true
+!displayObj.ShowHeader = 是否显示报表头的标志。\n可读写，默认值true
+!displayObj.ShowPreviewLine = 指示是否显示报表打印页面的垂直区域分隔线。\n可读写，默认值false\n在报表查询显示中显示出页面分隔线，这样可以进行明确的列宽调整，以便得到适合的打印输出。
+!displayObj.ShowToolbar = 指定是否显示本控件的工具栏。\n可读写
+!displayObj.SortColumns = 指定当前进行排序的列名称，如果有多个列，中间用“;”隔开。\n可读写\n本属性值也会包含排序顺序，如果某列是按降序排列，则会加上“DESC”标志。如本属性值为“Column1 DESC;Column2”，指定按Column1与Column2进行排序，其中Column1按降序排列，Column2按升序排列。
+!displayObj.TopGap = 上边留出的空白间距，以像素为单位。\n可读写，默认值0
+!displayObj.ToPostColumnLayout = 指示是否显示报表打印页面的垂直区域分隔线。\n可读写，默认值false\n当从本控件的工具栏执行打印任务时，且本属性为真，在本查询显示控件上所进行的列布局调整将引用到应用到打印上\n列布局调整自改变列的顺序，调整列的宽度
+!displayObj.TotalRecord = 在分批次获取报表明细数据，且当获取第一批次的数据时，指定全部记录总数。\n可读写，默认值-1\n此属性只能在 BatchFetchRecord 事件上设置，本属性值自动设置为-1，表示记录总数是未知的。
+!displayObj.UserName = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册用户名
+!displayObj.VScrollPos = 在运行时，获取与设置垂直滚动条的位置。\n可读写，仅运行时可用
+
+!displayObj.Start() = 开始报表生成并按查询显示的方式展现出来。\n执行此方法后，报表生成过程中的相关事件将被触发。
+!displayObj.Stop() = 停止报表的查询显示，并停止报表的运行。\n执行本方法后，查询显示输出所占用的资源将被释放掉。
+!displayObj.AddToolbarControl(__) = 在工具栏中增加显示指定的按钮。\n参数ControlType 指定要增加显示的按钮
+!displayObj.AddToolbarCustomButton(__,,) = 在工具栏上增加一个自定义按钮。\n参数\nint BtnID 指定按钮的标识值，有效值从100到200。\nstring BtnFileName 指定按钮的图像文件名，或网络URL。\nstring TooltipText 指定按钮的提示文字。
+!displayObj.DoToolbarCommand(__) = 执行工具栏命令对应的任务。\n参数Control 对应的工具栏按钮或菜单项\n说明：调用此方法不会触发工具栏命令被执行事件，即 CustomButtonClick 事件。\n如果没有显示控件本身的工具栏，而是在控件外围添加操作界面，可以调用此方法完成对应的任务。
+!displayObj.FirstPage() = 移动至首页。
+!displayObj.GetColumnVisible(__) = 取得指定列在查询显示器中的显示或隐藏状态。\n参数string ColumnName 表示操作列的名称 \n返回值:bool 表示列是否显示，为真表示列在查询显示器中显示。
+!displayObj.GetContentCellFromPos(__,) = 取得指定位置处的内容格对象的接口引用。\n参数\nint xPox 水平方向的坐标位置。\nint yPos 垂直方向的坐标位置。\n返回值：如果在指定位置存在内容格，则返回此内容格的接口引用，否则返回NULL。\n传入位置参数是指查询显示器的客户区位置。
+!displayObj.GetControlFromPos(__,) = 取得指定位置处的部件框对象的接口引用。\n参数\nint xPox 水平方向的坐标位置。\nint yPos 垂直方向的坐标位置。\n返回值：如果在指定位置存在部件框，则返回此部件框的接口引用，否则返回NULL。\n传入位置参数是指查询显示器的客户区位置。
+!displayObj.GetOptionValue(__) = 获取指定选项的值。\n参数Option 指定查询显示器某个选项参数 \n返回值：bool 获取到的选项值
+!displayObj.GetSectionFromPos(__,) = 取得指定位置处的报表节对象的接口引用。\n参数\nint xPox 水平方向的坐标位置。\nint yPos 垂直方向的坐标位置。\n返回值：如果在指定位置存在报表节，则返回此报表节的接口引用，否则返回NULL。\n传入位置参数是指查询显示器的客户区位置。
+!displayObj.GetSelRowCellText(__) = 获取当前选中行的指定单元格的显示文字。\n参数ColumnIndex \n返回值：string 单元格的显示文字\n获取当前选中行的指定单元格的显示文字，列序号参数按列的显示顺序指定，第一个显示列的序号为0。
+!displayObj.GetTitleCellFromPos(__,) = 取得指定位置处的标题格对象的接口引用。\n参数\nint xPox 水平方向的坐标位置。\nint yPos 垂直方向的坐标位置。\n返回值：如果在指定位置存在标题格，则返回此标题格的接口引用，否则返回NULL。\n传入位置参数是指查询显示器的客户区位置。
+!displayObj.LastPage() = 移动至最后一页。
+!displayObj.LockUpdate() = 锁定控件的显示更新。
+!displayObj.NextPage() = 显示下一页。
+!displayObj.PostColumnLayout() = 将报表列的当前显示顺序与宽度信息提交到关联报表主对象中去。
+!displayObj.PriorPage() = 显示上一页。
+!displayObj.QuickRefresh() = 快速刷新显示报表。
+!displayObj.Refresh() = 刷新数据，报表重新生成。
+!displayObj.RemoveToolbarControl(__) = 从工具栏中删除显示指定的按钮。\n参数ControlType 指定要删除显示的按钮
+!displayObj.ResetToolbarContent() = 清除工具栏中所有显示的按钮，以便重新进行加入定义。
+!displayObj.ResizeColumnToFit() = 自动调整所有列的宽度，让所有列可以在网格的显示区域完整的显示出来并刚好完整显示。\n此方法必须在报表已经在查询显示器中显示后调用，即必须在 Start 与 Refresh 方法之后调用。
+!displayObj.ResizeColumnToFitPage() = 自动调整所有列的宽度，让整个网格可以在当前页面设置纸张中完整输出。\n此方法必须在报表已经在查询显示器中显示后调用，即必须在 Start 与 Refresh 方法之后调用。
+!displayObj.ResizeColumnToFitText() = 按内容格中文字内容多少伸展列的显示宽度，以便文字完整显示出来，文字少不缩小。\n此方法必须在报表已经在查询显示器中显示后调用，即必须在 Start 与 Refresh 方法之后调用
+!displayObj.Search("__",false,false,false,true,false,false) = 执行查找报表文字任务，被匹配的文字将被高亮显示。\n返回值bool 指示查找是否成功匹配
+!displayObj.SearchAgain(true) = 根据前面的查找条件进行继续查找，被匹配的文字将被高亮显示。\n参数bool ShowMsg 指示是否显示提示消息框。\n返回值bool 指示查找是否成功匹配
+!displayObj.SetColumnVisible(__,) = 设置指定列在查询显示器中的显示或隐藏状态。\n参数\nstring ColumnName 指定操作列的名称。\nbool Visible 指定是否显示列。\n在改变列的显示状态全部完成之后，应调用 UpdateColumnView 方法更新显示。
+!displayObj.SetOptionValue(__,) = 设置指定选项的值。\n参数\nGRDisplayViewerOption Option 选项。\nbool Val 设置值。
+!displayObj.ShowColumnVisibleDlg() = 打开报表列可见性设置对话框，在此对话框中可以设置列是否显示。\n报表中的锁定列不允许设置可见性，必须一直显示。设置时，必须保持至少有一个列是可见的。
+!displayObj.UnlockUpdate() = 解锁控件的显示更新。
+!displayObj.UpdateColumnView() = 当改变列的显示状态之后，调用本方法更新列的显示。\n本方法不会使报表重新生成，只是根据列的显示状态更新明细网格的显示。在调用 SetColumnVisible 方法之后应调用本方法更新显示。
+!displayObj.UpdateControl(__) = 更新显示指定的部件框。\n参数IGRControl *pControl 指定要更新显示的部件框对象的接口引用。\n只有当部件框在报表头与报表尾中时，才能调用本方法进行显示更新。在查询显示报表时，如果改变了部件框的数据，调用本方法反映最新的数据的显示。
+!displayObj.UpdateLanguage() = 在重新设置报表界面语言后，调用本方法更新控件界面显示。
+!displayObj.UpdateSelCell() = 更新显示当前选中内容格。
+!displayObj.UpdateSelRow() = 更新显示当前选中内容行。\n在查询显示报表时，如果改变了当前选中内容行的数据，调用本方法反映最新的数据的显示。
+!displayObj.UpdateToolbar() = 在改变按钮定义之后，调用本方法重新显示工具栏，以便新定义生效。
+!displayObj.UpdateUI() = 更新界面显示。
+!displayObj.UpdateViewer() = 更新显示整个查询显示器。
+
+!displayObj.BatchFetchRecord() = @.BatchFetchRecord = function(){
+	/*当分批次请求报表明细数据时触发本事件,此事件目前仅提供给WEB报表插件。*/
+	__
+}
+!displayObj.ChartClickLegend() = @.ChartClickLegend = function(pSender,SeriesIndex,GroupIndex){
+	/*当点击图表的图例时触发本事件。*/
+	__
+}
+!displayObj.ChartClickSeries() = @.ChartClickSeries = function(pSender,SeriesIndex,GroupIndex){
+	/*当点击图表的图形时触发本事件。*/
+	__
+}
+!displayObj.ChartDblClickLegend() = @.ChartDblClickLegend = function(pSender,SeriesIndex,GroupIndex){
+	/*当双击图表的图例时触发本事件。*/
+	__
+}
+!displayObj.ChartDblClickSeries() = @.ChartDblClickSeries = function(pSender,SeriesIndex,GroupIndex){
+	/*当双击图表的图形时触发本事件。*/
+	__
+}
+!displayObj.Click() = @.Click = function(){
+	/*当鼠标在查询显示器上进行了点击时触发。*/
+	__
+}
+!displayObj.CloseButtonClick() = @.CloseButtonClick = function(){
+	/*当点击工具栏上的关闭按钮时触发本事件。*/
+	__
+}
+!displayObj.ColumnLayoutChange() = @.ColumnLayoutChange = function(){
+	/*当列的显示宽度或顺序发生改变时触发。*/
+	__
+}
+!displayObj.ContentCellClick() = @.ContentCellClick = function(pSender){
+	/*当鼠标点击在某个内容格上时触发。*/
+	__
+}
+!displayObj.ContentCellDblClick() = @.ContentCellDblClick = function(pSender){
+	/*当鼠标双击在某个内容格上时触发。*/
+	__
+}
+!displayObj.ControlClick() = @.ControlClick = function(pSender){
+	/*当鼠标点击在某个部件框上时触发。*/
+	__
+}
+!displayObj.ControlDblClick() = @.ControlDblClick = function(pSender){
+	/*当鼠标双击在某个部件框上时触发。*/
+	__
+}
+!displayObj.CustomButtonClick() = @.CustomButtonClick = function(BtnID){
+	/*当点击工具栏上的自定义按钮时触发本事件。*/
+	__
+}
+!displayObj.DblClick() = @.DblClick = function(){
+	/*当鼠标在查询显示器上进行了双击时触发。*/
+	__
+}
+!displayObj.KeyDown() = @.KeyDown = function(Shift,Key){
+	/*当查询显示器拥有输入焦点时，某个键盘健按下时触发。*/
+	__
+}
+!displayObj.KeyPress() = @.KeyPress = function(Key){
+	/*当查询显示器拥有输入焦点时，某个键盘健按下时触发。*/
+	__
+}
+!displayObj.KeyUp() = @.KeyUp = function(Shift,Key){
+	/*当查询显示器拥有输入焦点时，某个键盘健按下之后再释放时触发。*/
+	__
+}
+!displayObj.MouseDown() = @.MouseDown = function(Button,Shift,xPos,yPos){
+	/*在查询显示器上鼠标按钮按下时触发。*/
+	__
+}
+!displayObj.MouseMove() = @.MouseMove = function(Shift,xPos,yPos){
+	/*在查询显示器上鼠标光标移动时触发。*/
+	__
+}
+!displayObj.MouseUp() = @.MouseUp = function(Button,Shift,xPos,yPos){
+	/*在查询显示器上鼠标按钮按下再释放时触发。*/
+	__
+}
+!displayObj.SectionClick() = @.SectionClick = function(pSender){
+	/*当鼠标点击在某个节上时触发。*/
+	__
+}
+!displayObj.SectionDblClick() = @.SectionDblClick = function(pSender){
+	/*当鼠标双击在某个节上时触发。*/
+	__
+}
+!displayObj.SelectionCellChange() = @.SelectionCellChange = function(OldCol,OldRow){
+	/*当前显示的单元格发生改变时触发。*/
+	__
+}
+!displayObj.StatusChange() = @.StatusChange = function(){
+	/*当控件的查看状态发生改变时触发本事件。*/
+	__
+}
+!displayObj.TitleCellClick() = @.TitleCellClick = function(pSender){
+	/*当鼠标点击在某个标题格上时触发。*/
+	__
+}
+!displayObj.TitleCellDblClick() = @.TitleCellDblClick = function(pSender){
+	/*当鼠标双击在某个标题格上时触发。*/
+	__
+}
+end intellisense**/

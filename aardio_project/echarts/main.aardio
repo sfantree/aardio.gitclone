@@ -1,0 +1,83 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio echarts";right=909;bottom=669;border="dialog frame";max=false;min=false)
+winform.add()
+/*}}*/
+
+import web.kit.form;
+var wb = web.kit.form( winform );
+
+import web.json;
+wb.external = {
+    getOption = function( num ){
+        var data = {
+            calculable = true;
+            legend = {
+                data = { "直接访问"; "邮件营销"; "联盟广告"; "视频广告"; "搜索引擎" };
+                orient = "vertical";
+                x = "left"
+            };
+            series = {
+                {
+                    center = { "50%"; "60%" };
+                    data = {
+                        { name = "直接访问"; value = 335 };
+                        { name = "邮件营销"; value = 310 };
+                        { name = "联盟广告"; value = 234 };
+                        { name = "视频广告"; value = 135 };
+                        { name = "搜索引擎"; value = 1548 }
+                    };
+                    name = "访问来源"; radius = "55%"; type = "pie"
+                }
+            };
+            title = { subtext = "纯属虚构"; text = "某站点用户访问来源"; x = "center"    };
+            toolbox = {
+                feature = {
+                    dataView = { readOnly = false; show = true };
+                    magicType = {
+                        option = { funnel = { funnelAlign = "left"; max = 1548; width = "50%"; x = "25%" }};
+                        show = true;
+                        type = { "pie"; "funnel" }
+                    };
+                    mark = { show = true };
+                    restore = { show = true };
+                    saveAsImage = { show = true }
+                }; show = true
+            };
+            tooltip = { formatter = "{a} <br/>{b} : {c} ({d}%)"; trigger = "item" }
+        }        
+        return web.json.stringify(data);
+    }
+}
+
+wb.html = /**
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta charset="UTF-8">  
+</head>
+<body>
+    <div id="main" style="height:600px;"></div>
+ 	<!--   <script src="https://cdn.bootcss.com/echarts/4.8.0/echarts.min.js"></script> -->
+    <script src="http://127.0.0.1:28888/echarts.min.js"></script>
+<!--
+在学习 form嵌入web时看到本示例: http://bbs.aardio.com/forum.php?mod=viewthread&tid=13149&from=portal
+但该例子展示不稳定,发现从远端下载js文件延迟大,可能会超时而无法展示的情况
+于是就产生了用nginx来本地搭建一个js服务器,然后供此web加载js使用,效果很好,没有出现超时情况.
+写在这里供参考. 2020/08/08 01:45:58
+请下载dist下的cab包体验.
+nginx下载:http://nginx.org/en/download.html
+-->
+    
+    <script>
+        var myChart = echarts.init(document.getElementById('main'));
+        myChart.setOption( JSON.parse( external.getOption() ) );
+    </script>
+</body>
+</html>
+**/
+winform.show(); //显示窗体
+
+//启动消息循环
+win.loopMessage();

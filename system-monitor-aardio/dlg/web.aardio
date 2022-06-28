@@ -1,0 +1,70 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=600;bottom=500)
+winform.add()
+/*}}*/
+
+import web.view;
+var wb = web.view(winform);
+
+wb.external = {
+	isDebug = function(){
+		return _STUDIO_INVOKED; 
+	}
+	setting_init = function(){
+		import wsock.tcp.simpleHttpServer
+		import iconHelper
+		return web.json.stringify({
+			assetsUrl: wsock.tcp.simpleHttpServer.startUrl(,"/assets/"),
+			icons: iconHelper.getCanUseNames()
+		});
+	}
+	setting_getIcons = function(){
+		import iconHelper
+		return iconHelper.getCanUseNames(); 
+	}
+	setting_save = function(form){
+		publish("trayIconChange", form.icon)
+		return true
+	}
+	setting_downloadAssets = function(){
+		import assetsHelper
+		assetsHelper.download(winform)
+		import iconHelper
+		return iconHelper.getCanUseNames(); 
+	}
+}
+
+wb.export({
+	toast = function(msg, mType='success', timeout = 1000){
+		import win.dlg.message
+		var dlgM = win.dlg.message()
+		if (mType == 'inof') {
+			dlgM.info(msg, timeout)
+		} elseif(mType == 'error'){
+			dlgM.err(msg, timeout)
+		} elseif(mType == 'success'){
+			dlgM.ok(msg, timeout)
+		}
+	}
+})
+
+var url
+if (_STUDIO_INVOKED) {
+	import web.rest.client;
+	url = "http://localhost:3000/web/"
+} else {
+	import wsock.tcp.simpleHttpServer
+	url = wsock.tcp.simpleHttpServer.startUrl("/web/index.html")
+}
+wb.go(url)
+
+// 注册方法到 winform，提供给 main 使用
+winform.wb = wb
+winform.wbGoTo = function(route) {
+	wb.go(url + "#" + route)
+}
+
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,154 @@
+﻿//spriteAnimation 精灵序列动画
+namespace hge.interFace;
+spriteAnimation = class {
+	ctor(game, fps = 200){
+		this = game.base( game );
+		this["type"] = "animation";
+		var tick,stop = 1,true;
+		this.mode = 1;
+		var bk_addChild = this.addChild;
+		var param = {sour = this;};
+	};
+
+
+	render = function(){
+		if ( this.display ) { 
+			if !this.lst[tick] return ;
+			caller(this.lst[tick].render);
+			this.event(2/*_hge_event_render*/,,true);
+		}
+	}
+	
+	update = function(){
+		if !this.display : !this.disable  return ;
+		var p = this.parent;
+		
+		if(p){
+			this.offsetX = p.x + p.offsetX;
+			this.offsetY = p.y + p.offsetY;
+		}
+		if(this.lst[tick]){
+			caller(this.lst[tick].update);
+			var next = this.lst[tick+1] : this.lst[1];
+			caller(next.update);
+			this.event(1/*_hge_event_update*/);
+		}
+		
+	}
+	
+	
+	setFps = function(v){
+		fps = v
+	}
+	getFps = function(){
+		return fps; 
+	}
+	
+	play = function(loop){
+		if(loop) this.mode = 2;
+		stop = false;
+	}
+	gotoAndStop = function(n){
+		tick = n;
+		stop = true;
+	}
+	gotoAndPlay = function(n,loop){
+		if(loop) this.mode = 2;
+		tick = n;
+		stop = false;
+	}
+	stop = function(){
+		stop = true;
+	}
+	
+	
+	
+	isPlay = function(){
+		return !stop; 
+	}
+	showFrame = function(){
+		if( this.parent ){
+			var index = this.parent.getZorder(this);
+			if(index){
+				this.parent.setFrame(index)
+				return true; 
+			} 
+		}
+		return false; 
+	}
+	setFrame = function(n){
+		tick = n;
+	}
+	getFrame = function(){
+		return tick; 
+	}
+	getFrameChild = function(){
+		return this.lst[tick],this.lst[tick+1] : this.lst[1]; 
+	}
+	
+	getSprite = function(){//废弃
+		return this.getFrameChild(); 
+	}
+	
+	(
+		function(){
+			this.on(1,function(){
+				if ( stop ) return ; 
+					..hge.delyTime(this,fps,
+						function(){	
+							
+							
+							param.frame = tick;
+							var f = function() this.event(5/*_hge_event_playend*/,param,true);
+							select(this.mode) {
+								case 1 {
+									if(tick >= #this.lst) { stop = true; return f()}
+									tick++;
+								}
+								case 2 {
+									if(tick >= #this.lst) {tick = 0;f()}
+									tick++;
+								}
+								case 3 {
+									if(tick <= #this.lst) {stop = true ; return f();  }
+									tick--;
+								}
+								case 4 {
+									if(tick <= #this.lst) {tick = 0;f()};
+									tick--;
+								}
+							}
+							
+							this.event(4/*_hge_event_playing*/,param,true)
+						}
+					)
+		
+						
+							
+				}
+			)
+		}
+	)()
+}
+
+
+namespace spriteAnimation{
+	caller = ..hge.caller;
+}
+
+/**intellisense() 
+!hgeSpriteAnimation.play() = 播放动画
+!hgeSpriteAnimation.onPlay = @.onPlay = function(nFrame,sprite){
+	/*播放中*/
+}
+!hgeSpriteAnimation.update() = 更新动画
+!hgeSpriteAnimation.render(.(偏移x,偏移y) = 更新动画
+!hgeSpriteAnimation.enumSprite = @.enumSprite(function(sprite){\n})
+!hgeSpriteAnimation.items = 精灵数组
+!hgeSpriteAnimation.addSprite(.(精灵) = 添加精灵到列表
+!hgeSpriteAnimation.delSprite(.(nFrame) = 删除列表中的精灵
+!hgeSpriteAnimation.getSprite(.(nFrame) = 获取精灵\n!hgeSprite.
+!hgeSpriteAnimation.clear() = 清空
+
+end intellisense**/
+

@@ -1,0 +1,84 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=222;bottom=51)
+winform.add(
+btn_add={cls="button";text="+1";left=60;top=29;right=104;bottom=48;dl=1;dt=1;z=3};
+btn_close={cls="button";text="关闭";left=164;top=28;right=208;bottom=47;dl=1;dt=1;z=5};
+btn_open={cls="button";text="打开";left=115;top=29;right=159;bottom=48;dl=1;dt=1;z=4};
+btn_reset={cls="button";text="重置";left=6;top=29;right=50;bottom=48;dl=1;dt=1;z=2};
+s_time={cls="static";left=4;top=1;right=208;bottom=17;db=1;dl=1;dr=1;dt=1;transparent=1;z=1}
+)
+/*}}*/
+
+import inet.http
+import console;
+import web.json;
+import time.ole;
+import process;
+
+var softPath = "E:\软件\SpeedPan1.97\SpeedPanX1.5.6\SpeedPanX\SpeedPanX.exe";
+
+
+
+
+
+/*时间{{*/
+
+function getTime(){
+    inet.clearCookie()
+	var html,err = inet.http().get("http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp")
+	if(err){
+		win.msgboxErr(err);
+	}else{
+		var obj = web.json.parse(html);
+		var t = obj.data.t;
+		var tm = time(t/1000);
+		winform.s_time.text = tostring(tm);
+		return tm,t;
+		
+	}
+}
+
+function setTime(tm,t){
+    //SetSystemTime = ::Kernel32.api("SetLocalTime","int(struct lpSystemTime)")
+
+	//SetSystemTime = ::Kernel32.api("SetSystemTime","int(struct& lpSystemTime)")
+	//修改系统时间
+	SetLocalTime = ::Kernel32.api("SetLocalTime","int(struct& lpSystemTime)")
+	//修改系统时间
+	SetLocalTime(tm)
+	winform.s_time.text = tostring(tm);
+}
+
+/*}}*/
+
+winform.btn_open.oncommand = function(id,event){
+	process.execute(softPath);
+}
+
+winform.btn_add.oncommand = function(id,event){
+	
+	var tm = time.now();
+	tm.addday(1);
+	console.log(tm)
+	setTime(tm);
+}
+
+winform.btn_reset.oncommand = function(id,event){
+	var tm = getTime();
+	if(!tm){
+    	return;
+    }
+    console.log(tm)
+	setTime(tm);
+}
+
+winform.btn_close.oncommand = function(id,event){
+	process.kill("SpeedPanX.exe")
+	win.msgboxTimeout("关闭成功","",200)
+}
+
+getTime();
+
+winform.show() 
+win.loopMessage();

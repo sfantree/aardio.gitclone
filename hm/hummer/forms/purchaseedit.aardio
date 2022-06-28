@@ -1,0 +1,644 @@
+//简单数据视图 
+import win.ui;
+import web.form.sockpuppet;
+import sqlite;
+import debug.log4a;
+import console;
+import chrome.driver;
+import web.json;
+import inet.whttp;
+import inet;
+
+debug.log4a.init("purchaseedit", "/log/purchaseedit");
+var db = sqlite("/hummer.dll");//打开数据库连接
+/*DSG{{*/
+var winform = win.form(text="添加抢购";right=759;bottom=469)
+winform.add(
+buttonExecute={cls="button";text="立即执行";left=614;top=199;right=700;bottom=231;z=27};
+buttonSave={cls="button";text="保存设置";left=614;top=165;right=700;bottom=197;z=23};
+buttonShopCart={cls="button";text="加入购物车";left=614;top=131;right=700;bottom=163;z=22};
+buttonSkuLoad={cls="button";text="加载";left=657;top=51;right=718;bottom=80;dr=1;dt=1;z=21};
+checkboxAutoPay={cls="checkbox";text="自动付款";left=60;top=139;right=135;bottom=160;dl=1;dt=1;z=3};
+checkboxAutoRule={cls="checkbox";text="自动捡漏";left=341;top=175;right=419;bottom=197;dl=1;dt=1;z=11};
+checkboxSteadPay={cls="checkbox";text="代付";left=343;top=137;right=397;bottom=157;dr=1;dt=1;z=6};
+comboboxCircuit={cls="combobox";left=588;top=55;right=654;bottom=79;edge=1;items={"线路1";"线路2";"线路3"};mode="dropdown";z=28};
+customWeb={cls="custom";left=37;top=25;right=38;bottom=26;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;hide=1;repeat="center";z=20};
+dpickTimelySubmit={cls="datetimepick";left=125;top=217;right=269;bottom=242;edge=1;z=25};
+editAlipay={cls="edit";left=454;top=134;right=603;bottom=157;dr=1;dt=1;edge=1;multiline=1;z=8};
+editAmountLimit={cls="edit";left=493;top=172;right=550;bottom=195;dr=1;dt=1;edge=1;multiline=1;z=13};
+editDelayedPay={cls="edit";left=359;top=216;right=389;bottom=240;db=1;dl=1;dr=1;dt=1;edge=1;z=16};
+editFeatureParam={cls="edit";left=125;top=252;right=603;bottom=278;dl=1;dt=1;edge=1;z=30};
+editFrequency={cls="edit";left=494;top=216;right=548;bottom=240;db=1;dr=1;dt=1;edge=1;z=18};
+editLeavingMessage={cls="edit";left=98;top=175;right=309;bottom=201;dl=1;dt=1;edge=1;z=10};
+editLog={cls="edit";left=37;top=309;right=718;bottom=444;edge=1;multiline=1;z=24};
+editPayPwd={cls="edit";left=220;top=136;right=310;bottom=159;dl=1;dt=1;edge=1;z=5};
+editPurchaseUrl={cls="edit";text="https://detail.tmall.com/item.htm?spm=a1z10.1-b-s.w5003-21818646417.29.144613305EP644&id=533904717481&rn=9447251a21920e035f655dd748eff609&abbucket=10&scene=taobao_shop&skuId=3404198768493";left=96;top=53;right=579;bottom=82;dl=1;dr=1;dt=1;edge=1;multiline=1;z=19};
+groupboxPurchase={cls="groupbox";text="抢购(单帐号)";left=10;top=18;right=738;bottom=449;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+groupboxSetup={cls="groupbox";text="抢购设置";left=39;top=108;right=721;bottom=298;db=1;dl=1;dr=1;dt=1;edge=1;z=2};
+static={cls="static";text="支付密码:";left=149;top=138;right=216;bottom=157;dl=1;dt=1;transparent=1;z=4};
+static2={cls="static";text="支付宝:";left=402;top=138;right=451;bottom=158;dr=1;dt=1;transparent=1;z=7};
+static3={cls="static";text="留言:";left=60;top=179;right=98;bottom=204;dl=1;dt=1;transparent=1;z=9};
+static4={cls="static";text="金额限制:";left=427;top=175;right=498;bottom=199;dl=1;dr=1;dt=1;transparent=1;z=12};
+static5={cls="static";text="定时提交:";left=61;top=221;right=150;bottom=247;db=1;dl=1;dt=1;transparent=1;z=14};
+static6={cls="static";text="延迟付款:";left=290;top=221;right=353;bottom=240;db=1;dl=1;dt=1;transparent=1;z=15};
+static7={cls="static";text="频率:";left=451;top=218;right=493;bottom=240;db=1;dr=1;dt=1;transparent=1;z=17};
+static8={cls="static";text="商品url:";left=37;top=60;right=104;bottom=79;dl=1;dt=1;transparent=1;z=26};
+static9={cls="static";text="特征参数:";left=64;top=256;right=121;bottom=281;dl=1;dt=1;transparent=1;z=29}
+)
+/*}}*/
+
+winform.dpickTimelySubmit.setFormat("yyyy-MM-dd HH:mm:ss");
+//创建web窗体
+var wb = web.form.sockpuppet( winform.customWeb 
+     ,0x8/*_UIFLAG_SCROLL_NO 禁用滚动条*/
+     ,//可输入_DLCTL_ 前缀的常量以控制下载行为
+     ,//"USER AGENT"
+     );
+wb.noScriptErr=true; 
+/**
+//创建chromeDriver对象,协议文档 https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol
+var driver = chrome.driver();
+driver.addArguments("--app=https://www.taobao.com");
+driver.addArguments("--headless");
+//创建会话，打开chrome浏览器，Chrome新版会强制显示控制台
+var browser = driver.startBrowser();
+**/
+var browser;
+
+var cookies = '';
+
+winform.checkboxAutoPay.oncommand = function(id,event){
+	
+}
+
+//加载商品
+winform.buttonSkuLoad.oncommand = function(id,event){
+	wb.go(winform.editPurchaseUrl.text);
+    wb.wait(,4000);              
+
+	var productTitleEle = wb.waitQueryEles({tagName="^DIV$";className="tb-detail-hd"});
+	//天猫
+	if(productTitleEle){
+		productTitle = productTitleEle.innerText;
+	    winform.editLog.print(productTitle);
+	//淘宝
+	}else{
+		productTitleEle = wb.waitQueryEles({tagName="^DIV$";className="tb-title"});
+	    productTitle = productTitleEle.innerText;
+	    winform.editLog.print(productTitle);
+	}	
+	
+}
+
+//加入购物车按钮
+winform.buttonShopCart.oncommand = function(id,event){
+    defaultBalanceShopCat();
+    return ; 
+    var circuit = winform.comboboxCircuit.text;//线路 1，2，3
+    var isSuccess = false;
+	//线路1
+    if("线路1" == circuit){
+        //打开详情页面
+        isSuccess = defaultOpenDetailPage();
+        isSuccess = isSuccess ? defaultAddShopCat() : false;
+        
+     }
+     if(isSuccess){
+        debug.log4a.err("加入购物车成功");
+        winform.editLog.print("加入购物车成功");
+     }else{
+        debug.log4a.err("加入购物车失败");
+        winform.editLog.print("加入购物车失败");
+     }
+    /**
+    
+    //天猫
+    var addSuccess = wb.waitQueryEles({innerHTML="成功加入购物车！"; tagName="^B$"}, 2000);
+
+    if(!addSuccess){
+        console.debug("33333333333333333333 ");
+        addSuccess = wb.waitQueryEles({innerHTML="已成功加入购物车"; tagName="^DIV$";className="result-hint"}, 2000);
+    }
+    if(addSuccess){
+        console.debug("4444444444444 ");
+        winform.editLog.print("已成功加入购物车"); 
+        
+    }
+    //
+    myShopCart = wb.waitQueryEles({tagName="^A$";id="mc-menu-hd"}, 2000);
+    if(myShopCart){
+        myShopCart.click();
+    }
+    **/
+}
+
+//保存配置
+winform.buttonSave.oncommand = function(id,event){
+	whttpOpenShopCatPage();
+	return ; 
+	//inet.clearCookie("taobao.com");
+    var purchaseUrl = winform.editPurchaseUrl.text;//商品URL
+    var circuit = winform.comboboxCircuit.text;//线路 1，2，3
+    var isAutoPay = winform.checkboxAutoPay.checked;//自动付款 1:选中 0:未选中
+    var payPwd = winform.editPayPwd.text;//支付密码
+    var steadPay = winform.checkboxSteadPay.checked;//代付 1:选中 0:未选中
+	var alipay = winform.editAlipay.text;//支付宝
+	var leavingMessage = winform.editLeavingMessage.text;//留言
+	var autoRule = winform.checkboxAutoRule.checked;//自动捡漏 1:选中 0:未选中
+	var amountLimit = winform.editAmountLimit.text;//限额
+	var timelySubmit = winform.dpickTimelySubmit.text;//定时提交
+	var delayedPay = winform.editDelayedPay.text;//延迟付款   
+	var frequency = winform.editFrequency.text;//频率
+	var featureParam = winform.editFeatureParam.text;//特征参数
+	
+	var sqlStr = "insert into purchase_info (";
+	var valueStr = "";
+	if(string.len(string.trim(purchaseUrl)) == 0){
+		win.msgbox("商品URL为空,请输入");
+		win.setFocus(winform.editPurchaseUrl.hwnd);
+		return ; 
+	}
+    if(""!=circuit){
+		win.msgbox("线路为空,请输入");
+		win.setFocus(winform.comboboxCircuit.hwnd);
+		return ; 
+	}
+	
+	if(isAutoPay == 1 && string.len(string.trim(payPwd)) == 0){
+		win.msgbox("支付密码为空,请输入");
+		win.setFocus(winform.editPayPwd.hwnd);
+		return ; 
+	}
+	if(steadPay == 1 && string.len(string.trim(alipay)) == 0){
+		win.msgbox("支付宝为空,请输入");
+		win.setFocus(winform.editAlipay.hwnd);
+		return ; 
+	}
+	if(string.len(string.trim(timelySubmit)) == 0){
+		win.msgbox("定时提交为空,请输入");
+		win.setFocus(winform.dpickTimelySubmit.hwnd);
+		return ; 
+	}
+    
+    debug.log4a.debug("mainForm.staticUserName.text:"+mainForm.staticUserName.text);
+    //查 - 返回首行数据
+    var loginInfoResult = db.stepQuery("SELECT user_id from [login_info] ",{
+        user_name = mainForm.staticUserName.text;
+    });
+    if(!loginInfoResult){
+        debug.log4a.debug("未找到登录用户名对应的用户信息");
+		return ; 
+	}
+	debug.log4a.debug("loginInfoResult.user_id:"+loginInfoResult.user_id);
+    sqlStr = string.concat(sqlStr,"user_id,");
+    valueStr = string.concat(valueStr,"'",loginInfoResult.user_id,"',");
+    sqlStr = string.concat(sqlStr,"status,");
+    valueStr = string.concat(valueStr,"'0',");
+    sqlStr = string.concat(sqlStr,"purchase_time,");
+    valueStr = string.concat(valueStr,"datetime('now'),");
+
+    
+	//自动付款
+	if(purchaseUrl){
+        sqlStr = string.concat(sqlStr,"purchase_url,");
+        valueStr = string.concat(valueStr,"'",purchaseUrl,"',");
+    }
+    //线路
+    if(circuit){
+        sqlStr = string.concat(sqlStr,"circuit,");
+        valueStr = string.concat(valueStr,"'",circuit,"',");
+    }
+    //支付密码
+    if(payPwd){
+        sqlStr = string.concat(sqlStr,"pay_pwd,");
+        valueStr = string.concat(valueStr,"'",payPwd,"',");
+    }
+    //代付
+    if(steadPay){
+        sqlStr = string.concat(sqlStr,"stead_Pay,");
+        valueStr = string.concat(valueStr,"'",steadPay,"',");
+    }
+    //支付宝
+	if(alipay){
+        sqlStr = string.concat(sqlStr,"alipay,");
+        valueStr = string.concat(valueStr,"'",alipay,"',");
+    }
+    
+    if(leavingMessage){
+        sqlStr = string.concat(sqlStr,"leaving_message,");
+        valueStr = string.concat(valueStr,"'",leavingMessage,"',");
+    }
+    //自动捡漏
+    if(autoRule){
+        sqlStr = string.concat(sqlStr,"auto_rule,");
+        valueStr = string.concat(valueStr,"'",autoRule,"',");
+    }
+    //限额
+    if(amountLimit){
+        sqlStr = string.concat(sqlStr,"amount_limit,");
+        valueStr = string.concat(valueStr,"'",amountLimit,"',");
+    }
+    //定时提交
+    if(timelySubmit){
+        sqlStr = string.concat(sqlStr,"timely_submit,");
+        valueStr = string.concat(valueStr,"'",timelySubmit,"',");
+    }
+    //延迟付款
+    if(delayedPay){
+        sqlStr = string.concat(sqlStr,"delayed_pay,");
+        valueStr = string.concat(valueStr,"'",delayedPay,"',");
+    }
+    //频率
+    if(frequency){
+        sqlStr = string.concat(sqlStr,"frequency,");
+        valueStr = string.concat(valueStr,"'",frequency,"',");
+    }
+    //特征参数
+    if(featureParam){
+        sqlStr = string.concat(sqlStr,"feature_param,");
+        valueStr = string.concat(valueStr,"'",featureParam,"',");
+    }
+       
+    sqlStr = string.sub(sqlStr,0, string.len(sqlStr)-1) + ") values (";
+    valueStr = string.sub(valueStr,0, string.len(valueStr)-1) + ")";
+    db.exec(sqlStr+valueStr);
+     //sqlConn.exec( "insert into film values ('Silence of the Lambs, The', 11.8, 1991, 'Jodie Foster');")
+     //我想这个就是传说中的开启事物
+     //sqlConn.exec("begin;")
+	 //for(i=1;100;1){
+    //	sqlConn.exec( "insert into film values ('Silence of the Lambs, The', 11.8, 1991, 'Jodie Foster');")
+	 //}
+	//关闭....
+	//sqlConn.exec("commit;") 
+
+}
+
+//立即执行
+winform.buttonExecute.oncommand = function(id,event){
+    debug.log4a.debug("立即执行");
+    var purchaseUrl = winform.editPurchaseUrl.text;//商品URL
+    var circuit = winform.comboboxCircuit.text;//线路 1，2，3
+    var featureParam = winform.editFeatureParam.text;//特征参数
+    var amountLimit = winform.editAmountLimit.text;//限额
+	var timelySubmit = winform.dpickTimelySubmit.text;//定时提交
+    var isSuccess = false;
+
+	//线路1
+    if("线路1" == circuit){
+        //打开详情页面
+        isSuccess = defaultOpenDetailPage();
+        //获取价格进行限额判断
+        //var productPrice = wb.waitQueryEles({tagName="SPAN";className="tm-price"}, 5000); 
+        //debug.log4a.debug(wb.body.innerHTML);
+        //加入购物车
+        isSuccess = isSuccess ? defaultAddShopCat() : false;
+        
+        //打开购物车页面
+        isSuccess = isSuccess ? defaultOpenShopCatPage() : false;
+        
+        //领取优惠券
+        isSuccess = isSuccess ? defaultReceiveCoupon() : false;
+        
+        //全选购物车商品
+        //isSuccess = isSuccess ? defaultSelectAll() : false;
+        
+        //结算购物车
+        isSuccess = isSuccess ? defaultBalanceShopCat() : false;
+        
+        //提交订单
+        isSuccess = isSuccess ? defaultSubmitOrder() : false;
+        
+    //线路2    
+    }else if ("线路2" == circuit){
+        //打开详情页面
+        isSuccess = isSuccess ? chromeDriverOpenDetailPage() : false;
+        //加入购物车
+        isSuccess = isSuccess ? chromeDriverAddShopCat() : false;
+        //打开购物车页面
+        isSuccess = isSuccess ? chromeDriverOpenShopCatPage() : false;
+        //全选购物车商品
+        //isSuccess = isSuccess ? chromeDriverSelectAll() : false;
+        //领取优惠券
+        isSuccess = isSuccess ? chromeDriverReceiveCoupon() : false;
+        //提交订单
+        isSuccess = isSuccess ? chromeDriverSubmitOrder() : false; 
+    }
+}
+//关闭窗口
+winform.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {//判断消息类型
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+            debug.log4a.close();
+        }   
+    }
+    //无返回值则继续调用默认回调函数
+}
+
+//线路一aardio打开详情页面
+defaultOpenDetailPage = function(){
+	wb.go(winform.editPurchaseUrl.text);
+    wb.wait(,3000);
+    debug.log4a.debug("打开页面,标题:" + wb.document.title);
+    return true; 
+}
+
+//线路二chromeDriver打开详情页面
+chromeDriverOpenDetailPage = function(){
+    //打开网页
+	browser.go(winform.editPurchaseUrl.text);
+}
+ 
+//线路一aardio加入购物车
+defaultAddShopCat = function(){
+    debug.log4a.debug("点击加入购物车按钮");
+    winform.editLog.print("点击加入购物车按钮");
+    //console.log("加入购物车");
+    
+    //查找天猫购物车按钮
+	var addShopCartEle = wb.waitQueryEles({tagName="^A$";id="J_LinkBasket"}, 2000);
+	if(!addShopCartEle){
+	   //淘宝
+	   addShopCartEle = wb.waitQueryEles({tagName="^A$";className="J_LinkAdd"}, 2000);
+	}
+
+    if(!addShopCartEle){
+      debug.log4a.err("未获取加入购物车按钮");
+      winform.editLog.print("未获取加入购物车按钮");
+      return false;
+    }
+    addShopCartEle.click();
+    wb.wait(,2000);
+    return true;
+
+}
+
+//线路二chromeDriver加入购物车
+chromeDriverAddShopCat = function(){
+    debug.log4a.debug("点击加入购物车按钮");
+    //天猫
+    var addShopCatEle = browser.querySelector("body").querySelector("#J_LinkBasket");
+    if(!addShopCatEle){
+      debug.log4a.err("chromeDriverAddShopCat 淘宝:");
+       //淘宝
+       addShopCatEle = browser.querySelector("body").querySelector("#J_juValid");
+    }
+    
+    if(!addShopCatEle){
+       debug.log4a.err("未获取加入购物车按钮");
+       winform.editLog.print("未获取加入购物车按钮");
+       return false;
+    }
+    debug.log4a.err("chromeDriverAddShopCat1:"+browser.querySelector("body").innerText());
+    addShopCatEle.click();
+    debug.log4a.err("chromeDriverAddShopCat2:"+browser.querySelector("body").innerText());
+    winform.editLog.print("未获取加入购物车按钮");
+    return true;
+}
+
+//线路一aardio打开购物车页面
+defaultOpenShopCatPage = function(){
+    debug.log4a.debug("打开购物车页面");
+    winform.editLog.print("打开购物车页面");
+    wb.go("https://cart.taobao.com/cart.htm?from=btop");
+    wb.wait(,4000);
+    //var shopCartEle = wb.waitQueryEles({tagName="^A$";id="mc-menu-hd"}, 2000);  
+    //if(!shopCartEle){
+    //   debug.log4a.err("未获取购物车按钮");
+    //   winform.editLog.print("未获取购物车按钮");
+    //   return false;
+    //}
+    //shopCartEle.click();
+    return true;
+}
+
+//线路二chromeDriver打开购物车页面
+chromeDriverOpenShopCatPage = function(){
+    debug.log4a.debug("打开我的购物车页面");
+    winform.editLog.print("打开我的购物车页面");
+    //天猫
+    var shopCartEle = browser.querySelector("body").querySelector("#mc-menu-hd");
+    debug.log4a.err("chromeDriverOpenShopCatPage source1:"+browser.querySelector("body").innerText());
+    if(!shopCartEle){
+       debug.log4a.err("未获取我的购物车按钮");
+       winform.editLog.print("未获取我的购物车按钮");
+       return false;
+    }
+
+    shopCartEle.click();
+    return true;
+}
+
+//线路一aardio领取优惠券
+defaultReceiveCoupon = function(){
+    debug.log4a.debug("领取优惠券");
+    //淘宝,天猫
+    var couponEle = wb.waitQueryEles({tagName="^A$";className="shop-coupon-trigger J_MyShopCoupon"}, 2000);  
+    if(couponEle){
+      couponEle.click();
+      debug.log4a.err("获取优惠券按钮");
+      winform.editLog.print("获领取优惠券按钮");
+    }
+    
+    return true;
+}
+
+//线路二chromeDriver领取优惠券
+chromeDriverReceiveCoupon = function(){
+    debug.log4a.debug("领取优惠券");
+    winform.editLog.print("领取优惠券");
+    var couponEle = browser.querySelector("body").querySelector(".J_MyShopCoupon"); 
+    if(!couponEle){
+      debug.log4a.err("未获领取优惠券按钮");
+      winform.editLog.print("未获领取优惠券按钮");
+      return false;
+    }
+    couponEle.click();
+    return true;
+}
+
+//线路一aardio全选购物车商品
+defaultSelectAll = function(){
+    debug.log4a.debug("全选购物车商品");
+    wdebug.log4a.debug("defaultSelectAll:"+wb.body.innerHTML);inform.editLog.print("全选购物车商品");
+    
+    var selectAllEle = wb.waitQueryEles({tagName="^DIV$";id="J_SelectAll1"}, 2000);  
+    if(!selectAllEle){
+      debug.log4a.err("未获取全选购物车商品按钮");
+      winform.editLog.print("未获全选购物车商品按钮");
+      return false;
+    }
+    selectAllEle.click();
+    return true;
+}
+
+//线路二chromeDriver全选购物车商品
+chromeDriverSelectAll = function(){
+    debug.log4a.debug("全选购物车商品");
+    winform.editLog.print("全选购物车商品");
+    var selectAllEle = browser.querySelector("body").querySelector("#J_SelectAll1");
+    if(!selectAllEle){
+       debug.log4a.err("未获全选购物车商品按钮");
+       winform.editLog.print("未获全选购物车商品按钮");
+       return false;
+    }
+    selectAllEle.click();
+    return true;
+}
+
+//线路一aardio结算购物车
+defaultBalanceShopCat = function(){
+    debug.log4a.debug("结算购物车");
+    winform.editLog.print("结算购物车");
+
+	debug.log4a.debug("defaultBalanceShopCat html:"+string.replace(tostring(wb.body.innerHTML),"'",""));
+	
+	var jsonOrderData = string.match(string.replace(tostring(wb.body.innerHTML),"'","#_#"),'<@,"list":@>(.*?)<@,"success"@>');
+    //var jsonOrderData = string.match(jsonOrder,'<@<SCRIPT>
+    //    try{var firstData = @>(.*?)<@;}catch (e)@>');
+	//console.log(jsonOrderData)
+	
+	if(!jsonOrderData){
+	   return ; 
+	}
+    jsonOrderData = string.replace(jsonOrderData,"#_#","'");
+    debug.log4a.debug("defaultBalanceShopCat jsonOrderData:" + jsonOrderData);
+    
+	//json字串解码成table对象
+	var orderDataTable = web.json.parse(jsonOrderData);
+	// table对象转换为JSON字符串,参数2为true时格式化JSON
+	//var json = web.json.stringify(tab,true)
+	debug.log4a.debug(#orderDataTable);
+	var orderItems = {};
+	//  cartid       itemId           skuId        sellerId           cartBcParams
+	//1424392850192_575166941991_1_4127092862554_314182745_0_0_0_buyerCondition~0~~dpbUpgrade~null~~cartCreateTime~1564713716000__0    
+	for(i=1;#orderDataTable;1){
+    	if( orderDataTable[i] !== null ){
+      		var order = ((((orderDataTable[i])["bundles"])[1])["orders"])[1];
+      		var orderItem = order["cartId"] + "_" + order["itemId"] + "_1_" + order["skuId"] + "_" + order["sellerId"] + "_0_0_0_" + (order["cartActiveInfo"])["cartBcParams"];
+      		if( order["toBuyInfo"] !== null && (order["toBuyInfo"])["attributes"] !== null ){
+         		orderItem += "_%7B%22attributes%22%3A%7B%22dpbUpgrade%22%3A%220%22%7D%7D";
+      		}else{
+         		orderItem += "_";
+      		}
+      		orderItem += "_0";
+      		orderItems[i] = orderItem;
+    	}
+	}
+	//debug.log4a.debug("orderItems:"+web.json.stringify(orderItems,true));
+	debug.log4a.debug("orderItems:"+table.tostring(orderItems));
+
+    var cookies = '';
+	whttp  = inet.whttp();
+	var str = whttp.get("https://cart.taobao.com/cart.htm?from=btop");
+    whttp.afterSend = function(statusCode,contentLength){whttp.readHeader();}
+    cookies = whttp.readHeader("Set-Cookie:");
+    console.log("cookies:" + cookies);
+    //whttp.beforeSend = function(){whttp.writeHeader("Cookie: " ++ cookies);}
+    //console.log(cookies,a);
+	
+
+
+
+    //https://buy.taobao.com/auction/order/confirm_order.htm?spm=a1z0d.6639537.0.0.undefined
+    
+    //buyer_from: cart
+    //source_time: 1565319242938
+    
+    //var postData = "forward=?user=&member_type=1&username="+winform.edit2.text+"&pass1=199241&pass2=199241&email=sdfdssafgd%40qq.com&code="+winform.edit.text+"&xieyi=1";
+    //var html= whttp.post("http://www.icodo.com/login/reg_save.php",postData,"Cookie:"+ cookie);
+
+    return true;
+}
+
+//线路一aardio提交订单
+defaultSubmitOrder = function(){
+    debug.log4a.debug("提交订单");
+    winform.editLog.print("提交订单");
+    var submitOrderEle = wb.waitQueryEles({tagName="^A$";innerHTML="提交订单";className="go-btn"}, 2000);  
+    if(!submitOrderEle){
+      debug.log4a.err("未获取提交订单按钮");
+      winform.editLog.print("未获取提交订单按钮");
+      return false;
+    }
+    submitOrderEle.click();
+    return true;
+}
+
+//线路二chromeDriver提交订单
+chromeDriverSubmitOrder = function(){
+    debug.log4a.debug("提交订单");
+    winform.editLog.print("提交订单");
+    var submitOrderEle = browser.querySelector("body").querySelector("#J_Go");
+    if(!submitOrderEle){
+       debug.log4a.err("未获取提交订单按钮");
+       winform.editLog.print("未获取提交订单按钮");
+       return false;
+    }
+    submitOrderEle.click();
+    return true;
+}
+
+
+//线路一aardio打开购物车页面
+aardioOpenShopCatPage = function(){
+    debug.log4a.debug("打开aardio购物车页面");
+    
+    //创建web窗体
+	var wb = web.form.sockpuppet( mainForm 
+     	,0x8/*_UIFLAG_SCROLL_NO 禁用滚动条*/
+     	,//可输入_DLCTL_ 前缀的常量以控制下载行为
+     	,//"USER AGENT"
+     	);
+	wb.noScriptErr=true; 
+    wb.go("https://cart.taobao.com/cart.htm?from=btop");
+    wb.wait(,4000);
+    cookieData = wb.document.cookie;
+    debug.log4a.info("aardioOpenShopCatPage cookie:" + cookieData);
+    debug.log4a.debug("aardioOpenShopCatPage:"+wb.body.innerHTML);
+    //var shopCartEle = wb.waitQueryEles({tagName="^A$";id="mc-menu-hd"}, 2000);  
+    //if(!shopCartEle){
+    //   debug.log4a.err("未获取购物车按钮");
+    //   winform.editLog.print("未获取购物车按钮");
+    //   return false;
+    //}
+    //shopCartEle.click();
+    return true;
+}
+
+//whttp打开购物车页面
+whttpOpenShopCatPage = function(){
+    debug.log4a.debug("打开default购物车页面");
+    import sqlite;
+    import inet;
+    import inet.http;
+    var db = sqlite("/hummer.dll");//打开数据库连接
+    var loginInfoResult = db.stepQuery("SELECT user_id,cookie_data from [login_info] ",{
+        user_name = "18351815346";
+    });
+    var cookieData = loginInfoResult.cookie_data;
+	debug.log4a.debug("defaultOpenShopCatPage cookieData:" + cookieData);	
+    http = inet.http();
+    //whttp.addHeaders = /***
+    //Content-Type: application/x-www-form-urlencoded; charset=utf-8
+    //***/;
+    //whttp.beforeSend = function(){	whttp.writeHeader("Cookie: " ++ cookieData );	}
+    //whttp.afterSend = function(statusCode,contentLength){ whttp.readHeader(); }
+    
+    var headerParam = {};
+    headerParam["Accept"] = "application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*";
+    headerParam["Accept-Language"] = "zh-CN,zh;q=0.9";
+    headerParam["Content-Type"] = "application/x-www-form-urlencoded; charset=utf-8";
+    headerParam["User-Agent"] = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; .NET4.0C; .NET4.0E; InfoPath.2)";
+    headerParam["Accept-Encoding"] = "gzip, deflate";
+    headerParam["Host"] = "cart.taobao.com";
+    headerParam["Connection"] = "Keep-Alive";
+    headerParam["Cookie"] = cookieData;
+    http.headers = headerParam;
+    var cartResult = http.get("https://cart.taobao.com/cart.htm?from=btop");	
+	//var cartResult = whttp.get("https://cart.taobao.com/cart.htm?from=btop");
+    debug.log4a.debug("defaultOpenShopCatPage cartResult:" + cartResult);
+}
+
+winform.show(); 
+win.loopMessage();
+return winform;

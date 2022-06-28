@@ -1,0 +1,193 @@
+import process;
+import fcgi.app.status;
+namespace fcgi.record;
+
+processor = class {
+	ctor (request, reader, writer) { }
+	
+	nextRecord = function (t) {
+		var header = reader.readHeader();
+		var status = processHeader(request, header, t, reader, writer);
+		select (status) {
+			case app.status.StreamRecord {
+				return streamRecord(request, header, reader, writer);
+			}
+			case app.status.Skip {}
+		}
+		return status;
+	}
+	
+	printRaw = function (data, t = 6/*_FCGI_STDOUT*/) {
+		var header = ..fcgi.FCGI_Header();
+		header.type = t;
+		header.requestId = request.requestId;
+		if (data === null)
+			writer.write(header);
+		else {
+			if (type(data) !== type.string)
+				data = tostring(data);
+			var len = #data;
+			while (len > 65535) {
+				var data2 = ..string.left(data, 65535);
+				_out(data2);
+				data = ..string.right(data, -65536);
+				len -= 65535;
+			}
+			header.contentLength = #data;
+			writer.write(header, data);
+		}
+	}
+	
+	print = function (...) {
+		for (k, v in {...}) {
+			if (v !== null) {
+				this.printRaw(v);
+			}
+		}
+	}
+	
+	printErr = function (...) {
+		for (k, v in {...}) {
+			if (v !== null) {
+				this.printRaw(v, 7/*_FCGI_STDERR*/);
+			}
+		}
+	}
+	
+	endRequest = function (appStatus = 0, protocolStatus = 0) {
+		var endRequestRecord = ..fcgi.FCGI_EndRequestRecord();
+		endRequestRecord.header.requestId = request.requestId;
+		endRequestRecord.body.appStatus = appStatus;
+		endRequestRecord.body.protocolStatus = protocolStatus;
+		writer.write(endRequestRecord);
+		request.requestId = null;
+	}
+}
+
+namespace processor {
+	app = {
+		status = ..fcgi.app.status;
+	}
+	
+	var beginRequest = function (request, header, reader, writer) {
+		var body = ..fcgi.FCGI_BeginRequestBody();
+		if ( header.requestId === 0 || header.contentLength !== ..raw.sizeof(body) ) {
+			return app.status.ProtocolError;
+		}
+		if ( request.requestId ) {
+			// Web 服务器为并发处理模式, 而该库不处理并发连接, 回复
+			// FCGI_END_REQUEST{protocolStatus = FCGI_CANT_MPX_CONN}
+			var endRequestRecord = ..fcgi.FCGI_EndRequestRecord();
+			endRequestRecord.header.requestId = header.requestId;
+			endRequestRecord.body.protocolStatus = 1/*_FCGI_CANT_MPX_CONN*/;
+			writer.write(endRequestRecord);
+			return app.status.Skip;
+		}
+		// 接受新请求
+		request.requestId = header.requestId;
+		request.paramsData = {};
+		request.stdinData = {};
+		if ( ! reader.read(body) ) {
+			return app.status.ProtocolError;
+		}
+		if ( header.paddingLength ) {
+			reader.read(header.paddingLength);
+		}
+		return app.status.BeginRecord;
+	}
+	
+	var prc = ..process();
+	var concatParams = function (request) {
+		var str = ..string.join(request.paramsData);
+		var strLen = #str;
+		var data = ..raw.malloc(strLen);
+		var cur = ..raw.convert({ pointer ptr = data }, { INT cur }).cur;
+		var endCur = cur + strLen;
+		prc.writeString(cur, str);
+		
+		var readLength = function () {
+			var len = prc.readNumber(cur, "BYTE");
+			cur++;
+			if (len >> 7 == 1) {
+				len = (len & 0x7f) << 24;
+				len += (prc.readNumber(cur, "BYTE") << 16);
+				cur++;
+				len += (prc.readNumber(cur, "BYTE") << 8);
+				cur++;
+				len += (prc.readNumber(cur, "BYTE"));
+				cur++;
+			}
+			return len;
+		}
+		
+		var params = {};
+		while ( cur < endCur ) {
+			var nameLength = readLength();
+			var valueLength = readLength();
+			var name = prc.readString(cur, nameLength);
+			cur += nameLength;
+			var value = prc.readString(cur, valueLength);
+			cur += valueLength;
+			params[name] = value;
+		}
+		request.paramsData = params;
+	}
+	
+	var paramsRecord = function (request, header, reader, writer) {
+		if (header.contentLength > 0) {
+			// 还有参数，继续接收
+			..table.push( request.paramsData, reader.read(header.contentLength) );
+			return app.status.StreamRecord;
+		}
+		else {
+			// 参数传递完毕，连接参数
+			concatParams(request);
+		}
+	}
+	
+	var stdinRecord = function (request, header, reader, writer) {
+		if (header.contentLength > 0) {
+			// 还有参数，继续接收
+			..table.push( request.stdinData, reader.read(header.contentLength) );
+			return app.status.StreamRecord;
+		}
+		else {
+			// 参数传递完毕，连接参数
+			request.stdinData = ..string.join(request.stdinData);
+		}
+	}
+	
+	streamRecord = function (request, header, reader, writer) {
+		var status;
+		if (header.type === 4/*_FCGI_PARAMS*/) {
+			status = paramsRecord(request, header, reader, writer);
+		}
+		elseif (header.type === 5/*_FCGI_STDIN*/) {
+			status = stdinRecord(request, header, reader, writer);
+		}
+		// padding
+		if ( header.paddingLength > 0 ) {
+			reader.read(header.paddingLength);
+		}
+		return status;
+	}
+	
+	processHeader = function (request, header, t, reader, writer) {
+		if (header.version !== 1) {
+			return app.status.UnsupportedVersion;
+		}
+		if (header.type === 1/*_FCGI_BEGIN_REQUEST*/) {
+			return beginRequest(request, header, reader, writer);
+		}
+		if (header.requestId === 0) {
+			// return processManagementRecord(header);
+		}
+		if (header.requestId !== request.requestId) {
+			return app.status.Skip;
+		}
+		if (header.type !== t) {
+			return app.status.ProtocolError;
+		}
+		return app.status.StreamRecord;
+	}
+}

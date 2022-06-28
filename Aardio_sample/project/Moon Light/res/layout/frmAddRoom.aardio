@@ -1,0 +1,61 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=399;border="none";parent=...)
+winform.add()
+/*}}*/
+
+import win.ui.atom 
+var atom,hwndConflict = winform.atom("CEE1B22F-FD28-497F-9722-E15A9CCDB46D");
+if(!atom){
+	winform.close()
+	return ; 
+};
+
+import win.ui.shadow;
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.supportedWebsite;
+
+import sdk;
+import public;
+
+var wb = web.layout( winform ) 
+
+if( isDebug ){
+	import web.layout.debug
+	wb.attachEventHandler( web.layout.debug )	
+}
+
+wb.go("/res/frmAddRoom_lt.html")
+
+wb.onButtonClick = {
+    ["add-room"] = function(){
+        var url = wb.getEle("room-url").value;
+        if( !#url ){
+            winform.msgboxErr("直播间网址不能为空")
+        	return ; 
+        }
+        
+        if( !sdk.handle( url ) ){
+            winform.msgboxErr("暂时不支持该直播平台")
+        	return ;        	
+        }
+
+        var streamInfo = public.playUrl( url )	
+		if( streamInfo ){
+        	var ok, err = public.addRoom( streamInfo )
+        	if( !ok ){
+            	winform.msgboxErr( err )
+        	}   			
+		}
+    } 
+}
+
+
+
+win.ui.shadow( winform, 50, 3 )
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

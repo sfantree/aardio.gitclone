@@ -1,0 +1,44 @@
+import win.ui;
+/*DSG{{*/
+mainForm = ..win.form( right=575;bottom=279;parent=...;text="拖拉控件" )
+mainForm.add( 
+button={ bottom=120;right=376;left=280;top=80;z=1;text="按钮1";cls="button" };
+button2={ bottom=208;right=376;left=280;top=168;z=3;text="按钮2";cls="button" };
+checkbox={ bottom=136;right=136;left=40;top=112;z=2;text="拖拉按钮1";cls="checkbox" }
+)
+/*}}*/
+
+//获取按钮坐标
+var	x,y,cx,cy=mainForm.button.getPos();
+var x2,y2,cx2,cy2=mainForm.button2.getPos();
+
+mainForm.checkbox.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.checkbox.text );
+	if(mainForm.checkbox.checked){
+	    mainForm.button.wndproc = null; //首先清除原来的回调函数
+		mainForm.button.wndproc = function(hwnd,message,wParam,lParam){
+			select(message) {
+			case 0x201/*_WM_LBUTTONDOWN*/ {
+			//发送消息让按钮移动
+			::SendMessageInt(mainForm.button.hwnd,0xA1/*_WM_NCLBUTTONDOWN*/,2/*_HTCAPTION*/,0);
+		}
+			case 0x200/*_WM_MOUSEMOVE*/{
+			//取消鼠标捕捉
+			win.releaseCapture();
+		}
+	}
+	}
+	}else {
+	//获取当前按钮坐标
+	x1,y1,cx1,cy1=mainForm.button.getPos();
+	mainForm.button.wndproc=function(hwnd,message,wParam,lParam){
+		select(message) {
+			case 0x3/*_WM_MOVE*/ {
+			mainForm.button.setPos(x1,y1,cx1,cy1);
+			}
+		}
+	}
+	}
+}
+mainForm.show() 
+win.loopMessage(); 

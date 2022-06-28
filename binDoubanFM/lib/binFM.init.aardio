@@ -1,0 +1,291 @@
+﻿//init 初始化
+namespace binFM.init{
+
+	import fsys;
+	.._data = ..fsys.getSpecial(0x1a /*_CSIDL_APPDATA*/) ++ "\doubanFM_wubin";
+		// win7	C:\Users\administrator\AppData\Roaming
+		// xp	C:\Document and Settings\administrator\Application Data 
+	..fsys.createDir(.._data,false);
+	
+	if(!..io.exist(.._data++"\bass.audio")) {
+		var bassDll = $"\res\bass.audio";
+		..string.save(.._data++"\bass.audio",bassDll);
+	}
+
+	/*
+	 * 声明变量
+	 */
+
+	// 部分global变量
+	..songs_json = ""; // 加红心、删除等操作都会返回json，故设其为全局变量
+	..songs_noAd = {}; // 存放无广告的音乐
+	..song_detail = {}; // 缓存豆瓣歌曲详细信息
+	..now_i = 1; // 当前播放的歌曲index
+	..started = false;
+	..channelId = "";
+	..channelId_now = 0;
+	..errorTime = 0; // 播放时出错的次数
+	..offset = {}; // 歌词时间补偿
+	..lrc_last = 1; // 显示歌词当前行时for循环的起点
+	..line1 = ""; line2 = "";
+	..exactInterval = 50; // 显示歌词及频谱时的计时器间隔
+	..posChanged = true;
+	..fontsizeChanged = true;
+	..slided = "close";
+	..playlistShown = false;
+	..searchPageNum = 1;
+	..noAPNG = false;
+	
+	// 窗口显示状态
+	..mainFormActive = false; // 主窗口激活状态
+	..albumFormShown = false;
+	..autoFormShown = false;
+	..eqFormShown = false;
+	..fontsFormShown = false;
+	..fftShowing = false; // 当前设置的频谱显示状态
+	..fftFormActive = false; // 实际上当前频谱窗体的显示状态
+	..lrcShowing = false; 
+	..loginFormShown = false;
+	..miniShown = false; 
+	..monitorShown = false;
+	..monitorOn = false;
+	..popupShowing = false; 
+	..tableFormShown = false;
+
+	// 用户与登录信息
+	..userName = '';
+	..userCname = ''; // 用户别名
+	..userId = '';
+	..expire = '';
+	..token = '';
+	..userLiked = 100; // 手动设置红心歌曲的总数，已废弃
+	..login = false;
+	
+	// 初次使用时的默认设置				
+	..splash = "defult";
+	..randomSongs = false;
+	..cnFont = '微软雅黑'; // 报错则为simsun
+	..enFont = 'Arial';
+	..lrcFontsize = 40;
+	..lrcFontcolor1 = "20795D";
+	..lrcFontcolor2 = "84BEAC";
+	..lrcPosY = -2;
+	..volume = 50;
+	..enableAero = false; // 当前是否已开启Aero效果
+	..saveFolder = ..fsys.getSpecial(0xd /*_CSIDL_MYMUSIC*/);	
+	..hk_next_a = 3; // ctrl+alt
+	..hk_next_b = 190; // .
+	..hk_back_a = 3; 
+	..hk_back_b = 188; // ,
+	..hk_play_a = 3; 
+	..hk_play_b = 80; // P
+	..hk_like_a = 3; 
+	..hk_like_b = 70; // F
+	..hk_del_a = 3; 
+	..hk_del_b = 191; // /
+	..hk_lrc_a = 3; 
+	..hk_lrc_b = 76; // L
+	..hk_front_a = 3;
+	..hk_front_b = 90; // Z
+	..hk_exit_a = 3; 
+	..hk_exit_b = 88; // X
+	..isLikeByTitle = 1;..likeTitle = "";
+	..isLikeByArtist = 1;..likeArtist = "";
+	..isLikeByAlbum = 1;..likeAlbum = "";
+	..isDelByTitle = 1;..delTitle = "";
+	..isDelByArtist = 1;..delArtist = "";
+	..isDelByAlbum = 1;..delAlbum = "";
+	..isDelEnglish = 0;
+	..single = false; // 单曲循环
+	..enablePopWin = true;
+	..isWithLrc = true;
+	..eqSetups = {};
+	..eqSetups[1] = {"低音和高音";6;9;7;3;1;0;0;1;1;2;3};
+	..eqSetups[2] = {"古典";8;0;0;0;0;0;0;0;-3;-3;-6};
+	..eqSetups[3] = {"舞曲";5;6;5;2;1;1;0;0;-3;-4;-4};
+	..eqSetups[4] = {"流行";6;-1;0;3;4;5;6;3;1;0;0};
+	..eqSetups[5] = {"摇滚";5;6;5;4;1;-3;-5;-2;2;3;4};
+	..eqSetups[6] = {"电子";5;6;5;3;2;0;-3;-3;0;6;7};
+	..eqSetups[7] = {"自定义1";12;0;0;0;0;0;0;0;0;0;0};
+	..eqSetups[8] = {"自定义2";12;0;0;0;0;0;0;0;0;0;0};
+	..eqSetups[9] = {"自定义3";12;0;0;0;0;0;0;0;0;0;0};
+	..eqSetups_ = {};
+	for(i=1;#..eqSetups;1) {
+		..eqSetups_[i] = {};
+		for(j=1;#..eqSetups[i];1) {
+			..eqSetups_[i][j] = ..eqSetups[i][j];
+		}
+	}
+	..eqId = 7;
+	..enableEQ = true;
+
+	
+	// ui样式常量
+	.._listToHistory = '<option><p id="toHistory" title="我的收听历史&#13;我的红心兆赫歌曲">&nbsp;</p></option>';
+	.._listToAdd = '<option id="listToAdd_"><p id="listToAdd">&nbsp;</p></option>';
+	.._searchLoading = '<div id="searchLoading">正在搜索...</div>';
+	.._searchLoading2 = '<div id="searchLoading2">正在搜索...</div>';
+	.._searchArtist = '<div class="searchArtist" name="play_artist_2" cid="artist{artistId}" title="{artist}" now="">{artist}<!--del--></div>';
+	.._searchChannel = '<div class="searchChannel" title="{channel}" cName="{channel}" cId="{channelId}" now="" name="channel_2">{channel} MHz<!--del--></div>';
+	.._searchAlbum = '<div class="searchAlbum" name="play_album_2" cid="album{albumId}" title="{albumTitle}" now=""><div class="searchPic"><img src="{albumPhoto}" /></div><p class="searchAlbum_1">{albumTitle}</p><p class="searchAlbum_2">{artist}</p><!--del--></div>';
+	.._searchPage = '<div id="searchPage"><div id="searchPre">&nbsp;</div><div id="searchNext">&nbsp;</div></div>';
+	.._searchNone = '<div id="searchTip">没有找到...<br />艺术家名称可能需要填写完整<br />可能下一页才有...</div>';
+	.._favDel = '<div class="favDel" name="fav_del" cids="{cids}" group="{group}" title="删除">&nbsp;</div>';
+
+	
+	
+	/*
+	 * 读取用户配置
+	 */
+	profile = function() {
+
+		..binFM.ui.$("#showAbout").title = "版本 " ++ .._ver;
+	
+		// 开始时是否启用Aero效果
+		var aeroOnStart = ..binFM.db.set("aeroOnStart");
+		if(!aeroOnStart || (aeroOnStart && aeroOnStart=='1')) ..binFM.aero.toggle("aero");
+		else ..binFM.aero.toggle("normal");
+		
+		// 获取用户登录信息
+		if(!..binFM.db.set("userId") || ..binFM.db.set("userId")=='') ..login = false;
+		else {
+			..userId = ..binFM.db.set("userId");
+			var userEmail,userPass,gotTime;
+			userEmail,userPass,..userName,..userCname,..userId,..userLiked,..token,..expire,gotTime = ..binFM.db.getUser(..userId);
+			
+			if(userEmail && userEmail!="" && userPass && userPass!="" && ..token && ..token!="" && ..expire && ..expire!="") {
+				var nowTime = tonumber(..time.now())*1000;
+				..expire = tonumber(..expire);
+				if(!gotTime || gotTime=='') gotTime = -999;
+				if(nowTime - gotTime >= 864000000) { // 假设其过期时间为10天
+					..binFM.monitor.info("需要重新获取token");
+					if(..binFM.douban.getToken(userEmail,userPass)) ..login = true;
+				}
+				else {
+					..login = true;
+				}
+				if(..login) {
+					..binFM.ui.css("#showLoginForm","background","url(/res/images/login_icon.png) no-repeat;");
+					..binFM.ui.css("#showLoginForm","behavior","popup-menu;");
+					..binFM.ui.html("#userName",..userName);
+				}
+			}
+			else {
+				..login = false;
+				..userId = "";
+				..token = "";
+				..expire = "";
+				..userLiked = 100;
+				// 未保存登录信息
+			}
+		}
+
+		// 设置初始音量
+		if(..binFM.db.set("volume")) ..volume = tonumber(..binFM.db.set("volume"));
+		if(..volume<10) ..volume = 10;
+		..binFM.ui.volume(..volume);
+		
+		// 读取EQ设置
+		..enableEQ = ..binFM.db.set("enableEQ");
+		if(!..enableEQ || (..enableEQ && ..enableEQ=='1')) ..enableEQ = true;
+		else ..enableEQ = false
+		..binFM.db.getEQ();	
+		if(..binFM.db.set("eqId")) ..eqId = tonumber(..binFM.db.set("eqId"));
+								
+		// 开始时是否显示歌词
+		var lrcOnStart = ..binFM.db.set("lrcOnStart");
+		if(!lrcOnStart || (lrcOnStart && lrcOnStart=='1')){
+			..binFM.ui.showLrc("show");
+			..win.setForeground(..mainForm.hwnd);
+		}
+		else {
+			..binFM.ui.showLrc("hide");
+		}
+
+		// 开始时是否显示频谱
+		var fftOnStart = ..binFM.db.set("fftOnStart");
+		if(!fftOnStart || (fftOnStart && fftOnStart=='1')){
+			..binFM.ui.showFFT("show");
+			..win.setForeground(..mainForm.hwnd);
+		}
+		else {
+			..binFM.ui.showFFT("hide");
+		}
+		
+		// 读取保存的扩展频道列表
+		var channelList_ext = ..binFM.db.set("channelList_ext");
+		if(channelList_ext && channelList_ext!='') ..binFM.ui.$("#channels-list-ul").insertAdjacentHTML("beforeEnd",channelList_ext);
+	
+		// 设置初始频道
+		..channelId = ..binFM.db.set("channelId");
+		if(!..channelId) ..channelId = 61;
+		// -- 如果列表中没有指定的频道...
+		/*if(!..binFM.ui.$("span[cId='" ++ ..channelId ++ "']")) {
+			if(..channelId!=-3 && ..channelId!=0) {
+				..channelId = 61;
+			}
+		}*/
+		var caid = ..binFM.db.set("caid");
+		var caname = ..binFM.db.set("caname");
+		var channelName = ..binFM.db.set("channelName");
+
+		if(..channelId==-100 && caid) ..binFM.to.playArtist(caid,caname);
+		else if(..channelId==-10 && caid) ..binFM.to.playAlbum(caid,caname);
+		else {
+			if(..channelId==-3 && !..login) ..channelId = 61;
+			..binFM.douban.getSongs(..channelId,true);
+		}
+
+		if(..binFM.ui.$("#channel-name")) ..binFM.ui.html("#channel-name",channelName);
+		..channelId_now = ..channelId;
+		..binFM.ui.channel(,..channelId);
+		
+		// 获取自动加红心、屏蔽 选项
+		..binFM.db.getAuto();
+		
+		// 是否随即排列歌曲
+		if(..binFM.db.set("random")) {
+			if(..binFM.db.set("random")=="0") ..randomSongs = false;
+			if(..binFM.db.set("random")=="1") ..randomSongs = true;			
+		}
+		if(..randomSongs) ..binFM.ui.menuToggle("#isRandomSongs","on");
+		else ..binFM.ui.menuToggle("#isRandomSongs","off");
+		
+		// 是否同时下载歌词
+		if(..binFM.db.set("withLrc")) {
+			if(..binFM.db.set("withLrc")=="0") ..isWithLrc = false;
+			if(..binFM.db.set("withLrc")=="1") ..isWithLrc = true;			
+		}
+		if(..isWithLrc) ..binFM.ui.menuToggle("#isWithLrc","on");
+		else ..binFM.ui.menuToggle("#isWithLrc","off");
+			
+		// 是否打开右下角弹窗
+		if(..binFM.db.set("popWin")) {
+			if(..binFM.db.set("popWin")=="0") ..enablePopWin = false;
+			if(..binFM.db.set("popWin")=="1") ..enablePopWin = true;			
+		}
+		if(..enablePopWin) ..binFM.ui.menuToggle("#isEnablePopWin","on");
+		else ..binFM.ui.menuToggle("#isEnablePopWin","off");
+		
+		// 默认取消单曲循环
+		..binFM.ui.toggleSingle(false);
+						
+		// 初始化默认下载目录显示框 - 必须在binFM.init.loadForm()之后
+		try {
+			if(..binFM.db.set("saveFolder")) {
+				..saveFolder = ..binFM.db.set("saveFolder");
+				}
+			else ..saveFolder = ..fsys.getSpecial(0xd /*_CSIDL_MYMUSIC*/);
+		}
+		try {
+			if(!..saveFolder) ..saveFolder = ..fsys.getSpecial(0x19 /*_CSIDL_COMMON_DESKTOPDIRECTORY*/);
+		}
+		if(!..saveFolder) ..saveFolder = "c:\";
+		
+		// 读取splash名称
+		..splash = ..binFM.db.set("splash");
+		
+		
+		
+	}
+}

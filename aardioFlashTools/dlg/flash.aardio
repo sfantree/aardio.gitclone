@@ -1,0 +1,79 @@
+import win.ui;
+import win.ui.menu;
+import flashk
+
+// 字体
+import fonts.miSans
+
+/*DSG{{*/
+var winform = win.form(text="Flash";right=599;bottom=399)
+winform.add(
+button={cls="button";text="扫描设备";left=8;top=256;right=184;bottom=296;ah=1;aw=1;font=LOGFONT(h=-20;name='MiSans';weight=700);z=8};
+button2={cls="button";text="刷入";left=8;top=352;right=184;bottom=390;ah=1;aw=1;font=LOGFONT(h=-19;name='MiSans';weight=700);z=2};
+button3={cls="button";text="选择待刷入文件";left=8;top=304;right=184;bottom=344;ah=1;aw=1;font=LOGFONT(h=-20;name='MiSans';weight=700);z=3};
+combobox={cls="combobox";left=8;top=184;right=184;bottom=208;edge=1;items={};mode="dropdown";z=9};
+edit={cls="edit";text="选择文件...";left=8;top=55;right=184;bottom=136;ah=1;aw=1;edge=1;font=LOGFONT(name='MiSans');multiline=1;z=4};
+edit2={cls="edit";text="刷入的分区";left=8;top=144;right=184;bottom=177;ah=1;aw=1;edge=1;font=LOGFONT(name='MiSans');hide=1;multiline=1;z=6};
+richedit={cls="richedit";text="等待命令...";left=200;top=55;right=590;bottom=390;ah=1;aw=1;edge=1;font=LOGFONT(name='MiSans');hscroll=1;multiline=1;readonly=1;vscroll=1;z=1};
+static={cls="static";text="刷入状态：";left=200;top=25;right=340;bottom=48;font=LOGFONT(h=-16;name='MiSans';weight=700);transparent=1;z=5};
+static2={cls="static";text="刷入模式：";left=8;top=25;right=184;bottom=48;font=LOGFONT(h=-16;name='MiSans';weight=700);transparent=1;z=7}
+)
+/*}}*/
+
+cfile=""
+/*获取刷入模式{{*/
+//本段代码没有纳入kernel的必要
+cos=tostring(clickButton)
+if(cos=="rec"){
+	winform.static2.text+="刷入rec";
+}elseif(cos=="fb"){
+	winform.static2.text+="线刷模式"
+}else{
+	winform.static2.text+="rec线刷模式"
+}
+if(cos=="fb" or cos=="sideload"){
+		winform.edit2.hide=0;
+}else{
+	winform.edit.bottom=159
+}
+/*}}*/
+
+flashk.startADB()
+findRES=flashk.findDevice()
+if(findRES=="404"){
+	winform.richedit.text="暂时未扫描到设备链接"
+}
+
+winform.button3.oncommand = function(id,event){
+	cfile=flashk.choseDir(cos)
+	winform.edit.text=fsys.getFileName(cfile);
+}
+winform.button2.oncommand = function(id,event){
+	import fsys.dlg;
+	var rfile=string.split(fsys.getFileName(cfile),".")[1]
+	var device=winform.combobox.selText
+	var flashTool=""
+	if(cfile!=""){
+		flashTool=flashk.flashTool(cos)
+		winform.richedit.text="已执行，请等待"
+		import process.popen
+		import fsys
+		var commandV=flashTool
+		var prcs = process.popen.detached("cmd.exe")
+		prcs.write(cmd)
+		var result = prcs.peekTo();
+		prcs.print('exit')
+		winform.richedit.text=result
+	}else {
+			winform.richedit.text="未选择文件"
+	}
+}
+
+winform.combobox.oncommand = function(id,event){
+	if(event == 0x1/*_CBN_SELCHANGE*/){
+		winform.richedit.text += '已选中:\n'+winform.combobox.selText+'\n';
+	}
+}
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,63 @@
+﻿
+import fsys;
+import sevenZip.lzma.httpFile;
+import fonts;
+
+namespace wubi;
+
+class spelling98{
+	ctor(){
+		if(!..io.exist(dataPath) ) return null;
+		
+		this.map = {}
+		var match = ..string.match;
+		for line in ..io.lines(dataPath) {
+			var str,spelling = match(line,"(\S+)\s+(\S+)")
+		 
+			if( str && spelling ){ 
+				this.map[str] = ..string.replace(spelling,"※"," ");
+			} 
+		}
+	}; 
+	find = function(str){
+		return this.map[str]
+	}; 
+}
+
+namespace spelling98{
+    
+ 	dataPath = ..io.appData("aardio\wubi\spelling98\spelling.txt");
+	fontPath = ..io.appData("aardio\wubi\spelling98\98WB-2.otf");
+	install = function(winform){
+		if(!..io.exist(fontPath)){
+			var extraDir = ..io.appData("aardio/wubi/")
+			if( ..sevenZip.lzma.httpFile.download("http://wubi.aardio.com/download/spelling98.tar.lzma"
+				,"下载五笔98拆分图解字库",..io.appData("aardio/wubi/download"),extraDir,"spelling98.tar.lzma",winform) ){
+				
+			}
+		}
+		
+	}
+	
+	installFont = function(){
+		if ..io.exist(fontPath) {
+			fontFamily = ..fonts.addFamily( fontPath,"98WB-2")
+		}	
+	} 
+	
+	isInstalled = function(){
+		return ..io.exist(fontPath);
+	}  
+}
+	
+/**intellisense()
+wubi.spelling98 = 必须在创建窗口以前导入，\n因为导入这个库时同时会导入"98WB-2"字体
+wubi.spelling98() = 五笔拆字\n字体与数据源自 https://github.com/yanhuacuo/qingg \n!wubiLexSpelling98.
+wubi.spelling98.install() = 安装字根数据
+wubi.spelling98.isInstalled() = 是否安装字根数据
+end intellisense**/
+
+/**intellisense(!wubiLexSpelling98) 
+find(__) = 参数输入文本，返回拆分的字根
+end intellisense**/
+

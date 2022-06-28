@@ -1,0 +1,68 @@
+﻿
+namespace log4j.appenders 
+//appenders 日志输出
+import fsys.log
+import thread
+import log4j.layouts
+import log4j
+import log4j.appenders.fileAppend
+namespace log4j.appenders
+/*
+todo:
+	1.日志限制大小滚动输出
+	2.定时清理日志，只保留最近几天内的日志
+	3.新增邮件日志等...
+*/
+file = function(loggingEvent,...){
+	log4j.appenders.fileAppend.dump(loggingEvent,...)
+
+}
+console = function(loggingEvent,...){
+	var msg = ..log4j.layouts[loggingEvent.layouts.type](loggingEvent,...)
+	var color = ..log4j.levels[loggingEvent.level].color
+	var thrdHandle = ..thread.create(function(msg,color){
+		import console
+		import thread
+		thread.lock("console",function(){
+			console.log('')
+			console.setTextAttribute(color)
+			console.dump(msg)	
+			console.setTextAttribute(0xF)
+			console.log('\n')
+			thread.unlock('console')
+		}
+	)
+	},msg,color)
+	..thread.waitAll(thrdHandle)
+	..raw.closehandle(thrdHandle)
+}
+
+joinFileName = function(fileName){
+    import table
+    import string
+	var timeNow = ..time.now()
+	timeNow.format="%Y%m%d"
+	var dateStr  = tostring(timeNow)
+	var fileNameArr  =  ..string.split(fileName,'.')
+	table.insert(fileNameArr,dateStr,2)
+	if(not table.find(fileNameArr,'log')) table.push(fileNameArr,'log')
+	table.insert(fileNameArr,'.',-1)
+	return string.join(fileNameArr); 
+}
+
+
+/**intellisense(log4j.appenders)
+loggingEvent = 输出事件 \n{
+		loggerCategory = this.loggerCategory; /分类
+		level = this.callLevel; //调用的日志级别
+		type =  appender.type; //日志输出方式
+		fileName = appender.fileName; //文件名
+		layouts = appender.layouts; //格式化函数
+		appender = appender //其它设置的属性
+}
+console(loggingEvent,...) = console输出日志 @loggingEvent 输出事件 @...输出msg
+file(loggingEvent,...) = file输出日志  @loggingEvent 输出事件 @...输出msg
+end intellisense**/
+
+
+

@@ -1,0 +1,643 @@
+﻿//modelForm model表单窗口库
+
+import string.lcid;
+import sqlite;
+import time;
+import math;
+import console;
+
+import win.ui;
+import math;
+import config;
+import win.ui.accelerator;
+namespace sqlitemodel;
+
+import util.metaProperty;
+class modelForm{
+	ctor(model, parent, id){  
+		
+		
+		//..console.log( "modelForm id",id)
+
+		var data = {};
+    	var field_names = model.field_names
+		//
+		//..console.varDump(field_names)
+		// 
+		
+		//for(i=1;#field_names;1){
+		//	..console.varDump(field_names[i])
+		//}
+	  	
+	
+		
+		var form_caption = ..string.format("添加%s数据", model.label);
+		var btn_text="添加"
+		 
+    	if(id){
+			var query = {}
+			query["id"] = id
+			data = model.get(query) //如果不存在, 就会突然赋值为null了
+			
+    		form_caption = "修改数据"
+    		btn_text = "保存"
+    		
+    		if(data == null){
+    			data = {}
+    		}
+    		//..console.log( "modelForm data")
+    		//..console.varDump(data)
+    	}
+    	
+    	this = ..win._form(cls="";text="aardio form";border="resizable";max=false;
+    	right=642;bottom=437;parent=parent)
+    	//this = ..win.loadForm("\dlg\model_form.aardio",,parent);
+    	
+    	this.model = model;
+		
+		//..console.log(model.tablename)
+		//..console.log(..table.tostring(model))
+    	 
+		this.add(
+			button={cls="button";text="添加公司";left=95;top=379;right=199;bottom=407;dl=1;dt=1;z=1};
+			checkbox={cls="checkbox";text="自动关闭本窗口";left=350;top=386;right=460;bottom=402;dl=1;dt=1;z=2}
+		)
+		
+ 
+	
+    	var frmChild_width = 0
+    	var COLS_PADDING = 5 //列与列之间的间隔， 每列由一个标签和一个文本框组成
+    	var ROWS_PER_COL = 15;
+    	var LABEL_WIDTH = 84;
+    	var EDIT_WIDTH = 320; // 420; 
+    	
+    	var ROW_WIDTH =  EDIT_WIDTH + COLS_PADDING*2;
+	
+    	var LABEL_HEIGHT = 20;
+    	var EDIT_HEIGHT = 20; 
+    	
+    	var ROW_HEIGHT = LABEL_HEIGHT + EDIT_HEIGHT + 5;
+    	
+    	this.width = COLS_PADDING*2 + (..math.floor((#field_names-1) / ROWS_PER_COL)+1) * ROW_WIDTH + 200;
+	
+    	for(i=1;#field_names;1){
+	
+    		var k     = field_names[i]["name"]
+    		var label = field_names[i]["label"]
+    		var field_type = field_names[i]["field_type"] 
+    		//..console.log("modelForm ctor for loop")
+    		//var aaa = model.filter_fields;
+    		var field_choices = model.field_choices; //当sqlitemodel用_metaProperty的时候, 这一句会调用model.get("field_choices")
+    		                                         //但是 model.filter_fields; 不会调用model.get("filter_fields");很奇怪
+    		                                         //当sqlitemodel用_meta的时候, 并使用..table.mix(_meta, { _get =  _meta}, 
+    		                                         // ..sqlitemodel._meta);就不会有这种现象
+    		                                         //最后使用了 _meta
+    		//..console.log("modelForm ctor field_choices")
+    		//..console.varDump(field_choices)
+    		//var choices = field_names[i]["choices"] //这里会导致修改了分类后, 新建窗口不更新
+    		var field_required = field_names[i]["required"] 
+    		var value = ""
+    		//..console.log("modelForm ctor init field")
+    		//..console.log(k,label)
+    		//..console.log("data:")
+    		//..console.varDump(data)
+    		//..console.log(k,"type(choices)",type(choices))
+    		//if(#choices>0){
+    		//	..console.varDump(choices)
+    		//}
+    		
+    		//if(type(choices) == "table"){
+    			//这里会导致修改了分类后, 新建窗口不更新
+    			//if(#choices == 0){
+    				var choices = {}
+    				if(field_choices){
+    					var bind_model = field_choices[k];
+    					if(bind_model != null){
+    						var items = bind_model.search(); //这里会导致修改了分类后, 新建窗口不更新
+    						for(i=1;#items;1){
+    							var s = ""
+    							//..console.log("tostring", tostring())
+    							for(j=1; #bind_model.string_fields;1){
+    								var sfield = bind_model.string_fields[j]
+    								s = s ++ ..string.format("%s|%s", items[i]["id"], items[i][sfield])
+    							}
+    							..table.push(choices, s)
+    						}
+    					}	
+    				}
+    			//}
+    		//}
+    		//..console.log("..table.tostring(choices)")
+    		//..console.varDump(choices)
+    		if(#choices==0){
+    			//如果数据库中没有数据， 用sql定义中设置的初始数据
+    			choices = field_names[i]["choices"]
+    		}
+    		
+    		
+    		if(data[k] != null){
+    			value = tostring(data[k])
+    		}
+    		
+    		//
+    		//log(k++":"++label)
+    		//
+    		
+    		var ctrl = this["edit_"+k]
+        	if(ctrl!=null){
+        		ctrl.text = value
+        	}else {
+            	
+            	var staticLeft = COLS_PADDING + ..math.floor((i - 1) / ROWS_PER_COL) * ROW_WIDTH; //每一列的left是相同的。
+    			var staticTop =  13 + 22 * (i - (..math.floor((i - 1) / ROWS_PER_COL) * ROWS_PER_COL + 1));
+    			//console.log(staticLeft,", ", staticTop)
+    	
+    			if(field_required){
+    				this.add( 
+        				["static_" + k ] = { 
+        					//border=1;
+            				cls="static"; text=label; notify=1; dl=1;dt=1;
+            				color=255;font=LOGFONT( name='宋体'; h=-13;weight=700 );
+            				transparent=1;
+            				bottom=staticTop + LABEL_HEIGHT;right=staticLeft+LABEL_WIDTH;
+            				left=staticLeft;top=staticTop;z=1;
+        				}; 
+    				)
+    			}else {
+    				this.add( 
+        				["static_" + k ] = { 
+        					//border=1;
+            				cls="static"; text=label; notify=1; dl=1;dt=1;font=LOGFONT( name='宋体' );
+            				bottom=staticTop + LABEL_HEIGHT;right=staticLeft+LABEL_WIDTH;
+            				left=staticLeft;top=staticTop;z=1;
+        				}; 
+    				)
+    			}
+    			
+            	
+    			
+    			if(k=="id" or k=="taxno" or k=="created_at" or k=="updated_at" or k=="created" or k=="updated"){
+    				this.add( 
+        				["edit_" + k ] = { 
+            				cls="edit"; text=value; disabled=1;notify=1; dl=1;dt=1;
+            				font=LOGFONT(name='Consolas');
+            				bottom=staticTop+EDIT_HEIGHT;right=staticLeft + EDIT_WIDTH;
+            				left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+        				}; 
+    				)
+    			}else {
+    				
+    				if(field_required){
+    					if(#choices >= 1){
+    						this.add( 
+        						["edit_" + k ] = {
+        							cls="combobox";
+        							items = choices;
+        							mode="dropdown";
+            						tabstop=i; notify=1; db=1;dl=1;edge=1;
+            						font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;
+            						right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+            						required=1;name=label;
+        						}; 
+    						)
+    					}else {
+    						this.add( 
+        						["edit_" + k ] = { 
+            						cls="edit"; text=value; tabstop=i; notify=1; dl=1;dt=1;
+            						font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;
+            						right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+            						required=1;name=label;
+        						}; 
+    						)
+    					}
+    				}else {
+    					
+    					if(#choices >= 1){
+    						this.add( 
+        						["edit_" + k ] = {
+        							cls="combobox";
+        							items = choices;
+        							mode="dropdown";
+            						tabstop=i; notify=1; db=1;dl=1;edge=1;
+            						font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;
+            						right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+            						
+        						}; 
+    						)
+    					}else {
+    						this.add( 
+        						["edit_" + k ] = { 
+            						cls="edit"; text=value; tabstop=i; notify=1; dl=1;dt=1;
+            						font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;
+            						right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+        						}; 
+    						)
+    					}
+
+    				}
+    			
+    			
+    				
+    			}
+    		
+    			
+    			
+    			
+        		//
+        		//log("ctrl edit_" + k + " 不存在!创建一个")
+        		//
+        	} 
+    	}
+    	
+		
+	
+    	
+    	this.text = form_caption
+    	this.button.text = btn_text
+
+		this.onInitDialog = function(hwnd,message,wParam,lParam){
+			//this.input.setFocus();
+			var state = ..config.settings.autoclose_model_form;
+			//
+			//..console.log("..config.autoclose_model_form  " ++ state);
+			//
+			
+			if(state == null){
+				state = false;
+			}
+			this.checkbox.checked = state;
+			
+		};
+		
+		this.button.oncommand = function(id,event){ 
+			
+			var field_names = this.model.field_names;
+			var is_valid = true;
+        	for(i=1;#field_names;1){
+        		k = field_names[i]["name"]
+        		var ctrl = this["edit_"+k];
+            	if(ctrl==null){
+            		continue
+            	}
+            	if(ctrl.required){
+            		if(..string.trim(ctrl.text) == ""){
+            			is_valid = false; //校验表单失败
+            			
+            			this.msgbox(..string.format("【%s】数据不能为空！", ctrl.name))
+            			ctrl.setFocus();
+            			break; 
+            		}
+            	}
+
+        	}
+        	
+        	if(!is_valid){
+        		return 
+        	}
+        		
+			
+			if(this.button.text = "添加")
+    		{
+        		item = {}
+        		
+        		//..console.varDump(this["model"])
+        		
+        		var field_names = this["model"].field_names;
+        		for(i=1;#field_names;1){
+        			k = field_names[i]["name"]
+        			if(k=="id"){
+        				//添加数据不需要id
+        				continue;
+        			}
+        			var ctrl = this["edit_"+k];
+            		if(ctrl==null){
+                		//
+                		//console.log("ctrl edit_"+k +" does not exist")
+                		//
+                		item[k]  = null;
+            			continue
+            		}
+            		//..console.log("console.varDump(ctrl);")
+            		//..console.varDump(ctrl);
+        			item[k]  = ctrl.text;
+        		}
+        		//
+        		//..console.varDump(item);
+        		//
+        		
+        		 
+        		for(k,v in model.field_choices){
+        			item[k] = ..string.split(item[k],"<|>")[1]
+        		}
+        		 
+        		model.create(item);
+
+        		//this.msgbox("添加公司成功!");
+        		//抖动文件夹
+				hwnd = this.hwnd;
+				if(hwnd){
+    				..shakewindow(hwnd,5,30)
+				}
+				
+				if(this.checkbox.checked){
+        			..win.delay(300);
+    				this.close();
+    				this.endModal();
+    			}else {
+        			for(i=1;#field_names;1){
+        				k = field_names[i]["name"]
+        				var ctrl = this["edit_"+k];
+            			if(ctrl==null){
+            				continue
+            			}
+        				ctrl.text="";
+        			}
+    			}
+    			
+
+    		}else {
+        		if(this["edit_id"].text==""){
+        			this.msgbox("不能保存, 不是正确的数据库id")
+        			return ;
+        		}
+        		
+        		//console.log(modelCompany.field_names)
+        		
+    			item = {}
+        		var field_names = this.model.field_names;
+        		for(i=1;#field_names;1){
+        			k = field_names[i]["name"]
+        			var ctrl = this["edit_"+k];
+            		if(ctrl==null){
+                		//
+                		//console.log("ctrl edit_"+k +" does not exist")
+                		//
+                		item[k]  = null;
+            			continue
+            		}
+            		//..console.log("update: console.varDump(ctrl);")
+            		//..console.varDump(ctrl);
+        			item[k]  = ctrl.text;
+        		}
+
+        		for(k,v in model.field_choices){
+        			item[k] = ..string.split(item[k],"<|>")[1]
+        		}
+
+        		//console.log("update database use new item data:---------------------")
+        		model.update(item);
+        		
+        		//console.log("reload data:---------------------")
+        		//load_company()
+        		//this.msgbox("添加公司成功!");
+        		//抖动文件夹
+				hwnd = this.hwnd;
+				if(hwnd){
+    				..shakewindow(hwnd,5,30)
+				}
+				
+				//oldRow = tonumber(this["edit_id"].text);
+				if(this.checkbox.checked){
+        			..win.delay(300);
+    				this.close();
+    			}
+    			
+				//this.endModal( tonumber(this["edit_id"].text));
+				this.endModal();
+			
+				
+    		}
+    		
+    		..config.settings.autoclose_model_form = this.checkbox.checked
+    		..config.saveAll();
+    		
+    		//..console.log("..config.settings.autoclose_model_form", ..config.settings.autoclose_model_form, this.checkbox.checked)
+			
+			//restoreListviewPos();
+		}; 
+		
+		
+		/*快捷键{{*/
+		var accelerator = ..win.ui.accelerator({
+
+    		{
+        		ctrl = true; vkey = 'S'#; //保存
+        		oncommand = function(){
+            		this.button.oncommand()
+        		};
+    		};
+		}, this);
+		/*}}*/ 
+		
+		 
+		
+		this.onClose = function(){
+	    	this.endModal();
+		}; 
+		
+	} 
+	
+}
+ 
+
+namespace modelForm{
+ 
+	_metaProperty = ..util.metaProperty(
+		_type = "sqlite.modelform";
+		
+		
+    	_tostring = function(format, locale){
+    		return owner.systemFormat(format,locale);
+    	}; 
+    	
+    	_serialize = function(){
+    		return ..string.format(`..Model.ole(%s,"%s")`,tonumber(owner), owner.format); 
+    	}
+    	
+    	save = function(){
+    		
+    	}
+    	
+    	
+    	//query is table type
+		render = function(query){
+			var field_names = get_field_names(owner.sql)
+	
+    		//
+    		//..console.log("field_names")
+    		//..console.varDump(field_names)
+    		//
+    		
+    		//
+    		//..console.log("query")
+    		//..console.varDump(query)
+    		//
+		
+    		var field_values = {}
+		
+    		for(i=1;#field_names;1){
+    			..table.push(field_values, "@" ++field_names[i]["name"])
+    		}
+    		var str_field_values = ..string.join(field_values, ", ")
+    		str_field_values = " VALUES (null, " + str_field_values ++ ");"
+    		
+    		//
+    		//console.log(str_field_values)
+    		//
+    		
+    		
+    		
+		
+    		var command = owner.db.prepare("INSERT INTO "+ owner.tablename + str_field_values ) ;
+    		
+    		//以下非空字段, 要在for循环前绑定, 绑不上去.
+    		//command.bind.parameterByName("", "@boss_name")      //给@boss_name 绑定数据 ""
+    		//command.bind.parameterByName("", "@boss_cellphone") //给@boss_cellphone 绑定数据 ""
+    		
+    		//command.bind.parameterByName("", "@charger_name")
+    		//command.bind.parameterByName("", "@charger_cellphone")
+    		
+    		//command.bind.parameterByName(time.now(), "@created")
+    		//command.bind.parameterByName(time.now(), "@updated")
+    		
+    		//给 query 设置默认值
+    		query["created_at"] = default_value(query["created_at"], ..time.now())
+    		query["updated_at"] = default_value(query["updated_at"], ..time.now())
+	
+    		for(i=1;#field_names;1){
+        		//args["@"++company_field_names[i]] = query[company_field_names[i]];
+        		
+        		//
+        		//console.log(company_field_names[i]["name"]," ", tostring(query[company_field_names[i]["name"]]))
+        		//
+        		
+        		var field = field_names[i]["name"]
+        		var value = query[field]
+		
+        		//给 将数据绑定到 @field
+        		command.bind.parameterByName(value, '@' + field )
+		
+    		}
+   		
+    		var ret = command.step();
+    		
+    		..console.log("sql insert result ", ret) 
+    		command.finalize(); 
+    		
+    		//
+    		..console.log(command.sql);
+    		//
+    		
+    		//
+    		//console.varDump(query)
+    		//
+    		
+    		if(ret<100){
+        		..console.log(owner.db.lasterr())
+    			..console.log("insert failed!") 
+    			return false;
+    		}
+    		return true
+		}
+		
+		validate = function(query){
+			if(query["id"]==null or query["id"]==""){
+        		//..console.log("Failed , no query['id']")
+    			return false;
+    		}
+		
+    		//
+    		//console.varDump(query)
+    		//
+    		
+    		old_data = owner.db.stepQuery("SELECT * FROM ["+ owner.tablename +"]", { id = query["id"]}) 
+    		
+    		//..console.log("get old data by id")
+    		//..console.varDump(old_data)
+    		
+    		if(old_data == null){
+    			return false;
+    		}
+		
+    		var stmts = {}
+    		
+    		for(k,v in query){
+        		if(k=="created_at" or k=="updated_at"){
+        			continue
+        		}
+				if(old_data[k] != v){
+					..table.push(stmts, " "+ k + " = @" ++ k)
+				}
+    		}
+    		
+    		..console.log("to be updated fileds:")
+    		..console.varDump(stmts)
+    		
+		
+    		if(#stmts<=0){
+        		//console.log("no fields to be updated")
+    			return false;
+    		}else {
+        		var k = "updated_at"
+    			..table.push(stmts, " "+ k + " = @" ++ k)
+    			query[k] = ..time.now()
+    		}
+    		
+    		
+    		var str_set_stmts = ..string.join(stmts, ", ")
+    		str_set_stmts = " SET  " + str_set_stmts ++ " WHERE id = @id;"
+
+    		var sql = "UPDATE ["+ owner.tablename + "] " + str_set_stmts;
+    		//console.log("sql:"+sql);
+    		var updated = false;
+    		try{
+    			owner.db.exec(sql, query);
+    			updated = true;
+    			//return true; //这里try语句里的 return true 并不能真的返回值, 函数最后返回的是null
+    		}
+    		catch(e){
+        		//console.varDump(e);
+        		//console.log(tostring(e))
+    			//return false;//这里try的catch语句里的 return false却可以真正使函数返回.函数最后返回的是false
+    			updated = false;
+    		}
+
+    		//console.log("updated!!!!")
+		
+    		return updated
+		};
+		
+		show = function(){
+			 
+		};
+		
+	)
+}
+ 
+
+/***intellisense()
+sqlitemodel.modelForm = 输入对话框 
+sqlitemodel.modelForm( = 创建一个model编辑(添加,修改)窗口
+sqlitemodel.modelForm(.(model, 父窗口, id) =  创建一个model编辑(添加,修改)窗口,所有参数可选\nmodel为sqlitemodel.Model
+sqlitemodel.modelForm() = !modelform.
+end intellisense***/
+
+/***intellisense(!modelform)
+doModal() = 弹出输入对话框\n该函数返回用户输入的值\n取消则返回null空值
+onInitDialog = @.onInitDialog = function(hwnd,message,wParam,lParam){\n	??.center()__/*输入框初始化完成触发该函数*/\n}
+center() = 居中显示
+info = !edit.
+input = !edit.
+text = 输入框标题
+setPos(.(x,y,宽,高,插入位置,参数) = 调整窗口位置或排序\n所有参数可选 
+getPos() = 返回相对坐标,宽,高 
+topmost()=窗体始终最前
+topmost(false)=取消窗体始终最前
+modifyStyle(.(remove,add) = 如果指定第三个参数,则使用此参数调用::SetWidnowPos 
+modifyStyleEx(.(remove,add) = 如果指定第三个参数,则使用此参数调用::SetWidnowPos  
+setInterval = @var tmId = ??.setInterval( \n	1000,\n	function(id){\n		/*定时回调函数*/\n	} \n)
+clearInterval(__/*请输入ID*/) = 删除定时器
+changeInterval(__/*请输入ID*/,1000) = 重新设定定时器的延时时间
+setTimeout(.(函数名,延时,其他参数) = 延时执行函数
+end intellisense***/
+ 

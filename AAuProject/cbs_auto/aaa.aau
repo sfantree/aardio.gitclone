@@ -1,0 +1,38 @@
+import win.ui;
+import web.form;
+
+/*DSG{{*/
+var winform = win.form(parent=...;scroll=1;min=1;bottom=400;max=1;right=600;text="AAuto Form";cls="AAU_FORM")
+winform.add(  )
+/*}}*/
+
+//创建web窗体
+var wb = web.form( winform 
+	,//可输入_UIFLAG_ 前缀的常量自定义外观
+	,//可输入_DLCTL_ 前缀的常量以控制下载行为
+	,//"USER AGENT"
+	);
+ 
+//打开目标网站
+wb.go("http://www.aau.cn/")
+//显示窗体
+winform.show() 
+wb.wait("");//等待指定网址,可以使用模式匹配语法
+
+//创建external接口
+//可以通过javascript脚本访问external接口的所有成员
+wb.external = { 
+	func = function( arg )begin
+		io.print("我被网页上的脚本调用了",arg)
+	end
+}
+//在网页上执行javascript脚本
+wb.doScript("
+	external.func(123);
+	")
+
+//启动消息循环
+win.loopMessage();
+return winform,wb;
+ 
+

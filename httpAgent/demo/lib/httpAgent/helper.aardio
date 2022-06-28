@@ -1,0 +1,55 @@
+﻿import thread.table;
+
+namespace httpAgent;
+
+namespace helper{
+    
+	version = 'httpAgent_20181106'
+
+	hwnd = ..thread.table(version).msgHwnd;
+	
+	errStuct = class{
+		INT pSocket;
+   		INT connId;
+   		INT enOperation;
+   		INT errCode;
+	}
+	
+	dataStruct = class{
+		INT pSocket;
+    	INT connId;
+    	INT pData;
+    	INT length;
+	}
+	
+	responseStruct = class{
+		INT 	pSocket;
+		INT		connId;
+    	STRING 	remoteAddr;
+    	INT 	remotePort;
+    	STRING	headers;
+    	STRING	cookies;
+    	INT		pData;
+    	INT		statue;
+	}
+	
+	upgradeStruct = class {
+		INT	pSocket;
+		INT	connId;
+		INT	upgradeType;
+	}
+	
+	wsMessageStruct = class {
+		INT		pSocket;
+		INT 	connId;
+		STRING 	remoteAddr;
+		INT 	remotePort;
+		BOOL 	final;
+		BYTE 	reserved;
+		BYTE 	opCode;
+		INT 	mask;
+		LONG 	bodyLen;
+		LONG 	bodyRemain;
+		INT 	pData;
+	}
+}

@@ -1,0 +1,366 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="画一画。。。";right=759;bottom=469;parent=...)
+winform.add(
+btn_cmd={cls="button";text="执行";left=612;top=78;right=693;bottom=105;z=6};
+btn_connect={cls="button";text="连接";left=618;top=29;right=699;bottom=56;z=3};
+btn_refresh={cls="button";text="刷新截图";left=315;top=251;right=387;bottom=283;z=7};
+e_cmd={cls="edit";left=359;top=81;right=590;bottom=107;edge=1;z=5};
+e_delay={cls="edit";left=361;top=161;right=438;bottom=189;edge=1;z=15};
+e_log={cls="edit";left=315;top=307;right=756;bottom=467;edge=1;font=LOGFONT(h=-10);hscroll=1;multiline=1;vscroll=1;z=4};
+e_phone={cls="edit";left=359;top=30;right=595;bottom=57;edge=1;z=2};
+e_rate={cls="edit";text="2";left=360;top=124;right=440;bottom=153;edge=1;z=9};
+pb_img={cls="plus";left=8;top=15;right=267;bottom=456;dl=1;dt=1;notify=1;z=1};
+picturebox={cls="picturebox";left=101;top=154;right=102;bottom=155;z=8};
+s_state={cls="static";left=447;top=206;right=736;bottom=287;transparent=1;z=18};
+s_tip_delay={cls="static";text="1";left=449;top=161;right=739;bottom=182;font=LOGFONT(h=-10);transparent=1;z=17};
+s_tip_ip={cls="static";text="1";left=357;top=60;right=671;bottom=74;font=LOGFONT(h=-10);transparent=1;z=12};
+s_tip_rate={cls="static";text="1";left=449;top=124;right=739;bottom=145;font=LOGFONT(h=-10);transparent=1;z=14};
+static={cls="static";text="ADB命令:";left=306;top=84;right=359;bottom=111;transparent=1;z=10};
+static2={cls="static";text="手机IP:";left=316;top=38;right=373;bottom=61;transparent=1;z=11};
+static3={cls="static";text="长度-时间:";left=301;top=128;right=368;bottom=151;transparent=1;z=13};
+static4={cls="static";text="截图间隔:";left=303;top=163;right=363;bottom=184;transparent=1;z=16}
+)
+/*}}*/
+
+import process.adb;
+import console;
+import string.conv;
+var L = string.conv.localized;
+
+
+// 配置信息
+var config = {
+    // 可设置
+	imgName = "test.png";   //截图的名称
+	dirRemote = "/storage/sdcard1";//手机截图存放的位置，根据实际情况设置
+	dirLocal = "../imgs";//将手机截图保存到本地的位置,相对于adb.exe目录而言
+	
+	adbPath="/res/ADB/adb.exe";
+	imgPath4Show= "/res/imgs/test.png";
+	
+	// 界面上初始化值
+	screenCapDelay =100;//点击后，延迟多长时间再截图，供页面刷新手机截图
+	rate = 2.17;//长度转化时间的比值，和手机分辨率有关
+	
+	
+	// 运行时获取
+	screenW = 0;//手机屏幕宽
+	screenH = 0;//手机屏幕高
+	screenRate = 0;//手机屏幕宽和窗口plus宽的比值
+	
+	mode =1;// 模式，1鼠标拖动画线，2鼠标点击画线
+	
+}
+import gdip;
+import gdip.pen;
+// 线条样式
+pen = gdip.pen(0xFFFF0000,2);
+
+
+// 另外起一个变量，方便书写
+var img = winform.pb_img;
+
+winform.e_phone.text="192.168.8.122";//设置手机IP，这样可以通过无线的方式连接手机
+
+
+winform.s_tip_ip.text="手机IP为空，则采用USB模式连接，速度更快";
+winform.s_tip_rate.text="小数，一般与手机分辨率有关，如果跳的不准确调节这个值";
+winform.s_tip_delay.text="毫秒，跳跃之后，间隔多久刷新屏幕截图";
+
+winform.e_delay.text = config.screenCapDelay;
+winform.e_rate.text = config.rate;
+
+
+
+
+
+
+
+/*按钮操作{{*/
+
+// 手机连接
+winform.btn_connect.oncommand = function(id,event){
+	doConnect();
+}
+// 刷新截图
+winform.btn_refresh.oncommand = function(id,event){
+	adbFetchScreePic(config.imgName,config.dirRemote,config.dirLocal);
+	
+}
+// 运行adb命令
+winform.btn_cmd.oncommand = function(id,event){
+	adbCmd(winform.e_cmd.text);
+}
+
+winform.isDialogMessage = function(hwnd,msg){  
+    if (   (msg.message >= 0x100) && (msg.message <= 0x108) ) { //_WM_KEYFIRST  _WM_KEYLAST
+        if(msg.wParam==0xD){ //_VK_ENTER/
+            return false //使回车键不是对话框快捷键
+        }
+    }   
+    return win.isDialogMessage(hwnd,msg);   
+}
+
+// 命令框回车
+winform.e_cmd.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {//判断消息类型
+        case 0x100 {//_WM_KEYDOWN
+            if(wparam == 0xD){//_VK_RETURN
+               	adbCmd(winform.e_cmd.text);
+            }
+        }   
+    }
+    //无返回值则继续调用默认回调函数
+}
+
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+  adbClose();
+}
+
+/*}}*/
+
+
+/*ADB{{*/
+
+adbCmd=function(cmd,success,failure){
+   
+    winform.adb = process.popen(config.adbPath,cmd );
+   	winform.adb.print('\r\n');
+   	
+    winform.e_log.print('adb >',cmd);
+    
+     //回显输出
+     var result = '';
+     var lineNo=1;
+    for( all,out,err in winform.adb.each() ){
+        //console.log(lineNo, type(all),all)
+        type(all);
+        lineNo++;
+       result =result ++ all ++ '\r\n';
+    }
+    result = string.replace(result,'\s*','');
+    winform.e_log.print(L(result));
+	
+    winform.e_log.print('adb >——————————————————————————');
+    
+    if(string.indexOf(result,'error')){//执行失败
+    	if(failure){
+			failure(L(result));
+		}
+    }else{//执行成功
+    	if(success){
+			success(L(result));
+		}
+    }
+   
+    adbClose();
+   
+}
+
+adbClose=function(){
+    if(winform.adb){
+    	winform.adb.print('exit');
+    	sleep(10)
+    	winform.adb.close();
+    	winform.adb=null;
+    }
+}
+
+// 获取屏幕大小
+adbGetScreenSize=function(success,failure){
+    adbCmd("shell wm size",function(data){
+    	var i1,i2,sW,sH = string.find ( data , "(\d{1,5})x(\d{1,5})" );
+    	success(sW,sH)
+    },failure);
+}
+
+// 屏幕截图获取
+adbFetchScreePic=function(imgName,dirRemote,dirLocal){
+    // 屏幕截图
+    var cmdCap = string.format(" shell screencap -p %s/%s",dirRemote,imgName );
+    // 图片下载到本地
+    var cmdPull =   string.format(" pull %s/%s %s",dirRemote,imgName,dirLocal );
+   
+    adbCmd(cmdCap,function(data){//截图成功后，图片下载到本地
+    		winform.e_log.print('adb>',"图片截图成功");
+    	 adbCmd(cmdPull,function(data){
+    	 	winform.e_log.print('adb>',"图片下载成功");
+    	 	//winform.pb_img.background=string.format("%s/%s",dirLocal,imgName);
+    	 	var data = string.load(config.imgPath4Show);
+    	 	winform.pb_img.background=data
+    	 });
+    })
+}
+
+// 模拟点击
+adbSwipe=function(t,success,faiulre){
+	var cmd = string.format("shell input swipe 100 300 100 300 %d",t );
+	adbCmd(cmd,success,faiulre);
+}
+
+
+
+
+/*}}*/
+
+
+/*辅助函数{{*/
+
+logger=function(...){
+    winform.e_log.prninf (...)
+}
+
+// 计算长度
+calculateLen = function(){
+	var x = img.x2 - img.x1;
+    var y = img.y2 - img.y1;
+    var len =math.sqrt(x*x + y*y);
+    //console.log("len",len);
+    img.x1=0;
+    img.y1=0;
+    return len;
+}
+
+
+
+
+
+/*}}*/
+
+
+// 绘制线条共用同一个
+img.onDrawContent = function(graphics,rc){
+        if(img.pen && img.x1 && img.x2){
+            graphics.drawLine(pen,img.x1,img.y1,img.x2,img.y2)
+        }
+}
+
+if(config.mode==1){
+		/*模式一鼠标拖动画线{{*/
+		
+			
+			// 点下鼠标时，记录起点位置
+			img.onMouseDown = function(wParam,lParam){
+					img.pen = pen;
+        			img.x1,img.y1 = win.getMessagePos(lParam);
+			}
+			// 鼠标移动时，进行画线
+			img.onMouseMove = function(wParam,lParam){
+        			if( wParam & 0x1/*_MK_LBUTTON*/ ){
+                			img.x2,img.y2 = win.getMessagePos(lParam);
+                			img.redrawTransparent()
+        			}
+			}
+			// 鼠标送开始，则模拟点击，进行跳跃
+			img.onMouseClick = function(wParam,lParam){
+   				
+       			doJump();
+       			
+			}
+		
+	/*}}*/
+	
+}else{
+    
+		/*模式二鼠标点击进行画线{{*/
+		
+		click=1;
+		img.onMouseClick = function(wParam,lParam){
+        		img.pen = gdip.pen(0xFFFFFF00,2);
+        		if(click==1){//第一次点击，记录开始坐标
+                		img.x1,img.y1 = win.getMessagePos(lParam);
+                		click=2;
+        		}else{//第二次点击，记录截止坐标，并跳跃
+                		img.x2,img.y2 = win.getMessagePos(lParam);
+                		
+                		// 画线
+                		img.redrawTransparent()
+                		// 跳跃
+                		doJump();
+                		click=1;
+        		}
+        		
+		}
+		
+			
+		/*}}*/
+}	
+	
+
+
+
+
+
+
+/*}}*/
+
+
+
+/*手机连接及跳跃操作{{*/
+
+// 连接，及获取屏幕大小
+doConnect=function(){
+    var ip =winform.e_phone.text;
+    ip = string.trim(ip);
+    
+    var $state = winform.s_state;
+    $state.text = "第一步：连接手机...";
+    if(#ip){//无线模式
+    	adbCmd("tcpip 5555");
+    	adbCmd("connect "+ip);
+		
+	
+    }
+    adbCmd("devices",function(result){
+    	
+    });
+    // 获取分辨率
+	adbGetScreenSize(function(w,h){
+		winform.e_log.print("屏幕宽度获取成功！",w,h);
+		config.screenW = w;
+		config.screenH = h;
+		$state.text = "第一步：连接手机成功！"+'\r\n'+"第二步：屏幕："++h++"*"++w;;
+		config.screenRate = w/winform.pb_img.width;
+		winform.pb_img.height = h/config.screenRate;
+		
+		// 进行截图
+		adbFetchScreePic(config.imgName,config.dirRemote,config.dirLocal);
+	},function(){
+		$state.text = "第一步：连接手机失败！";
+		win.msgboxTimeout("未连接到手机");
+	})
+	
+}
+
+doJump=function(){
+	if(config.screenRate>0){
+   		var len = calculateLen();
+       	var rate = tonumber(winform.e_rate.text);
+       	var time = len*config.screenRate * rate;
+       	winform.e_log.print("jump: len:"+len+" time:"+time);
+       	adbSwipe(time,function(){//成功的话，则刷新图片
+       		// 延迟一段时间再截图；,防止还未稳定就截图
+       		var delay = tonumber(winform.e_delay.text);
+       		win.delay(delay+time);
+       		// 截图
+           	adbFetchScreePic(config.imgName,config.dirRemote,config.dirLocal);
+       	},)
+   	}
+
+}
+
+
+/*}}*/
+
+
+
+
+
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

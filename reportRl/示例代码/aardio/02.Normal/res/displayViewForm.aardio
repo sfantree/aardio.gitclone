@@ -1,0 +1,115 @@
+import win.ui;
+import reportRl;
+import reportRl.displayView;
+/*DSG{{*/
+var winform = win.form(text="DisplayView - 展现报表";right=759;bottom=469;maxmize=1;parent=...)
+winform.add(
+btnFind={cls="button";text="直接查找";left=400;top=8;right=461;bottom=29;disabled=1;dl=1;dt=1;z=4};
+btnFindForm={cls="button";text="查找对话框";left=530;top=8;right=609;bottom=29;dl=1;dt=1;z=5};
+btnGoonFind={cls="button";text="继续查找";left=465;top=8;right=526;bottom=29;dl=1;dt=1;z=6};
+btnPrint={cls="button";text="打印";left=26;top=8;right=87;bottom=29;dl=1;dt=1;z=1};
+btnPrintPreview={cls="button";text="打印预览";left=94;top=8;right=155;bottom=29;dl=1;dt=1;z=2};
+btnUse={cls="button";text="应用";left=503;top=440;right=564;bottom=462;db=1;dl=1;z=13};
+ckbShowLine={cls="checkbox";text="显示垂直分页线";left=171;top=12;right=282;bottom=28;dl=1;dt=1;z=3};
+custom={cls="custom";text="custom";left=5;top=31;right=755;bottom=419;db=1;dl=1;dr=1;dt=1;z=15};
+editFind={cls="edit";left=290;top=9;right=396;bottom=30;dl=1;dt=1;edge=1;hidesel=1;tabstop=1;z=8};
+editRowCount={cls="edit";text="20";left=390;top=441;right=495;bottom=463;db=1;dl=1;edge=1;z=12};
+groupbox={cls="groupbox";text="分页设置：设定 RowsPerPage 属性控制分页";left=9;top=425;right=752;bottom=468;db=1;dl=1;dr=1;edge=1;z=7};
+rdbAssignPage={cls="radiobutton";text="指定每页行数分页";left=253;top=443;right=372;bottom=462;db=1;dl=1;z=11};
+rdbAutoPage={cls="radiobutton";text="每页行数自动适应分页";left=93;top=443;right=235;bottom=459;db=1;dl=1;z=10};
+rdbNoPage={cls="radiobutton";text="不分页";left=16;top=443;right=77;bottom=462;checked=1;db=1;dl=1;z=9};
+staticPageInfo={cls="static";text="不分页";left=575;top=443;right=733;bottom=460;db=1;dl=1;transparent=1;z=14}
+)
+/*}}*/
+
+var parent,report = ...;
+
+var display = reportRl.displayView(winform.custom);
+display.Report = report;
+display.Start();
+
+display.StatusChange = function(){
+	/*当控件的查看状态发生改变时触发本事件。*/
+	if(display.RowsPerPage = 0){
+		winform.staticPageInfo.text = "不分页";
+	}
+	else {
+		winform.staticPageInfo.text = "第" ++ display.CurPageNo ++ "页 共" ++ display.PageCount ++ "页";
+	}
+}
+
+winform.rdbNoPage.oncommand = function(id,event){
+	//不分页
+	display.RowsPerPage = 0;
+	winform.editRowCount.hide = true;
+	winform.btnUse.hide = true;
+}
+
+winform.rdbAutoPage.oncommand = function(id,event){
+	//每页行数自动适用分页
+	display.RowsPerPage = -1;
+	winform.editRowCount.hide = true;
+	winform.btnUse.hide = true;
+}
+
+winform.rdbAssignPage.oncommand = function(id,event){
+	//指定每页行数分页
+	winform.editRowCount.hide = false;
+	winform.btnUse.hide = false;
+	display.RowsPerPage = winform.editRowCount.text;
+}
+
+winform.btnUse.oncommand = function(id,event){
+	//应用
+	display.RowsPerPage = winform.editRowCount.text;
+}
+
+winform.btnPrint.oncommand = function(id,event){
+	//打印
+	report.Print(true);
+}
+
+winform.btnPrintPreview.oncommand = function(id,event){
+	//打印预览
+	report.PrintPreview(true);
+}
+
+winform.ckbShowLine.oncommand = function(id,event){
+	//显示垂直分页线
+	display.ShowPreviewLine = winform.ckbShowLine.checked;
+}
+
+winform.editFind.oncommand = function(id,event){
+	//查找编辑框文本被改变;
+	if(event = 0x300/*_EN_CHANGE*/){
+		if(#winform.editFind.text = 0){
+			winform.btnFind.disabled = true;
+		}
+		else {
+			winform.btnFind.disabled = false;
+		}
+	}
+}
+
+winform.btnFind.oncommand = function(id,event){
+	//直接查找
+	display.Search(winform.editFind.text,false,false,false,true,false,false)
+}
+
+winform.btnGoonFind.oncommand = function(id,event){
+	//继续查找
+	display.SearchAgain(true);
+}
+
+winform.btnFindForm.oncommand = function(id,event){
+	//winform.msgbox( winform.btnFindForm.text );
+	display.Search("",false,false,false,false,true,true)
+}
+
+winform.rdbNoPage.oncommand();
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

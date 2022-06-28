@@ -1,0 +1,73 @@
+import aaz.libxl;
+
+var book = aaz.libxl.createXmlBook();
+book.setKey()
+
+var boldFont = book.addFont(0);
+boldFont.bold = 1;
+
+var titleFont = book.addFont(0);
+titleFont.name = "Arial Black"
+titleFont.size = 16;
+
+var titleFormat = book.addFormat();
+titleFormat.font = titleFont;
+
+var headerFormat = book.addFormat();
+headerFormat.alignH = 2/*_ALIGNH_CENTER*/
+headerFormat.border = 1/*_BORDERSTYLE_THIN*/
+headerFormat.font = boldFont;
+headerFormat.fillPattern = 1 /*_FILLPATTERN_SOLID*/
+headerFormat.patternForegroundColor = 47 /*COLOR_TAN*/
+
+var descriptionFormat = book.addFormat();
+descriptionFormat.borderLeft = 1 /*BORDERSTYLE_THIN*/
+
+var amountFormat = book.addFormat();
+amountFormat.numFormat = 5
+amountFormat.borderLeft = 1
+amountFormat.borderRight = 1
+
+var totalLabelFormat = book.addFormat();
+totalLabelFormat.borderTop = 1
+totalLabelFormat.alignH = 3
+totalLabelFormat.font = boldFont
+
+var totalFormat = book.addFormat();
+totalFormat.numFormat = 5
+totalFormat.border = 1
+totalFormat.font = boldFont
+totalFormat.fillPattern = 1
+totalFormat.patternForegroundColor = 13
+
+var signatureFormat = book.addFormat();
+signatureFormat.alignH = 2
+signatureFormat.borderTop = 1
+
+var sheet = book.addSheet( "Invoice" )
+sheet.writeStr(2, 1, "Invoice No. 3568", titleFormat)
+
+sheet.writeStr(4, 1, "Name: John Smith")
+sheet.writeStr(5, 1, "Address: San Ramon, CA 94583 USA")
+
+sheet.writeStr(7, 1, "Description", headerFormat)
+sheet.writeStr(7, 2, "Amount", headerFormat)
+
+
+sheet.writeStr( 8, 1, "Ball-Point Pens", descriptionFormat);
+sheet.writeNum(8, 2, 85, amountFormat);
+sheet.writeStr( 9, 1, "T-Shirts", descriptionFormat);
+sheet.writeNum(9, 2, 150, amountFormat);
+sheet.writeStr( 10, 1, "Tea cups", descriptionFormat);
+sheet.writeNum(10, 2, 45, amountFormat);
+
+sheet.writeStr( 11, 1, "Total:", totalLabelFormat);
+sheet.writeFormula(11, 2, "=SUM(C9:C11)", totalFormat);
+
+sheet.writeStr(14, 2, "Signature", signatureFormat);
+
+sheet.setCol( 1, 1, 40, null, 0);
+sheet.setCol(2, 2, 15, , 0);
+
+book.save("\invoice.xlsx")
+book.release()

@@ -1,0 +1,20 @@
+﻿//custom 自定义控件
+namespace web.sciter.behavior.custom;
+
+onAttach = function( scOwner ){  
+	var cType = scOwner.getAttribute("cls");
+	var tParam = { bottom=1;right=1;left=0;top=0;cls=cType;text="";autoResize=false};
+	var dt = scOwner.getAttribute("data-table")
+	if( dt )..table.mixin(tParam,eval(dt) );
+	
+	scOwner.addCtrl(tParam );
+};
+
+onDetach = function( scOwner ){
+	//scOwner.getCtrl().close(); //Sciter behavior名字不支持~语法
+}
+
+onSize = function (scOwner) {
+	scOwner.getCtrl().adjust(0,0,0);
+} 
+		

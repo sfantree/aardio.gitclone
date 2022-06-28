@@ -1,0 +1,145 @@
+/*
+Author: panndora
+WritingTime: 2021年2月27日 星期六 19:14
+Filename: 监测目录新增文件变化并通过pdf阅读器调用默认打印机进行打印.
+Depend: 一台默认打印机,SumatraPDF可执行文件
+PS: 如果被监测的目录属于共享目录，那么就可实现跨设备无驱动打印功能
+*/
+import time;
+import win.ui;
+import win.dlg.message;
+import string.conv;
+import fsys;
+import fsys.dlg;
+import fsys.file;
+import fsys.dlg.dir;
+import fsys.fileInfo;
+import fsys.dirWatcher;
+import thread.event;
+import fsys.config;
+import console;
+/*DSG{{*/
+自动打印监测器 = win.form(text="监控目录中的PDF文件且调用默认打印机打印";right=556;bottom=293)
+自动打印监测器.add(
+button={cls="button";text="启动检测";left=439;top=200;right=526;bottom=233;z=2};
+button2={cls="button";text="设置监控目录";left=433;top=49;right=526;bottom=70;z=5};
+button3={cls="button";text="阅读器路径";left=433;top=77;right=526;bottom=98;z=7};
+button5={cls="button";text="停止监测";left=309;top=200;right=396;bottom=233;disabled=1;z=8};
+button6={cls="button";text="附加参数";left=433;top=106;right=526;bottom=127;z=10};
+edit={cls="edit";text="C:\printfile";left=293;top=46;right=418;bottom=70;edge=1;z=4};
+edit2={cls="edit";text="SumatraPDF.exe";left=293;top=76;right=418;bottom=100;edge=1;z=6};
+edit4={cls="edit";text="-print-to-default";left=293;top=105;right=418;bottom=129;edge=1;z=9};
+groupbox={cls="groupbox";text="打印记录";left=21;top=22;right=270;bottom=245;edge=1;z=1};
+groupbox3={cls="groupbox";text="基础设置";left=283;top=22;right=535;bottom=157;edge=1;z=3};
+listbox={cls="listbox";left=33;top=44;right=256;bottom=233;edge=1;hscroll=1;items={};z=11}
+)
+/*}}*/
+
+config = fsys.config("/config/");
+
+自动打印监测器.bindConfig(config.自动打印监测器,{edit="text"});
+
+// >SumatraPDF.exe -print-to-default C:\temp\Voron-2-2.4\Drawings\VORON2_Bed_350mm.pdf
+var commandstr = ""; // 这个变量专门用来存放执行打印的命令行的
+
+自动打印监测器.button.oncommand = function(id,event){
+    // PDF阅读器地址不能为空,因为是调用阅读器进行打印的
+    // 这里做两个判断
+    if (自动打印监测器.edit2.text == ""){
+    	自动打印监测器.msgErr("请设置PDF阅读器的位置")
+    	return ;
+    	}
+    var pr = fsys.fileInfo(自动打印监测器.edit2.text);
+    if(pr.id == null){
+    	自动打印监测器.msgErr("无法找到设定的PDF阅读器")
+    	return ; 
+    }
+    // 然后判断设置的扫描目录是否存在,不存在就建立一个目录
+    if not(fsys.path.isDir(自动打印监测器.edit.text)){
+    	fsys.createDir(自动打印监测器.edit.text);
+    }
+    
+    // 开始扫描设置两个按钮之间的切换
+	自动打印监测器.button5.disabled = false;
+	自动打印监测器.button.disabled = true;
+	// 禁止四个输入框防止在运行过程中被修改内容
+	自动打印监测器.edit.disabled = true;
+	自动打印监测器.edit2.disabled = true;
+	自动打印监测器.edit4.disabled = true;
+	自动打印监测器.thrdWatcher = fsys.dirWatcher.thread(
+		function(filename,action,actionText){
+			// 监控到目录中的文件发生了变化,但是要筛选一下.只处理添加的PDF文件
+			// action代码1表示添加 先转换小写再搜索".pdf"如果找到代表这是一个PDF文件，就可后续处理。
+			var fn = string.conv.lower(filename)
+			if(action == 1 and string.endWith(fn,".pdf")){
+				var pdf = com.CreateObject("Wscript.Shell")
+				/*
+				wscript.shell.run 第一个参数是执行程序名,第二个是com窗口风格,第三个是是否等待运行完成.
+				窗口风格 说明
+    			0  隐藏一个窗口并激活另一个窗口。
+    			1  激活并显示窗口。如果窗口处于最小化或最大化状态，则系统将其还原到原始大小和位置。第一次显示该窗口时，应用程序应指定此标志。
+    			2  激活窗口并将其显示为最小化窗口。
+    			3  激活窗口并将其显示为最大化窗口。
+    			4  按最近的窗口大小和位置显示窗口。活动窗口保持活动状态。
+    			5  激活窗口并按当前的大小和位置显示它。
+    			6  最小化指定的窗口，并按照 Z 顺序激活下一个顶部窗口。
+    			7  将窗口显示为最小化窗口。活动窗口保持活动状态。
+    			8  将窗口显示为当前状态。活动窗口保持活动状态。
+    			9  激活并显示窗口。如果窗口处于最小化或最大化状态，则系统将其还原到原始大小和位置。还原最小化窗口时，应用程序应指定此标志。
+    			10  根据启动应用程序的程序状态来设置显示状态。
+				*/
+				// 自动打印监测器.edit2.text 自动打印监测器.edit4.text filename
+				commandstr = string.concat(自动打印监测器.edit2.text, " ", 自动打印监测器.edit4.text, " ",
+					自动打印监测器.edit.text, "\", '"', filename, '"');
+				pdf.run(commandstr,0,true)
+				// 添加打印记录,关闭程序后消失.原因是我不想再花精神去研究fsys.log这个东西怎么用了.
+				var t = time.now()
+                t.format="%Y-%m-%d %H:%M:%S";
+                var m = string.concat("[", tostring(t), "] 打印文件: ",filename)
+                自动打印监测器.listbox.add(m,-1)
+			}
+		},自动打印监测器.edit.text );
+}
+
+自动打印监测器.button5.oncommand = function(id,event){
+    // 停止扫描
+	自动打印监测器.button5.disabled = true;
+	自动打印监测器.button.disabled = false;
+	自动打印监测器.edit.disabled = false;
+	自动打印监测器.edit2.disabled = false;
+	自动打印监测器.edit4.disabled = false;	
+	if(!自动打印监测器.thrdWatcher) return; 
+    自动打印监测器.thrdWatcher.close(); //停止监视文件
+}
+
+
+
+自动打印监测器.button2.oncommand = function(id,event){
+    // 设置监控目录按钮被点击
+    var path = fsys.dlg.dir("C:\",自动打印监测器,"请选择扫描目录",,);
+    if (path){
+    	自动打印监测器.edit.text = path;
+    }
+}
+
+自动打印监测器.button3.oncommand = function(id,event){
+	//自动打印监测器.edit2.text = fsys.dlg.open("PDF阅读器|*.exe")
+	var path = fsys.dlg.open("PDF阅读器|*.exe")
+	if(path){
+		自动打印监测器.edit2.text = path;
+	}
+}
+
+自动打印监测器.onClose = function(hwnd,message,wParam,lParam){
+	if(!自动打印监测器.thrdWatcher) return; 
+    自动打印监测器.thrdWatcher.close(); //停止监视文件
+}
+
+自动打印监测器.show();
+
+if (_CMDLINE="/q"){
+	win.delay(5000);
+	自动打印监测器.button.oncommand();
+}
+
+return win.loopMessage();

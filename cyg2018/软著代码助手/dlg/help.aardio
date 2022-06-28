@@ -1,0 +1,14 @@
+import win.ui;
+import fonts.fontAwesome;
+/*DSG{{*/
+var winform = win.form(text="wubiLex - 帮助";right=1040;bottom=607;bgcolor=16777215)
+winform.add(
+lbAbout={cls="plus";text="关于软件";left=23;top=36;right=365;bottom=67;align="left";db=1;dl=1;font=LOGFONT(h=-16);iconColor=2960685;iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome')};iconText='\uF059';textPadding={left=30};z=1};
+lbWebSite={cls="plus";text="用于软件著作权申请时代码统计和合并打印";left=10;top=69;right=380;bottom=100;align="right";db=1;dl=1;font=LOGFONT(h=-16);iconColor=3947580;notify=1;z=2};
+picturebox={cls="picturebox";left=30;top=113;right=822;bottom=597;image=$"\res\help.jpg";z=3}
+)
+/*}}*/
+
+winform.show();
+win.loopMessage();
+return winform;

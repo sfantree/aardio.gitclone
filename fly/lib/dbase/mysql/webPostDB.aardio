@@ -1,0 +1,41 @@
+
+//数据库操作层,sql语句请写在本层
+import dbase.mysql;
+
+var tableName = "web_post";		//表名
+var tableKeyId = "postId";	//主键字段名
+var tableKeyIdIsAuto = false;//主键是否自增,由数据库自增设为true,由自己管理主键设为false
+
+var database = ..dbase.mysql(tableName, tableKeyId, tableKeyIdIsAuto);
+dbase.mysql.webPostDB = database;
+
+namespace dbase.mysql.webPostDB
+
+string = ..string;
+table = ..table;
+
+//在这自定义数据库操作函数
+
+getWebPageList = function(tabPage){
+	var mainSql = /*
+	SELECT p.PostId,p.PostTitle,c.CategoryName,p.UserId,p.IsTop,p.IsFine,p.ReplyCount,p.ViewCount,
+	u.AvatarUrl,u.NickName,p.SortId
+	FROM web_post p 
+	inner join web_user u on p.UserId=u.UserId
+	inner join web_category c on p.CategoryId=c.CategoryId
+	*/	
+	var where = "p.PostStatus='1' ";
+	var orderby = "IsTop desc,PostId desc";
+	return database.getPageList(tabPage, mainSql, orderby, where);
+}
+
+getWebPostDetail = function(postId){
+	var sql = /*SELECT p.PostId,p.PostTitle,c.CategoryName,p.UserId,p.IsTop,p.IsFine,p.ReplyCount,p.ViewCount,
+	u.AvatarUrl,u.NickName,p.PostContent,p.IsAdopt
+	FROM web_post p 
+	inner join web_user u on p.UserId=u.UserId
+	inner join web_category c on p.CategoryId=c.CategoryId
+	where p.PostStatus='1' and postId=@postId
+	*/
+	return database.getTableFirst(sql,{postId=postId}); 
+}

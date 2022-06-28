@@ -1,0 +1,254 @@
+//author:Angryfox Su
+//homepage: http://blog.angryfox.com
+//date:2014-07-12 
+//version:1.0
+import win.ui;
+import string;
+import crypt;
+import inet.url;
+import process.popen;
+/*DSG{{*/
+mainForm = ..win.form(text="DevTC";right=899;bottom=699)
+mainForm.add(
+btn_check={cls="button";text="检查";left=715;top=34;right=851;bottom=76;z=4};
+button={cls="button";text="合并";left=33;top=35;right=169;bottom=77;z=2};
+combobox={cls="combobox";left=222;top=43;right=674;bottom=69;edge=1;items={};mode="dropdownlist";z=3};
+edit={cls="edit";text="输出结果";left=31;top=105;right=854;bottom=666;autohscroll=false;db=1;dl=1;dr=1;dt=1;edge=1;hidesel=1;multiline=1;vscroll=1;z=1}
+)
+/*}}*/
+
+mainForm.btn_check.oncommand = function(id,event){
+	mainForm.edit.text = "now export trunk info ...";
+	exec_export();
+	
+}
+
+
+mainForm.edit.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.edit.text );
+}
+
+if ( not io.exist("/test.txt") ) {
+ 	mainForm.msgbox( '缺少根目录文件test.txt');
+ 	return; 
+ }
+ 
+//每次读一行 
+i = 0;
+for line in io.lines("/test.txt") { 
+	 i++;
+     var str = string.split(line,',');
+     if(i==1){
+    	 svn_url = str[2]; //初始默认值
+    	 svn_name = str[1];
+    	 release_url = str[3];
+    	 version = tonumber(str[4])
+    	 
+    	 mainForm.edit.text =  svn_url;
+     }
+    //添加到下拉框
+	 mainForm.combobox.insert( str[1], tonumber(i));	
+} 
+
+//修改下拉框当前选中项
+mainForm.combobox.selIndex = 1;
+
+mainForm.combobox.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.combobox.text );
+	 var txt = mainForm.combobox.selIndex;
+	 
+	j = 0;
+	//每次读一行 
+	for line in io.lines("/test.txt") { 
+		j ++;
+    	var str = string.split(line,',');
+    	if (txt == j) {
+    		svn_url  = str[2];
+    		svn_name = str[1];
+    		release_url = str[3];
+    	 	version = tonumber(str[4])
+
+   			mainForm.edit.text =  svn_url;
+    	}
+	}   
+}
+
+import fsys;
+
+var path = fsys.joinpath( "/","devtc/test" ) 
+fsys.createDir(path)
+
+//mainForm.edit.text="生成签名，需要输入url中的controller和action,点击生成" + '\r\n'+ '正在加载数据.....';
+
+mainForm.button.oncommand = function(id,event){
+
+	exec_function(release_url,version);
+	exec_doc(svn_url,svn_name);
+	exec_merge(version, release_url, svn_name);
+	exec_commit(svn_name,release_url);
+	
+    import process;
+	process.explore_select(path)
+    return; 
+}
+
+function exec_doc(svn_url,svn_name){
+	mainForm.edit.text = "now svn update ...";
+	
+	//打开命令行,隐藏命令行窗口
+	procs=process.popen("cmd.exe","/devtc")
+
+	var cmd = null;
+	if( io.exist("/devtc/"+ svn_name) ){ 
+		cmd = /*
+cd ./devtc/${SVN_NAME}
+svn up
+*/;
+	}else{
+		cmd = /*
+cd ./devtc
+svn co ${SVN_URL} ${SVN_NAME}
+ren trunk ${SVN_NAME}
+*/		
+	}
+	import string.template
+	cmdTemplate = string.template(cmd)
+	
+	cmd = cmdTemplate.format(
+    	SVN_URL  = svn_url;
+    	SVN_NAME = svn_name;
+	) 
+		
+	mainForm.edit.text = cmd;
+	procs.write(cmd);
+	result = procs.peekTo(">");
+	procs.write("exit\n");
+	if(io.exist("/devtc/trunk")) {
+		io.rename("/devtc/trunk","/devtc/"+ svn_name);
+	}
+
+	//sleep(1000);
+	mainForm.edit.text = result + '\r\n\r\n' + cmd;
+	return ; 
+}
+
+function exec_function(release_url,version){
+	mainForm.edit.text = "now version checking ...";
+	import process.popen;
+	
+	f = process.popen("svn info " + release_url ) 
+	str = f.read(-1) //读取返回数据
+	var str_array = null;
+    vers = null;
+	str_array = string.split(str,'\n');
+	mainForm.edit.text = str + "" + "最新合并版本是" + version;
+	if(str_array[6]){
+		vers = string.split(str_array[6],':');
+		
+		ver = tonumber(vers[2])
+		//mainForm.edit.text = version + 'LLL' +ver;
+		if(ver != version) {
+			msg = "版本不符合，请手工合并";
+			mainForm.msgbox(msg);
+			return;
+		}
+	}
+	sleep(5);
+}
+
+function exec_merge(version, release_url, svn_name){
+	
+	//打开命令行,隐藏命令行窗口
+	procs=process.popen("cmd.exe","/devtc")
+
+	var cmd = null;
+	cmd = /*
+cd ./devtc/${SVN_NAME}
+svn merge  -r1:${VERSION}  ${RELEASE_URL}
+*/	
+	import string.template
+	cmdTemplate = string.template(cmd)
+	
+	cmd = cmdTemplate.format(
+    	RELEASE_URL  = release_url;
+    	VERSION      = version;
+    	SVN_NAME     = svn_name;
+	) 
+	
+	//mainForm.edit.text = cmd;
+	procs.write(cmd);
+	result = procs.peekTo(">");
+	procs.write("exit\n");
+	mainForm.edit.text = result + '\r\n\r\n' + cmd;
+	//sleep(5000)
+}
+
+function exec_commit(svn_name,release_url){
+	//打开命令行,隐藏命令行窗口
+	procs=process.popen("cmd.exe","/devtc")
+	 
+	var svn_address = string.split(release_url,'/');
+	if(svn_address[7]) {
+		release_name = svn_address[7]
+	}elseif(svn_address[6]){
+		release_name = svn_address[6]
+	}
+	
+	mainForm.edit.text = release_name
+	
+	var cmd = null;
+	cmd = /*
+cd ./devtc/${SVN_NAME}
+svn commit -m "merger ${RELEASE_NAME} to trunk,version ${VERSION}"
+*/	
+	import string.template
+	cmdTemplate = string.template(cmd)
+	
+	cmd = cmdTemplate.format(
+    	RELEASE_URL  = release_url;
+    	VERSION      = version;
+    	SVN_NAME     = svn_name;
+    	RELEASE_NAME = release_name
+	) 
+	
+	//mainForm.edit.text = cmd;
+	procs.write(cmd);
+	result = procs.peekTo(">");
+	procs.write("exit\n");
+	mainForm.edit.text = result + '\r\n\r\n' + cmd;
+}
+
+//导出tc的结果
+function exec_export(){
+	var line_string = '';
+	j = 0;
+	//每次读一行 
+	for line in io.lines("/test.txt") { 
+		j ++;
+    	var str = string.split(line,',');
+
+    	svn_url  = str[2];
+    	svn_name = str[1];
+    	release_url = str[3];
+    	version = tonumber(str[4])
+    	
+    	svn_info = exec_getinfo(svn_url);
+    	line_string += svn_name + ',' + release_url + ',' + version + ',' + svn_info
+	}  
+	
+	 string.save( "/export.txt",line_string +'\r\n',true )
+	 mainForm.edit.text = line_string;
+}
+
+function exec_getinfo(svn_url){
+
+	f = process.popen("svn log " + svn_url + " --quiet") 
+	svn_info = f.read(-1) //读取返回数据
+	
+	fs = string.split(svn_info,'\n'); 
+	
+	return fs[2] + ',' + fs[4] + '\n';
+}
+
+mainForm.show() 
+win.loopMessage();

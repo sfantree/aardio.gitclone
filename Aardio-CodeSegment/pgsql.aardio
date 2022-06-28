@@ -1,0 +1,35 @@
+//pgsql
+import win.ui;
+import com;
+import win;
+import table;
+/*DSG{{*/
+mainForm = win.form(text="aardio Form";right=599;bottom=399)
+mainForm.add(
+button={cls="button";text="测试连接";left=304;top=198;right=410;bottom=248;z=1}
+)
+/*}}*/
+
+mainForm.button.oncommand = function(id,event){
+	conn=com.CreateObject("ADODB.Connection");
+	connectionString="Driver={PostgreSQL UNICODE};Server=localhost;Port=5432;Database=postgres;Uid=postgres;Pwd=111111;Data Source=PostgreSQL"
+	conn.open(connectionString);
+	test="1112111111311"
+	try{
+		var db,rs =conn.execute("insert into city(cityid,cityname,info,level) values('"+test+"','111','bb','男')");
+		win.msgbox(rs)//返回成功条数
+	}catch(e){
+		win.msgbox(e);	
+	}
+
+		var db,rs = conn.execute('SELECT * FROM "public".city');
+		win.msgbox(rs);//返回查询条数
+
+			
+	conn.close();
+}
+
+
+mainForm.show() 
+return win.loopMessage(); 
+

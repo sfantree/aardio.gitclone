@@ -1,0 +1,684 @@
+import win.ui;
+import console;
+import time;
+import config;
+/*DSG{{*/
+var winform = win.form(text="采购单(入库)";right=982;bottom=458)
+winform.add(
+button={cls="button";text="选择商品";left=798;top=7;right=976;bottom=65;dr=1;dt=1;z=8};
+button2={cls="button";text="全部清空";left=892;top=99;right=976;bottom=130;dr=1;dt=1;z=9};
+button3={cls="button";text="删除选中";left=892;top=150;right=976;bottom=181;dr=1;dt=1;z=10};
+button5={cls="button";text="保存采购单";left=768;top=416;right=855;bottom=446;db=1;dr=1;z=14};
+edit_applier={cls="edit";left=462;top=38;right=592;bottom=60;dl=1;dt=1;edge=1;z=13};
+edit_from_store={cls="combobox";left=265;top=10;right=395;bottom=30;dl=1;dt=1;edge=1;items={};mode="dropdown";z=2};
+edit_org={cls="combobox";left=265;top=40;right=392;bottom=61;dl=1;dt=1;edge=1;items={};mode="dropdown";z=15};
+edit_ps_id={cls="edit";left=662;top=6;right=754;bottom=28;disabled=1;dl=1;dt=1;edge=1;readonly=1;z=18};
+edit_subject={cls="edit";left=265;top=67;right=674;bottom=90;dl=1;dt=1;edge=1;z=6};
+edit_to_store={cls="combobox";left=462;top=10;right=592;bottom=30;dl=1;dt=1;edge=1;items={};mode="dropdown";z=4};
+listview={cls="listview";left=206;top=99;right=878;bottom=397;db=1;dl=1;dr=1;dt=1;edge=1;fullRow=1;gridLines=1;vscroll=1;z=7};
+static={cls="static";text="供应商";left=205;top=9;right=260;bottom=29;dl=1;dt=1;transparent=1;z=1};
+static2={cls="static";text="仓库";left=401;top=12;right=452;bottom=33;dl=1;dt=1;transparent=1;z=3};
+static3={cls="static";text="备注";left=204;top=70;right=259;bottom=90;dl=1;dt=1;transparent=1;z=5};
+static4={cls="static";text="部门处室";left=204;top=41;right=259;bottom=61;dl=1;dt=1;transparent=1;z=11};
+static5={cls="static";text="申请人";left=401;top=40;right=452;bottom=60;dl=1;dt=1;transparent=1;z=12};
+static6={cls="static";text="采购单";left=606;top=9;right=657;bottom=29;dl=1;dt=1;transparent=1;z=17};
+treeview={cls="treeview";left=11;top=10;right=198;bottom=401;asel=false;bgcolor=16777215;dl=1;dt=1;edge=1;hscroll=1;vscroll=1;z=16}
+)
+/*}}*/
+
+//
+winform.user_define_fields= {}
+
+/*winform_reset_listview{{*/
+winform.reset_listview = function(model, items, fields, clear_data=true){
+
+	if(#items == 0){
+		winform.listview.clear();
+		return
+	}
+
+	console.log("winform.listview.columnCount", winform.listview.columnCount)
+
+	var display_fields;
+
+	if(fields != null and type(fields) == "table" and #fields > 0 ){
+		display_fields = fields;
+	}else {
+		display_fields = model.display_fields;
+	}
+
+	var n = winform.listview.columnCount;
+	var unmatched = false;
+	if(n != 0){
+		//检测列标题是否匹配
+		var captions = {};
+		for(i=1;n;1){
+			table.push(captions, winform.listview.getColumnText(i))
+		}
+
+		for(i=1;#display_fields;1){
+			var k = display_fields[i]
+			var caption = model.headers[k]
+			if(caption==null){
+				caption = k;
+			}
+			if(table.find(captions, caption) == null){
+				console.log("列标题和user fields不匹配，不匹配的列为：", caption, table.tostring(captions))
+				unmatched = true
+			}
+		}
+	}
+
+	//如果不匹配， 直接重新建立新的列标题
+	if(unmatched or n == 0){
+		//重新制作rebuild
+		//unmatched, user_fields和现在的列标题不匹配
+		//n==0, 是没有列标题， listview没有准备好，
+		if(n==0){
+			console.log("没有设置列标题，重新设置")
+		}else {
+			console.log("unmatched, user_fields和现在的列标题不匹配")
+		}
+
+
+		last_items = {} //列标题不匹配，数据也没用了。
+		winform.listview.clear();
+
+		for(i=1;n;1){
+			winform.listview.delColumn(n+1-i);//从倒数开始删除, 以免删除前面的, 后面的索引都变了.
+		}
+
+		for(i=1;#display_fields;1){
+			var k = display_fields[i]
+			var caption = model.headers[k];
+			if(caption==null){
+				caption=k;
+			}
+			winform.listview.insertColumn(caption, 80, i);
+		}
+
+		n = winform.listview.columnCount;
+		winform.listview.insertColumn("数量", 80, n+1);
+		winform.listview.insertColumn("单价", 80, n+2);
+		winform.listview.insertColumn("金额", 100, n+3);
+
+		n = winform.listview.columnCount;
+		if(n>=4){
+			winform.listview.setColumn({cx=40},1)
+			winform.listview.setColumn({cx=70},2)
+			winform.listview.setColumn({cx=180},3)
+			winform.listview.setColumn({cx=80},4)
+		}
+	}
+
+	//如果清空listview
+	if(clear_data){
+		winform.listview.clear();
+	}
+
+	//加入新数据
+	for(i=1;#items;1){
+		var item = {}//每一行的数据
+		for(j=1;#display_fields;1){
+			field = display_fields[j];
+			//if(k=="id"){
+			//	table.push(data, tostring(i))
+			//	continue
+			//}
+			var value = items[i][field];
+			if(value != null){
+				table.push(item, value)
+			}else {
+				table.push(item, "")
+			}
+		}
+
+		//后面的3列数据，这里手动添加
+		//table.push(item, items[i]["quantity"])//
+		//table.push(item, items[i]["price"])
+		//table.push(item, items[i]["amount"])
+
+
+		var num = 1;//数量默认为1
+		if(items[i]["quantity"] != null){
+			num = items[i]["quantity"];
+		}
+
+		table.push(item, tostring(num));
+
+		if(items[i]["price"] != null){
+			table.push(item, tostring(items[i]["price"]));//单价
+			table.push(item, tostring(num * items[i]["price"]));//金额
+		}else {
+			table.push(item, "0");//单价
+			table.push(item, "0");//金额
+		}
+
+
+		winform.listview.addItem({
+			text = item;
+		});
+	}
+
+
+}
+/*}}*/
+
+
+winform.reset_from = function(){
+	winform.edit_ps_id.text = "";
+	winform.edit_ps_id.disabled = true;
+	winform.edit_applier.text = "";
+	winform.edit_org.text = "";
+	winform.edit_subject.text = "";
+	winform.edit_to_store.text = "";
+	winform.edit_from_store.text = "";
+	winform.listview.clear();
+}
+
+winform.button.oncommand = function(id,event){
+	var frmChild = winform.loadForm("\dlg\goods_select.aardio");
+	var goods_ids = frmChild.doModal();
+
+	//var sql = "select from ["+winform.+"]"
+	var model = modGoods
+	if(#goods_ids){
+		var sql = string.format("select * from [%s] where id in (%s)", model.tablename, string.join(goods_ids,","))
+		var items = model.getTable(sql);
+
+		for(i=1;#items;1){
+			items[i]["goods_id"] = items[i]["id"];
+			items[i]["id"] = "";
+		}
+
+
+	/*
+		var user_define_fields = model.display_fields
+		table.removeByValue(user_define_fields, "created_at")
+		table.removeByValue(user_define_fields, "updated_at")
+	*/
+
+		var user_define_fields = {"id"; "goods_id";"name"; "unit"; "specs";}
+		winform.reset_listview(model, items, user_define_fields, false)
+		winform.user_define_fields = user_define_fields;
+	}
+}
+
+
+
+
+winform.init = function(){
+	//调用mainForm中的全局变量
+	var suppliers = table.map(modStore.filter({["cate"]="供应商"}),function(v,k,result){
+		if(type(k)== "number"){
+			table.push(result, string.format("%s|%s", v.id, v.name))
+		}
+	})
+
+	var stores = table.map(modStore.filter({["cate"]="仓库"}),function(v,k,result){
+		if(type(k)== "number"){
+			table.push(result, string.format("%s|%s", v.id, v.name))
+		}
+	})
+
+
+	for(i=1;#suppliers;1){
+		winform.edit_from_store.add(suppliers[i])
+	}
+
+	for(i=1;#stores;1){
+		winform.edit_to_store.add(stores[i])
+	}
+
+
+	var edit_Orgs = config.settings.edit_Orgs;
+
+	if(edit_Orgs != null){
+		var items = string.split(edit_Orgs, "<;>")
+		for(i=1;#items;1){
+			winform.edit_org.add(string.trim(items[i]))
+		}
+
+	}
+
+	var purchases = modPurchase.search();
+	for(i=1;#purchases;1){
+		winform.treeview.insertItem({text = purchases[i].name; ps_id = purchases[i].id})
+	}
+
+}
+
+winform.edit_from_store.onEditChange = function(){
+	var text = winform.edit_from_store.text;
+	var items = table.filter( winform.edit_from_store.items, lambda(v) string.startWith(v,text) );
+	if(string.trim(text) == ""){
+		items = table.map(modStore.filter({["cate"]="供应商"}),function(v,k,result){
+			if(type(k)== "number"){
+				table.push(result, string.format("%s|%s", v.id, v.name))
+			}
+		})
+	}
+	winform.edit_from_store.autoComplete(items);
+}
+
+winform.edit_to_store.onEditChange = function(){
+	var text = winform.edit_to_store.text;
+	var items = table.filter( winform.edit_to_store.items, lambda(v) string.startWith(v,text) );
+	if(string.trim(text) == ""){
+		items = table.map(modStore.filter({["cate"]="仓库"}),function(v,k,result){
+			if(type(k)== "number"){
+				table.push(result, string.format("%s|%s", v.id, v.name))
+			}
+		})
+	}
+	winform.edit_to_store.autoComplete(items);
+}
+
+winform.button2.oncommand = function(id,event){
+	winform.listview.clear();
+}
+
+
+winform.listview.onnotify = function(id,code,ptr){
+	if(code = 0xFFFFFFFE/*_NM_CLICK*/ ){
+		if(winform.listview.columnCount==0){
+			return
+		}
+		var nm = winform.listview.getNotifyMessage(code,ptr);
+		if( ! nm.iItem && nm.iSubItem ) return true;//不允许编辑项
+
+		//一点击就出现编辑框, 不用先点一下, 再点一下
+		//winform.listview.editLabel(nm.iItem, nm.iSubItem);
+		//上面这一行只能编辑第一列, 第2列和后面的都不能编辑, 看了源码,不行
+		var nCols = winform.listview.columnCount;
+		if(nm.iSubItem<nCols-3){
+			return true; //不允许编辑其他列, 除了最后3列
+		}
+
+		var edit = winform.listview.editlable;
+		if(!edit){
+			winform.listview.addCtrl(
+				editlable = {
+					cls="edit";font = LOGFONT( h = 11 );left = 0;top = 0;
+					right = 50;bottom = 50;autoResize = false ;hide = 1;edge = 1;
+					wndproc = function( hwnd, message, wParam, lParam ){
+						if( ( message = 0x8/*_WM_KILLFOCUS*/)
+							|| message == 0x101/*_WM_KEYUP*/ && wParam == 0xD/*_VK_RETURN*/){
+							// 按下了回车键或失去焦点，更新listview数据
+							if(..string.match(owner.text,"^[\.\d]+$")){
+								owner.parent.setItemText(owner.text
+									, owner.listViewNotifyMessage.iItem
+									, owner.listViewNotifyMessage.iSubItem );
+							}else {
+
+							}
+							owner.show(false);
+						}
+					}
+				}
+			)
+			edit = winform.listview.editlable;
+		}
+		edit.listViewNotifyMessage = nm;
+		edit.text=winform.listview.getItemText(nm.iItem, nm.iSubItem);
+		var rc=winform.listview.getItemRect(nm.iItem, nm.iSubItem, , 2/*_LVIR_LABEL*/ )
+		//rc.right += 5;
+		//rc.bottom += 5;
+		edit.setRect(rc);
+		edit.show();
+		edit.setFocus();// 获取焦点
+		edit.selectAll();
+	}
+}
+
+winform.button3.oncommand = function(id,event){
+	var  sel = winform.listview.getSelection();
+	if(sel!=0){
+		winform.listview.delItem(sel)
+	}
+
+}
+
+winform.button5.oncommand = function(id,event){
+	console.log("----------------保存或者更新----------------------------------")
+	var ps_id = winform.edit_ps_id.text;
+	if(ps_id == ""){
+		console.log("----------------新建----------------------------------")
+		var tm = time.now();
+		var pitem = {};
+
+		pitem["name"] = tostring(tm, "采购单-%Y%m%d_%H%M%S",  "chs");
+		pitem["org"] = winform.edit_org.text;
+		pitem["applier"] = winform.edit_applier.text;
+
+		pitem["subject"] = winform.edit_subject.text;
+		pitem["from_store"] = winform.edit_from_store.text;
+		pitem["to_store"] = winform.edit_to_store.text;
+
+		required_fields = {
+			"from_store";
+			"to_store";
+			"org";
+			"applier";
+			"name";
+		}
+
+		invalid = false;
+		invalid_field = ""
+		for(i=1;#required_fields;1){
+			if(pitem[required_fields[i]] == null or pitem[required_fields[i]] == ""){
+				invalid = true;
+				invalid_field = required_fields[i];
+				break;
+			}
+
+		}
+
+		if(invalid){
+			winform.msgbox(string.format("%s不能为空！", invalid_field));
+			return ;
+		}
+
+
+		ps_id = modPurchase.create(pitem);
+		console.log("modPurchase",ps_id)
+
+		var double_entry_set = {}
+		var price_set = {}
+
+		for(i=1;winform.listview.count;1){
+			var item = {};
+			//winform.user_define_fields
+			for(j=1;#winform.user_define_fields;1){
+				var field = winform.user_define_fields[j]
+				item[field] = winform.listview.getItemText(i,table.find(winform.user_define_fields, field))
+				console.log("field", field, item[field])
+			}
+			//item["goods_id"] = tonumber(item["id"]);
+			item["id"] = null;
+
+			n = winform.listview.columnCount;
+			item["quantity"] = winform.listview.getItemText(i,n-2)
+			item["price"] = winform.listview.getItemText(i,n-1)
+			item["amount"] = winform.listview.getItemText(i,n)
+
+			item["price"] = tonumber(item["price"]);
+			item["quantity"] = tonumber(item["quantity"]);
+			item["amount"] = item["price"] * item["quantity"]
+
+			item["ps_id"] = tonumber(ps_id);//采购表的ps_id是 purchase_id
+
+
+			item["store_id"] = tonumber(string.split(pitem["to_store"], "<|>")[1]);
+
+			item["cate_id"] = 0;
+			item["cate_name"] = "采购入库";
+
+			item["trans_dir"] = "入库";
+			item["trans_type"] = 1;
+			item["trans_id"] = 0;
+			item["balance"] = 0;
+
+			console.log("准备保存的数据item");
+			console.varDump(item)
+			var from_id = modGoodsJournal.create(item);
+
+			//对方那一条数据
+			item["store_id"] = tonumber(string.split(pitem["from_store"], "<|>")[1]);
+
+			item["cate_id"] = 0;
+			item["cate_name"] = "销售出库";
+
+			item["trans_dir"] = "出库";
+			item["trans_type"] = 0;
+			item["trans_id"] = 0;
+			item["balance"] = 0;
+			var to_id = modGoodsJournal.create(item); //double entry booking!!!
+
+			var gtitem={}
+			gtitem["goods_id"] = item["goods_id"];
+			gtitem["name"]=item["name"];
+			gtitem["quantity"]=item["quantity"];
+			gtitem["amount"]=item["amount"];
+
+			gtitem["from_store_id"]= tonumber(string.split(pitem["from_store"], "<|>")[1]);
+			gtitem["from_store_name"]=string.split(pitem["from_store"], "<|>")[2];
+			gtitem["from_journal_id"]=from_id;
+
+			gtitem["to_store_id"]=tonumber(string.split(pitem["to_store"], "<|>")[1]);
+			gtitem["to_store_name"]=string.split(pitem["to_store"], "<|>")[2];
+			gtitem["to_journal_id"]=to_id;
+
+
+
+
+			var gt_it = modGoodsTrans.create(gtitem); //创建转库的记录
+
+			modGoodsPrice.create(item); //因为item中包含了modGoodsPrice需要的字段，所以不用改
+
+			//计算库存
+			var query = {}
+
+			query["store_id"] = gtitem["from_store_id"]
+			query["goods_id"] = item["goods_id"]
+			query["trans_type"] = 1;
+
+			var sql = "select sum(quantity) as sum_in from goods_journal
+where store_id=@store_id and goods_id =@goods_id and trans_type=@trans_type"
+			var r = modGoodsJournal.exec(sql, query)
+			console.log("入库数量:")
+			console.varDump(r)
+
+			var in_quantity = (r != null) ? r.sum_in : 0;
+			console.log("in_quantity":tostring(in_quantity))
+			console.varDump(in_quantity)
+
+			sql = "select sum(quantity) as sum_out from goods_journal
+where store_id=@store_id and goods_id =@goods_id and trans_type=@trans_type"
+			query["trans_type"] = 0;
+			r = modGoodsJournal.exec(sql, query)
+			var out_quantity = (r != null) ? r.sum_out : 0;
+
+			sql="select sum(amount) as sum_in from goods_journal
+where store_id=@store_id and goods_id =@goods_id and trans_type=@trans_type"
+			query["trans_type"] = 1;
+			r = modGoodsJournal.exec(sql, query)
+			var in_amount = (r != null) ? r.sum_in : 0;
+
+			sql = "select sum(amount) as sum_out from goods_journal
+where store_id=@store_id and goods_id =@goods_id and trans_type=@trans_type"
+			query["trans_type"] = 0;
+			r = modGoodsJournal.exec(sql, query)
+			var out_amount = (r != null) ? r.sum_out : 0;
+
+			query["in_quantity"] = in_quantity;
+			query["out_quantity"] = out_quantity;
+			query["balance"] = in_quantity - out_quantity;
+			query["amount"] = in_amount - out_amount;
+			query["name"] = item["name"];
+
+			modGoodsBalance.create(query)
+
+
+
+		}
+		winform.treeview.insertItem({text = pitem["name"];ps_id=ps_id})
+		winform.reset_from();
+	}else {
+		console.log("----------------更新----------------------------------")
+		ps_id =  tonumber(ps_id)
+		var tm = time.now();
+		var pitem = {};
+
+		pitem["name"] = tostring(tm, "采购单-%Y%m%d_%H%M%S",  "chs");
+		pitem["org"] = winform.edit_org.text;
+		pitem["applier"] = winform.edit_applier.text;
+		pitem["supplier"] = winform.edit_from_store.text;
+		pitem["subject"] = winform.edit_subject.text;
+		pitem["store"] = winform.edit_to_store.text;
+		pitem["id"] = ps_id;
+
+		var updated = modPurchase.update(pitem);
+		console.log("modPurchase update", updated)
+
+		required_fields = {
+			"supplier";
+			"store";
+			"org";
+			"applier";
+			"name";
+		}
+
+		invalid = false;
+		invalid_field = ""
+		for(i=1;#required_fields;1){
+			if(pitem[required_fields[i]] == null or pitem[required_fields[i]] == ""){
+				invalid = true;
+				invalid_field = required_fields[i];
+				break;
+			}
+
+		}
+
+		if(invalid){
+			winform.msgbox(string.format("%s不能为空！", invalid_field));
+			return ;
+		}
+
+
+		for(i=1;winform.listview.count;1){
+			var item = {};
+			//winform.user_define_fields
+			for(j=1;#winform.user_define_fields;1){
+				var field = winform.user_define_fields[j]
+				item[field] = winform.listview.getItemText(i,table.find(winform.user_define_fields, field))
+				console.log("field", field, item[field])
+			}
+			//item["goods_id"] = tonumber(item["id"]);
+			//item["id"] = null;
+
+			n = winform.listview.columnCount;
+			item["quantity"] = winform.listview.getItemText(i,n-2)
+			item["price"] = winform.listview.getItemText(i,n-1)
+			item["amount"] = winform.listview.getItemText(i,n)
+
+			item["price"] = tonumber(item["price"]);
+			item["quantity"] = tonumber(item["quantity"]);
+
+			item["amount"] = item["price"] * item["quantity"]
+
+			item["ps_id"] = tonumber(ps_id);
+
+			item["store_id"] = tonumber(string.split(pitem["store"], "<|>")[1]);
+
+			item["cate_id"] = 0;
+			item["cate_name"] = "采购入库";
+
+			item["trans_dir"] = "入库";
+			item["trans_type"] = 1;
+			item["trans_id"] = 0;
+			item["balance"] = 0;
+
+			console.log("准备更新的数据item");
+			console.varDump(item)
+			if(item["id"]=="" or item["id"]== null){
+				modGoodsJournal.create(item);
+				modGoodsPrice.create(item); //只新建价格
+			}else {
+				modGoodsJournal.update(item);
+				var priceitem = item;
+				priceitem["id"] = null;
+				modGoodsPrice.create(priceitem);//只新建价格
+			}
+			console.log("----------------------更新完毕-----------------------");
+		}
+	}
+
+}
+
+winform.delete_purchase = function(ps_id){
+	var pitem = modPurchase.get({id=ps_id});
+	var goods = modPurchaseGoods.filter({filter_field="purchase_id";keyword=ps_id});
+	for(i=1;#goods;1){
+		modPurchaseGoods.delete({id = goods[i].id})
+	}
+	modPurchase.delete({id=ps_id});
+}
+
+
+winform.treeview.onnotify = function(id,code,ptr){
+	select(code) {
+		case 0xFFFFFFFE/*_NM_CLICK*/ {
+			var hi = winform.treeview.hitTest();
+			if(hi){
+				winform.listview.clear();
+				var data = winform.treeview.getItemData(hi);
+				var ps_id = data["ps_id"];
+				if(ps_id){
+					var pitem = modPurchase.get({id=ps_id});
+					var items = modGoodsJournal.filter({["ps_id"]=ps_id;["trans_type"] = 1})
+					console.log("pitem")
+					console.varDump(pitem)
+					console.log("goods[1]")
+					console.varDump(items[1])
+
+					winform.edit_org.text = pitem["org"];
+					winform.edit_applier.text = pitem["applier"];
+					winform.edit_subject.text = pitem["subject"];
+					winform.edit_from_store.text = pitem["from_store"];
+					winform.edit_to_store.text = pitem["to_store"];
+					//取消winform.edit_ps_id禁用
+					winform.edit_ps_id.disabled = false;
+					winform.edit_ps_id.text = tostring(ps_id);
+
+					winform.reset_listview(modGoods, items, winform.user_define_fields, false)
+				}
+
+			}else{
+				winform.reset_from();
+			}
+
+
+
+
+		}
+		case 0xFFFFFFFB/*_NM_RCLICK*/{
+			//右键菜单
+			var x,y = mouse.getPos();
+			var hi = winform.treeview.hitTest();
+
+			var iRow, iCol  = winform.listview.hitTest(x,y,true);
+			if(iRow){
+				winform.listview.setSelected(iRow)
+				winform.lastListviewSelected = iRow;
+			}
+
+			var menu = win.ui.popmenu(winform)
+
+			menu.add("删除",
+				function(){
+					if(winform.msgboxTest("确认删除采购单吗?"++'\r\n\r\n'++"确认将会同时删除采购单中的商品记录")){
+						var data = winform.treeview.getItemData(hi);
+						var ps_id = data["ps_id"];
+						if(ps_id){
+							winform.delete_purchase(ps_id)
+							winform.treeview.delItem(hi);
+							winform.reset_from();
+						}
+					}
+
+				}
+			);
+
+			menu.popup(x,y,true);
+		}
+		else {
+		}
+	}
+}
+
+
+winform.init();
+winform.show();
+win.loopMessage();
+return winform;

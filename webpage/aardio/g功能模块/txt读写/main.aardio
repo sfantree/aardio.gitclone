@@ -1,0 +1,29 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="txt读写";right=737;bottom=421)
+mainForm.add(
+button={cls="button";text="write";left=135;top=340;right=259;bottom=406;z=2};
+button2={cls="button";text="read";left=412;top=332;right=536;bottom=398;z=3};
+edit={cls="edit";left=49;top=23;right=734;bottom=319;edge=1;multiline=1;z=1}
+)
+/*}}*/
+
+mainForm.button.oncommand = function(id,event){
+	
+  file = io.open("t.txt","w+");
+
+  file.write(mainForm.edit.text); //不建议使用字符串连接
+  
+  file.close()
+}
+
+mainForm.button2.oncommand = function(id,event){
+	
+	file = io.open("t.txt","r")
+	
+	mainForm.edit.text = file.read(-1)
+	
+}
+
+mainForm.show();
+return win.loopMessage();

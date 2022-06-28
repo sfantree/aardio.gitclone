@@ -1,0 +1,120 @@
+﻿//log4j index
+namespace log4j
+import log4j.Logger
+
+loggerCategory = 'default'; //日志类别
+var logType = _STUDIO_INVOKED == null ? 'FILE':'CONSOLE' //默认在ide为console
+levels = {
+	ALL={level=1;color = 0xf};
+	TRACE={level=2;color = 0x8};
+	DEBUG={level=3;color = 0xb};
+	INFO={level=4;color = 0x3};
+	WARN={level=5;color = 0xe};
+	ERROR={level=6;color = 0x4};
+	FATAL={level=7;color = 0xa};
+	MARK={level=8;color = 0x1};
+	OFF={level=9;color = 0xf};
+}
+config = {
+    level = "DEBUG";
+	appenders = {
+		default =  { 
+			type =logType;  //日志输出方式
+			fileName = 'default'; //日志文件名 如果为空用日期做文件名
+			layouts = { ['type'] = 'basic'};
+		};
+	};
+	categories = {
+   	 	default =  { appenders = { 'default' };}
+    }
+}
+
+getLogger = function(loggerCategory){
+	return log4j.Logger(loggerCategory); 
+}
+configure = function(params){
+	if(params.level) config.level = params.level
+	for(k,v in params.appenders ){
+		if(config.appenders[k]) {
+			..table.mixr(config.appenders,v)
+		}else{
+			config.appenders[k] = v
+		}
+	
+	}
+	for(k,v in params.categories){
+		if(config.categories[k]){
+			..table.mixr(config.categories,v)
+		}else{
+			config.categories[k] = v
+		}
+	
+	}
+	
+
+}
+
+
+/****intellisense(log4j)
+levels = 日志等级{
+	ALL={level=1;color = 0xf};
+	TRACE={level=2;color = 0x8};
+	DEBUG={level=3;color = 0xb};
+	INFO={level=4;color = 0x3};
+	WARN={level=5;color = 0xe};
+	ERROR={level=6;color = 0x4};
+	FATAL={level=7;color = 0xa};
+	MARK={level=8;color = 0x1};
+	OFF={level=9;color = 0xf};
+}
+config = 日志配置参数 {
+    {
+    	type = "DEBUG";
+		appenders = { //日志输出
+			default =  { 
+				type =logType;  //日志输出方式
+				fileName = 'default'; //日志文件名 如果为空用日期做文件名
+				layouts = { ['type'] = 'basic'};
+			};
+		};
+		categories = { //分类输出
+   	 		default =  { appenders = { 'default' };}
+    	}
+	}
+}
+getLogger(loggerCategory) = @.getLogger('default')
+getLogger =  \n返回log4j实例 @loggerCategory日志类型
+getLogger() = !newLog4j.
+configure(params)  = 设置log4j默认参数 @params: table {
+	 	 {
+    		type = "DEBUG"; //全局日志等级，默认输出为DEBUG以上的日志
+			appenders = { //日志输出
+				default =  {  
+					type =logType;  //日志输出方式
+					fileName = 'default'; //日志文件名 如果为空用日期做文件名
+					fileSize = 'null'
+					layouts = { ['type'] = 'basic'}; //输出格式化
+				};
+				
+			};
+			categories = { //分类输出
+   	 			default =  { appenders = { 'default' }; leves:"ERROR" //可选参数，如果不设置则为全局日志等级}
+    	}
+	}
+}
+configure() = @.configure({
+    		level = "DEBUG";
+			appenders = {
+				appenderName =  {  
+					type = 'file'; 
+					fileName = 'fileName.log'; 
+					layouts = { ['type'] = 'basic'};
+				};
+				
+			};
+			categories = { 
+   	 			categorieName =  { appenders = { 'appenderName' }; levels:"ERROR"}
+    	}
+	});
+loggerError = 输出错误日志到文件
+end intellisense****/

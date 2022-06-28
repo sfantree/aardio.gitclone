@@ -1,0 +1,9 @@
+﻿
+namespace aaz.libhpsocket.helper;
+class cookie{
+	struct array[] = {
+		INT length;
+		{string name;string value}
+	} 
+}
+

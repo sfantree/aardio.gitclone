@@ -1,0 +1,92 @@
+<?
+import translate;
+
+var word = request.get["word"];
+var ydDict = translate("hy12com","1322070351");
+ydResult = ydDict.yddict(word);
+
+result = {};
+var sad = {"黔驴技穷";"江郎才尽";"才疏学浅";"才思枯竭"};
+result.sad = sad[math.random(1,4)];
+result.query = ydResult.query;
+
+if( ! ydResult.errorCode ){
+	result.explains = ydResult.basic.explains;
+	result.phonetic = ydResult.basic.phonetic;
+	result.ukphonetic = ydResult.basic["uk-phonetic"];
+	result.usphonetic = ydResult.basic["us-phonetic"];
+	result.web = {};
+	
+	for k,v in ydResult.web{	
+		vStr = '';
+		connector = '';
+		for m,n in v['value'] {
+				vStr ++= connector ++ n;
+				connector = '；';	
+		}
+		table.push(result.web,{k=v['key'];v=vStr})
+	}
+}
+
+jsondata = web.json.stringify(result);
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge;chrome=1">
+	<title>有道词典</title>
+	<link rel="stylesheet" type="text/css" href="css/style.css"/>
+</head>
+<body>
+<div id="wraper"></div>	
+
+<script type="text/javascript" src="js/template-web.js"></script>
+<!--用于存放模版-->
+<script id="template" type="text/html">
+	<div id="pronounce">
+   		<h2><strong>{{query}}</strong>
+   		{{if phonetic}}
+   			<span>{{phonetic}}</span>
+   		{{/if}}
+   		{{if ukphonetic}}
+   			<span>[英]<b lang="EN-US" xml:lang="EN-US">{{ukphonetic}}</b></span>
+   		{{/if}}
+   		{{if usphonetic}}
+   			<span>[美]<b lang="EN-US" xml:lang="EN-US">{{usphonetic}}</b></span>
+   		{{/if}}   		
+   		</h2>
+   </div><hr class="hr0" />
+   {{if explains}}
+   		<div class="means">
+      		{{each explains value index}}  
+        		<div><p><span>{{value}}</span></p></div>  
+   	  		{{/each}}  
+   		</div>
+   {{ else }}
+   		<span>...(｡•ˇ‸ˇ•｡) ...{{sad}}，啥都没找到！</span>		
+   {{/if}}
+   {{if web}}
+   		<hr class="hr0" />
+   		<div class="web">
+   			<strong>网络短语</strong>
+       		{{each web value index}}  
+        		<div><p><strong>{{value.k}}</strong><span>{{value.v}}</span>
+        		</p>
+        		</div>  
+   	  		{{/each}}
+   		</div>
+   	{{/if}} 	 
+</script>
+<!--用于渲染模版-->
+<script>
+	var data = <? = jsondata ?>;
+    var html = template('template', data);
+    document.getElementById('wraper').innerHTML = html;
+</script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/jquery.nicescroll.min.js"></script>
+<script type="text/javascript" src="js/disable.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=541;bottom=392;border="none")
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+var wb = web.layout(winform,0xFFFF/*_HL_HANDLE_ALL*/);
+
+
+namespace web.layout.behavior.myselect {
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {
+		var cmd = ltTarget.Lname or ltOwner.Lname;
+		var wbLayout = ltOwner.getLayout();
+        var ltEleBody = wbLayout.querySelector("body");
+		ltEleBody.style["background-image"]="url(img\"++cmd++"\skin.png)";
+		..publish("改变皮肤",cmd) 
+     }  
+}
+
+
+
+wb.go("\html\skin.html")
+
+
+
+
+
+/*
+
+winform.setInterval(
+	1000,function(){
+		wb.go("\html\skin.html")
+	}
+);
+
+
+if(_STUDIO_INVOKED){
+	import web.layout.debug;
+	wb.attachEventHandler( web.layout.debug );
+} 
+*/
+
+winform.show();
+win.loopMessage();
+return winform;

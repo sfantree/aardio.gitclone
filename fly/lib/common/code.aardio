@@ -1,0 +1,133 @@
+﻿//code 验证码
+namespace common
+
+code = class {
+	ctor( width=108,height=42,size=4 ){
+		
+        this.width = width;  //生成图片宽
+        this.height = height;  //图片高
+        this.size = size;  //验证码位数
+        this.charset = "abcdefghkmnprstuvwxyzABCDEFGHKMNPRSTUVWXYZ23456789";  //验证码随机值
+        this.code = ..string.random(this.size,this.charset);
+	};
+	
+    get = function(){
+    	return this.code;
+    }
+
+    color = function(n,m){
+        var x = ..string.format("%02X",..math.random(n,m));
+        var y = ..string.format("%02X",..math.random(n,m));
+        var z = ..string.format("%02X",..math.random(n,m));
+        var ys = "0xFF"++tostring(x)++tostring(y)++tostring(z);
+        return tonumber(ys);
+    }
+
+    create = function(){        
+        var bmp = gdip.bitmap(this.width,this.height);
+        var graphics = bmp.graphics;
+        //画背景
+        var brush = gdip.solidBrush(this.color(157,255));
+        graphics.fillRectangle(brush,0,0,this.width,this.height);
+         
+        //画线
+        for(i=0;6;1){
+            var pen = gdip.pen(this.color(0,156), 1, 2/*_GdipUnitPixel*/ );
+            graphics.drawLine(pen,..math.random(0,this.width),..math.random(0,this.height),..math.random(0,this.width),..math.random(0,this.height));
+        }
+        
+        //杂色
+        for(i=0;60;1){
+            var brush = gdip.solidBrush(this.color(200,255));
+            var family = gdip.family("Tahoma");
+            var strformat = gdip.stringformat (); 
+            strformat.align = 0/*_GdipStringAlignmentNear*/;
+            var curFont = family.createFont(..math.random(1,15),, 2/*_GdipUnitPixel*/);
+            graphics.smoothingMode = 4/*_GdipSmoothingModeAntiAlias*/ ;
+            graphics.textRenderingHint = 3/*_GdipTextRenderingHintAntiAliasGridFit*/;
+             
+            rclayout = gdip.RECTF(); 
+            rclayout.x = ..math.random(0,this.width)
+            rclayout.y = ..math.random(0,this.height)
+            graphics.drawString("*",curFont, rclayout, strformat,brush);
+        }
+         
+        var x = this.width/4;
+        var tab = ..string.split(this.code);
+        for(i=1;#tab;1){
+            var brush = gdip.solidBrush(this.color(0,156));
+            var family = gdip.family("Tahoma");
+            var strformat = gdip.stringformat (); 
+            strformat.align = 0/*_GdipStringAlignmentNear*/;
+            var curFont = family.createFont(20,, 2/*_GdipUnitPixel*/);
+            graphics.smoothingMode = 4/*_GdipSmoothingModeAntiAlias*/ ;
+            graphics.textRenderingHint = 3/*_GdipTextRenderingHintAntiAliasGridFit*/;
+             
+            rclayout = gdip.RECTF(); 
+            rclayout.x = x*(i-1)+..math.random(1,5);
+            rclayout.y = (this.height-20)/2.4;
+            graphics.drawString(tab[i],curFont, rclayout, strformat,brush);
+        }
+
+        var fso = fsys.stream();
+        bmp.saveToStream(fso,"*.bmp");
+        var date = fso.readAll();
+         
+        fso.close();
+        bmp.dispose();
+        return date;
+    }
+}
+
+namespace code{
+	import fsys.stream;
+	import gdip;
+	
+	..math.randomize();
+	
+	write = function(timeout=180){		
+		var code = ..common.code(70,25);
+		var vercode = code.get();
+		
+		var tabVerCode = {}
+		tabVerCode.vercode = vercode;
+		tabVerCode.timeout = tonumber(..time()) + timeout;		
+		..carl.session.set("tabVerCode",tabVerCode);
+		
+		var img = code.create();
+		..response.headers["Content-type"] = "image/bmp";
+		..response.write(img);
+	}
+	
+	//读取session验证码
+	read = function(){
+		var tabVerCode = ..carl.session.get("tabVerCode");
+		var vercode = tabVerCode[["vercode"]];
+		if(!#vercode) return false,"验证码已失效"; 
+		
+		if( (tabVerCode.timeout - tonumber(..time())) < 0 )
+			return false,"验证码已过期";
+
+		return vercode;
+	}
+	
+	//删除session验证码
+	delete = function(){
+		..carl.session.set("tabVerCode",null);
+	}
+	
+	//校验
+	check = function(vercode){
+		if( !#vercode ) return false,"验证码为空";
+
+		var code,err = read();
+		if(!code) return false,err; 
+
+		if( #vercode != 4 || ..string.lower(vercode) != ..string.lower(code) )
+			return false,"验证码错误";
+
+		delete();
+		return true; 
+	}
+	
+}

@@ -1,0 +1,114 @@
+﻿import console;
+
+var args = {absolute_root_path="wgu";java_style_project_name = "hahaha"};
+
+import string.erb;
+var str = string.erb(string.load("/res/templates/conf/web.properties.erb"))
+
+//console.log(str.format(args))
+/*
+tab = string.split('com.ywjno.dev', '.')
+console.log(string.join(tab, '/'));
+for _,v in tab {
+	console.log(v);
+}
+*/
+
+//console.log(#tab);
+import string.utils;
+
+var java = string.utils.javaStyle("a-def");
+
+console.log(java);
+
+var str = "abc";
+
+console.log(str[[1]]);
+if (str && #str) {
+	console.log("true");
+	console.log(string.left(str, 1));
+	console.log(string.sub(str, 2, #str));
+}else {
+	console.log(false);
+}
+
+namespace test {
+import console;
+
+	class name{
+	
+		ctor(name, age){
+			this.name = name;
+			this.age = age;
+		};
+		
+		build = function(){
+			this.type();
+		};
+		
+		type = function(){
+		    import string.utils;
+			..console.log(string.upper("type"));
+			..console.log(string.utils.javaStyle("a-def"));
+		};
+		
+	}
+}
+
+console.log(test.name().build());
+
+
+import fsys.config
+
+//var config = fsys.config("/res/config/")
+/*
+config.mysql.port = 3306
+config.mysql.dependency = "<dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.38</version>
+        </dependency>"
+*/
+var dataSource = fsys.config("/res/config/dataSource")
+/*
+dataSource.Druid.dependency = "<dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.0.18</version>
+        </dependency>"
+dataSource.Druid.dataSource="com.alibaba.druid.pool.DruidDataSource"
+
+dataSource["Apache DBCP"].dependency = "<dependency>
+            <groupId>commons-dbcp</groupId>
+            <artifactId>commons-dbcp</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-pool</groupId>
+            <artifactId>commons-pool</artifactId>
+            <version>1.6</version>
+        </dependency>"
+dataSource["Apache DBCP"].dataSource="org.apache.commons.dbcp.BasicDataSource"
+
+dataSource.HikariCP.dependency = "<dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP-java6</artifactId>
+            <version>2.3.13</version>
+        </dependency>"
+dataSource.HikariCP.dataSource="com.zaxxer.hikari.HikariDataSource"
+
+
+dataSource.saveAll();
+*/
+
+
+import string.conv.pinyin;
+
+console.log(string.conv.pinyin("汉字", ""))
+
+
+var str = "mysql"
+console.log(dataSource["Apache DBCP"].type);
+console.log('test\ntest1');
+console.pause(); 
+console.close();

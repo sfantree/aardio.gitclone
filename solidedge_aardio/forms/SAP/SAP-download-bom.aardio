@@ -1,0 +1,34 @@
+import console; 
+
+console.open();
+console.log("从SAP下载清单", time());
+
+import SAP.session;
+var session = SAP.session();
+
+import com.excel;
+var excel = com.excel(false);
+
+
+var sht = excel.ActiveWorkbook.ActiveSheet;
+var rng = excel.Selection.value2;
+
+import tarray;
+var n=1
+subscribe("bom_down",function(...){
+	console.log(n, ...)
+	n+=1
+} )
+var ftab = session.downloadBOM(tarray.transpose(rng));
+
+sleep(3 * 1000)
+for(i = excel.WorkBooks.Count; 1; -1) // 反向
+	if table.find(ftab, excel.WorkBooks(i).Name){
+		try{
+			excel.Run("initExportedBom"); //调用宏格式化样式
+		}
+		 excel.WorkBooks(i).close(true /* _save_changes */);
+	}
+
+
+console.pause(true);

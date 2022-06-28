@@ -1,0 +1,93 @@
+﻿
+namespace data.notes{
+    db=..data.db;
+	//初始化记事内容表
+	init=function(){
+		//创建表 
+		try{
+			db.exec(`CREATE TABLE IF NOT EXISTS [notes](
+				"uuid" PRIMARY KEY NOT NULL,
+				"typeUuid" NOT NULL,
+				"title",
+				"content", 
+				"addTime" NOT NULL, 
+				"modifyTime" NOT NULL);`);
+		}
+		catch(e){
+			
+		}
+		
+		
+	};
+	
+	//添加记事类别
+	insert=function(oTable){
+		try{
+			db.exec(`INSERT INTO [notes] (uuid,typeUuid,title,content,addTime,modifyTime) VALUES (@uuid,@typeUuid,@title,@content,datetime(@addTime/1000, 'unixepoch','localtime'),datetime(@modifyTime/1000, 'unixepoch','localtime'));`,{
+				uuid=oTable.uuid;
+				typeUuid=oTable.typeUuid;
+				title=oTable.title;
+				content=oTable.content;
+				addTime=oTable.addTime;
+				modifyTime=oTable.modifyTime;
+			});
+		}
+		catch(e){
+			
+		}
+		
+	};
+	
+	//删除记事类别
+	delete=function(sUuid){
+		var sql="DELETE FROM [notes] WHERE uuid in ("++sUuid++")"
+		try{
+			db.exec(sql);
+		}
+		catch(e){
+		
+		}
+	};
+	
+	//修改记事类别
+	update=function(oTable){
+		try{
+			db.exec(`UPDATE [notes] SET typeUuid=@typeUuid,title=@title,content=@content,modifyTime=datetime(@modifyTime/1000, 'unixepoch','localtime') WHERE uuid=@uuid`,{
+				typeUuid=oTable.typeUuid;
+				title=oTable.title;
+				content=oTable.content;
+				modifyTime=oTable.modifyTime;
+				uuid=oTable.uuid;
+			});
+		}
+		catch(e){
+			
+		}
+	}
+	
+	//查询记事类别
+	dbSelect = function(){
+		var _table = {};
+		
+		try{
+			for uuid,typeUuid,title,content,addTime,modifyTime in db.each("SELECT * FROM notes"){
+				var _data={};
+				
+				_data["uuid"]=uuid;
+				_data["typeUuid"]=typeUuid;
+				_data["title"]=title;
+				_data["content"]=content;
+				_data["addTime"]=addTime;
+				_data["modifyTime"]=modifyTime;
+				
+				..table.push(_table,_data);
+				
+				_data=null;
+			}
+		}
+		catch(e){
+			
+		}
+		return _table;
+	};
+}

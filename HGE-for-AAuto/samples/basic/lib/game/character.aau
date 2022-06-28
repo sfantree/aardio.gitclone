@@ -1,0 +1,86 @@
+namespace game;
+
+character = class  {
+	ctor (spr, x, y, direction = 0) {
+		this.spr = spr;
+		this.x = x;
+		this.y = y;
+		this.direction = direction; /* 0,1,2,3 - œ¬◊Û”“…œ */
+		this.animId = 0;
+		this.moving = false;
+		this.speed = 4;
+		this.posX = x * 32;
+		this.posY = y * 32;
+		
+		this.spr.setZ(0.9);
+		this.spr.setHotSpot(0, 16);
+	}
+	
+	setMap = function (map) {
+		this.map = map;
+	}
+	
+	draw = function () {
+		this.spr.setTextureRect(..math.floor(this.animId) * 32, this.direction * 48, 32, 48);
+		if (this.moving) {
+			if (this.posX != this.x * 32) {
+				if (..math.abs(this.x * 32 - this.posX) <= this.speed)
+					this.posX = this.x * 32;
+				else {
+					this.posX += (this.posX < this.x * 32) ? this.speed : (-this.speed);
+					this.animId = this.animId < 4 ? this.animId + 1 / (this.speed) : 0;
+				}
+				if (this.posX === this.x * 32)
+					this.moving = false;
+			}
+			if (this.posY != this.y * 32) {
+				if (..math.abs(this.y * 32 - this.posY) <= this.speed)
+					this.posY = this.y * 32;
+				else {
+					this.posY += (this.posY < this.y * 32) ? this.speed : (-this.speed);
+					this.animId = this.animId < 4 ? this.animId + 1 / (this.speed) : 0;
+				}
+				if (this.posY === this.y * 32)
+					this.moving = false;
+			}
+		}
+		this.spr.render(this.posX, this.posY);
+	}
+	
+	moveDown = function () {
+		if (this.moving) return;
+		this.direction = 0;
+		if (this.map.isBlocked(this.x, this.y + 1)) return;
+		this.y++;
+		this.moving = true;
+	}
+	
+	moveLeft = function () {
+		if (this.moving) return;
+		this.direction = 1;
+		if (this.map.isBlocked(this.x - 1, this.y)) return;
+		this.x--;
+		this.moving = true;
+	}
+	
+	moveRight = function () {
+		if (this.moving) return;
+		this.direction = 2;
+		if (this.map.isBlocked(this.x + 1, this.y)) return;
+		this.x++;
+		this.moving = true;
+	}
+	
+	moveUp = function () {
+		if (this.moving) return;
+		this.direction = 3;
+		if (this.map.isBlocked(this.x, this.y - 1)) return;
+		this.y--;
+		this.moving = true;
+	}
+	
+	stop = function () {
+		if (this.moving) return;
+		this.animId = 0;
+	}
+}

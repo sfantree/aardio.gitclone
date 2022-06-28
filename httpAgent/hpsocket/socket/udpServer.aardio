@@ -1,0 +1,32 @@
+﻿import hpsocket.socket.server;
+namespace hpsocket.socket;
+
+class udpServer{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.server(obj);
+	};
+	getMaxDatagramSize = function(){
+		return ::HPSocket.HP_UdpServer_GetMaxDatagramSize(this.pSocket);
+	}
+	setMaxDatagramSize = function(size){
+		::HPSocket.HP_UdpServer_SetMaxDatagramSize(this.pSocket,size);
+	}
+	getDetectAttempts = function(){
+		return ::HPSocket.HP_UdpServer_GetDetectAttempts(this.pSocket);
+	}
+	setDetectAttempts = function(attempts){
+		::HPSocket.HP_UdpServer_SetDetectAttempts(this.pSocket,attempts);
+	}
+	getDetectInterval = function(){
+		return ::HPSocket.HP_UdpServer_GetDetectInterval(this.pSocket);
+	}
+	setDetectInterval = function(interval){
+		::HPSocket.HP_UdpServer_SetDetectInterval(this.pSocket,interval);
+	}
+	getPostReceiveCount = function(){
+		return ::HPSocket.HP_UdpServer_GetPostReceiveCount(this.pSocket);
+	}
+	setPostReceiveCount = function(c){
+		::HPSocket.HP_UdpServer_SetPostReceiveCount(this.pSocket,c);
+	}
+}

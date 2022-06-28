@@ -1,0 +1,360 @@
+import console;
+import win;
+import win.ui;
+import thread;
+import thread.table;
+import thread.command;
+/*DSG{{*/
+var winform = win.form(text="数据处理";right=599;bottom=359)
+winform.add(
+button={cls="button";text="浏览 . .";left=512;top=64;right=576;bottom=88;z=6};
+button2={cls="button";text="处理数据";left=88;top=104;right=496;bottom=144;z=7};
+button3={cls="button";text="浏览 . . ";left=512;top=24;right=576;bottom=48;z=3};
+edit={cls="edit";left=88;top=64;right=496;bottom=88;bgcolor=16777215;edge=1;readonly=1;z=5};
+edit3={cls="edit";left=88;top=24;right=496;bottom=48;bgcolor=16777215;edge=1;readonly=1;z=2};
+edit4={cls="edit";left=24;top=160;right=576;bottom=328;bgcolor=16777215;edge=1;multiline=1;readonly=1;vscroll=1;z=9};
+groupbox={cls="groupbox";text="信息";left=16;top=144;right=584;bottom=336;edge=1;z=8};
+static={cls="static";text="当月装机";left=24;top=24;right=80;bottom=48;align="right";center=1;transparent=1;z=1};
+static2={cls="static";text="当月修障";left=24;top=64;right=80;bottom=88;align="right";center=1;transparent=1;z=4}
+)
+/*}}*/
+
+var 换行符='\r\n';
+var listener = thread.command();
+var thrdTable = thread.table("换行符",true/*清空*/ )
+var quiet=false; //静默模式
+
+listener.下载=function(xlsx){
+	import process;	
+	if( ..io.exist(..io.fullpath(xlsx))  ){
+		process.execute(xlsx);
+		win.setTimeout(
+			function(winform,quiet){
+				import win;
+				import win.ui;
+				import winex;
+				if(quiet) publish("quit",)
+			},200,winform,quiet
+		)		
+	}else{
+		win.msgboxErr("文件不存在,请重试","程序错误,"+winform.text , winform.hwnd);
+	}	
+}
+
+listener.日志=function(...){
+	publish("日志",...);
+}
+ 
+listener.运行状态=function(状态){
+	publish("运行状态",状态);
+}
+
+
+var 处理文件 = function(opt){  
+	var PID="kuandai";
+	thread.set("batch_no", string.random(10));
+	sleep(100)
+	
+	thread.invoke(  //触发器
+		function( PID, opt){
+			import console;
+			import java;
+			import time.ole;
+			import thread;
+			import thread.table;
+			import thread.command;
+			var tm = time.ole(); 
+			var jre8=  ..io.fullpath("~/java/jre8") 
+			var today = tostring(tm,"yyyy-MM-dd") 	
+			var xlsx = thread.get("outXlsx") : (..io.tmpname("litt-"+today+"-")+".xlsx");
+			var check_out=..io.tmpname("check_out-")+".txt"
+			var sqlite=..io.fullpath("~/sqlite3/kuandai.sqlite")
+			thread.command.post("运行状态","开始");				
+			thread.command.post("日志","batch_no="+thread.get("batch_no"))
+			thread.command.post("日志", ..fsys.getFileName(xlsx) )
+			
+
+			if( ..fsys.isDir(jre8)){			
+			}else{
+				var jre_zip= ..io.fullpath("~/java/jre8.zip") 
+				if( ..io.exist( jre_zip ) ){
+					import zlib; 
+					import zlib.unzip; 
+					zlib.unzip.extract(jre_zip) 
+					sleep(1000)
+				}
+			}
+
+			..java.addClassPath(..fsys.getParentDir(thread.get("corejar")))
+			..java.addClassPath({"~" ; "./" ; "~/config/" ;"~/java/" })
+			if( (..java.path.findJre(jre8 ) && ..java.path.findJvm(jre8 )) ){
+				..java.path.setJreHome(jre8)
+			}else{
+				import java.jre.v8; //win10:加上这句才会自动下载jre
+			}
+			
+			var get_current_jar=false; 
+			var ttable=thread.get("关键文件签名"):{""}
+			var jarfiles=fsys.list( "~/java/",,"*.*")
+			for jar in jarfiles{
+				import crypt;
+				var fulljar= ..io.fullpath( "~/java/")+"/"+jar
+				var str = string.load(fulljar )	
+				var sha512 = crypt.sha512(str)			 
+				if( table.indexOf(ttable,sha512,0)){
+					get_current_jar = true;
+					break;
+				}
+			}
+			if( !get_current_jar ){
+				thread.command.post("运行状态","完成");
+				thread.command.post("日志","关键文件验签失败!");
+				thread.command.post("日志",);
+				win.msgboxErr("关键文件验签失败","错误");
+				return ; 
+			}
+			
+			var import_sqlite_check,err = java.popenProcess( 
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"-Dcheck=true", "-Dcheck_out="+check_out,  // check 
+			///	"-Dload_dishi=false", "-Ddishi="+opt.dishi?'dishi',
+				"-Dload_Zhuangji=true", "-Dzhuangji="+opt.zhuangji,
+				"-Dload_Xiuzhang=true", "-Dxiuzhang="+opt.xiuzhang,
+				"bin.import_sqlite3"
+			);
+			sleep(1000) 
+			
+			for( all,out,err in import_sqlite_check.each() ){
+				if(err) error("import_sqlite_check,"++err);
+    			//	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			}
+			import_sqlite_check.close();
+			
+			if(..io.exist(check_out)){
+				var check_out_txt=string.load(check_out);
+				if(#check_out_txt){
+					thread.command.post("运行状态","完成");
+					thread.command.post("日志","地市映射缺失",check_out_txt);
+					thread.command.post("日志",);
+					win.msgboxErr(check_out_txt,"地市映射缺失",);
+					return false; 
+				}
+			}					
+			
+			var import_sqlite3,err = java.popenProcess( 
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"-Dcheck=false",
+			///	"-Dload_dishi=false", "-Ddishi="+opt.dishi?'dishi',
+				"-Dload_Zhuangji=true", "-Dzhuangji="+opt.zhuangji,
+				"-Dload_Xiuzhang=true", "-Dxiuzhang="+opt.xiuzhang,
+				"bin.import_sqlite3"
+			);
+			
+			thread.command.post("日志","import_sqlite3" ,err)
+			sleep(1000) 
+			
+			for( all,out,err in import_sqlite3.each() ){
+				if(err) error("import_sqlite3,"++err);
+    			//	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			}
+			import_sqlite3.close();
+
+			var ren_yuan_kuan_dai_zhi_biao ,err =  java.popenProcess( 
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"bin.ren_yuan_kuan_dai_zhi_biao"
+			);
+			
+			thread.command.post("日志","ren_yuan_kuan_dai_zhi_biao" ,err)
+			sleep(1000)
+			
+			for( all,out,err in ren_yuan_kuan_dai_zhi_biao.each() ){
+				if(err) error("ren_yuan_kuan_dai_zhi_biao,"++err);
+    			///	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			}
+			ren_yuan_kuan_dai_zhi_biao.close();
+
+
+			var di_shi_kuan_dai_zhi_biao_day ,err =  java.popenProcess(  ///"-Dis_all=day",
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dis_all=day",
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"bin.di_shi_kuan_dai_zhi_biao"
+			);
+			
+			thread.command.post("日志","di_shi_kuan_dai_zhi_biao","is_all=day" ,err)
+			sleep(1000)
+			
+			for( all,out,err in di_shi_kuan_dai_zhi_biao_day.each() ){
+				if(err) error("di_shi_kuan_dai_zhi_biao_day,"++err);
+    			///	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			}
+			di_shi_kuan_dai_zhi_biao_day.close();
+
+			var di_shi_kuan_dai_zhi_biao ,err =  java.popenProcess(  //"-Dis_all=",
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dis_all=",
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"bin.di_shi_kuan_dai_zhi_biao"
+			);
+			
+			thread.command.post("日志","di_shi_kuan_dai_zhi_biao","is_all=" ,err)
+			sleep(1000)
+			
+			for( all,out,err in di_shi_kuan_dai_zhi_biao.each() ){
+				if(err) error("di_shi_kuan_dai_zhi_biao,"++err);
+    			///	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			}
+			di_shi_kuan_dai_zhi_biao.close();
+			
+			var export_excel ,err = java.popenProcess( 
+				"-DPID="+PID,
+				"-Dbatch_no="+thread.get("batch_no"),
+				"-Dfile.encoding=UTF-8",
+				"-Dkey="+thread.get("关键KEY"):"",
+				"-DDB_PATH="+sqlite,
+				"-Dfile="+xlsx,
+				"bin.export_excel"
+			);
+			
+			thread.command.post("日志","export_excel" ,err)
+			sleep(1000)
+
+			for( all,out,err in export_excel.each() ){
+				if(err) error("export_excel,"++err);
+    		///	console.log( out,err ); 
+				//thread.command.post("日志",out,err)
+			} 
+			export_excel.close();
+			
+			thread.command.post("下载",xlsx)
+			thread.command.post("运行状态","完成");
+			thread.command.post("日志","完成")
+			thread.command.post("日志","")
+			
+    	},PID,opt
+	);
+
+}
+
+
+winform.button3.oncommand = function(id,event){
+	import fsys.dlg ;
+	var str= fsys.dlg.open("装机*.xls;*.xlsx|*.xls;*.xlsx|所有文件|*.*","装机excel",,winform.hwnd) ;
+	if(io.exist(str)) {
+		winform.edit3.path=..io.fullpath(str); 
+		winform.edit3.text=..fsys.getFileName(str) ; 
+		thread.command.post("日志","选择文件", str);
+	}
+}
+
+winform.button.oncommand = function(id,event){
+	import fsys.dlg ;
+	var str= fsys.dlg.open("修障*.xls;*.xlsx|*.xls;*.xlsx|所有文件|*.*","修障excel",,winform.hwnd) ;
+	if(io.exist(str)){
+		winform.edit.path=..io.fullpath(str); 
+		winform.edit.text=..fsys.getFileName(str) ; 
+		thread.command.post("日志","选择文件", str);		
+	}
+}
+
+winform.button2.oncommand = function(id,event){
+	var zhuangji= winform.edit3.path;
+	var xiuzhang= winform.edit.path;
+	if(#zhuangji && #xiuzhang){
+		thread.command.post("日志","装机excel", winform.edit3.text)
+		thread.command.post("日志","修障excel", winform.edit.text)
+		thread.command.post("运行状态","开始");
+		var ttt={ zhuangji=..io.fullpath(zhuangji); xiuzhang=..io.fullpath(xiuzhang); }
+		处理文件(ttt)
+	}else{
+		win.msgboxErr("请选择文件","错误",winform.hwnd);		
+	} 
+	
+}
+
+subscribe("日志",function(...){
+	import time.ole; 
+	var tm = time.ole(); 
+	var str={...} 
+	var date = tostring(tm,"MM/dd HH:mm:ss")
+	winform.edit4.appendText(date+" | "+string.join(str,", ")+""+换行符);
+} )
+
+subscribe("运行状态",function(状态){
+	if("完成"==状态){
+		winform.button2.disabledText=null;
+		winform.button.disabled=false ;
+		winform.button3.disabled=false ;
+	}else{
+		winform.button2.disabledText = {"|";"\";"-";"/"}
+		winform.button.disabled= true ; 
+		winform.button3.disabled= true ; 
+	}	
+} )
+
+if (#_ARGV) {
+	var errors=false; //没有错误
+	winform.edit3.path=_ARGV[1]:""
+	winform.edit.path=_ARGV[2]:""
+	var outXlsx=_ARGV[3]:""
+	var zhuangji=..io.fullpath( winform.edit3.path);
+	var xiuzhang=..io.fullpath( winform.edit.path);
+
+	if(#(zhuangji) && ..io.exist(zhuangji)) { winform.edit3.text=..fsys.getFileName(zhuangji) ; }
+	else { errors=true; win.msgboxErr("文件不存在:"+zhuangji ,"参数错误",winform.hwnd); }	
+	if(#(xiuzhang) && ..io.exist(xiuzhang)) { winform.edit.text=..fsys.getFileName(xiuzhang) ; }
+	else { errors=true; win.msgboxErr("文件不存在:"+xiuzhang ,"参数错误",winform.hwnd); }
+		
+	if(!errors){
+		thread.set("outXlsx", ..io.fullpath(outXlsx) ) //需要输出的文件	
+		if(#(outXlsx) && ..io.exist(outXlsx)) {
+			..fsys.delete(..io.fullpath(outXlsx));
+			//win.msgboxErr("输出文件已存在:"+outXlsx ,"参数错误",winform.hwnd); 
+			//publish("quiet",false) 
+		}	
+		///执行
+		quiet=true;
+		winform.button2.oncommand();
+		publish("quiet",quiet) //静默模式
+	}
+}
+
+win.setTimeout(
+	function(winform){
+		vdate='20220914' //过期时间
+		var tm1 = time(vdate,"%Y%m%d","chs");
+		var tm2 = time.now();
+		if(tm2>tm1){
+			winform.button.disabled=true; 
+			winform.button2.disabled=true; 
+			winform.button3.disabled=true; 
+		}		
+	},200,winform
+)
+
+winform.show();
+win.loopMessage();
+return winform;

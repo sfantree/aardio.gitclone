@@ -1,0 +1,128 @@
+//多线程多任务下载
+import win.ui;
+import process;
+import crypt;
+import inet.http;
+import fsys;
+import fsys.dlg;
+import zlib.unzip;
+/*DSG{{*/
+var winform = ..win.form(text="RJIM多线程多文件断点续传更新程序";right=765;bottom=399;border="thin")
+winform.add(
+button={cls="button";text="点击更新";left=478;top=356;right=703;bottom=392;db=1;dr=1;z=2};
+listview={cls="listview";left=10;top=48;right=757;bottom=346;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+localmd5={cls="edit";left=73;top=16;right=210;bottom=34;edge=1;z=4};
+remotmd5={cls="edit";left=296;top=16;right=444;bottom=34;edge=1;multiline=1;z=6};
+static={cls="static";text="本地MD5：";left=10;top=18;right=73;bottom=38;transparent=1;z=3};
+static3={cls="static";text="服务器MD5：";left=219;top=18;right=339;bottom=34;transparent=1;z=5};
+updatenotice={cls="static";left=454;top=18;right=720;bottom=34;color=255;transparent=1;z=7}
+)
+/*}}*/
+
+//初始化listview控件
+winform.listview.insertColumn("网址",180);
+winform.listview.insertColumn("文件名",180);
+winform.listview.insertColumn("状态",100);
+winform.listview.insertColumn("大小",80);
+winform.listview.insertColumn("速度",80);
+winform.listview.insertColumn("已下载",120);
+winform.listview.adjust = function(cx,cy){
+    winform.listview.fillParent(1);
+}
+ 
+//创建下载线程管理器
+import thread.dlManager;
+var dlmgr = thread.dlManager(5/*最多允许五个线程同时下载*/);
+ 
+//响应下载事件
+dlmgr.onReceiveBegin = function(id,url,filename,statusText,httpStatusCode,totalSize,downSize){
+    winform.listview.setItemText( {url;filename;statusText;fsys.formatSize(totalSize);fsys.formatSize(downSize) },id )
+}
+dlmgr.onReceive = function(id,sizePs,downSize){
+    winform.listview.setItemText( fsys.formatSize(downSize),id,6);
+    winform.listview.setItemText( fsys.formatSize(sizePs) + "/s" ,id,5);
+}
+dlmgr.onEnd = function(id,savepath,resumePath,contentLength){
+    if( savepath ){
+        winform.listview.setItemText(  "已完成"  ,id,3);
+        winform.listview.setItemText( fsys.formatSize(contentLength),id,4);
+        zlib.unzip.extract(io.fullpath("/RJIM.zip"), "/");
+        process.execute("/RJIM.exe");
+        
+		win.close(winform.hwnd);
+    }
+    else {
+        winform.listview.setItemText(  "已停止"  ,id,3);
+    }
+    winform.listview.setItemText(  "0KB/s"  ,id,5);
+    //fsys.delete(resumePath)
+}
+dlmgr.onError = function(id,err){
+    winform.listview.setItemText( err,id,3);
+}
+ 
+winform.button.oncommand = function(id,event){ 
+ 	fsys.delete(io.fullpath("/RJIM.zip"));
+ 	sleep(500);
+    //添加下载任务非常简单,push下载参数就可以了
+    //注意这里为了简化示例,任务id使用了listview控件的行号,如果需要删除行则需要使用一个表保持id与行号的映射关系
+    dlmgr.push(
+        id = winform.listview.addItem( "http://192.168.85.166/rjchat/RJIM.zip" );
+        url = "http://192.168.85.166/rjchat/RJIM.zip";
+        filename="RJIM.zip"; //文件名可以省略
+        savedir = "/";
+    )
+    winform.button.disabled = true;
+}
+ 
+//下载任务右键管理菜单
+import win.ui.menu;
+winform.listview.onnotify = function(id,code,ptr){ 
+      if( code = 0xFFFFFFFB/*_NM_RCLICK*/ ){
+       
+          var x,y = win.getMessagePos(); 
+          var nmListView = winform.listview.getNotifyMessage(code,ptr);
+           
+          //创建弹出菜单
+        var popmenu = win.ui.popmenu(winform);
+        popmenu.add('取消',function(id){
+            dlmgr.cancel( nmListView.iItem )
+        } )
+        popmenu.popup(x,y,true);
+        popmenu.close();
+      }
+}
+ 
+//关闭窗体时停止所有下载
+import thread.event;
+winform.onClose = function(hwnd,message,wParam,lParam){
+    winform.text = "正在等待关闭";
+    dlmgr.quit();
+}
+
+localmd5 = crypt.md5(string.load("/RJIM.zip"));
+winform.localmd5.text = localmd5;
+
+http = inet.http();
+http.setTimeouts (
+    500,//连接超时
+    500,//请求超时
+    1500 //接收超时
+);
+remotmd5,errmsg=http.get("http://192.168.85.166/rjchat/version.php");
+if(remotmd5){
+	winform.remotmd5.text = remotmd5;
+}
+if(localmd5 == remotmd5){
+	process.execute("/RJIM.exe");
+	win.close(winform.hwnd);
+	exit();
+}
+else{
+	winform.updatenotice.text = "发现新的版本，请点击【更新】按钮进行处理。";
+}
+
+  
+//显示主窗体
+winform.show()
+win.loopMessage();

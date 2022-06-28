@@ -1,0 +1,32 @@
+﻿//renderSuface 渲染表面
+namespace hge.interFace;
+renderSuface = class {
+	ctor(game,pD3dSurface ){
+		..table.gc(this,"free")
+	};
+	getDC = function(){
+		return game.surfaceGetDC(pD3dSurface)
+	}
+	releaseDC = function(hdc){
+		return game.surfaceReleaseDC(pD3dSurface,hdc)
+	}
+	free = function(){
+		game.surfaceRelease(pD3dSurface)
+	}
+	
+}
+
+namespace renderSuface{
+	
+}
+
+/**intellisense()
+!hgeRenderSuface.getDC() = 获取纹理dc
+!hgeRenderSuface.releaseDC() = 释放dc并更新纹理dc
+!hgeRenderSuface.free() = 释放曲面渲染指针
+
+
+
+end intellisense**/
+
+

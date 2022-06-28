@@ -1,0 +1,53 @@
+//sizer 调整大小
+namespace web.sciter.behavior;
+
+class sizer{
+	ctor( scOwner,wbSciter ){
+		var tracking;
+    	var delta = ::SIZE();
+	};  
+	
+	//捕获模式(事件向下传递阶段)监听对象
+    sinking = { 
+    
+    	onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {
+    		if( !tracking ) {  
+          		if( mouseParams.is_on_icon  && (mouseParams.button_state == 1/*_HL_MAIN_MOUSE_BUTTON*/)){
+            		// icon - foreground-image/foreground-repeat:no-repeat is serving role of gripper 
+            		tracking = true; 
+            		var rc = scOwner.getRect(2/*_HL_SELF_RELATIVE*/ | 0/*_HL_CONTENT_BOX*/ );
+
+            		delta.cx = rc.right - mouseParams.pos.x;
+            		delta.cy = rc.bottom - mouseParams.pos.y;
+
+            		scOwner.capture = true;
+            		return true; // handled
+          		}
+      		}
+    	}
+    	
+    	onMouseMove = function (scTarget,scOwner,x,y,mouseParams) {
+    		 
+    		if( !tracking ) return;
+    		
+    		var w = ..math.max(0, mouseParams.pos.x + delta.cx); 
+			var h = ..math.max(0, mouseParams.pos.y + delta.cy);
+			 
+        	if ( ! (scOwner.getCustomAttribute("resize")  == "vertical")  ) 
+        		scOwner.style.width = w + "px";
+	
+        	if( ! (scOwner.getCustomAttribute("resize") == "horizontal")  ) 
+         		 scOwner.style.height = h + "px"; 
+
+			return true; // handled	
+    	}
+    	
+    	onMouseUp = function (scTarget,scOwner,x,y,mouseParams) {
+    		if( !tracking ) return;
+    		
+    		scOwner.capture = false; 
+    		tracking = false; 
+    		return true;
+    	}
+    } 
+}

@@ -1,0 +1,8 @@
+
+
+
+deCode=function(v){
+
+return ..string.sub(v,5,5)+..string.sub(v,7,#v); 
+
+}

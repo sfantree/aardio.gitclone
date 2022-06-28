@@ -1,0 +1,16 @@
+import com.excel;
+com.excel.createSqlConnection("/my.xls");
+
+import access;
+var db,err = access( "/my.xls",{ 
+		["Provider"]  = "Microsoft.Ace.OLEDB.12.0";
+		["Extended Properties"] = "Excel 12.0";
+	} 
+)
+	
+if( ! db.existsTable( "题库" ) )
+	db.exec("CREATE TABLE 题库 (题目 char(20),答案 char(20))"); 
+	
+db.exec( "insert into 题库(题目,答案)values('我','你')");
+
+db.close();

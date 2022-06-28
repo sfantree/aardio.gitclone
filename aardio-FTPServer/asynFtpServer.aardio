@@ -1,0 +1,657 @@
+//asynFtpServer 异步FTP服务端
+import wsock.tcp.server;
+import wsock.tcp.asynServer;
+import fsys;
+import fsys.file;
+import console;
+import fsys.codepage;
+
+class asynFtpServer{
+	ctor(documentRoot,fdPort){
+		var errMsg;
+		this,errMsg = ..wsock.tcp.asynServer();
+		if(!this) return null,errMsg;
+		
+		this.maxConnection = 500;
+		this.keepAliveTimeout = 120;
+		this.documentRoot = documentRoot : "/";
+		this.localPort = fdPort:21;
+		this.conn_list = {};
+		
+		this.myIp = function(){
+		    import com;
+			var strComputer = "."
+			var objWMIService = ..com.GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" + strComputer + "\root\cimv2")
+			var colItems = objWMIService.ExecQuery("select * from Win32_NetworkAdapterConfiguration where IPEnabled=true",null,48)
+			var OS = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+			if(colItems){
+				for index, item in com.each(colItems) {
+    				if(..string.startWith(item.IPAddress(0),"192.168.")){
+    					return item.IPAddress(0);
+    				}    
+				}
+			}  
+		}	
+		this.localIp = this.myIp(); 
+
+		this.requestInfo = function(hSocket,arg){
+			var arg = arg;
+			if(!..fsys.codepage.isTextUtf8(arg)){
+				arg = ..string.fromto(arg,0,65001)
+			}
+			
+			this.conn_list[hSocket].request_info = {};
+			var tmpStr;
+			if(arg[[1]] = "\" or arg[[1]] = '/'){
+				tmpStr = arg;
+			}
+			else {
+				tmpStr = ..io.joinpath(this.conn_list[hSocket].curr_dir,arg);
+			}
+			
+			if(..fsys.isDir(tmpStr)){
+				this.conn_list[hSocket].request_info.isDir = true;
+				if(!..string.endWith(tmpStr,"\\")){
+					tmpStr ++= "\"
+				}
+			}
+			else {
+				this.conn_list[hSocket].request_info.isDir = false;
+				this.conn_list[hSocket].request_info.fileName = ..io.splitpath(tmpStr).file;
+				tmpStr = ..io.splitpath(tmpStr).dir;		
+			}
+
+			var dir = ..string.replace(tmpStr,"\\","/");
+			var xdir = ..string.split(dir,'/'); 			
+			
+			var correct = true;	//路径正确性验证
+			for(k,v in xdir){			
+				if(v=="."){
+					continue;
+				}				
+				elseif(v==".."){
+					if(k>1){
+						var flag = 0;
+						for(j=k-1;1;-1){
+							if(#xdir[j]){
+								xdir[j] = "";
+								flag = 1;
+								break;						
+							}
+						}
+						if(!flag){
+							correct = false;
+							break;				
+						}			
+					}
+					else {
+						correct = false;
+						break;
+					}	
+				}
+				else {
+				}			
+			}
+			
+			if(!correct){
+				return ;
+			}		
+			
+			var newPath = "/";
+			for(k,v in xdir){
+				if(#v and v != ".." and v != "."){
+					newPath ++= v + "/"
+				}
+			}
+			this.conn_list[hSocket].request_info.newPath = newPath;
+						
+			var realPath = ..io.joinpath(this.documentRoot,newPath);
+			this.conn_list[hSocket].request_info.realPath = realPath;
+			
+			this.conn_list[hSocket].request_info.existPath = false;
+			this.conn_list[hSocket].request_info.existFile = false;
+			if(..io.exist(realPath)){
+				this.conn_list[hSocket].request_info.existPath = 1;
+				if(!this.conn_list[hSocket].request_info.isDir){
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ this.conn_list[hSocket].request_info.fileName;
+					if(..io.exist(fpath)){
+						this.conn_list[hSocket].request_info.existFile = 1;
+					}					
+				}
+			}
+			
+			this.conn_list[hSocket].request_info.canRead = true;
+			this.conn_list[hSocket].request_info.canWrite = true;
+			this.conn_list[hSocket].request_info.canModify = true;
+			if(type(this.permission)==type.function){
+				var userId = this.conn_list[hSocket].userId;
+				var read,write,modify = this.permission(userId,newPath);
+				this.conn_list[hSocket].request_info.canRead = read;
+				this.conn_list[hSocket].request_info.canWrite = write;
+				this.conn_list[hSocket].request_info.canModify = modify;				
+            }
+			return true;		
+		}
+			
+		this._beforeStop = function(){
+			if( this._beforeFtpServerStop ) this._beforeFtpServerStop(); 
+		}
+		
+		this.onOpen = function(hSocket,err){
+			var client = this.client(hSocket);
+			if(this.acceptCount < this.maxConnection){
+				this.conn_list[hSocket] = {};
+				this.conn_list[hSocket].fd = client;
+				this.conn_list[hSocket].data_fd = 0;
+				this.conn_list[hSocket].option_pasv = false;
+				this.conn_list[hSocket].option_utf8 = true;
+				this.conn_list[hSocket].userId = ""; 
+				this.conn_list[hSocket].curr_dir = "/";
+				this.conn_list[hSocket].type = "A";
+				return client.send("220 Welcome!FTP Utility server (Version 1.00) is ready." + '\r\n'); 				
+			}
+			else {
+				client.send("500 Too many connections!" + '\r\n');
+				return client.close(); 			
+			}
+		}
+		
+		this.onRead = function(hSocket,err){
+			var client = this.client(hSocket);
+    		var data = client.readAll();
+    		if(!..string.endWith(data,'\r\n',true)){
+    			return client.send("550 failed."); 
+    		}
+    		var cmdLine = "";
+    		var arg = "";
+    		var space = ..string.indexOf(data," ");
+    		if(space){
+    			cmdLine = ..string.upper(..string.left(data,space-1));
+    			arg = ..string.slice(data,space+1,-3);	
+    		}
+    		else {
+    			cmdLine = ..string.slice(data,1,-3);
+    		}
+    		          		  
+    		if(cmdLine == "BYE" or cmdLine == "QUIT"){
+				this.conn_list[hSocket] = null;
+				return client.send("221 Goodbye. " + '\r\n');   			
+    		}
+    		elseif(cmdLine == "USER"){
+				if(arg == ""){
+					return client.send("530 Please Login with USER and PASS." + '\r\n');
+				}
+				else {	
+					if(type(this.identify)==type.function){
+						this.conn_list[hSocket].loginName = arg;
+                    	return client.send("331 Password required for " + arg + '\r\n');
+                	}
+                	else {
+						this.conn_list[hSocket].userId = arg;
+                		return client.send("230 Login successful." + '\r\n');
+                	}               										
+				}
+    		}
+    		elseif(cmdLine == "PASS"){
+				if(arg == "" or !this.conn_list[hSocket].loginName){
+					return client.send("530 Please Login with USER and PASS." + '\r\n');
+				}	
+				elseif(type(this.identify)==type.function){
+					var userId = this.conn_list[hSocket].loginName;
+                    result = this.identify(userId, arg);
+                    if(result){
+                        this.conn_list[hSocket].loginName = null;
+                        this.conn_list[hSocket].userId = userId;
+                    	return client.send("230 Login successful." + '\r\n');	
+                    }
+                    else {
+                    	return client.send("550 failed." + '\r\n');	
+                    }
+                }   			
+    		}	
+    		elseif(this.conn_list[hSocket].userId == ""){
+				return client.send("530 Please Login with USER and PASS." + '\r\n');
+    		}
+
+			if(cmdLine == "NOOP"){ 
+				return client.send("200 Command okay." + '\r\n') 
+			}	
+			elseif(cmdLine == "TYPE"){
+				if(arg =="ASCII"){
+					this.conn_list[hSocket].type = "A";
+				} 
+				elseif(arg =="binary"){
+					this.conn_list[hSocket].type = "I";
+				}				
+				return client.send("200 Command okay." + '\r\n') 
+			}	
+			elseif(cmdLine == "SYST"){
+				return client.send("200 WINDOWS" + '\r\n')
+			}	 
+			elseif(cmdLine == "EPSV" or cmdLine == "PASV"){
+				var dataSocket = ..wsock.tcp.server(this.localIp,0,1);
+				var ip,port = dataSocket.getLocalIp();
+				this.conn_list[hSocket].data_fd = dataSocket.hSocket;
+				var str = "";
+				if cmdLine == "EPSV"{ 
+					str = "229 Entering Extended Passive Mode (|||" ++ tostring(port) ++ "|)" 
+				}
+				else{ 
+					var m = ..math.floor(port/256)
+					var n = port%256
+					str = ..string.replace(this.localIp,'@.',","); 
+					str = str ++ "," ++ tostring(m) ++"," ++ tostring(n);
+					str = "227 Entering Passive Mode (" + str  + ").";
+				}				
+				this.conn_list[hSocket].option_pasv = true; 	
+				return client.send(str + '\r\n');;	
+			}		
+			elseif(cmdLine == "EPRT"){
+				return client.send("500 implement EPRT later..." + '\r\n')
+			}	
+			elseif(cmdLine == "PORT"){
+				if(arg==""){
+					return client.send("500 Failed." + '\r\n');	
+				}
+		
+				var arg = ..string.split(..string.trim(arg),",");
+				if(#arg!=6){
+					return client.send("500 Failed." + '\r\n');	
+				}
+				
+				var port = 256*tonumber(arg[5]) + tonumber(arg[6]);
+				this.conn_list[hSocket].data_ip = ..string.join(arg,".",1,4);
+				this.conn_list[hSocket].data_port = port; 
+				if(this.conn_list[hSocket].data_fd){
+					..wsock.closesocket(this.conn_list[hSocket].data_fd);
+					this.conn_list[hSocket].data_fd = 0;
+				}						
+				this.conn_list[hSocket].option_pasv = false; 
+				return client.send("200 PORT Command okay." + '\r\n')			
+			}	 
+			elseif(cmdLine == "PWD" or cmdLine == "XPWD"){ 
+				return client.send("257 " ++ '"' + this.conn_list[hSocket].curr_dir ++ '"\r\n');
+			}	 
+			elseif(cmdLine == "LIST" or cmdLine == "NLST"){ 
+				var path = arg:"";
+				if(!this.requestInfo(hSocket,path) or !this.conn_list[hSocket].request_info.existPath){
+					return client.send("500 Failed." + '\r\n');				
+				}
+				
+				if(!this.conn_list[hSocket].request_info.canRead){
+					return client.send("550 Permission denied." + '\r\n');	
+				}
+				
+				var socket;
+				if(this.conn_list[hSocket].option_pasv){
+					if(this.conn_list[hSocket].data_fd == 0){
+						return client.send("425 Can't open data connection." + '\r\n')
+					}
+					acceptSocket = ..wsock.accept(this.conn_list[hSocket].data_fd);
+					if( acceptSocket == _INVALID_SOCKET ){ 
+						return client.send("425 Can't open data connection." + '\r\n')	
+					}	
+					socket = ..wsock.tcp.client(,acceptSocket);
+				}
+				else {
+					if(!this.conn_list[hSocket].data_ip or !this.conn_list[hSocket].data_port){
+						return client.send("500 Failed." + '\r\n');	
+					}
+					socket = ..wsock.tcp.client();
+					if( !socket.connect(this.conn_list[hSocket].data_ip,this.conn_list[hSocket].data_port) ){
+						return client.send("425 Can't open data connection." + '\r\n')
+					}
+				}
+
+				client.send("150 Opening ASCII mode data connection for file list. " + '\r\n');				
+				var info = "";
+				var file,dir = ..fsys.list(this.conn_list[hSocket].request_info.realPath,,"*.*");	
+				for(i=1;#dir;1){
+					info += 'folder:  ' + dir[i] + '\r\n';
+				}
+				for(i=1;#file;1){
+					info += 'file:    ' + file[i] + '\r\n';
+				}
+				if(!this.conn_list[hSocket].option_utf8){
+					info = ..string.fromto(info);
+				}
+				socket.send(info,#info);
+				socket.close(); 
+				this.conn_list[hSocket].data_fd = 0;
+				return client.send("226 Transfer complete." + '\r\n');					
+			}			 
+			elseif(cmdLine == "REST"){
+				this.conn_list[hSocket].file_pos = int(arg);
+				return client.send("250 OK" + '\r\n');
+			}	
+			elseif(cmdLine == "FEAT"){ 
+				var features = `211-Features:\r\nSITES\r\nEPRT\r\nEPSV\r\nMDTM\r\nPASV\r\nREST STREAM\r\nSIZE\r\nUTF8\r\n211 End\r\n` 
+				return client.send(features + '\r\n');
+			}
+			elseif(cmdLine == "OPTS"){
+				arg = ..string.upper(arg)
+				if(arg == "UTF8 ON"){ 
+					this.conn_list[hSocket].option_utf8 = true 
+					return client.send("200 Command okay." + '\r\n') 
+				}	
+				elseif(arg == "UTF8 OFF"){
+					this.conn_list[hSocket].option_utf8 = false 
+					return client.send("200 Command okay." + '\r\n')
+				}	 
+				else{ 
+					return client.send("500 Unrecognized option." + '\r\n') 
+				}
+			}		
+			elseif(cmdLine == "CDUP"){
+				if(this.conn_list[hSocket].curr_dir == "/"){
+					return client.send("550 Failed." + '\r\n');
+				}
+				else {
+					this.conn_list[hSocket].curr_dir = ..fsys.getParentDir(this.conn_list[hSocket].curr_dir);		
+					return client.send("200 Command okay." + '\r\n')
+				}
+			}	 
+			else{  	   		
+				if(arg == ""){ 
+					return client.send("500 No argument of: " + cmdLine + '\r\n');			 
+				}
+				
+				if(!this.requestInfo(hSocket,arg)){
+					return client.send("500 Failed." + '\r\n');				
+				}
+			
+				if(cmdLine == "CWD"){
+					if(!this.conn_list[hSocket].request_info.existPath){
+						return client.send("500 Failed." + '\r\n');				
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canRead){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					this.conn_list[hSocket].curr_dir = this.conn_list[hSocket].request_info.newPath; 
+					return client.send("250 OK." + '\r\n');
+				}
+				elseif(cmdLine == "MDTM"){
+					if(!this.conn_list[hSocket].request_info.existFile){
+						return client.send("500 Failed." + '\r\n');				
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canRead){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+					
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ arg;
+					var file = ..fsys.file(fpath,"r");
+					var times = ..time(file.getTime().write).addhour(8);
+					file.close();
+					return client.send("213 " ++ ..string.format("%Y%m%d%I%M%S",times ) ++ '\r\n');
+				}
+				elseif(cmdLine == "SIZE"){
+					if(!this.conn_list[hSocket].request_info.existFile){
+						return client.send("500 Failed." + '\r\n');				
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canRead){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+					
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ this.conn_list[hSocket].request_info.fileName;
+					return client.send("231 " ++ ..io.getSize(fpath) ++ '\r\n');
+				}
+				elseif(cmdLine == "RNFR"){
+					if(!this.conn_list[hSocket].request_info.existPath){
+						return client.send("500 Failed." + '\r\n');				
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canModify){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					this.conn_list[hSocket].temp_path = this.conn_list[hSocket].request_info.realPath; 
+               		return client.send("350 Rename from " ++ arg ++ '\r\n');	
+				}	
+				elseif(cmdLine == "RNTO"){
+					if(this.conn_list[hSocket].request_info.existPath){
+						return client.send("550 The path already exists." + '\r\n');	
+					}
+					
+					if(!this.conn_list[hSocket].temp_path){
+						return client.send("550 Failed." + '\r\n');
+					}
+					
+					..fsys.rename(this.conn_list[hSocket].temp_path,this.conn_list[hSocket].request_info.realPath);
+					this.conn_list[hSocket].temp_path = null; 
+                    return client.send("250 OK.RNTO to " ++ arg ++ '\r\n');	
+				}				
+				elseif(cmdLine == "XMKD" or cmdLine == "MKD"){
+					if(this.conn_list[hSocket].request_info.existPath){
+						return client.send("550 The path already exists." + '\r\n');	
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canModify){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					..io.createDir(this.conn_list[hSocket].request_info.realPath);
+                    return client.send("250 OK." + '\r\n');	
+				}
+				elseif(cmdLine == "XRMD" or cmdLine == "RMD"){
+					if(!this.conn_list[hSocket].request_info.existPath){
+						return client.send("550 The path not exists." + '\r\n');	
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canModify){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					..fsys.delete(this.conn_list[hSocket].request_info.realPath);
+                    return client.send("250 OK." + '\r\n');	
+				}
+				elseif(cmdLine == "DELE"){
+					if(!this.conn_list[hSocket].request_info.existFile){
+						return client.send("550 The file not exists." + '\r\n');	
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canModify){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ arg;
+					..fsys.delete(fpath);
+                    return client.send("250 OK." + '\r\n');	
+				}	
+				elseif(cmdLine == "RETR"){	
+					if(!this.conn_list[hSocket].request_info.existFile){
+						return client.send("550 The file not exists." + '\r\n');	
+					}
+					
+					if(!this.conn_list[hSocket].request_info.canRead){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					var socket;
+					if(this.conn_list[hSocket].option_pasv){
+						if(this.conn_list[hSocket].data_fd == 0){
+							return client.send("425 Can't open data connection." + '\r\n')
+						}
+						acceptSocket = ..wsock.accept(this.conn_list[hSocket].data_fd);
+						if( acceptSocket == _INVALID_SOCKET ){ 
+							return client.send("425 Can't open data connection." + '\r\n')	
+						}	
+						socket = ..wsock.tcp.client(,acceptSocket);
+					}
+					else {
+						if(!this.conn_list[hSocket].data_ip or !this.conn_list[hSocket].data_port){
+							return client.send("500 Failed." + '\r\n');	
+						}
+						socket = ..wsock.tcp.client();
+						if( !socket.connect(this.conn_list[hSocket].data_ip,this.conn_list[hSocket].data_port) ){
+							return client.send("425 Can't open data connection." + '\r\n')
+						}
+					}
+				
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ this.conn_list[hSocket].request_info.fileName;
+					var file,err = ..io.open(fpath,"r+b");
+					if( file ){  
+						client.send("150 Opening binary mode data connection for file transfer. " + '\r\n');
+						while(var data;data = file.read(1024);data != null){
+							socket.send(data,#data);
+						}
+						file.close(); 
+						socket.close(); 
+						this.conn_list[hSocket].data_fd = 0;
+						return client.send("226 Transfer complete." + '\r\n');
+					} 
+                	else {
+						socket.close(); 
+						this.conn_list[hSocket].data_fd = 0;
+		                return client.send("550 Open file failed." + '\r\n');	
+                	}						
+				}				
+				elseif(cmdLine == "STOR" or cmdLine == "APPE"){
+					if(this.conn_list[hSocket].request_info.existFile and cmdLine != "APPE"){
+                  		return client.send("550 The file already exists." + '\r\n');	
+					}
+
+    				if(!this.conn_list[hSocket].request_info.canWrite){
+						return client.send("550 Permission denied." + '\r\n');	
+					}
+
+					var socket;
+					if(this.conn_list[hSocket].option_pasv){
+						if(this.conn_list[hSocket].data_fd == 0){
+							return client.send("425 Can't open data connection." + '\r\n')
+						}
+						acceptSocket = ..wsock.accept(this.conn_list[hSocket].data_fd);
+						if( acceptSocket == _INVALID_SOCKET ){ 
+							return client.send("425 Can't open data connection." + '\r\n')	
+						}	
+						socket = ..wsock.tcp.client(,acceptSocket);
+					}
+					else {
+						if(!this.conn_list[hSocket].data_ip or !this.conn_list[hSocket].data_port){
+							return client.send("500 Failed." + '\r\n');	
+						}
+						socket = ..wsock.tcp.client();
+						if( !socket.connect(this.conn_list[hSocket].data_ip,this.conn_list[hSocket].data_port) ){
+							return client.send("425 Can't open data connection." + '\r\n')
+						}
+					}
+									
+					var fpath = this.conn_list[hSocket].request_info.realPath ++ this.conn_list[hSocket].request_info.fileName;
+					var testPath = ..io.splitpath(fpath);
+					var testDir = testPath.dir;						
+ 					if(!..io.exist(testDir)){ 
+                		if(this.conn_list[hSocket].request_info.canModify){
+                			..fsys.createDir(testDir);
+                		}					
+ 						else {
+			                return client.send("550 Permission denied." + '\r\n');	
+ 						}	
+ 					}
+
+					client.send("150 Opening binary mode data connection for file transfer. " + '\r\n');                		
+					var file;
+					if(cmdLine == "STOR"){
+						file,err = ..io.open(fpath,"w+b") //注意io.open默认是文本方式读出的,b指定二进制模式 
+					}
+					else {
+						file,err = ..io.open(fpath,"a+b") //注意io.open默认是文本方式读出的,b指定二进制模式 
+					}
+					
+ 					var buffer = ..raw.buffer(0x1000);
+					var size = ..math.size64();
+					for(readSize,remainSize in socket.eachReadBuffer(buffer) ){  
+						file.writeBuffer(buffer,readSize);	
+					}
+					file.close();		
+					socket.close();
+					this.conn_list[hSocket].data_fd = 0;
+					return client.send("226 Transfer complete." + '\r\n');				
+				}				
+				else {
+					return client.send("502 Implement this later..." + '\r\n');	
+				}
+    		}	
+		};
+	}; 
+
+	run = function(){
+		if(this.start(this.localIp,this.localPort)){
+			return true;
+		}
+		else {
+			return;
+		}
+	};
+}
+
+/**intellisense()
+wsock.tcp.asynFtpServer() = 创建单线程异步FTP服务端\n!stdasynFtpServer.
+end intellisense**/
+
+/**intellisense(!stdasynFtpServer)
+run() = 启动单线程异步TCP服务端,成功返回true,失败返回null,\n\nIP默认设为"192.168.x.x"段，端口省略为21
+getLocalIp() = 返回当前绑定的IP,端口号
+maxConnection = 最大连接数
+keepAliveTimeout = 最大保持连接时间,以秒为单位,\n负数表示不限时间
+documentRoot = FTP根目录,默认为"/"
+identify = @.identify = function(username, password){
+    
+    return true;  //认证帐号返回true，否则返回false
+    __/*用户帐号合法性验证*/
+}
+permission = @.permission = function(userId,Path){
+ 
+    return read,write,modify;  //相应文件夹，登录帐号读、写、修改权限
+    __/*用户帐号合法性验证*/
+}
+end intellisense**/
+
+//使用演示
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="FTP 服务器";right=759;bottom=469)
+winform.add(
+txtMessage={cls="edit";left=10;top=11;right=753;bottom=460;edge=1;font=LOGFONT(h=-20);multiline=1;vscroll=1;z=1}
+)
+/*}}*/
+
+import win.ui.atom;
+var atom,hwnd = winform.atom("736116B6-9CB7-415F-A4EB-052D28D8ABB1");
+if(!atom){
+    /*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+    win.quitMessage();       
+    return;
+}
+
+FtpServer = asynFtpServer();
+
+//演示帐号
+var userAccount = {};
+userAccount["admin"] = "admin";
+userAccount["test"] = "123456";
+userAccount["user"] = "pass";
+
+//用户帐号合法性验证
+FtpServer.identify = function(username, password){
+	if(userAccount[username] and password == userAccount[username]){
+		return true; 
+	}
+    return false;
+}
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+   FtpServer.stop(); 
+}
+
+if(FtpServer.run()){
+	winform.txtMessage.print("FTP服务器已启动:",FtpServer.localIp,FtpServer.localPort);				
+}
+else {
+	winform.txtMessage.print("FTP服务器启动失败.");
+}
+
+winform.show();
+win.loopMessage();

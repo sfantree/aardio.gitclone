@@ -1,0 +1,130 @@
+//font 字体
+import gdi;
+import gdip.core;
+namespace gdip;
+ 
+class font {
+	ctor( hdcIn,logfont,... ){
+		 
+		var err;
+		if( hdcIn[["pFamily"]] ){ 
+			this.__family = hdcIn;//gc;
+			
+			var pFamily,emSize,style,unit =  hdcIn[["pFamily"]],logfont,... ;
+			if( style === null ) style =  0/*_GdipFontStyleRegular*/; 
+			if( unit === null ) unit =  2/*_GdipUnitPixel*/;
+			err,this.pFont  = gdip.CreateFont(pFamily,..math.abs(emSize),style,unit) 
+		}
+		else {
+			hdc = hdcIn : ::GetDC(0);
+			 
+			if( !logfont ){
+				err,this.pFont = gdip.CreateFontFromDC(hdc);
+			}
+			else {
+				logfont.stripPoint(hdcIn);
+				
+				var privateFamily = ..fonts[["_privateGdipFamilies"]][[logfont.name]];
+				if(privateFamily[["pFamily"]]){
+					var style = logfont.weight > 600 ? 1/*_FontStyleBold*/ : 0/*_FontStyleRegular*/;
+					if( logfont.underline ) style = style | 4/*_FontStyleUnderline*/
+					if( logfont.strike  ) style = style | 8/*_FontStyleStrikeout*/
+					if( logfont.italic ) style = style | 2/*_FontStyleItalic*/; 
+					err,this.pFont  = gdip.CreateFont(privateFamily[["pFamily"]],..math.abs(logfont.h),style,2/*_GdipUnitPixel*/ );
+				}
+				else {
+					err,this.pFont = gdip.CreateFontFromLogfont(hdc,logfont);
+				}
+			}
+			
+			if(!hdcIn) ::ReleaseDC(0,hdc);
+		}
+		
+		if( err ) return null,gdip.errMsg[err]; 
+		if(!this.pFont) error("创建字体参数错误",2) ; 
+		..table.gc(this,"delete");
+	}
+
+	@_metaProperty
+}
+
+
+namespace font {
+
+ 	self.gdip = ..gdip;
+	var gdip = gdip;
+	
+	_metaProperty = ..util.metaProperty(
+	
+	 	getStyle = function( ){
+			return gdip.assert(  gdip.GetFontStyle(owner[["pFont"]],0) ); 
+		} 
+	 	
+	 	getSize = function( ){
+			return gdip.assert(  gdip.GetFontSize(owner[["pFont"]],0) ); 
+		} 
+		
+		getUnit = function( ){
+			return gdip.assert(  gdip.GetFontUnit(owner[["pFont"]],0) ); 
+		} 
+		
+		getHeight = function(graphics){
+			return gdip.assert(  gdip.GetFontHeight(owner[["pFont"]],graphics,0 ) );
+		}
+		
+		getLogFont = function(graphics){
+			return gdip.assert(  gdip.GetLogFont(owner[["pFont"]],graphics,::LOGFONT() ) );
+		}
+		
+		clone = function(){ 
+			return ..table.gc( {
+				pFont = gdip.assert(  gdip.CloneFont(owner[["pFont"]] ) ); 
+				@_metaProperty
+			},"delete" );	
+		}
+	
+		delete = function(){
+			if( owner[["pFont"]]  ){
+				gdip.DeleteFont(owner[["pFont"]])
+				owner[["pFont"]] = null;//让其他的函数都用不了
+			}
+		}
+		
+		_type = "gdip.font";
+		_topointer = function(){
+			return owner[["pFont"]];
+		}
+	)   
+}
+
+var $ = _dll; 
+/*intellisense(gdip)*/  
+CreateFontFromDC = $.api("GdipCreateFontFromDC","int(POINTER hDc,pointer& createdfont)")
+CreateFontFromLogfont = $.api("GdipCreateFontFromLogfont","int(POINTER hDc,struct logfont,pointer& createdfont)") 
+GetLogFont = $.api("GdipGetLogFont","int(POINTER curFont,pointer Graphics,struct& logfont)") 
+CloneFont = $.api("GdipCloneFont","int(POINTER curFont,pointer& cloneFont)")
+GetFamily = $.api("GdipGetFamily","int(POINTER curFont,pointer& family)")
+GetFontStyle = $.api("GdipGetFontStyle","int(POINTER curFont,int& style)")
+GetFontSize = $.api("GdipGetFontSize","int(POINTER curFont,float& size)")
+GetFontUnit = $.api("GdipGetFontUnit","int(POINTER curFont,int& unit)")
+GetFontHeight = $.api("GdipGetFontHeight","int(POINTER curFont,pointer Graphics,float& Height)")
+
+/*end intellisense*/
+self.CreateFont = $.api("GdipCreateFont","int(PTR family,float emSize,int style,int unit,pointer& createdfont)")
+self.DeleteFont = $.api("GdipDeleteFont","int(POINTER curFont)")
+
+/**intellisense()
+gdip.font = GDI+字体
+gdip.font(  = 创建字体
+gdip.font(.(family对象,emSize,style,unit) = 创建字体,参数@3,@4为可选参数
+gdip.font(.(hdc) = hdc为空则取屏幕DC
+gdip.font(.(hdc,LOGFONT字体) = 使用LOGFONT字体创建GDI+字体对象\n可自动支持fonts名字空间下已导入的自带字体\n参数hdc为空则取屏幕DC
+gdip.font() = !gdipfont.
+!gdipfont.getStyle() = 样式\n数值
+!gdipfont.getSize() = 字体大小\n数值
+!gdipfont.getUnit() = 单位\n数值
+!gdipfont.getHeight(.(graphics) = 显示高度\n数值
+!gdipfont.getLogFont(.(graphics) = 返回LOGFONT字体对象
+!gdipfont.clone() = 复制字体\n!gdipfont.
+!gdipfont.delete() = 删除字体
+end intellisense**/

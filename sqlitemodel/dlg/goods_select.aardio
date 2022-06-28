@@ -1,0 +1,106 @@
+import win.ui;
+import math;
+import fsys.dlg;
+import config;
+import console;
+import sqlitemodel.modelForm;
+/*DSG{{*/
+var winform = win.form(text="选择商品";right=390;bottom=331)
+winform.add(
+button={cls="button";text="搜索";left=138;top=7;right=188;bottom=33;z=6};
+button5={cls="button";text="确定";left=275;top=292;right=374;bottom=324;z=2};
+button8={cls="button";text="新增商品";left=313;top=8;right=376;bottom=30;z=3};
+edit={cls="edit";left=52;top=8;right=117;bottom=32;edge=1;z=5};
+listview={cls="listview";left=12;top=42;right=379;bottom=284;edge=1;fullRow=1;gridLines=1;vscroll=1;z=4};
+static={cls="static";text="名称";left=13;top=10;right=65;bottom=29;transparent=1;z=1}
+)
+/*}}*/
+
+winform.button5.oncommand = function(id,event){
+
+	var ids = {};
+
+	for(i=1;winform.listview.count;1){
+		if(winform.listview.getChecked(i)){
+			table.push(ids, winform.listview.getItemText(i))
+		}
+
+	}
+
+
+
+	winform.endModal(ids);
+
+
+}
+
+winform.onClose = function(){
+   winform.button5.oncommand()
+}
+
+
+
+winform.init = function(){
+
+
+	winform.listview.insertColumn("ID",50,1)
+	winform.listview.insertColumn("名称",140,2)
+	winform.listview.insertColumn("规格",100,3)
+	winform.listview.setExtended(0x4/*_LVS_EX_CHECKBOXES*/);
+
+	var goods = modGoods.search()
+
+
+	for(i=1;#goods;1){
+		var item = {goods[i].id; goods[i].name; goods[i].specs}
+		winform.listview.addItem(item)
+	}
+
+}
+
+winform.button8.oncommand = function(id,event){
+	var goodsform = sqlitemodel.modelForm(modGoods, mainForm);
+	goodsform.doModal(mainForm);
+
+	var items = modGoods.search()
+	if(#items>0){
+		winform.listview.clear();
+		for(i=1;#items;1){
+			var item = {items[i].id; items[i].name; items[i].specs}
+			winform.listview.addItem(item)
+		}
+	}
+
+}
+
+winform.listview.onnotify = function(id,code,ptr){
+	select(code) {
+		case 0xFFFFFFFE/*_NM_CLICK*/{
+			var nm = winform.listview.getNotifyMessage(code,ptr)
+			if( ! nm.iItem  ) return ;
+			winform.listview.setChecked(nm.iItem,!winform.listview.getChecked(nm.iItem) )
+		}
+	}
+}
+
+winform.button.oncommand = function(id,event){
+	var items = modGoods.search(winform.edit.text)
+	if(#items>0){
+		winform.listview.clear();
+		for(i=1;#items;1){
+			var item = {items[i].id; items[i].name; items[i].specs}
+			winform.listview.addItem(item)
+		}
+	}
+}
+
+winform.edit.oncommand = function(id,event){
+	if(event== 0x300/*_EN_CHANGE*/){
+		winform.button.oncommand();
+	}
+}
+
+winform.init()
+winform.show();
+win.loopMessage();
+return winform;

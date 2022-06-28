@@ -1,0 +1,10 @@
+﻿
+namespace hpsocket;
+
+if(!::HPSocket)
+	::HPSocket = ..raw.loadDll($"~\lib\hpsocket\.dll\HPSocket4C_U.dll","HPSocket4C_U.dll")
+
+
+/**intellisense(::)
+::HPSocket = HPSocket dll模块对象
+end intellisense**/

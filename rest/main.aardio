@@ -1,0 +1,129 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="休息一下";right=419;bottom=550)
+mainForm.add(
+button={cls="button";text="quite";left=295;top=493;right=407;bottom=532;z=1};
+button2={cls="button";text="Button";left=54;top=377;right=240;bottom=459;z=2}
+)
+/*}}*/
+
+import thread;
+import win.util.tray;
+var tray = win.util.tray(mainForm);//创建托盘图标 
+tray.message = 0xACCF/*_WM_TRAYMESSAGE*/
+tray.tip = "休息提醒" //设置鼠标提示 
+
+mainForm.trayPop=function(text,title){
+	tray.pop(text,title);
+}
+
+
+import thread.command;
+var listener = thread.command();
+listener.showCountdownPop = function(modeName,time_ms){
+    		thread.invoke( 
+    			function(modeName,time_ms,mainForm){
+    				var name;
+    				if(modeName=="anap"){
+    					name="小憩"
+    				}else {
+    					name="休息"
+    				}
+    				
+    				mainForm.trayPop("将在 "+(time_ms/1000)+"秒 后 "+name+"!")
+					sleep(5000-100);//提早关闭pop
+					mainForm.trayPop("");
+					return true; 
+    			}
+    		,modeName,time_ms,mainForm)
+}
+
+mainForm.button.oncommand = function(id,event){
+	tray.delete();
+	win.quitMessage();
+}
+
+mainForm.button2.oncommand = function(id,event){
+	
+var frmSetting = mainForm.loadForm("\dlg\setting.aardio");// setting
+frmSetting.show();
+}
+
+mainForm.wndproc = {
+	[0xACCF/*_WM_TRAYMESSAGE*/ ] = function(hwnd,message,wParam,lParam){
+		if( lParam = 0x205/*_WM_RBUTTONUP*/ ){ 
+	    	var pt = ::POINT();
+			::User32.GetCursorPos(pt);
+	    	
+	    	
+	    	//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+	    	win.setForeground(mainForm.hwnd)
+	    	mainForm.popmenu.popup(pt.x,pt.y,true )
+	    }	
+	}
+}
+
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+
+import thread.event;
+import transaction;
+
+var timeEvent = thread.event("time_s GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+var stopEvent = thread.event("stopEvent GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+
+var idleTimeStop=false;
+mainForm.setInterval( 
+	2*1000,function(){
+		//import console;
+		if(win.getIdleTime()>=5*60*1000&&idleTimeStop==false){
+			transaction.stop();
+			idleTimeStop=true;
+		}elseif(win.getIdleTime()<100&&idleTimeStop){
+			transaction.stop();
+			transaction.start();
+			idleTimeStop=false;
+			//console.log("idleTimeStop=*/true")
+		}
+		
+		//console.log("win.getIdleTime()"+win.getIdleTime())
+	} 
+)
+mainForm.popmenu.addTable( {
+	{ "设置";  function(id){
+		var frmSetting = mainForm.loadForm("\dlg\setting.aardio");// setting
+		frmSetting.show(true);
+	} };
+	{ "暂停"; function(id){  
+		if(mainForm.popmenu.checked(2)){
+			mainForm.popmenu.check(2,false);
+			transaction.stop();
+			transaction.start();
+		}else {
+			mainForm.popmenu.check(2);
+			transaction.stop();
+		}
+		
+ 	} };{ /*分隔线*/ };
+	{ "退出"; function(id){  
+		transaction.stop();
+		tray.delete();
+		win.quitMessage();
+ 	} };
+} );
+
+
+//mainForm.show();
+import fsys.config;
+
+if(!fsys.config().setting.anap){
+	
+	var frmChild = mainForm.loadForm("\dlg\setting.aardio");
+	frmChild.show();
+
+}else {
+	transaction.start();
+}
+
+
+
+return win.loopMessage();

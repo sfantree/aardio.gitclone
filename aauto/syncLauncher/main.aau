@@ -1,0 +1,30 @@
+import fsys;
+//管道进程运行jar程序
+//import console;
+
+import process.popen;
+
+
+//io.open();//打开控制台
+if(io.exist("DeploymentSvnForDS.jar.new")){   
+   fsys.delete("DeploymentSvnForDS.jar");
+   fsys.rename( "DeploymentSvnForDS.jar.new", "DeploymentSvnForDS.jar");
+}
+//execute("start javaw -cp ./DeploymentSvnForDS.jar com.coding91.utility.ControllerJFrame"); //按任意键继续
+//process.execute("cmd.exe", "/c start javaw -cp ./DeploymentSvnForDS.jar com.coding91.utility.ControllerJFrame", ,0x0/*_SW_HIDE*/ );
+//process.execute_wait("cmd.exe /c ");
+//process.execute_wait("cmd.exe", "/c start javaw -cp ./DeploymentSvnForDS.jar com.coding91.utility.ControllerJFrame");
+
+
+prcs = process.popen("cmd.exe")
+cmd = /*
+start javaw -cp ./DeploymentSvnForDS.jar com.coding91.utility.ControllerJFrame
+*/
+prcs.write(cmd);
+//result = prcs.peekTo(">");
+//prcs.write('exit\n')
+
+
+//io.print("结束");
+//execute("pause"); //按任意键继续
+//io.close();//关闭控制台

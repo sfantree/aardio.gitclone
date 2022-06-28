@@ -1,0 +1,137 @@
+﻿
+import win;
+import thread.table;
+import carl.http;
+
+namespace loadServer{
+
+	var string = ..string;
+	var thread = ..thread;
+	var table = ..table;
+	var win = ..win;
+	var io = ..io;
+
+	var tabCodeUrl = thread.table("tabServerCodeUrl",true);
+	var islocal = io.exist("/config/local.txt");
+	thread.set("islocal", islocal);
+	
+	down = function(name,types="res"){
+		var code;
+		var url = "http://carlmvc.aardio.org/update";
+		thread.set("rpcServerUrl", url);
+		if(types == "res"){
+			if(islocal){
+				code = name;//优先加本地
+			}
+			if(!#code){
+				code = tabCodeUrl[name];
+				if(code) return code; 
+				var t = io.splitpath(name);
+				t.dir = string.replace(t.dir,"@\","/")
+				url += t.dir ++ t.name ++ ".html?_=" ++ ..math.random();
+				code = ..carl.http.down(url);
+			}
+		}
+		elseif(types == "lib"){
+			var libpath = "/lib/" ++ string.replace(name,"\.","/");
+			if(islocal){
+				code = libpath ++ ".aardio";//优先加本地
+			}
+			if(!#code){
+				code = tabCodeUrl[name];
+				if(code) return code; 
+				url += libpath ++ ".html?_=" ++ ..math.random();
+				code = ..carl.http.down(url);
+			}
+		}
+		if(code){
+			tabCodeUrl[name] = code;
+		}else {
+			io.print("无法加载资源",name)
+		}
+		return code;
+	}
+}
+
+var loadForm;// = ..win.loadForm;
+
+loadForm = function( code,before,parent,... ){ 
+    if( before ) {
+    	..win.form = function(tParam){
+    		if(type(tParam)!=type.table) error("参数必须是table对象",3);
+    		..win.form  = ..win._form;
+    		return before(tParam);
+    	}
+    }
+    
+    var loopMessage = ..win.loopMessage;
+	..win.loopMessage = ..win.hookMessage;
+	var func,err = loadcode(code) ;
+	if( func ) {
+		var ok,ret,wb = call(func,,parent,...);
+		..win.loopMessage  = loopMessage; 
+		..win.form  = ..win._form; 
+		//if( !ok ) error(ret,3); 
+		if( !ok ) return null,ret; 
+		return ret,wb;
+	}
+	else {
+		..win.loopMessage  = loopMessage;
+		..win.form  = ..win._form; 
+		error( ..string.concat("载入窗体错误:",err),3);
+	}  
+}
+
+//重写函数,增加远程加载代码功能
+..win.loadForm = function(pathname,...){
+	var code = pathname;
+	var rote = false;
+	if(string.endWith(code,".aardio",true)){
+		code = loadServer.down(code,"res");
+		if(!code) return ; 
+		rote = true;
+	}
+	var t = {...};
+	var ok,winform,wb,err;
+	try{
+		winform,wb = loadForm(code,table.unpackArgs(t));
+		ok = true;
+	}
+	catch(e){
+		err = e;
+	}
+	if(ok) return winform,wb;
+	err = "文件:" ++ pathname ++ err;
+	win.msgbox(err);
+}
+
+var tabImportLibCount = {};
+importUrl = function(libName){//远程加载库,
+	tabImportLibCount[libName] := 0;
+	tabImportLibCount[libName]++;
+	if(tabImportLibCount[libName]>=2) return true;//防止互调死循环
+	tabImportLibCount[libName] = 0;
+	
+	var code = loadServer.down(libName,"lib");
+	if(!code){
+		io.print("无法加载库",libName)
+		return null,"无法下载库" ++ libName;
+	}
+	var func,err = loadcode(code);
+	if(func){
+		func();
+		return true; 
+	}else {
+		io.print("库加载失败",libName,err)
+	}
+}
+
+loadcodeUrl = function(path){
+	var code = loadServer.down(path,"res");
+	if(!code) return null,"无法下载" ++ path; 
+	return loadcode(code);	
+}
+
+loadcodexUrl = function(path,...){
+	return loadcodeUrl(path)(...)
+}

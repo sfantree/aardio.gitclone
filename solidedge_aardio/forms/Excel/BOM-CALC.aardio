@@ -1,0 +1,141 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="原材料用量计算 (ctrl复制板材料用量, alt复制粉末用量, ctrl+alt同时复制, 选择多行时用\分隔) 价格仅供参考";right=1215;bottom=575)
+winform.add(
+button={cls="button";text="计算";left=80;top=8;right=152;bottom=32;dl=1;dt=1;z=3};
+edit={cls="edit";left=8;top=56;right=152;bottom=568;ah=1;db=1;dl=1;dt=1;edge=1;font=LOGFONT(h=-16);multiline=1;vscroll=1;z=1};
+listview={cls="listview";left=160;top=8;right=1208;bottom=568;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-13);z=2};
+static={cls="syslink";text="<a>清空列表</a>";left=8;top=32;right=64;bottom=48;dl=1;dt=1;transparent=1;z=4};
+static2={cls="syslink";text="<a>copyall</a>";left=94;top=33;right=150;bottom=49;dl=1;dt=1;transparent=1;z=5}
+)
+/*}}*/
+
+import console
+//console.open()
+import win.ui.grid;
+var grid = win.ui.grid(winform.listview);//创建数据视图
+
+
+
+import QHC;
+
+winform.button.oncommand = function(id,event){
+	var pArr = string.split(winform.edit.text,'\n');
+	pArr = table.unique(pArr);
+	winform.edit.text = string.replace( string.join(pArr,'\n'), '\n\r\n', '\n');
+
+	var tab=table.create(,{fields = {
+									"设计尺寸";
+									"生产尺寸(参考)";
+									"长,宽,厚";
+									"原材料";
+									"原材料描述";
+									"钣金用量";
+									"粉末用量";
+									"钣材价格";
+									"喷粉后总价";
+								}
+							}
+						);
+	
+	for (i=1;#pArr;1){
+		if !pArr[i] continue;
+		var d_size = pArr[i];
+		var m_size = "";	
+		if string.startWith(pArr[i],"H",true) {
+			var hitem = QHC.getSapItem(pArr[i]);
+			if !hitem continue;
+			d_size = hitem.设计展平尺寸 : "";
+			m_size = hitem.生产展平尺寸 : "";
+		}			
+		if !#d_size and !#m_size continue;
+		var rez = QHC.下料尺寸(d_size : m_size );
+		var t={};
+		if rez {		
+			t["设计尺寸"] = d_size;
+			t["生产尺寸(参考)"] = m_size;
+			t["长,宽,厚"] = string.join({rez.l, rez.w, rez.t}, ",");
+			t["原材料"] = rez.raw.物料 ;
+			t["原材料描述"] = rez.raw.物料描述 ;
+			t["钣金用量"]= rez.metel;
+			t["粉末用量"]= rez.powder;
+			t["钣材价格"]= math.round( rez.metel * rez.raw.价格, 2);
+			t["喷粉后总价"]= math.round(rez.powder * rez.powderItem.价格 + t["钣材价格"], 2);
+		}
+		table.push(tab,t); //保留空行
+	}
+
+	grid.setTable(tab);
+
+	var col_width = {120;120;120;120;250;50;50;80;100};
+	for (i=1; #col_width)
+		winform.listview.setColumn({cx=col_width[i]}, i);
+
+
+}
+/*CTRLC复制模块{{*/
+import win.clip;
+
+winform.listview.translateAccelerator = function( msg ){ 
+	
+    var ctrl = ::GetKeyState(0x11/*_VK_CTRL*/) & 0x8000;
+//    var shift =  ::GetKeyState(0x10/*_VK_SHIFT*/) & 0x8000;
+    var alt = ::GetKeyState(0x12/*_VK_ALT*/) & 0x8000;
+
+    var vk = msg.wParam ;
+
+	if (vk == 'C'#) && ctrl && !alt && (msg.message == 0x100/*_WM_KEYDOWN*/) {
+	    	var tab = {};
+	    	for (k, v in winform.listview.selected){
+	        	table.push(tab, winform.listview.getItemText(v,5));
+	    	}           
+			win.clip.write(string.join(tab,"\"));
+	}
+	if (vk == 'C'#) && !ctrl && alt && (msg.message == 0x104/*_WM_SYSKEYDOWN*/){
+        	var tab = {};
+        	for (k, v in winform.listview.selected){
+            	table.push(tab, winform.listview.getItemText(v,6));
+        	}           
+			win.clip.write(string.join(tab,"\"));
+	}
+	if (vk == 'C'#) && ctrl && alt && (msg.message == 0x100/*_WM_KEYDOWN*/){
+	    	var t={};
+	    	var tab1 = {};
+	    	var tab2 = {};
+	    	for (k, v in winform.listview.selected){
+	        	table.push(tab1, winform.listview.getItemText(v,5));
+	        	table.push(tab2, winform.listview.getItemText(v,6));
+	    	} 
+	    	table.push(t, string.join(tab1,"\"));
+	    	table.push(t, string.join(tab2,"\"));
+	              	
+			win.clip.write(string.join(t,'\n'));
+	}
+}
+var copyTable = function(){
+	var items = winform.listview.items;
+	var tab={}
+	for k, v in items {
+		var t = string.join(v,'\t');
+		t = string.replace(t, '\r',"");
+		table.push(tab, t);
+
+	}
+	//win.msgbox(tab);
+	win.clip.write(string.join(tab,'\n'));	
+}
+
+/*}}*/
+
+winform.static.onHyperlinkClick = function(nmSysLink,url,id){
+	winform.edit.text = "";
+	winform.listview.clear(true);
+}
+
+winform.static2.onHyperlinkClick = function(nmSysLink,url,id){
+	copyTable();
+}
+
+winform.show();
+win.loopMessage();
+return winform;

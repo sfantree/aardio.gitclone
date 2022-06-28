@@ -1,0 +1,32 @@
+﻿namespace bootstrap{
+	class webappbuilder{
+		ctor(path, packageName, projectName) {
+			this.path = path;
+			this.packageName = packageName;
+			this.projectName = projectName;
+		}
+		
+		build = function(){
+			..fsys.createDir(this.path + "/webapp/WEB-INF/jsp/home");
+			this.createFile("/res/templates/src/main/webapp/WEB-INF/web.xml.erb", this.path + "/webapp/WEB-INF/web.xml");
+			this.createFile("/res/templates/src/main/webapp/WEB-INF/jsp/home/index.jsp.erb", this.path + "/webapp/WEB-INF/jsp/home/index.jsp");
+			
+			..fsys.copy("/res/templates/src/main/webapp/WEB-INF/jsp/_include", this.path + "/webapp/WEB-INF/jsp/_include");
+			..fsys.copy("/res/templates/src/main/webapp/WEB-INF/tld", this.path + "/webapp/WEB-INF/tld");
+			..fsys.copy("/res/templates/src/main/webapp/rs", this.path + "/webapp/rs");
+		}
+		
+		createFile = function(templatePath, saveFilePath){
+			import string.erb;
+			import string.utils;
+			
+			var template = string.erb(string.load(templatePath));
+			var option = {
+				class_package = string.lower(this.packageName) + "." + string.lower(this.projectName);
+				java_style_project_name = this.projectName;
+				title = "home index"
+			};
+			string.utils.saveFile(saveFilePath, template.format(option));
+		}
+	}
+}

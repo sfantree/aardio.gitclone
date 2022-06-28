@@ -1,0 +1,29 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="创建主机";right=442;bottom=317)
+winform.add(
+button={cls="button";text="确定";left=288;top=229;right=419;bottom=292;font=LOGFONT(h=-19);z=7};
+ip={cls="edit";left=114;top=98;right=420;bottom=132;edge=1;font=LOGFONT(h=-16);tabstop=1;z=5};
+name={cls="edit";left=114;top=26;right=420;bottom=60;edge=1;font=LOGFONT(h=-16);tabstop=1;z=4};
+port={cls="edit";text="6800";left=114;top=168;right=420;bottom=202;edge=1;font=LOGFONT(h=-16);num=1;tabstop=1;z=6};
+static={cls="static";text="名称";left=6;top=30;right=90;bottom=69;align="center";font=LOGFONT(h=-20);transparent=1;z=1};
+static2={cls="static";text="IP";left=8;top=101;right=92;bottom=140;align="center";font=LOGFONT(h=-20);transparent=1;z=2};
+static3={cls="static";text="端口";left=9;top=168;right=93;bottom=207;align="center";font=LOGFONT(h=-20);transparent=1;z=3}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+    var name = winform.name.text;
+	var ip = winform.ip.text;
+	var port = winform.port.text;
+	if(name == '' or ip == '' or port == '') mainForm.hostInfo = 'error';
+    else {
+        var host = string.replace(ip, '\s', '') + ':' + port
+        mainForm.hostInfo = {name; host};
+    }
+	winform.close()
+}
+
+
+win.loopMessage();
+return winform;

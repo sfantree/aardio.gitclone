@@ -1,0 +1,849 @@
+﻿//sqlitemodel 数据库操作
+
+import string.lcid;
+import sqlite;
+import time;
+import math;
+import console;
+namespace sqlitemodel;
+
+class Model {
+
+    //db 数据库连接
+    //tablename 数据表名称
+    ctor(db, tablename, sql, 
+        filter_fields, 
+        search_fields, 
+        display_fields, 
+        field_choices, 
+        string_fields, //显示为字符串的字段
+        DEFAULT_ITEMS_PERPAGE=100, ... ) {
+        if(db==null){
+        	error("db is null, db connection must be initialized first",2)
+        }
+        this.db = db;
+        this.tablename = tablename;
+        this.label = tablename;
+        this.sql = sql;
+        if(this.sql == null){
+            var msg = ..string.format("table(%s) sql is null, sql must be set first", tablename)
+        	error(msg, 2)
+        }
+        this.DEFAULT_ITEMS_PERPAGE = DEFAULT_ITEMS_PERPAGE;
+        //filter_fields = {
+		//  "fullname";
+		//	"category";
+		//}
+        this.filter_fields = filter_fields;
+        this.search_fields = search_fields;
+        this.display_fields = display_fields;
+        this.string_fields = string_fields;
+        this.field_choices = field_choices;
+        this.required_fields = {}; //导入Excel的时候必须要有的字段
+        this.headers = {} //field_name -> 中文
+        if(display_fields == null){
+        	this.display_fields= {}
+        }
+        this.fields = {}; //默认的全部fields列表, 不含数据id
+        
+        //  this.field_names 是一个table{{};{};...{}}
+    	//  每一项是一个table = {name = xxx; label=yyy}
+    	//  name是英文的字段名, label是中文的显示名称, 数据来源于 create_table_sql 建表语句
+    	//  特殊的sql语句， 里面的注释中包含中文显示名称
+        this.field_names = {}
+        this.item = {} //single record
+        //init
+        this.field_names = get_field_names(this.sql) //包含id字段
+        
+        var table_name= get_tablename(this.sql);
+        if(table_name != tablename){
+            var msg = ..string.format("tablename(%s) in function parameters, donot match the tablename(%s) in the sql", tablename, table_name )
+        	error(msg,2)
+        }
+
+        for(k,v in this.field_names){
+        	this.headers[v["name"]] = v["label"]
+        }
+
+        if(#this.display_fields <= 1){
+            ..table.clear(this.display_fields)
+        	for(k,v in this.field_names){
+        		..table.push(this.display_fields, v["name"])
+        	}
+        }
+        
+        //..console.log(..table.tostring(this.headers))
+        check_fields_exists(filter_fields, this, "filter_fields")
+        check_fields_exists(search_fields, this, "search_fields")
+        check_fields_exists(display_fields, this, "display_fields")
+        
+        if(#(this.required_fields)==0){
+        	this.required_fields = get_required_fields(this)
+        }
+
+        //..console.log(db, tablename, sql)
+        if(!db.existsTable(tablename)){
+            ..console.log(tablename,"not exists")
+	 		db.exec(sql)
+	 	}else {
+	 		//..console.log(tablename,"ALREADY EXISTS!")
+	 	}
+        
+        //..console.varDump(this.field_names)
+
+        //..table.mixin(this,tm)
+    }; 
+    
+
+    @_meta;
+    //@_metaProperty;
+}
+ 
+namespace Model{
+ 	//import util.metaProperty; 
+  	//_metaProperty = util.metaProperty( 
+  	
+	_meta = {  
+		_type = "sqlite.table";
+    	
+    	_tostring = function(){
+			return tostring( owner.string_fields );
+		} 
+		
+    	
+    	//_serialize = function(){
+    	//	return ..string.format(`..Model.ole(%s,"%s")`,tonumber(owner), owner.format); 
+    	//}
+    	
+    	
+    	
+    	
+    	save = function(query){
+    		
+    	}
+    	
+    	
+    	//query is table type
+		create = function(query){
+			var field_names = owner.field_names; //不含id
+	
+    		//
+    		//..console.log("field_names")
+    		//..console.varDump(field_names)
+    		//
+    		
+    		//
+    		..console.log("insert query")
+    		..console.varDump(query)
+    		//
+		
+    		var field_values = {}
+		
+    		for(i=1;#field_names;1){
+    			//create 需要屏蔽id
+    			if(field_names[i]["name"] == "id"){
+    				continue;
+    			}
+    			..table.push(field_values, "@" ++field_names[i]["name"])
+    		}
+    		var str_field_values = ..string.join(field_values, ", ")
+    		str_field_values = " VALUES (null, " + str_field_values ++ ");"
+    		
+    		//
+    		//console.log(str_field_values)
+    		//
+    		
+    		
+    		
+		
+    		var command = owner.db.prepare("INSERT INTO "+ owner.tablename + str_field_values ) ;
+    		
+    		//以下非空字段, 要在for循环前绑定, 绑不上去.
+    		//command.bind.parameterByName("", "@boss_name")      //给@boss_name 绑定数据 ""
+    		//command.bind.parameterByName("", "@boss_cellphone") //给@boss_cellphone 绑定数据 ""
+    		
+    		//command.bind.parameterByName("", "@charger_name")
+    		//command.bind.parameterByName("", "@charger_cellphone")
+    		
+    		//command.bind.parameterByName(time.now(), "@created")
+    		//command.bind.parameterByName(time.now(), "@updated")
+    		
+    		//给 query 设置默认值
+    		query["created_at"] = default_value(query["created"], ..time.now())
+    		query["updated_at"] = default_value(query["updated"], ..time.now())
+    		
+    		//..console.varDump(query)
+	
+    		for(i=1;#field_names;1){
+        		//args["@"++company_field_names[i]] = query[company_field_names[i]];
+        		
+        		//
+        		//console.log(company_field_names[i]["name"]," ", tostring(query[company_field_names[i]["name"]]))
+        		//
+        		
+        		var field = field_names[i]["name"]
+        		var value = query[field]
+		
+        		//给 将数据绑定到 @field
+        		command.bind.parameterByName(value, '@' + field )
+		
+    		}
+    		
+    		var ret = command.step();
+    		
+    		/*
+			var sql = "select last_insert_rowid() from " + owner.tablename
+    					..console.log(sql)
+    					var lastid = owner.db.exec(sql)
+    					..console.log("lastid")
+    					..console.varDump(lastid)
+			*/
+			//上面的sql执行了没用.
+			var lastid = owner.db.lastInsertRowid()
+    		..console.varDump(lastid)
+    		
+    		
+    		
+    		
+    		..console.log("sql insert result ", ret) 
+    		command.finalize(); 
+    		
+    		//
+    		..console.log(command.sql);
+    		//
+    		
+    		//
+    		//console.varDump(query)
+    		//
+    		
+    		if(ret<100){
+        		..console.log(owner.db.lasterr())
+    			..console.log("insert failed!") 
+    			return false;
+    		}else {
+    			return lastid
+    		}
+    		//return true
+		}
+		
+		/*update{{*/
+		update = function(query){
+			if(query["id"]==null or query["id"]==""){
+        		..console.log("Failed , no query['id']")
+    			return false;
+    		}
+		
+    		//
+    		//console.varDump(query)
+    		//
+    		
+    		old_data = owner.db.stepQuery("SELECT * FROM ["+ owner.tablename +"]", { id = query["id"]}) 
+    		
+    		..console.log("get old data by id")
+    		..console.varDump(old_data)
+    		
+    		if(old_data == null){
+    			return false;
+    		}
+		
+    		var stmts = {}
+    		
+    		for(k,v in query){
+        		if(k=="created_at" or k=="updated_at"){
+        			continue
+        		}
+        		if(owner.headers[k]==null){
+        			..console.log("not found:", k, ..table.tostring(owner.headers));
+    				 
+        			continue
+        		}
+				if(old_data[k] != v){
+					..table.push(stmts, " "+ k + " = @" ++ k)
+				}
+    		}
+    		
+    		..console.log("to be updated fileds:")
+    		..console.varDump(stmts)
+    		
+		
+    		if(#stmts<=0){
+        		//console.log("no fields to be updated")
+    			return false;
+    		}else {
+        		var k = "updated_at"
+    			..table.push(stmts, " "+ k + " = @" ++ k)
+    			query[k] = ..time.now()
+    		}
+    		
+    		
+    		var str_set_stmts = ..string.join(stmts, ", ")
+    		str_set_stmts = " SET  " + str_set_stmts ++ " WHERE id = @id;"
+    		
+    		//console.log("str_set_stmts")
+    		
+    		//console.log(str_set_stmts)
+    		
+    		
+ 		
+    		
+    		var sql = "UPDATE ["+ owner.tablename + "] " + str_set_stmts;
+    		..console.log("upadte sql:"+sql);
+    		..console.log("user query:", ..table.tostring(query))
+    		var updated = false;
+    		try{
+    			owner.db.exec(sql, query);
+    			updated = true;
+    			//return true; //这里try语句里的 return true 并不能真的返回值, 函数最后返回的是null
+    		}
+    		catch(e){
+        		//console.varDump(e);
+        		//console.log(tostring(e))
+    			//return false;//这里try的catch语句里的 return false却可以真正使函数返回.函数最后返回的是false
+    			updated = false;
+    		}
+
+    		//console.log("updated!!!!")
+		
+    		return updated
+		};
+		/*}}*/
+		
+		/*delete{{*/
+		delete  = function(query){
+			var msg = {
+				"Failed , query['id'] is null or empty"
+			};
+			
+			if(query["id"]==null or query["id"]==""){
+    			return false, msg[1];
+    		}
+    		
+    		var sql = "DELETE FROM ["+ owner.tablename + "] WHERE id = @id;"
+    		//..console.log("sql:"+sql);
+    		var ret = owner.db.exec(sql, query);
+			//..console.log("sql delete result ", ret) 
+    		return true, "successed";
+		};
+		/*}}*/
+		
+		/*filter{{*/
+		filter = function(query){
+			//..console.log("filter data")
+			//..console.varDump(query)
+			
+			var filter_fields = {}
+
+			for(k,v in query){
+				//..console.log("    k, v",k,v)
+				if(..string.endWith(k, "_lt")){
+					// <
+					var field = ..string.left(k, -4);
+					//..console.log("    filter field",field)
+					if(owner.headers[field] != null){
+						..table.push(filter_fields, " "+ field + " < @" ++ k);
+					}
+					
+				}elseif(..string.endWith(k, "_lte")){
+					// <=
+					var field = ..string.left(k, -5);
+					if(owner.headers[field] != null){
+						..table.push(filter_fields, " "+ field + " <= @" ++ k);
+					}
+					
+				}
+				elseif(..string.endWith(k, "_gt")){
+					// >
+					var field = ..string.left(k, -4);
+					if(owner.headers[field] != null){
+						..table.push(filter_fields, " "+ field + " > @" ++ k);
+					}
+					
+				}
+				elseif(..string.endWith(k, "_gte")){
+					// >=
+					var field = ..string.left(k, -5);
+					if(owner.headers[field] != null){
+						..table.push(filter_fields, " "+ field + " >= @" ++ k);
+					}
+					
+				}else{
+					if(owner.headers[k] != null){
+						// =
+						..table.push(filter_fields, " "+ k + " = @" ++ k);
+					}
+				}				
+			}
+				
+    		//..console.log("to be filte fileds:")
+    		//..console.varDump(filter_fields)
+    		
+		
+    		if(#filter_fields<=0){
+    			return {};
+    		} 
+
+    		var where_stmts = ..string.join(filter_fields, " AND ")
+    		if(where_stmts!=""){
+    			where_stmts = " WHERE  " + where_stmts ++ " "
+    		}
+    		//..console.log("where_stmts",where_stmts)
+
+			var items = {}
+			var filter_field = query["filter_field"]
+			if(!query["model_name"]){
+        		query["model_name"] = owner.tablename
+        	}
+        	
+			var keyword = query["keyword"]
+			
+        	if(keyword == null){
+        		keyword=""
+        	}
+        	TABLE_NAME = owner.tablename
+        	DEFAULT_ITEMS_PERPAGE =  owner.DEFAULT_ITEMS_PERPAGE
+        	
+        	if(query["ITEMS_PERPAGE"]){
+        		DEFAULT_ITEMS_PERPAGE = query["ITEMS_PERPAGE"]
+        	}
+        	
+        	CURR_PAGE = 0
+        	if(query["CURR_PAGE"]){
+        		CURR_PAGE = query["CURR_PAGE"] - 1;
+        	}
+        	
+        	//
+        	//console.log("keyword:"++keyword)
+        	//
+        	
+        	var sql = "Select *  From ["+ TABLE_NAME + "]  LIMIT " ++ DEFAULT_ITEMS_PERPAGE  ++ " OFFSET " ++ DEFAULT_ITEMS_PERPAGE  ++ " * " ++ CURR_PAGE ++ ";";
+        	var count_sql = "Select count(id)  as total  From ["+ TABLE_NAME + "];  "
+        	if(where_stmts != ""){
+        		sql = "Select *  From ["+ TABLE_NAME + "] " + where_stmts +" LIMIT " ++ DEFAULT_ITEMS_PERPAGE  ++ " OFFSET " ++ DEFAULT_ITEMS_PERPAGE  ++ " * " ++ CURR_PAGE ++ ";";
+        		count_sql = "Select count(id)  as total  From ["+ TABLE_NAME + "] "+ where_stmts +";";
+        	}
+        	
+        	//..console.log("sql ", sql);
+        	//..console.log("count_sql ", count_sql);
+       
+        	//所以最后只能使用手工sql
+        	items = owner.db.getTable(sql, query);//func(sql, paras)
+    		var total = owner.db.stepQuery(count_sql, query)["total"]
+        	
+    		var PAGES = ..math.ceil( total / DEFAULT_ITEMS_PERPAGE)
+    		
+    		items["CURR_PAGE"] = CURR_PAGE;
+    		items["ITEMS_PERPAGE"] = DEFAULT_ITEMS_PERPAGE;
+    		items["PAGES"] = PAGES;
+    		items["COUNT"] = total;
+    		
+    		if(items["CURR_PAGE"] >= items["PAGES"]){
+    			items["CURR_PAGE"] = items["PAGES"] -1
+    		}
+	
+        	return items;
+		};
+		/*}}*/
+		
+		bulk_create = function(queryset){
+			owner.db.beginTrans()
+			for(i=1;#queryset;1){
+				var query = queryset[i];
+				
+			    var field_names = owner.field_names; 
+    			var field_values = {}
+			
+    			for(i=1;#field_names;1){
+    				//create 需要屏蔽id
+    				if(field_names[i]["name"] == "id"){
+    					continue;
+    				}
+    				..table.push(field_values, "@" ++field_names[i]["name"])
+    			}
+    			var str_field_values = ..string.join(field_values, ", ")
+    			str_field_values = " VALUES (null, " + str_field_values ++ ");"
+
+    			var command = owner.db.prepare("INSERT INTO "+ owner.tablename + str_field_values ) ;
+    			
+    			//以下非空字段, 要在for循环前绑定, 绑不上去.
+    			//command.bind.parameterByName("", "@boss_name")      //给@boss_name 绑定数据 ""
+    			//command.bind.parameterByName("", "@boss_cellphone") //给@boss_cellphone 绑定数据 ""
+
+    			//给 query 设置默认值
+    			query["created_at"] = default_value(query["created"], ..time.now())
+    			query["updated_at"] = default_value(query["updated"], ..time.now())
+
+    			for(i=1;#field_names;1){
+        			var field = field_names[i]["name"]
+        			var value = query[field]
+        			//给 将数据绑定到 @field
+        			command.bind.parameterByName(value, '@' + field )
+    			}
+    			var ret = command.step();
+			}
+			owner.db.commitTrans();
+		}
+		
+		exclude = function(query){
+			 
+		};
+		
+		search = function(query){
+			if(!query){
+				query = {}
+			}
+        	
+			var keyword = ""
+			if(type(query) == "table"){
+				keyword = query["keyword"]
+				if(!query["model_name"]){
+        			query["model_name"] = owner.tablename
+        		}
+        	
+			}elseif(type(query) == "string"){
+				keyword = query
+				query = {["keyword"]=keyword}
+			}
+			
+			
+        	if(keyword==null){
+        		keyword=""
+        	}
+        	//..console.log("keyword")
+        	//..console.varDump(keyword)
+        	var items = {}
+        	
+        	TABLE_NAME = owner.tablename;
+        	DEFAULT_ITEMS_PERPAGE = owner.DEFAULT_ITEMS_PERPAGE;
+        	if(type(query) == "table" and query["ITEMS_PERPAGE"]){
+        		DEFAULT_ITEMS_PERPAGE = query["ITEMS_PERPAGE"]
+        	}
+        	
+        	if(!DEFAULT_ITEMS_PERPAGE){
+        		DEFAULT_ITEMS_PERPAGE = 100;
+        	}
+        	
+        	CURR_PAGE = 0
+        	if(query["CURR_PAGE"]){
+        		CURR_PAGE = query["CURR_PAGE"]-1;
+        		if(CURR_PAGE<0){
+        			CURR_PAGE = 0
+        		}
+        	}
+        	
+        	//..console.varDump(owner.search_fields)
+        	var sql = "Select *  From ["+ TABLE_NAME + "]  LIMIT " ++ DEFAULT_ITEMS_PERPAGE  ++ " OFFSET " ++ DEFAULT_ITEMS_PERPAGE  ++ " * " ++ CURR_PAGE ++ ";";
+        	var count_sql = "Select count(id)  as total  From ["+ TABLE_NAME + "];"
+        	if(keyword!=""){
+        		var where_stmts = {};
+        		
+        		for(i=1;#owner.search_fields;1){
+        			..table.push(where_stmts, owner.search_fields[i] ++ " LIKE '%" ++ keyword ++ "%'")
+        		}
+        		
+        		if(#where_stmts){
+        			sql = "Select *  From ["+ TABLE_NAME + "] WHERE " ++ ..string.join(where_stmts, " OR ") ++ "  LIMIT " ++ DEFAULT_ITEMS_PERPAGE  ++ " OFFSET " ++ DEFAULT_ITEMS_PERPAGE  ++ " * " ++ CURR_PAGE ++ ";";
+        			count_sql =  "Select count(id) as total From ["+ TABLE_NAME + "] WHERE " ++ ..string.join(where_stmts, " OR ") ++ ";"
+        		}
+        		
+
+        	} 
+        	
+        	//..console.log("")
+        	//..console.log("sql:",sql)
+        	//..console.log("count_sql:",count_sql)
+        	//..console.log("#items",#items)
+        	
+        	//不太清楚 sql = "SELECT *  FROM ["+ TABLE_NAME + "] WHERE  fullname LIKE  '%@keyword%'  LIMIT " ++ DEFAULT_ITEMS_PERPAGE
+        	// 和
+        	
+        	//var command = db.prepare(sql) ;
+        	//console.log(command.sql);
+        	//command.bind.parameterByName(keyword, '@keyword')
+        	//var ret = command.step();
+        	//items = command.getTable(sql)
+        	//console.log("sql select result ", ret) 
+        	//command.finalize(); 
+    		//console.log(command.sql);
+    		//if(ret<100){
+    		//	console.log("insert failed!") 
+    		//	return false;
+    		//}
+        	//具体表现, 就是不知道这些参数是怎么最后表现的, 所以, like语句不好用parameterBy...之类的
+        	//
+        	//所以最后只能使用手工sql
+    		items = owner.db.getTable(sql);
+
+    		total = owner.db.stepQuery(count_sql)["total"]
+    		var PAGES = ..math.ceil( total / DEFAULT_ITEMS_PERPAGE)
+    		
+    		items["CURR_PAGE"] = CURR_PAGE;
+    		items["ITEMS_PERPAGE"] = DEFAULT_ITEMS_PERPAGE;
+    		items["PAGES"] = PAGES;
+    		if(items["CURR_PAGE"] >= items["PAGES"]){
+    			items["CURR_PAGE"] = items["PAGES"] -1
+    		}
+    		//..console.log("#items",#items)
+        	return items;
+		}
+		
+		
+		exec = function(sql, query){
+			..console.log("exec sql:", sql, '\r\n', "query:")
+			..console.varDump(query)
+			return owner.db.exec(sql, query);
+		}
+		
+		getTable = function(sql, query){
+			//..console.log(sql)
+			return owner.db.getTable(sql, query);
+		}
+
+		get = function(query){
+			//var TABLE_NAME = owner.tablename;
+			//var id = query["id"];
+			//return owner.db.stepQuery("SELECT * FROM ["+ TABLE_NAME +"]", { id = id}) 
+			//if(type(query) != type.table){
+			//	error("query must be table", 0)
+			//}
+			//..console.log("sqlitemodel.get query")
+			//..console.varDump(query)
+			var items = owner.filter(query)
+			//..console.log("sqlitemodel.get items")
+			//..console.varDump(items)
+			if(#items>0){
+				return items[1]
+			}else {
+				return {}
+			}
+		}
+		
+		get_or_create = function(query){
+			return owner._fromnumber( ( tonumber(owner)*1440 + span)/1440 )
+		}
+		
+		one = function(query){
+			return owner.get(query)
+		}
+		
+		all = function(query){
+			return owner.get(query)
+		}
+		
+		
+		objects = function(query){
+			return owner.filter(query)
+		} 
+		
+		
+	
+		
+	} // _meta
+	..table.mix(_meta, { _get =  _meta}, ..sqlitemodel._meta);	
+	
+	//) //_metaProperty
+	
+}
+	
+namespace Model{	
+	/*get_field_names{{*/
+	get_field_names = function(create_table_sql, include_id = true){
+    	//  返回一个table{{};{};...{}}
+    	//  每一项是一个table = {name = xxx; label=yyy}
+    	//  name是英文的字段名, label是中文的显示名称, 数据来源于 create_table_sql 建表语句
+    	//  特殊的sql语句， 里面的注释中包含中文显示名称
+    	//  create_table_sql 类似于
+    	//  CREATE TABLE "company" (
+	 	//	    "id" INTEGER NOT NULL PRIMARY KEY,
+	 	//	    "fullname" VARCHAR(32) NOT NULL,  /*姓名*/
+	 	//	    "bank_opened" VARCHAR(32),  /*开户行*/
+	 	//	    "bank_name" VARCHAR(32),  /*银行名称*/
+	 	//	    "bank_account" VARCHAR(32),  /*银行账号*/
+	 	//	    "telephone" VARCHAR(32),  /*电话*/
+	 	//	    "logger_name" VARCHAR(32) NOT NULL,  /*登记人*/
+	 	//	    "logger_cellphone" VARCHAR(32) NOT NULL,  /*登记人电话*/
+        //      "status" VARCHAR(16),  /*公司状态*/
+	 	//	    "created_at" DATE NOT NULL,  /*创建时间*/
+	 	//	    "updated_at" DATE NOT NULL /*更新时间*/
+	 	//	);
+	 	//	
+    	//  include_id = true，则会包含ID， 默认不包含，
+    	//  因为导入的Excel中不需要，担心会覆盖已有的数据
+    	//  重置局部变量 field_names
+		var field_names = {} //原来是全局变量, 加 var 变局部变量
+		
+		if(create_table_sql == null){
+			create_table_sql = owner.sql;
+		}
+    	
+    	var start_pos = ..string.indexOf(create_table_sql, "("); //第一个(
+    	var end_pos = ..string.lastIndexOf(create_table_sql, ")") //最后一个)
+    	
+    	//
+    	//..console.log(..string.sub(create_table_sql, start_pos+1, end_pos-1))
+    	//
+    	
+    	var str_fields = ..string.sub(create_table_sql, start_pos+1, end_pos-1)
+    	var field_lines = ..string.split(str_fields, '\r\n')
+    	
+    	for(i=1;#field_lines;1){
+        	// 每行数据格式, 显示列信息, 然后是自定义的注释/*单位名称*/作为中文名字
+        	// "fullname" VARCHAR(32) NOT NULL,  /*单位名称*/
+        	//
+        	var line = "";
+        	line = ..string.trim(field_lines[i])
+        	if(line == ""){
+        		continue
+        	}
+        	var field = ..string.split(line, ' ')[1];
+        	field = ..string.trim(field, '"')
+        	if(field == "" or field == null){
+        		continue
+        	}
+        	
+        	var field_type = ..string.split(line, ' ')[2];
+        	
+        	var comment = ..string.match(line,"\/\*(.*)\*\/");//获得注释中的中文
+        	if(comment == null){
+        		comment = field;//如果没有中文注释, 使用英文字段名
+        	}
+        	
+        	//
+        	//..console.log(tostring(comment))
+        	//
+        	
+        	// 获取choices，选择数据
+        	var cs = {}
+        	var tmp = ..string.split(comment, "<:>")
+        	if(tmp[2]!=null){
+        		cs = ..string.split(tmp[2], "<,>")
+        		comment = tmp[1]
+        	}
+        	//
+        	//..console.log(..table.tostring(cs))
+        	//
+        	
+        	
+        	var notnull = ..string.match(line,"\s+(<@@NOT@>\s+<@@NULL@>)");//获得 NOT NULL
+        	if(notnull == null){
+        		required = false;//
+        	}else {
+        		required = true;
+        	}
+        	
+        	//
+        	//..console.log(field, "tostring(notnull)", tostring(notnull))
+        	//
+        	
+	
+        	if(field == "id"){
+            	//
+            	//console.log("id is find")
+            	//
+            	if(include_id){
+            		..table.push(field_names,  {name=field;label=comment;field_type=field_type;choices=cs;required=required})
+            	}
+        		continue
+        	}else {
+        		..table.push(field_names, {name=field;label=comment;field_type=field_type;choices=cs;required=required})
+        	}
+        	
+    		
+    	}
+    	
+    	return field_names
+	}
+	/*}}*/
+	
+	
+	/*get_tablename{{*/
+	get_tablename = function(create_table_sql){
+    	//  create_table_sql 类似于
+    	//  CREATE TABLE "company" (
+    	//  ...
+    	//  )
+		var field_names = {} //原来是全局变量, 加 var 变局部变量
+		
+		if(create_table_sql == null){
+			create_table_sql = owner.sql;
+		}
+    	
+    	var start_pos = 0
+    	var end_pos = ..string.indexOf(create_table_sql, "(") //第一个(
+
+    	var str_maybe = ..string.sub(create_table_sql, start_pos, end_pos-1);
+    	//..console.log(str_maybe)
+    	
+    	var table_name = ..string.match(str_maybe, '\"(.*)\"');//获得""的tablename
+        if(table_name == null){
+        	table_name = "notfound";
+        }
+
+    	return table_name
+	}
+	/*}}*/
+		
+	/*default_value{{*/
+	default_value = function(value, default){
+		if(value == null){
+        	return default
+    	}
+    	return value
+	}
+	/*}}*/
+	
+	check_fields_exists = function(fields, model, label=""){
+    	for(i=1;#fields;1){
+       		var find = false
+       		var field_name = fields[i] 
+        	for(j=1;#model.field_names;1){
+        		//..console.log("choices:",..table.tostring(model.field_names[j]["choices"]))
+        		if(field_name == model.field_names[j]["name"]){
+        			find=true;
+        			break
+        		}
+        	}
+        	if(find == false){
+        		var msg = ..string.format("%s('%s') not in table('%s') "++'\r\n'+"sql: %s", label, field_name, model.tablename, model.sql);
+        		error(msg, 2);
+        	}
+        }
+    }
+    
+    get_required_fields = function(model){
+    	var find = false
+       	var fields = {}
+        for(j=1;#model.field_names;1){
+        	//..console.log(model.field_names[j]["name"], "required:", model.field_names[j]["required"])
+        	if(model.field_names[j]["required"]){
+        		..table.push(fields, model.field_names[j]["name"])
+        	}
+        }
+        return fields;
+    }
+
+}
+
+
+
+
+/*intellisense()
+sqlitemodel.Model(.(db, __, sql, filter_fields, search_fields) = !sqlitemodel_model. 
+sqlitemodel.Model( = !sqlitemodel_model.
+sqlitemodel.Model() = !sqlitemodel_model.
+sqlitemodel.Model.now() = !sqlitemodel_model.
+sqlitemodel.Model.default_value(value, default) = 计算默认值
+sqlitemodel.Model.get_field_names(sql, true) = 计算fields_names
+end intellisense*/
+
+/**intellisense(!sqlitemodel_model)
+get(query)= 获取某个id的数据 
+create(query/*指定table数据对象*/) = 根据item(query)中的数据,创建一条数据
+update(query/*指定table数据对象*/) = 根据item(query)中的数据,更新一条数据
+delete(query/*指定table数据对象*/) = 根据item(query)中的数据,删除一条数据
+search(query/*指定table数据对象*/) = 根据item(query)中的数据,查找数据
+save(query/*指定table数据对象*/) = 根据item(query)中的数据,保存数据
+field_names = model的field_names
+default_value(value, default) = 计算默认值
+end intellisense**/
+
+ 

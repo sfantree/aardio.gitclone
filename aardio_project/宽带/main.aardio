@@ -1,0 +1,162 @@
+//入门
+import fsys.ini
+import fonts.fontAwesome;
+import win.ui;
+import thread;
+/*DSG{{*/
+mainForm = win.form(text="宽带统计";right=599;bottom=399;bgcolor=16777215;border="none";max=false)
+mainForm.add(
+caption={cls="bkplus";text="宽带统计";left=40;top=8;right=152;bottom=34;color=15780518;dl=1;dt=1;font=LOGFONT(h=-18);z=5};
+custom={cls="custom";left=0;top=40;right=600;bottom=440;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;z=1};
+logo={cls="bkplus";text='\uF0AD';left=6;top=9;right=35;bottom=34;color=15780518;dl=1;dt=1;font=LOGFONT(h=-18;name='FontAwesome');z=4};
+nav1={cls="plus";text=" 数据处理 ";left=166;top=5;right=296;bottom=40;align="left";color=16777215;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=12;top=4}};iconText='\uF00A';notify=1;paddingLeft=1;paddingRight=1;paddingTop=3;textPadding={left=39;bottom=1};x=0.5;y=0.2;z=3};
+nav2={cls="plus";text=" 系统配置 ";left=296;top=5;right=426;bottom=40;align="left";color=16777215;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=12;top=4}};iconText='\uF11C ';notify=1;paddingLeft=1;paddingRight=1;paddingTop=3;textPadding={left=39;bottom=1};x=0.5;y=0.2;z=6};
+titleBar={cls="bkplus";left=0;top=0;right=601;bottom=41;bgcolor=14977280;dl=1;dr=1;dt=1;z=2}
+)
+/*}}*/
+
+// Mon Apr 10 19:07:24 CST 2023 ,过期日期
+KEY = "KjrAJUrhdTHk24LV3QJBaA0fwzW3TDevdN3rMJAnV55HZFp5XIrDSlTxm8U2aA6K/v+UkHlLMNLKkxqM+ndunEz/r8dJojMIZ2nZsQWffgY4I2qiEutP4gW8Zhn7l/jBCzw4IAreyDGgRn8+kNsiq+Qkaw/HZTXFlqWhCrmPLbw=";
+thread.set("关键KEY",KEY )
+
+var passwd=fsys.ini("config\app.ini").getSection("xx").LL:"passwd"
+thread.set("passwd",passwd);
+
+// 加密的jar路径
+var core_data= ..io.fullpath("~/java/core.data")
+//var core_data= ..io.fullpath("c:/core.data")
+var unrarexe=..io.fullpath("~/unrar.exe");
+//var unrarexe=..io.fullpath("c:/unrar.exe");
+var corejar=..fsys.getTempDir()+"/KDT"+string.random(8,"KjrAJUrhdTHk24LV3QJBaA0fwzW3TDevdN3rMJAnV55HZFp5XIrDSlTxm8U2aA6K")+"/"+string.random(8,"KjrAJUrhdTHk24LV3QJBaA0fwzW3TDevdN3rMJAnV55HZFp5XIrDSlTxm8U2aA6K")+".jar"
+//var corejar=..io.appData("/KDT/")+string.random(8,"KjrAJUrhdTHk24LV3QJBaA0fwzW3TDevdN3rMJAnV55HZFp5XIrDSlTxm8U2aA6K")+"/"+string.random(8,"KjrAJUrhdTHk24LV3QJBaA0fwzW3TDevdN3rMJAnV55HZFp5XIrDSlTxm8U2aA6K")+".jar"
+
+if(!..io.exist(unrarexe)){ win.setTimeout(function(mainForm){ error("档案缺失!"++unrarexe) },200,mainForm) }
+if(..io.exist(core_data)){ thread.set("unrarexe",unrarexe);  thread.set("jardata",core_data); thread.set("corejar",corejar); }
+//else{ win.setTimeout(function(mainForm){ mainForm.msgboxErr("档案缺失!","严重错误", mainForm.hwnd) ; publish("quit",) },200,mainForm) }
+else{ win.setTimeout(function(mainForm){ error("档案缺失!"++core_jar) },200,mainForm) }
+
+
+import win.ui.atom;
+var atom,hwnd = mainForm.atom("ChinaUnicom-4024-4537-9C43-zhangping-zx571.Litt");
+if(!atom){ 
+    win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+
+/*捕获错误信息{{*/
+global.onError = function( err,over,app ){ 
+    if(!over){
+        import debug;
+        var stack = debug.traceback(,"调用栈",3);
+        err =  ..string.concat(err,'\n',stack);
+    }
+    
+    if(!app){
+            //CGI进程错误信息请查看"CGI.EXE目录/config"下面生成的日志文件
+            import fsys.log;
+            fsys.log.print( ..string.replace(err,"![\r\n]\n",'\r\n')  );
+    }
+    
+    //500错误错误服务器上本地打开网页可以看到,
+    return err;
+} 
+/*}}*/ 
+
+//关键jar文件签名,事先写入程序.
+var ttable={}
+table.push(ttable,fsys.ini("config\app.ini").getSection("xx").xx:"litt")
+thread.set("关键文件签名",ttable )
+
+//导入高级选项卡
+import win.ui.tabs;
+
+/*
+指定选项卡模板，至少要指定 2 个 plus 控件，
+模板控件用于确定选项卡的默认外观、间距、排列方向等。
+*/
+var tbs = win.ui.tabs(mainForm.nav1,mainForm.nav2);
+
+//指定选项卡右侧预留的空白边距（用于显示下拉菜单，以及其他需要放置的控件）
+tbs.margin = 15;
+
+//控件样式参数建议写到用户库里，改为 tbs.skin( styles.tabs ) 会更好。
+//批量指定所有选项卡外，用法与 plus 控件相同
+import styles;
+tbs.skin( styles )
+
+//可选加载指定的子窗口并绑定指定的选项卡索引
+tbs.loadForm(1,"\dlg\shujuchuli.aardio" , _ARGV );  
+tbs.loadForm(2,"\dlg\xitongpeizhi.aardio"  , _ARGV );  
+
+//切换选项卡触发下面的事件
+//idx 为选项卡当前索引, strip 参数为当前点击的选项卡, form 为当前选项卡绑定的子窗口 
+tbs.onSelchange = function(idx,strip,form){
+	
+}
+
+thread.invoke( 
+	function(){
+		import console;
+		import decode;
+		var from=thread.get("jardata"):"";
+		var to=thread.get("corejar"):"";
+		var unrarexe=thread.get("unrarexe"):"";
+		var passwd=thread.get("passwd"):"";
+		var decode=decode({from=from;to=to;unrarexe=unrarexe;passwd=passwd});
+		decode.decode();
+	}
+)
+
+
+//设置当前选项卡
+tbs.selIndex = 1; 
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+	if (!(#_ARGV)){
+		var t=win.msgboxTest("退出程序?",mainForm.text ,mainForm.hwnd);
+		if(!t){ return false;  }
+ 		
+	}
+	publish("清理",)
+}
+ 
+
+subscribe("清理",function(...){
+ 	import fsys;
+ 	import fsys.remove;
+ 	..fsys.enum( ..fsys.getTempDir(), ,
+ 		function(dirname,filename,fullpath,findData){ 
+ 			var t=#dirname;
+ 			if(dirname && t>4 ){ 
+ 				if(string.startWith(dirname,"KDT")){
+ 					//console.dump("清理","发现文件："+filename,"完整路径："+fullpath)/*可使用 return false退出枚举文件过程*/
+ 					..fsys.remove(fullpath)
+ 				} 	           	
+ 			} 
+ 		}
+ 	);
+} )
+ 
+subscribe("quiet",function(quiet){  //静默模式
+ 	 mainForm.show(!quiet);
+} )
+ 
+subscribe("quit",function(...){ //退出
+ 	import win;
+ 	import winex;
+ 	publish("清理",)
+ 	win.setTimeout(function(mainForm){
+ 		winex.close(mainForm.hwnd)
+ 	},500,mainForm)	
+} )
+ 
+publish("清理",)
+
+import win.ui.simpleWindow;
+win.ui.simpleWindow( mainForm );
+
+mainForm.text= ( !(#_ARGV))?mainForm.text:"静默模式-"+mainForm.text
+
+mainForm.show( !(#_ARGV) );
+return win.loopMessage();

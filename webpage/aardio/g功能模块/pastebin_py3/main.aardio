@@ -1,0 +1,67 @@
+import win.ui;
+import console;
+import py3;
+//url编码
+import inet.url;
+/*DSG{{*/
+mainForm = win.form(text="pastbin";right=727;bottom=528)
+mainForm.add(
+button2={cls="button";text="发布 新帖子";left=352;top=421;right=468;bottom=482;z=1};
+result={cls="edit";left=180;top=426;right=279;bottom=467;edge=1;multiline=1;z=2};
+static={cls="static";text="发帖结果状态";left=57;top=423;right=151;bottom=464;align="center";center=1;transparent=1;z=3};
+static2={cls="static";text="帖子标题";left=68;top=38;right=162;bottom=79;align="center";center=1;transparent=1;z=5};
+static3={cls="static";text="帖子内容";left=68;top=91;right=162;bottom=132;align="center";center=1;transparent=1;z=6};
+tzbt={cls="edit";left=192;top=35;right=370;bottom=75;edge=1;multiline=1;z=4};
+tznr={cls="edit";left=192;top=116;right=682;bottom=376;edge=1;multiline=1;z=7}
+)
+/*}}*/
+
+//添加调用函数的路径，string指pycode为字符类型
+pyCode = string.load("\res\newpaste.py");
+
+//执行pycode
+py3.exec(pyCode);
+
+if(_ARGV.opt){
+	mainForm.tzbt.print(_ARGV.opt,_ARGV[#_ARGV]);
+}
+
+
+
+
+
+
+mainForm.button2.oncommand = function(id,event){
+
+
+	//发布 新帖子
+	
+	
+	
+	var api_dev = "1";
+	
+	var api_user = "2";
+
+	//帖子 标题，内容 ，untf-8编码
+	var ptitle = inet.url.encode(mainForm.tzbt.text);
+	
+	var pnr = inet.url.encode(mainForm.tznr.text);
+	
+	//调用函数，在main中调用函数()
+    var result = py3.main.newpaste(ptitle,pnr,api_dev,api_user);
+
+	//显示 结果 状态
+    mainForm.result.text = result;
+
+    //提示弹框
+    //mainForm.msgbox(result);
+	
+	
+
+}
+
+
+
+
+mainForm.show();
+return win.loopMessage();

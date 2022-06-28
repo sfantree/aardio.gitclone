@@ -1,0 +1,314 @@
+﻿/*
+ **************************
+ *
+ * 豆瓣FM 播放历史列表窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+
+import win.ui;
+import win.ui.minmax;
+import win.clip;
+import process;
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.grid;
+/*DSG{{*/
+var tableForm = ..win.form(text="收听历史 - "++_app;right=693;bottom=399)
+tableForm.add()
+/*}}*/
+
+win.ui.minmax(tableForm);
+
+countOfPages = 1;
+pageCurrent = 1;
+showLiked = false;
+order = "gotTime DESC";
+
+wbLayout_table = web.layout(tableForm,0xFFFF/*_HL_HANDLE_ALL*/); // 接受onkeydown事件
+wbLayout_table.go("/res/table.html");
+
+
+
+
+/* 
+ * 获取当前表中选中的行
+ * -- 返回tr元素
+ */
+function currentRow() {
+	var eleTable = wbLayout_table.queryEle("#list");
+	var eleTr = web.layout.behavior.grid.getCurrentRow(eleTable);
+	if(eleTr) return eleTr;
+	else return false;
+}
+
+
+
+
+/* 
+ * 设置排序按钮中span的背景色
+ */
+function sortSpanColor(ele) {
+	var sortButtonSpans = wbLayout_table.queryEles(".sort");
+	for(i=1;#sortButtonSpans;1) {
+		sortButtonSpans[i].style["background-color"] = 'transparent';
+	}
+	ele.style["background-color"] = "#ceede3";
+	return true;
+}
+
+
+/*
+ * 初始化列表
+ */
+function initList() {
+	sortSpanColor(wbLayout_table.queryEle("#time_desc_"));
+	binFM.db.list(wbLayout_table,"",1);
+}
+
+
+/*
+ * 标记正在播放的曲目
+ */
+function markNowPlaying() {
+	var nowPlaying = binFM.song();
+	if(nowPlaying) {
+		try{
+			wbLayout_table.queryEle("#s"++nowPlaying["sid"]).innerHTML = '<img src=\"\\res\\images\\status_now.png\" />';
+			wbLayout_table.queryEle("#t"++nowPlaying["sid"]).innerHTML = "正在播放";
+		}
+	}
+}
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_table.onButtonClick = {
+	// =============================
+	// 显示红心兆赫歌曲按钮
+	// =============================
+	show_like = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(wbLayout_table.queryEle("#time_desc_"));
+		if(layoutEle.value) {
+			wbLayout_table.queryEle("#fresh_like").style["transition"] = " opacity(linear,400ms)";
+			wbLayout_table.queryEle("#fresh_like").style["opacity"] = "1";
+			wbLayout_table.queryEle("#fresh_like").style["display"] = "block";
+			showLiked = true;
+			order = "gotTime DESC";
+			binFM.db.list(wbLayout_table,,1,order);
+		}
+		else {
+			wbLayout_table.queryEle("#fresh_like").style["transition"] = " opacity(linear,400ms)";
+			wbLayout_table.queryEle("#fresh_like").style["opacity"] = "0";
+			wbLayout_table.queryEle("#fresh_like").style["display"] = "none";
+			showLiked = false;
+			order = "gotTime DESC";
+			binFM.db.list(wbLayout_table,,1,order);	
+		}
+	}
+	// =============================
+	// 收听红心兆赫按钮
+	// =============================
+	fresh_like = function (layoutEle,reason,behaviorParams) { 
+		binFM.to.channel(-3);
+	}
+	// =============================
+	// 排序按钮
+	// =============================	
+	time_desc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "gotTime DESC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	time_asc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "gotTime ASC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	artist_asc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "artist ASC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	album_asc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "albumTitle ASC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	channel_asc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "cTitle ASC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	genre_asc_ = function (layoutEle,reason,behaviorParams) { 
+		sortSpanColor(layoutEle);
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		order = "genre ASC";
+		binFM.db.list(wbLayout_table,keywords,1,order);
+	}
+	// =============================
+	// 喜欢 / 取消按钮
+	// =============================	
+	tableToLike = function(ltTarget,ltEle,reason,behaviorParams){ 
+		if(ltTarget.class=="table-like") binFM.to.like(,ltTarget.sid,"like");
+		else binFM.to.like(,ltTarget.sid,"cancel");
+	}
+	// =============================
+	// 分页导航按钮
+	// =============================	
+	first = function (layoutEle,reason,behaviorParams) {  
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		binFM.db.list(wbLayout_table,keywords,1,order);                
+	}
+	last = function (layoutEle,reason,behaviorParams) {
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		binFM.db.list(wbLayout_table,keywords,countOfPages,order);                
+	}        
+	pre = function (layoutEle,reason,behaviorParams) {
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		var pageCurrent_ = pageCurrent - 1;
+		if(pageCurrent_<1){
+			pageCurrent_ = 1;                        
+		}
+		binFM.db.list(wbLayout_table,keywords,pageCurrent_,order);
+	}                 
+	next = function (layoutEle,reason,behaviorParams) {
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		var pageCurrent_ = pageCurrent + 1;
+		if(pageCurrent_>countOfPages){
+			pageCurrent_ = countOfPages;
+		}
+		binFM.db.list(wbLayout_table,keywords,pageCurrent_,order);
+	}                 
+	search = function (layoutEle,reason,behaviorParams) {
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		binFM.db.list(wbLayout_table,keywords,1,order);   
+	}                 
+}
+
+
+
+
+/*
+ * 响应菜单点击事件
+ */
+wbLayout_table.onMenuItemClick =  {
+	copyTitle_3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		try {
+			var title = currentRow().child(3).innerHTML;
+			if(title && title!="") win.clip.write(title);
+		}
+	}
+	baidu_3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		try {
+			var title = currentRow().child(3).innerHTML;
+			var artist = currentRow().child(4).innerHTML;		
+			if(!artist) artist = "";
+			if(title && title!="") {
+				title, artist = binFM.string.doTitleArtist(title, artist);
+				process.execute("http://music.baidu.com/search?key=" ++ title ++ " " ++ artist);
+			}
+		}
+	}
+	addFavArtist_3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = string.replace(currentRow().id,"@@r","");
+		if(sid) {
+			var artist_id = binFM.artistId(sid);
+			if(artist_id) binFM.db.saveArtist(artist_id,"_",,,,"fav");
+		}
+		..binFM.ui.loadFavList();
+	}
+	addFavAlbum_3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var sid = string.replace(currentRow().id,"@@r","");
+		if(sid) var song = binFM.song(sid,"history");
+		if(song) {
+			var aid = string.replace(song["albumUrl"],"@@/subject/","");
+			if(aid) aid = string.replace(aid,"@@/","");
+			if(aid && song["albumTitle"]) binFM.db.saveAlbum(aid,song["albumTitle"],,,,,"fav");
+		}
+		..binFM.ui.loadFavList();
+	}
+	toDoubanAlbum_3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		try {
+			var sid = string.replace(currentRow().id,"@@r","");
+			var albumUrl = binFM.db.songDetail(sid,"albumUrl");
+			if(albumUrl) process.execute("http://music.douban.com" ++ albumUrl);
+		}
+	}
+	baidu_img3 = function (ltTarget,ltEle,reason,behaviorParams) {
+		try {
+			var title,artist;
+			artist = currentRow().child(4).innerHTML;		
+			if(artist && artist!="") {
+				title, artist = binFM.string.doTitleArtist(title, artist);
+				process.execute("http://image.baidu.com/i?tn=baiduimage&ipn=r&cl=2&lm=-1&st=-1&fm=result&fr=&sf=1&pv=&ic=0&nc=1&z=&se=1&showtab=1&fb=0&width=&height=&face=0&istype=2&ie=utf-8&word=" ++ inet.url.encode(binFM.string.toUTF8(artist)));
+			}
+		}
+	}
+}
+
+
+
+
+/*
+ * 回车键事件
+ */
+wbLayout_table.onKeyDown = function (ltTarget,ltEle,keyCode, altState, ltKeyParams) {
+    if( keyCode == 0xD/*_VK_RETURN*/ ){
+		var keywords = string.trim(wbLayout_table.getEle("keywords").value);
+		binFM.db.list(wbLayout_table,keywords,1);
+        return true;
+    }
+}
+
+
+
+
+/*
+ * 窗体事件
+ */
+tableForm.wndproc = {
+    [0x6/*_WM_ACTIVATE*/] = function (hwnd, message, wParam, lParam) {
+        if ( ::HIWORD(wParam) !== 0 ){
+			// 最小化
+
+        }
+        else tableFormShown = true; //正常   
+
+		select ( ::LOWORD(wParam) ) {
+			case 0x1 {/*_WA_ACTIVE*/ // 被激活
+				tableFormShown = true;
+			}
+			case 0x2 { /*_WA_CLICKACTIVE*/  // 被鼠标点击激活
+				tableFormShown = true;
+			}
+			case 0x0 { /*_WA_INACTIVE*/  // 失去焦点
+
+			}
+		}
+	}
+	
+	[0x10/*0x10/*_WM_CLOSE*/] = function(hwnd,message,wParam,lParam) {
+		// 当窗体关闭时
+		tableForm.show(false);
+		tableFormShown = false;
+		return "noclose";
+	}
+}
+
+//tableForm.show();
+
+
+win.loopMessage();
+
+return tableForm;

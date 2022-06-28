@@ -1,0 +1,139 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="原材料用量计算 (ctrl复制板材料用量, alt复制粉末用量, ctrl+alt同时复制, 选择多行时用\分隔)";right=1215;bottom=575)
+winform.add(
+button={cls="button";text="计算";left=80;top=8;right=152;bottom=32;dl=1;dt=1;z=3};
+edit={cls="edit";left=8;top=56;right=152;bottom=568;ah=1;db=1;dl=1;dt=1;edge=1;font=LOGFONT(h=-16);multiline=1;vscroll=1;z=1};
+listview={cls="listview";left=160;top=8;right=1208;bottom=568;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-13);z=2}
+)
+/*}}*/
+
+//import console
+//console.open()
+import win.ui.grid;
+var grid = win.ui.grid(winform.listview);//创建数据视图
+
+
+
+class 下料尺寸{
+
+	ctor( size_str ){
+		if !size_str return; 
+		if !..string.indexOf(size_str,"*") return ; 
+		precision = 3;
+		var s = ..string.split(size_str,"*");
+		this.l = s[1];
+		this.w = s[2];
+		this.t = s[3];
+		var m = this.l * this.w * 2 * 0.18 / 0.9 / 1000000; //白色粉末 0.9, 特殊粉末0.5
+		this.powder = (m<0.001) ? 0.001 : ..math.round(m, precision);
+		//'利用率93.31%标准计算，密度7.85，最终结果保留3位小数  2021.12.13 更新
+		var n = this.l * this.w * this.t * 7.85 / 0.9331 / 1000000;
+		this.metel = (n<0.001) ? 0.001 : ..math.round(n, precision);
+		this.raw = (function(t){
+			var rawTab = {
+				[5] =	{["物料"] = "H0087500182-G"; ["物料描述"] = "定尺料组 热锌板 0.5*1250*C"; ["价格"] = 5.89};
+				[6] =	{["物料"] = "H0087500185-G"; ["物料描述"] = "定尺料组 热锌板 0.6*1250*C"; ["价格"] = 5.79};
+				[7] =	{["物料"] = "H0087500186-G"; ["物料描述"] = "定尺料组 热锌板 0.7*1250*C"; ["价格"] = 5.74};
+				[8] =	{["物料"] = "H0087500191-G"; ["物料描述"] = "定尺料组 热锌板 0.8*1250*C"; ["价格"] = 5.83};
+				[10] =	{["物料"] = "H0087500284-G"; ["物料描述"] = "定尺料组 热锌板 1.0*1250*C"; ["价格"] = 5.42};
+				[12] =	{["物料"] = "H0087500193-G"; ["物料描述"] = "定尺料组 热锌板 1.2*1250*C"; ["价格"] = 5.42};
+				[15] =	{["物料"] = "H0087500188-G"; ["物料描述"] = "定尺料组 热锌板 1.5*1250*C"; ["价格"] = 5.42};
+				[20] =	{["物料"] = "H0087500190-G"; ["物料描述"] = "定尺料组 热锌板 2.0*1250*C"; ["价格"] = 5.42};
+			}
+			if !..table.find({5,6,7,8,10,12,15,20}, t*10) return null; 
+			else return rawTab[ t*10 ]; 
+		})(this.t)
+	};
+}
+
+winform.button.oncommand = function(id,event){
+	var pArr = string.split(winform.edit.text,'\n');
+	pArr = table.unique(pArr);
+	winform.edit.text = string.replace( string.join(pArr,'\n'), '\n\r\n', '\n');
+
+	var tab=table.create(,{fields = {
+									[1]="尺寸";
+									[2]="物料";
+									[3]="物料描述";
+									[4]="物料属性";
+									[5]="钣金用量";
+									[6]="粉末用量";
+									[7]="钣材价格";
+									[8]="喷粉后总价";
+									
+								}
+							}
+						);
+	
+	for (i=1;#pArr;1){
+		if !pArr[i] continue;
+		var rez = 下料尺寸(pArr[i]);
+		var t={}
+		if !rez continue;
+		t["尺寸"] = pArr[i];
+		t["物料"] = rez.raw ? rez.raw.物料 : "";
+		t["物料描述"] = rez.raw ? rez.raw.物料描述 : "";
+		t["物料属性"]= "ROH";
+		t["钣金用量"]= rez.metel;
+		t["粉末用量"]= rez.powder;
+		t["钣材价格"]= math.round( rez.metel * rez.raw.价格, 2);
+		t["喷粉后总价"]= math.round(rez.powder * 16.05 /* 粉末价格 */ + t["钣材价格"], 2);
+		
+		table.push(tab,t);
+	}
+
+	grid.setTable(tab)
+
+	winform.listview.setColumn({cx=120}, 1)
+	winform.listview.setColumn({cx=120}, 2)
+	winform.listview.setColumn({cx=250}, 3)
+	winform.listview.setColumn({cx=50}, 4)
+	winform.listview.setColumn({cx=50}, 5)
+	winform.listview.setColumn({cx=50}, 6)
+	winform.listview.setColumn({cx=80}, 7)
+	winform.listview.setColumn({cx=100}, 8)
+
+}
+/*CTRLC复制模块{{*/
+import win.clip;
+winform.listview.translateAccelerator = function( msg ){ 
+    var ctrl = ::GetKeyState(0x11/*_VK_CTRL*/) & 0x8000;
+//    var shift =  ::GetKeyState(0x10/*_VK_SHIFT*/) & 0x8000;
+    var alt = ::GetKeyState(0x12/*_VK_ALT*/) & 0x8000;
+
+    var vk = msg.wParam ;
+
+	if (vk == 'C'#) && ctrl && !alt && (msg.message == 0x100/*_WM_KEYDOWN*/) {
+	    	var tab = {};
+	    	for (i=1;#winform.listview.selected){
+	        	table.push(tab, winform.listview.items[winform.listview.selected[i]][5])
+	    	}           
+			win.clip.write(string.join(tab,'\\'))
+	}
+	if (vk == 'C'#) && !ctrl && alt && (msg.message == 0x104/*_WM_SYSKEYDOWN*/){
+        	var tab = {};
+        	for (i=1;#winform.listview.selected){
+            	table.push(tab, winform.listview.items[winform.listview.selected[i]][6])
+        	}           
+			win.clip.write(string.join(tab,'\\'))
+	}
+	if (vk == 'C'#) && ctrl && alt && (msg.message == 0x100/*_WM_KEYDOWN*/){
+	    	var t={}
+	    	var tab1 = {};
+	    	var tab2 = {};
+	    	for (i=1;#winform.listview.selected){
+	        	table.push(tab1, winform.listview.items[winform.listview.selected[i]][5])
+	        	table.push(tab2, winform.listview.items[winform.listview.selected[i]][6])
+	    	} 
+	    	table.push(t, string.join(tab1,'\\'))
+	    	table.push(t, string.join(tab2,'\\'))
+	              	
+			win.clip.write(string.join(t,'\n'))
+	}
+}
+/*}}*/
+
+winform.show();
+win.loopMessage();
+return winform;

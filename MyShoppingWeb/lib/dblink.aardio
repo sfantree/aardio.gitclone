@@ -1,0 +1,305 @@
+﻿
+namespace dblink{
+	import sqlServer;
+	db = null;
+	err = null;
+	link = function(){
+		db,err  = sqlServer( 
+        	server= ".\SQLEXPRESS"; 
+        	database= "WebShop";
+        	uid = "light";
+        	pwd= "123"; 
+		);
+		if (!db) {
+			return false; 
+		}
+		return true;
+	}
+	
+	close = function(){
+		if (db) {
+			db.close();
+		}
+	}
+	
+	test = function(){
+		import console;
+		try{
+			for(rs,fields in db.each("SELECT * FROM admin") ){ 
+		 		if (rs) {
+		 		 	console.log("adimn works!");
+		 		 	break ;
+		 		}
+			}
+			for(rs,fields in db.each("SELECT * FROM good") ){ 
+		 		if (rs) {
+		 		 	console.log("good works!");
+		 		 	break ;
+		 		}
+			}
+			for(rs,fields in db.each("SELECT * FROM goodtype") ){ 
+		 		if (rs) {
+		 		 	console.log("goodtype works!");
+		 		 	break ;
+		 		}
+			}
+			for(rs,fields in db.each("SELECT * FROM customer") ){ 
+		 		if (rs) {
+		 		 	console.log("customer works!");
+		 		 	break ;
+		 		}
+			}
+			
+			for(rs,fields in db.each("SELECT * FROM goodorder") ){ 
+		 		if (rs) {
+		 		 	console.log("order works!");
+		 		 	break ;
+				}
+			}		
+		}catch (e) {
+			console.log(e);
+		}		
+	}
+	
+	
+	login = function(username,password){
+		link();
+		var tabadmin = db.getTable("SELECT * FROM admin");
+		for(k,v in tabadmin){
+			if(v.username == username && v.password == password){
+				return "admin"; 
+			}
+		
+		}
+		var tabcustomer = db.getTable("SELECT * FROM customer");
+		for(k,v in tabcustomer){
+			if(v.username == username && v.password == password){
+				return "user"; 
+			}
+		
+		}
+		close();
+		return null;
+	}
+	
+	queryUserInfo = function(username){
+		link();
+		var tabcustomer = db.getTable("SELECT * FROM customer");
+		for(k,v in tabcustomer){
+			if(v.username == username){
+				return v; 
+			}	
+		}
+		close();
+		return null; 	
+	}
+	
+	queryGoodInfo = function(goodname){
+		link();
+		var tabgood = db.getTable("SELECT * FROM good");
+		for(k,v in tabgood){
+			if(v.goodname == goodname){
+				//v.type = db.getTable("SELECT type FROM goodtype WHERE id = "++v.type)[1].type;
+				return v; 
+			}	
+		}
+		close();	
+		return null; 
+	}
+	
+	goodInfo = function(){
+		link();
+		var goodinfo = db.getTable("SELECT * FROM good"); 
+		import console;
+		for(k,v in goodinfo){
+			//console.log(type(v.type),":",v.type);
+		}
+		var goodtype = null;
+		var goodtypelist = db.getTable("SELECT * FROM goodtype");
+		for(k,v in goodtypelist){
+			..console.dump(v);
+		}
+		for(i=1;#goodinfo;1){
+			for(k,v in goodtypelist){
+				if(goodinfo[i].type == v.id){
+					goodinfo[i].type = v.type;
+				}
+			}
+		}
+		return goodinfo; 
+		close();
+	}
+	
+	userInfo = function(){
+		link();
+		return db.getTable("SELECT * FROM customer"); 
+		close();
+	}
+	
+	orderInfo = function(){
+		link();
+		var orderinfo = db.getTable("SELECT * FROM goodorder"); 
+		var goodlist = db.getTable("SELECT * FROM good");
+		for(k,v in goodlist){
+			..console.dump(v);
+		}
+		for(i=1;#orderinfo;1){
+			for(k,v in goodlist){
+				if(orderinfo[i].goodid == v.id){
+					orderinfo[i].goodid = v.goodname;
+				}
+			}
+		}
+		var userlist = db.getTable("SELECT * FROM customer");
+		for(k,v in userlist){
+			..console.dump(v);
+		}
+		for(i=1;#orderinfo;1){
+			for(k,v in userlist){
+				if(orderinfo[i].userid == v.id){
+					orderinfo[i].userid = v.username;
+				}
+			}
+		}	
+		return orderinfo;
+		close();
+	}
+	
+	queryOrderInfo = function(username){
+		link();
+		var orderinfo = db.getTable("SELECT * FROM goodorder"); 
+		var goodlist = db.getTable("SELECT * FROM good");
+		for(k,v in goodlist){
+			..console.dump(v);
+		}
+		for(i=1;#orderinfo-1;1){
+			for(k,v in goodlist){
+				if(orderinfo[i].goodid == v.id){
+					orderinfo[i].goodid = v.goodname;
+				}
+			}
+		}
+		var userlist = db.getTable("SELECT * FROM customer");
+		for(k,v in userlist){
+			..console.dump(v);
+		}
+		for(i=1;#orderinfo-1;1){
+			for(k,v in userlist){
+				if(orderinfo[i].userid == v.id){
+					orderinfo[i].userid = v.username;
+				}
+			}
+		}	
+		var neworderinfo = {};
+		for(k,v in orderinfo){
+			if(v.userid == username){
+				..table.push(neworderinfo,v);
+			}
+		}	
+		return neworderinfo;
+		close();
+	}
+	newGoodOrder = function(username,goodname,num){
+		link();
+		import console;
+		var count = tonumber(db.getTable("SELECT count FROM customer WHERE username = '%s'",username)[1].count);
+		..console.log("count:",db.getTable("SELECT count FROM customer WHERE username = '%s'",username)[1].count);
+		..console.dump(db.getTable("SELECT count FROM customer WHERE username = '%s'",username));
+		var price = tonumber(db.getTable("SELECT price FROM good WHERE goodname = '%s'",goodname)[1].price);
+		..console.log("price:",price);
+		var leftnum = tonumber(db.getTable("SELECT leftnum FROM good WHERE goodname = '%s'",goodname)[1].leftnum);
+		..console.log("leftnum:",leftnum);
+		var goodid = tonumber(db.getTable("SELECT id FROM good WHERE goodname = '%s'",goodname)[1].id);
+		..console.log("goodid:",goodid);
+		num = tonumber(num);
+		if(leftnum < num){
+			return false;
+		}
+		elseif(count < price * num){
+			return false; 
+		}
+		else {
+			//改
+			count = count - price * num;
+			leftnum = leftnum - num;
+			var onum = num;
+			var ogoodid = goodid;
+			db.exec("update customer set count='%s' WHERE username='%s' ",tostring(count),username);
+			db.exec("update good set leftnum='%s' WHERE goodname='%s' ",tostring(leftnum),goodname);
+			var ouserid = db.getTable("SELECT id FROM customer WHERE username = '%s'",username)[1].id;
+			var orderlist = db.getTable("SELECT * FROM goodorder"); 
+			var goodorder = orderlist[#orderlist].id;
+			goodorder = tostring(tonumber(goodorder) + 1);
+			db.exec( "INSERT INTO goodorder(id,userid,goodid,num) VALUES(@id,@userid,@goodid,@num)",{
+				id = goodorder;
+				userid = ouserid;
+				goodid = ogoodid;
+				num = onum;
+			} );
+			return true; 
+		}
+		close();
+		
+	}
+	
+		
+}
+/**
+import sqlServer;
+import console;
+
+//创建数据库
+var db,err  = sqlServer( 
+        server= ".\SQLEXPRESS";
+        database= "WebShop";
+        uid = "light";
+        pwd= "123"; 
+)
+assert(  db,err );
+
+/*
+//创建表
+if(!db.existsTable("homepage2") ){
+	db.exec("create table homepage2 (url char(30), comment char(20))")
+}
+
+//使用命令参数 - 参数化可避免SQL注入
+var cmd = db.createCommand( "INSERT INTO homepage2(url,comment) VALUES(@url,@comment)" );  
+cmd.bind("homepage2").parameters( 
+	url = "http://www.ecranesoft.com";
+	comment = "hi!";
+)
+cmd.Execute() //执行命令
+
+//增 - 调用 access.formatParameter() 格式化命名参数生成SQL语句
+db.exec( "INSERT INTO homepage2(url,comment) VALUES(@url,@comment)",{
+	url = "http://www.aardio.net";
+	comment = "字符串包含'单引号' 测试一下"
+} )
+
+//删 - 自动调用 string.format() 函数格式化SQL语句,简单拼接字符串应避免包含单引号
+db.exec("delete from homepage2 where url='%s'","http://www.ecranesoft.com");
+
+//改
+db.exec("update homepage2 set url='%s' WHERE comment='%s' ","http://www.aardio.com","这是说明")
+ 
+//查
+for(rs,fields in db.each("SELECT * FROM good") ){ 
+	console.log( rs("goodname").value,rs("price").value )  
+}
+ 
+*/
+/*
+//将查询结果转换为普通数组
+var tab = db.getTable("SELECT goodname FROM good where price = 200");
+console.varDump(tab);
+*/
+
+
+for(rs,fields in db.each("SELECT * FROM good") ){ 
+	console.log( rs("goodname").value,rs("price").value )  
+}
+//关闭数据库连接
+db.close();
+console.pause();
+**/

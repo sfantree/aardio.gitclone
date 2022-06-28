@@ -1,0 +1,31 @@
+﻿import hpsocket.socket.client;
+namespace hpsocket.socket;
+
+class tcpClient{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.client(obj);
+	};
+	sendSmallFile = function(filename,head,tail){
+		if( head ) head ={ INT len=#head;ptr head = head }
+		if( tail ) tail ={ INT len=#tail;ptr tail = tail }
+		return 	::HPSocket.HP_TcpClient_SendSmallFile(this.pSocket,..io.fullpath(filename),head, tail);
+	}
+	setSocketBufferSize = function(v){
+		::HPSocket.HP_TcpClient_SetSocketBufferSize(this.pSocket,v);
+	}
+	getSocketBufferSize = function(){
+		return ::HPSocket.HP_TcpClient_GetSocketBufferSize(this.pSocket);
+	}
+	setKeepAliveTime = function(v){
+		::HPSocket.HP_TcpClient_SetKeepAliveTime(this.pSocket,v);
+	}
+	getKeepAliveTime = function(){
+		return ::HPSocket.HP_TcpClient_GetKeepAliveTime(this.pSocket);
+	}
+	setKeepAliveInterval = function(v){
+		::HPSocket.HP_TcpClient_SetKeepAliveInterval(this.pSocket,v);
+	}
+	getKeepAliveInterval = function(){
+		return ::HPSocket.HP_TcpClient_GetKeepAliveInterval(this.pSocket);
+	}
+}

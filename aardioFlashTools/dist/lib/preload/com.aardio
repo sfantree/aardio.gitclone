@@ -1,0 +1,320 @@
+﻿//com 组件接口
+namespace preload;
+self.com = global.com;
+
+namespace com { 
+    
+    SafeArrayType = function(v){
+    	if( type(v)==="table" ) return v@[["_safearray_type"]];
+    };
+    
+	SafeArrayV = function(a,t){
+		return { _safearray = a : {};  _type = t : 0xC/*_VT_VARIANT*/};
+	};
+	
+	ConnectWeak = function(comObj,realSink){
+		return Connect(comObj,{ 
+			realSink = realSink;
+			@{ 
+				_get = realSink; 
+				_set = function(k,v){ realSink[[k]] = v };
+				_weak="v";
+				@{_weak="v"} 
+			}  
+		}); 	
+	};
+	
+	CreateEmbedEx = function(clsId,ctrl,embed){
+		if(ctrl) return ctrl.createEmbedEx(progId,embed);
+		if(!embed) embed = {};
+		
+		embed._object = CreateObject(clsId);
+		embed._event = {} 
+		
+		Connect(embed._object,embed._event);
+		
+		embed@ = {
+			_get = embed._object;
+			_set = function(k,v){ 
+				if(type(v) === "function") owner._event[[k]] = v;
+				else owner._object[k] = v; 
+			}
+		};
+		
+		return embed; 
+	};
+	
+	TryCreateObject = function(cls,...){
+		var ok,obj = call(CreateObject,self,cls)
+		if( ok ) return obj;
+		if( !... ) return null,obj;
+		return TryCreateObject(...); 
+	};
+	
+	TryGetObject = function(cls,...){
+		var ok,obj = call(self.GetObject,self,cls)
+		if( ok ) return obj;
+		if( !... ) return null,obj;
+		return TryGetObject(...); 
+	}; 
+	
+	GetOrCreateObject = function(...){
+		return TryGetObject(...) || TryCreateObject(...)
+	};
+	
+	eachRunning = function(name){
+    	var r = {}
+		enumRunning( 
+			function(_,o){
+				try{
+					var n = GetTypeInfo(o).GetDocumentation().name;
+					if( !name || name == n ) ..table.push(r,{o,n});
+				}
+			}
+		)
+		
+		var k,v;
+		return function(){
+			k,v = ..table.next(r,k);
+			if(v) return v[1],v[2],k
+		}
+	};
+	
+	QueryObjectR = function(p){
+		var r = ..com.QueryObject(p);
+		if(r){ Release(p) };
+		return r;
+	}
+	
+	each = function(obj) {
+		if (type(obj) == type.function) obj = obj();
+		
+		var enum;
+		if (!IsObject(obj)) {
+			if( isEnumerator(obj) ) enum = obj; 
+			else error('\n{Bad argument}:@1\n{Expected}:COM object\n{Got}:'+type(obj), 2); 
+		}
+		else {
+			enum = GetEnumerator(obj);
+		}
+
+		var index = 0;
+		return function() {
+			var value = enum.Next();
+			if (value) {
+				index = index + 1;
+				return index,value;
+			}
+		},function(){
+			Release(enum);
+			enum = null;
+		} 
+	};
+	 
+	first = function(obj){
+		var enum = obj ? GetEnumerator(obj);
+		if(enum){
+			var value = enum.Next();
+			Release(enum); 
+			return value;
+		}  
+	};
+ 
+	float = lambda(v) Variant(v,4/*_VT_R4*/); 
+	double = lambda(v) Variant(v,5/*_VT_R8*/); 
+	byte = lambda(v) Variant(v,0x10/*_VT_I1*/); 
+	ubyte = lambda(v) Variant(v,0x11/*_VT_UI1*/); 
+	word = lambda(v) Variant(v,2/*_VT_I2*/); 
+	uword = lambda(v) Variant(v,0x12/*_VT_UI2*/); 
+	int = lambda(v) Variant(v,3/*_VT_I4*/); 
+	uint = lambda(v) Variant(v,0x13/*_VT_UI4*/); 
+	long = lambda(v) Variant(v,0x14/*_VT_I8*/); 
+	ulong = lambda(v) Variant(v,0x15/*_VT_UI8*/);
+	
+	int8 = byte; //@Deprecated
+	uint8 = ubyte; //@Deprecated 
+	int16 = word;  //@Deprecated
+	uint16 = uword; //@Deprecated 
+	int32 = int; //@Deprecated 
+	uint32 = uint; //@Deprecated 
+	int64 = long; //@Deprecated 
+	uint64 = ulong; //@Deprecated 
+} 
+
+/**intellisense()
+com = COM组件支持库,\n虽然这是内核库，但例外的是这个库不会自动导入,\n如果在已经导入win.ui的界面线程，win.ui会负责自动导入com库\n[使用手册相关文档](chm://libraries/kernel/com/com.html)
+end intellisense**/
+
+/**intellisense(com)
+first(__) = 对传入的 COM 对象调用 com.each 创建迭代器,\n执行该迭代器并返回第一次返回的 COM 对象,\n如果传入参数为 null 或 false 则直接返回
+each = @for index,obj in com.each(__) {\n\n} //迭代遍历com集合对象，参数可以直接传入COM迭代器
+DoObjectVerb(.(OLE对象,-1) = 执行OLE对象的动词,\n参数2可使用_OLEIVERB_前缀常量
+SafeArrayType(__) = 如果传入参数为 SafeArray 数组,\n返回一个表示数组元素类型的数值,该值应以 _VT_ 前缀的常量进行比对\n支持 com.SafeArray 创建的数组,或 COM 函数返回的数组,\n参数如果是 com.SafeArrayV 创建的 SafeArray 数组封装对象,返回 null,\n参数如果是 com.Variant 创建的 Variant 对象,返回 null,\n参数是其他类型值,也返回 null
+SafeArrayV(.(数组,元素类型) = 返回 SAFEARRAY 数组包装对象,\n该对象的 _safearray 属性指向参数传入的数组,_type 指向数组类型,\n注意此函数返回的对象不是 SafeArray 数组，也不会修改传入的数组，\n返回对象仅用于在调用 COM 函数时自动转换为 SAFEARRAY 数组。\n\n参数@1可以是数组,字符串,buffer,也可以指定null值并转换为空数组,\n元素类型不指定时默认为VT_VARIANT,VT_VARIANT数组兼容 VBS 数组\n类型为 VT_ILLEGAL 则单个值与数组元素类型均自动设定,这是调用 COM 接口的默认规则,\n单个整数默认 COM 类型为 _VT_I4（int）,小数 COM 类型为 _VT_R8（double）,\n纯字符串数组默认为 _VT_BSTR,纯数值类型默认为 _VT_R8（double）,\n其他数组类型默认为 _VT_VARIANT
+SafeArray(_VT__/*元素类型*/) = 创建 COM 安全数组（ SAFEARRAY ）,\n可增加一个或多个参数指定数组成员,\n返回的数组兼容普通数组,但 数组@._safearray_type 指定了COM类型，\nCOM 函数传入传出 COM 数组均使用此格式,\n\n元素类型不指定时默认为VT_VARIANT,VT_VARIANT数组兼容 VBS 数组\n类型为 VT_ILLEGAL 则单个值与数组元素类型均自动设定,这是调用 COM 接口的默认规则,\n单个整数默认 COM 类型为 _VT_I4（int）,小数 COM 类型为 _VT_R8（double）,\n纯字符串数组默认为 _VT_BSTR,纯数值类型默认为 _VT_R8（double）,\n其他数组类型默认为 _VT_VARIANT
+CreateEmbed( = 创建 COM 控件对象,\n通常不会直接使用此函数,\n应改用窗口或控件对象提供的 CreateEmbed 或 CreateEmbedEx 函数,\n或者 com.lite 提供的 CreateEmbed 或 CreateEmbedEx 函数
+CreateEmbed(.(embedObject,formOrCtrl,progId) = 创建 COM 控件对象并嵌入 @formOrCtrl 指定的窗体或控件窗口\n@progId 指定要创建的 COM 控件的 ProgID 或者 CLSID\n@embedObject 用一个表指定容器对象\n容器对象可以是一个空的表用于接管 COM 对象\n\n函数返回该容器对象并添加成员_host,_object,_form\n_object 成员是创建的 COM 对象,\n_form 是传入参数中的 @formOrCtrl,\n_host 是 COM 控件宿主对象,提供部分 OLE 接口函数,\n\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的另主要作用是充当访问 COM 对象的中间代理对象。\n通常使用 util.metaProperty 为容器对象添加属性元表，\n属性元表可拦截属性、函数调用并调用 _object 对象
+CreateEmbed(.(embedObject,formOrCtrl,comObject) = 创建 COM 控件对象并嵌入 @formOrCtrl 指定的窗体或控件窗口\n@comObject 参数指定 com.IDispatch 对象,\n@embedObject 用一个表指定容器对象
+CreateObject("__") = 创建并返回 com.IDispatch 对象,参数@1可指定CLSID或ProgID,\n创建失败会抛出异常,使用com.TryCreateObject代替不会抛异常
+GetObject("__") = 从已运行的实例获取并返回 com.IDispatch 对象,\n参数@1可指定CLSID或ProgID,也可指定打开的文件路径,如doc文件,\n创建失败会抛出异常,使用com.TryGetObject代替不会抛异常
+TryCreateObject(.(cls,->->->) = 参数可指定一个或多个CLSID/ProgID,逐个测试直到创建成功,\n成功返回com.IDispatch对象,\n创建失败返回null,错误信息,不会抛出异常,\n参数@1可指定CLSID或ProgID
+TryGetObject("__") = 从已运行的实例获取并返回com.IDispatch对象,\n参数可指定一个或多个CLSID/ProgID,也可指定要打开的文件路径,如doc文件,\n\n创建失败返回null,错误信息,不会抛出异常
+GetOrCreateObject("__")  = 参数可指定一个或多个CLSID/ProgID,\n首先调用 com.TryGetObject 尝试获取并返回已运行的实例,\n如果失败则调用 com.TryCreateObject 函数尝试创建并返回对象,\n\n创建失败返回null,错误信息,不会抛出异
+CreateEmbedEx( = 创建 COM 控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n此函数返回的容器已添加元表并创建代理以直接访问 COM 对象
+CreateEmbedEx(.(clsId,ctrlOrForm,embedObject) = 创建 COM 控件,返回控件容器对象,\n此函数返回的容器已添加元表并创建代理以直接访问 COM 对象,\n@clsId 指定控件 CLSID 或者 ProgID,\n可先用 @ctrlOrForm 指定宿主窗口,\n可选在参数 @embedObjec 中指定 COM 对象绑定的容器对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n\n如果指定了窗主窗口,此函数将容器对象身自注册为默认事件监听器,\n并在窗口销毁时解除事件监听器并释放COM对象，\n\n如果未指定宿主窗口,此函数为容器对象创建 _event成员作为 默认事件监听器,\n但可以通过指定容器对象的成员函数同步添加为 _event 的事件函数
+QueryObject(__/*IUnknown指针*/ )  = 查询 IDispatch 接口、并创建 com.IDispatch 对象
+QueryObjectR(__/*IUnknown指针*/ )  = 查询 IDispatch 接口、并创建 com.IDispatch 对象\n如果成功则调用 com.Release 释放传入的 IUnknown 指针\n使其引用计数减一,释放的指针不应再使用,\n返回的 COM 对象会增加引用计数,\n并在对象释放时自动减一
+IsObject(__/*任意对象*/) = 检测参数是否一个动态 COM 对象（IDispatch 对象）
+IsNetObject(__/*任意对象*/) = 检测参数是否一个 .Net 原生对象，是则返回非 0 值。\n如果是普通 .Net 对象返回 1，如果是 DispatchableObject 对象返回 2
+GetPointer(.(com对象) = 获取IDispatch指针\n该指针返回前已调用AddRef增加COM引用计数,\n不再使用时必须及时调用com.Release释放
+GetPointer(.(com对象或指针,GUID) = 使用GUID指定接口获取原生指针,\n该指针返回前已调用AddRef增加COM引用计数,\n不再使用时必须及时调用com.Release释放,\n参数@1可是com对象、com.IUnknown对象、或可转换为指针的对象\n参数@2可用文本格式表示,省略时默认为IID_IUnknown
+GetIUnknown(.(com对象或指针,GUID) = 使用GUID指定接口获取com.IUnknown托管指针\n参数@1可是任何可以转换为指针的对象,与API参数规则相同,\n可选在参数@2使用字符串或GUID指定接口\n该指针自动管理引用计数，无须手动释放
+IsIUnknown(.(任意参数)  = 检测参数是否一个托管com.IUnknown指针
+isEnumerator(__/*对象*/) = 检查并返回参数指定的对象是否 COM 迭代器
+ConnectWeak( = 注册弱引用自身的事件接收表\n此函数返回sink,cookie 共2个返回值，\nsink为事件接收器,cookie是一个数字值,用来记录连接点，\n这2个返回值可以用于 com.ReleaseConnection 释放事件表
+ConnectWeak(.(COM对象,事件接收表) = 参数@2指定一个table类型的表对象\n该表对象被创建为COM对象的默认事件接口并注册为事件接收器。\n\n在COM对象销毁前，com.Connect绑定的事件接收表会被强引用并被阻止回收，\n如果COM对象与事件接收表存在循环引用自身会导致COM对象无法释放,\ncom.ConnectWeak函数通过创建一个中间代理对象弱引用事件接收表，可以避免该问题，\n但要注意回调事件访问的owner对象是代理对象,使用owner.realSink可以获取真正的事件表
+Connect( = 注册事件接收表\n此函数返回sink,cookie 共2个返回值，\nsink为事件接收器,cookie是一个数字值,用来记录连接点，\n这2个返回值可以用于 com.ReleaseConnection 释放事件表。
+Connect(.(COM对象,事件监听表) = 参数@2指定一个 table 类型的表对象\n该表对象被转换为COM对象的默认事件监听器并实现默认事件接口,\n如果需要显式指定接口类型请使用 com.AddConnection。\n\ncom.Connect 绑定的事件监听表会被强引用到 COM 对象\n如果COM对象与事件接收表存在循环引用自身会导致无法释放,\n可用 com.ReleaseConnection 手动释放事件绑定,\n或者改用 com.ConnectWeak,com.CreateEmbedEx 也可以避免该问题
+AddConnection( = 绑定事件监听对象
+AddConnection(.(COM对象,事件监听对象) = 事件监听对象用 com.ImplInterface 创建\n返回一个表示事件连接点的 cookie,\n可用于释放绑定的 com.ReleaseConnection 函数
+GetEnumerator(__) = 获取枚举对象,\n参数 @1 指定 COM 对象
+GetEnumerator() = !comEnumerator.
+ShowHelp(__/*com对象*/) = 显示帮助
+RoundTrip() = 将aardio对象转换为COM对象，\n再将该COM对象转换为aardio对象
+ImplInterface(.(implObject) = 将 aardio 对象转换为支持 IDispatch 接口的 COM 对象，\n参数@1可以是普通表对象、函数对象、类对象、cdata对象。\n\n如果参数@1是函数或类对象,回调时onwer参数为 dispIdMember 数值。\n如果参数@1是表对象转换为 COM 对象，直接作为 COM 函数调用时支持 _call元方法，\n如果未定义 _call元方法则调用表对象中索引为0的函数\n通过 COM 接口调用表的成员函数时支持 _get 元方法，并将 onwerCall 参数设为 true。\n\n表对象或表的成员函数作为COM函数回调时 onwer 参数总是指向表对象自身,\ndispIdMember小于0时总是调用表索引中对应的函数,\n\n在与 COM 接口交互时，\n无法自动转换为 COM对象的 aardio 对象也会调用此函数自动转换
+ImplInterface(.(implTable,progID,interfaceName) = 使用一个 table 表转换为 @interfaceName 指定的接口对象\n例如：com.ImplInterface( flash.callevent ,"ShockwaveFlash.ShockwaveFlash","_IShockwaveFlashEvents")
+ImplInterfaceFromTypelib(.(implTable,typelibPath,interfaceName,coclassNname) = 使用类型库实现com接口
+NewObject(.(tab,progId) = 创建COM对象,可选使用参数@3指定tlb类型库路径\n此函数详细用法请参考标准库com.activeX的源代码
+NewControl(.(tab,progId) = 创建COM控件,可选使用参数@3指定tlb类型库路径\n此函数详细用法请参考标准库com.activeX的源代码
+ReleaseConnection(.(comObject,eventSink, cookie) = 释放事件监听器,\n@comObject 指定要解除事件监听器的 COM 对象,\n@eventSink 可以是 com.ImplInterface 创建的事件监听器,\n也可以使用 com.Connect 的第一个返回值 \n@cookie 来自 com.AddConnection 的返回值\n\n即使不调用此函数,\n在 COM 对象销毁后所有事件监听器会自动释放
+ReleaseConnection(.(comObject) = 释放默认事件监听器,\n@comObject 指定要解除事件监听器的 COM 对象,\n默认事件监听器由 com.Connect 函数绑定\n\n即使不调用此函数,\n在 COM 对象销毁后所有事件监听器会自动释放
+Release(__) = 释放com对象或IUnknown指针,也可用于释放com.interface创建的对象\n如果参数是pointer类型指针调用IUnknown接口Release函数使引用计数减一\n如果参数是cdata内核对象或自元表中返回cdata,则调用cdata的_gc析构函数
+DumpTypeInfo( = 输出com对象类型信息、成员函数列表\n输出到控制台请使用 console.dump 函数
+DumpTypeInfo(.(comObject) = 返回一个字符串\n包含com对象类型信息、成员函数列表,\n此函数不会输出到控制台,\n输出到控制台请使用 console.dump 函数
+GetTypeInfo(__/*com对象*/) = 返回类型信息
+Variant( = 创建VARIANT对象\n可用于 API 函数中 VARIANT* 指针类型参数,\n也可用于普通 COM 对象传值或传址参数
+Variant(.(指针,true) = 创建 VARIANT 对象\n如果参数@2为 true ,则参数@1必须为 VARIANT 指针\n调用 VariantCopyInd 函数拷贝参数指定的源 VARIANT 对象
+Variant(.(初始值) = 创建 VARIANT 对象,可选指定一个初始值,\n初始值可以是任意适用于 COM 参数的值或数组,\n可选在第二个参数中使用一个_VT_前缀的整数常量指定COM数据类型\n\n不指定类型则默认为 _VT_VARIANT,单个值自动设定类型,数组类型未指定时默认为 VT_VARIANT,\n类型为 VT_ILLEGAL 则单个值与数组元素类型均自动设定,这是调用 COM 接口的默认规则,\n单个整数默认 COM 类型为 _VT_I4（int）,小数 COM 类型为 _VT_R8（double）,\n纯字符串数组默认为 _VT_BSTR,纯数值类型默认为 _VT_R8（double）,\n其他数组类型默认为 _VT_VARIANT
+Variant() = !comVariant.
+LoadTypeLibrary(.("->tlb") = 加载类型库\n参数可以是CLSID、类型库路径、或包含类型库资源的组件路径
+LoadTypeLibrary() = !comTypeLib.
+GetTypeInfo() = !comTypeInfo.
+CreateEmbed() = !embedObject.
+enumRunning(回调函数) = @.enumRunning( \n	function(displayName,object){  \n		__/*枚举ROT（运行对象表）并获取COM对象,\n此回调函数返回true中止枚举*/\n	}\n)
+eachRunning(interfaceName) = @for object,interfaceName,index in com.eachRunning("ITest") {
+	__/*遍历ROT（运行对象表）\nobject为 COM 对象,name 为接口名称,index 为序号\n可选在参数中限定返回的接口名称*/
+} 
+SetPreferredArrayType(__/*COM 对象*/,0xC/*_VT_VARIANT*/) = 设置调用该 COM 对象时 aardio 数组参数转 COM 数组的默认类型，\n参数只能设为 _VT_VARIANT 或 _VT_ILLEGAL,默认已设置为 _VT_ILLEGAL。\n此设置值会自动传递到该 COM 对象返回的其他 COM 对象。\n\n此选项设为 _VT_ILLEGAL 将自动调整为合适的类型,规则如下：\n纯字符串数组类型设为 _VT_BSTR,\n纯数值数组类型设为 _VT_R8（double），\n其他数组类型设为 _VT_VARIANT，\n这也是所有 COM 对象的默认设置。\n\n如果要创建明确指定 COM 类型的数组参数，\n可使用 com.Variant,COM.SafeArray,COM.SafeArrayV,com.int...等函数
+byte(__) = 定义数值类型为8位整数,兼容 .Net System.SByte 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+ubyte(__) = 定义数值类型为8位无符号整数,兼容 .Net System.Byte 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+word(__) = 定义数值类型为16位整数,兼容 .Net System.Int16 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+uword(__) = 定义数值类型为16位无符号整数,兼容 .Net System.UInt16 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+int(__) = 定义数值类型为32位整数,兼容 .Net System.Int32 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象,\n\n注意普通数值传入 COM 参数时，\n整数默认转为32位整数,小数默认按double类型处理
+uint(__) = 定义数值类型为32位无符号整数,兼容 .Net System.UInt32 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+long(__) = 定义数值类型为64位整数,兼容 .Net System.Int64 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+ulong(__) = 定义数值类型为64位无符号整数,兼容 .Net System.UInt64 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+float(__) = 定义数值类型为32位浮点数,兼容 .Net System.Single 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象
+double(__) = 定义数值类型为64位浮点数,兼容 .Net System.Double 类型数值,\n参数可以为数值或数组,返回 com.Variant 对象,\n\n注意普通数值传入 COM 参数时，\n整数默认转为32位整数,小数默认按double类型处理
+end intellisense**/
+
+/**intellisense(!embedObject)
+_form = 容器窗口\n!static.
+_object = 控件对象
+_host = COM 控件宿主对象，\n提供部分 OLE 接口函数，一般没必要直接使用这个对象。
+_host.close() = 关闭 
+_host._adjust() = 自动调整控件窗口大小
+_host.tranacc(.(MSG消息对象) = 解析快捷键,\n如果是快捷键返回真值
+_host.doObjectVerb( _OLEIVERB__ ) = 执行指定的动词命令
+end intellisense**/
+
+
+/**intellisense(!comTypeInfo)
+DumpTypeInfo() = 返回一个字符串,\n列出此类型所有的成员
+GetTypeLib() = 返回类型库\n!comTypeLib.
+GetFuncDesc(__/*索引*/) = 返回函数描述\n注意超始索引为1
+GetVarDesc(__/*索引*/) = COM变量/常量描述\n注意超始索引为1
+GetTypeAttr() = 返回类型属性\n!comTypeAttr.
+GetImplType(__/*索引*/) = 返回实现接口\n注意超始索引为1
+GetImplType() = !comTypeInfo.
+GetImplTypeFlags(__/*索引*/) = 实现接口类型属性表\n返回表包含字段default,source,restricted,defaultVTable,都是布尔值,\n注意超始索引为1
+GetDocumentation() = 返回文档信息\n!comTypeDoc.
+GetFuncDesc() = !comTypeFunc.
+end intellisense**/
+
+/**intellisense(!comTypeVar)
+value = COM常量值
+name = COM变量名
+end intellisense**/
+
+/**intellisense(!comTypeFunc)
+dispatchable = 是否动态接口函数
+restricted = 是否不适合动态调用
+memid = 成员ID
+invkind = 调用类型\n可能的值为"_get","_set","_setByRef","function"
+Params = 参数数量
+ParamsOpt = 可选参数数量
+name = 函数名
+description = 描述
+helpfile = 帮助
+helpcontext = 数值，帮助上下文
+parameters = 参数描述数组
+parameters.? = !comTypeParameter.
+type = 返回值类型，字符串
+vt = 返回值类型，数值,\n数值含义与 com.Variant 对象的 vt 字段相同
+end intellisense**/
+
+/**intellisense(!comTypeParameter)
+default = 参数的默认值
+in = 是否输入参数
+opt = 是否可选参数
+out = 是否输出参数
+type = 参数类型，字符串
+vt = 参数类型，数值,\n数值含义与 com.Variant 对象的 vt 字段相同
+end intellisense**/
+
+
+/**intellisense(!comTypeDoc)
+helpstring = 对象的描述
+name = 对象接口名称
+end intellisense**/
+
+/**intellisense(!comTypeLib)
+ShowHelp() = 显示帮助
+GetTypeInfo(__/*索引*/) = 返回类型信息\n注意超始索引为1
+GetTypeInfo() = !comTypeInfo.
+GetTypeInfoCount() = 类型信息总数
+ExportConstants() = 导出常量
+ExportEnumerations() =  导出全部迭代器
+GetDocumentation() = 返回文档信息\n!comTypeDoc.
+end intellisense**/
+
+/**intellisense(!comTypeAttr)
+Funcs = 函数总数
+Vars = 属性值总数
+typekind = 类型,\n值为"coclass","enumeration","interface","dispinterface"\n"alias","union","record","module"之一
+ImplTypes = 实现接口总数
+flags.cancreate = cancreate
+flags.dispatchable = dispatchable
+flags.control = control
+flags.appobject = appobject
+flags.hidden = hidden
+flags.oleautomation = oleautomation
+GUID = GUID  
+end intellisense**/
+
+/**intellisense(!comVariant)
+vt = Variant类型，数值，\n只读属性，不可修改
+clear() = 清空值\n调用VariantClear函数清空值并重新初始化对象\n调用了此函数以后,对象的vt置为0，\n其他所有成员置为null，包括clear函数也置为null，\n除非通过value属性重新赋值,clear函数才会变为可用\n\n即使不调用这个函数，\naardio在析构回收对象时也会自动调用VariantClear函数释放资源
+bstrVal = 只读属性,获取BSTR指针
+parray = 只读属性,获取SAFEARRAY指针
+pdispVal = 只读属性,获取IDispatch指针
+punkVal = 只读属性,获取IUnknown指针 
+value = 读写值遵守com与aardio间的数据类型转换规则 
+end intellisense**/
+
+/**intellisense(!comEnumerator)
+Next(.(n) = 向后获取并返回 n 个元素的值
+Reset() = 重置到开始位置
+Skip(.(n) = 跳过 n 个元素的值,成功返回 true
+Clone() = 复制对象\n!comEnumerator.
+end intellisense**/

@@ -1,0 +1,77 @@
+/*BreakPoint{{*/
+ import win;
+ import fsys;
+ import debug;
+ 
+..io.open()   
+ class bp{
+     ctor( count=10 ){
+         this.count = count;
+         this.dbg = ..debug.hook()          
+        this.tabVar = {}  
+         this.line = -1;   
+     }
+     
+    remove = function(){
+         this.dbg.line = null
+     }
+     
+    //输出参数值,并暂停
+     write = function(...) {
+         this.tabVar = {...}           
+         var info = ..debug.queryinfo(2,"select currentline")  
+         ..io.print();
+         ..io.print("----------------------")
+         ..io.print(..string.format("断点行:%s",info.currentline))                                                     
+         
+         
+         for(i=1;# this.tabVar;1) {
+             ..io.print(..string.format("变量%s:%s",i,tostring(this.tabVar) ) )  
+         }
+         ..io.print("----------------------")
+         
+         execute("pause")
+     }
+     
+    //如果条件不满足,那么输出值,否则不输出
+     assert = function(condition,...) {
+         if( !condition)   {
+             
+             this.tabVar = {...}     
+             var info = ..debug.queryinfo(2,"select currentline")                  
+             
+             ..io.print();
+             ..io.print("----------------------") 
+            execute("COLOR fc")
+             
+             ..io.print("断言失败!");
+             ..io.print(..string.format("断点行:%s",info.currentline))           
+             
+             for(i=1;# this.tabVar;1)  {
+                 ..io.print(..string.format("变量%s:%s",i,tostring(this.tabVar) ) )  
+             }
+             ..io.print("----------------------")                         
+            
+             
+             execute("pause") 
+            execute("COLOR 07")
+         }
+     } 
+}
+ /*}}*/
+ 
+bp1 = bp() //添加一个断点bp1 
+var x,y;
+ 
+x = "this is x";
+ y = "this is y"; 
+
+bp1.write(x);                                //直接查看变量
+ bp1.write(x,y);                                //查看多个变量
+ 
+bp1.assert(true,x,y); //这行的断点将不生效
+ bp1.assert(false,x,y);//这行将被触发
+ 
+execute("pause")
+ bp1.remove() //程序结束,释放断点
+ io.close() 

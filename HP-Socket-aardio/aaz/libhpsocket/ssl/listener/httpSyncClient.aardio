@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.ssl.listener.httpClient;
+
+namespace aaz.libhpsocket.ssl.listener;
+class httpSyncClient{
+	ctor(){
+		this = ..aaz.libhpsocket.ssl.listener.httpClient();
+		this.componentClassPath = "ssl.component.httpSyncClient";
+	};
+}

@@ -1,0 +1,269 @@
+import win.ui;
+import win.ui.atom;
+import fonts.fontAwesome;
+/*DSG{{*/
+var winform = win.form(text="win2ray - 代理自动配置文件(PAC)";right=912;bottom=802;bgcolor=16777215)
+winform.add(
+btnReset={cls="plus";text="恢复PAC";left=609;top=763;right=741;bottom=794;align="left";bgcolor=14935259;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF0C7';notify=1;textPadding={left=40};z=6};
+btnSave={cls="plus";text="保存PAC";left=751;top=763;right=883;bottom=794;align="left";bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF0C7';notify=1;textPadding={left=40};z=7};
+btnUpdate={cls="plus";text="同步到网络最新PAC";left=402;top=763;right=599;bottom=794;align="left";bgcolor=14935259;db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF1C4';notify=1;textPadding={left=40};z=4};
+editPacDirect={cls="richedit";left=9;top=37;right=902;bottom=743;db=1;dl=1;dr=1;dt=1;edge=1;hidesel=false;hscroll=1;multiline=1;vscroll=1;z=1};
+editPacProxy={cls="richedit";left=9;top=37;right=902;bottom=751;db=1;dl=1;dr=1;dt=1;edge=1;hidesel=false;hscroll=1;multiline=1;vscroll=1;z=2};
+lbTip={cls="plus";text="以下域名通过代理连接。";left=11;top=9;right=899;bottom=35;align="left";color=3947580;dl=1;dr=1;dt=1;font=LOGFONT(h=-13);notify=1;transparent=1;z=9};
+navDirect={cls="plus";text="直连域名( JSON )";left=184;top=750;right=315;bottom=782;border={top=1;color=-16744448};db=1;dl=1;z=5};
+navProxy={cls="plus";text="代理域名( JSON )";left=53;top=750;right=184;bottom=782;border={top=1;color=-16744448};db=1;dl=1;z=3};
+navRight={cls="plus";left=314;top=750;right=604;bottom=751;bgcolor=16777215;border={color=-16744448};db=1;dl=1;dr=1;forecolor=32768;linearGradient=180;z=8};
+plus={cls="plus";left=9;top=750;right=53;bottom=751;border={color=-16744448};db=1;dl=1;forecolor=32768;z=10}
+)
+/*}}*/
+
+import config;
+import web.json;
+import win.ui.tabs;
+var tbs = win.ui.tabs(winform.navProxy,winform.navDirect,winform.nav06,winform.nav091,winform.navZhengMa,winform.navTxt)
+tbs.margin = 0;
+
+tbs.skin({
+	foreground={
+		active=0xFFFFFFFF;
+		default=0x00FFFFFF;
+		hover=0xFFCCCCCC;
+	};
+	checked={
+		foreground={ 
+			default=0x00FFFFFF; 
+		};
+		border = { 
+			default = {left=1;right=1;bottom=1;color=0xFF008000} 
+		}; 
+	}
+});
+
+tbs.onSelchange = function(idx,strip,form){
+	if(idx==1){
+		winform.currentEditPac = winform.editPacProxy;
+		winform.editPacProxy.hide = false;
+		winform.editPacDirect.hide = true;
+		winform.lbTip.text = `以下域名通过代理连接：`
+	}
+	else {
+		winform.currentEditPac = winform.editPacDirect;
+		winform.editPacProxy.hide = true;
+		winform.editPacDirect.hide = false;
+		winform.lbTip.text = `以下域名不使用代理： `
+	}	
+}
+tbs.selIndex = 1;
+
+import win.dlg.message;
+win.dlg.message.install();
+
+winform.loadPacToEdit = function(str){
+	var rules = string.match(str,"var\s+rules\s*=\s*(%\[\])")
+	if(!rules) return winform.msgErr("PAC文件格式错误");
+
+	rules = web.json.parse(rules);
+	if(!(rules && table.isArray(rules) && type(rules[1][1])==type.table)) return winform.msgErr("PAC文件格式错误");
+
+	import win.clip;
+	
+
+	var proxy,direct = table.array(),table.array() 
+	for(i=1;#rules){
+		win.clip.write(table.tostring(rules[i][1]))
+		table.append(direct,rules[i][1]);
+		table.append(proxy,rules[i][2]);
+	}
+
+	winform.editPacProxy.text = web.json.stringify(proxy,true)
+	winform.editPacDirect.text = web.json.stringify(direct,true)
+}
+
+import string.conv;
+winform.savePacToFile = function(){
+	var proxy =  web.json.tryParse(string.conv.fromWide(winform.editPacProxy.text))
+	var direct =  web.json.tryParse(string.conv.fromWide(winform.editPacDirect.text))
+	if(!(proxy)) return winform.msgErr("代理域名配置格式错误");
+	if(!(direct)) return winform.msgErr("直连域名配置格式错误");
+	
+	str = string.replace($"/pac.txt","var\s+rules\s*=\s*%\[\]","var rules = " + web.json.stringify({{direct;proxy}},true))
+	string.save(io.appData("/win2ray-v2/proxy.pac.txt"),str );
+}
+
+import config;
+import style;
+winform.btnSave.skin(style.primaryButton);
+winform.btnUpdate.skin(style.button);
+winform.btnReset.skin(style.button);
+winform.lbTip.skin(style.link);
+
+winform.btnUpdate.oncommand = function(id,event){
+	winform.btnUpdate.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+ 
+	thread.invoke( 
+		function(winform){
+			import crypt;
+			import web.rest.jsonLiteClient;
+			
+			var http = web.rest.jsonLiteClient();
+			var github = http.api("https://api.github.com");
+			
+			var result = github.repos["petronny"]["gfwlist2pac"].contents["gfwlist.pac"].get();
+			if(result[["content"]] && result[["encoding"]]=="base64"){
+				winform.loadPacToEdit( crypt.decodeBin(result[["content"]]) );
+				winform.editPacDirect.modified = true;
+				winform.btnSave.disabled = false;
+				winform.btnReset.disabled = false;
+				winform.msgOk("PAC已同步到最新版本，请点击「保存PAC」按钮");
+			}	
+			else {
+				winform.msgFrown("PAC更新失败，建议开启全局代理后重试。")
+			}
+			winform.btnUpdate.disabledText = null;
+		},winform
+	)
+}
+
+
+winform.btnSave.oncommand = function(id,event){
+	winform.btnSave.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+
+	thread.invoke( 
+		function(winform){
+			winform.savePacToFile();
+			winform.updateProxy();
+			
+            sleep(500);
+            winform.btnSave.disabledText = null;
+			winform.btnSave.disabled = true;
+			winform.btnReset.disabled = true;
+			winform.msgOk("已保存PAC文件")
+		},winform
+	)
+}
+
+winform.btnReset.oncommand = function(id,event){
+	winform.btnReset.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+
+	thread.invoke( 
+		function(winform){
+			var pacPath = io.appData("/win2ray-v2/proxy.pac.txt");
+			var str = io.exist(pacPath) ? string.load(pacPath) || $"/pac.txt";
+			if(str) winform.loadPacToEdit(str);
+			
+            sleep(500);
+            winform.btnReset.disabledText = null;
+			winform.btnSave.disabled = true;
+			winform.btnReset.disabled = true;
+			winform.msgOk("已恢复到当前PAC配置")
+		},winform
+	)
+}
+
+import config;
+import v2ray.core;
+winform.updateProxy = function(){
+		if(config.proxy.mode === "pac"){
+			inet.conn.setProxy(,"SOCKS=127.0.0.1:"+v2ray.core.getPort());	
+			inet.conn.setProxyAutoConfig(,v2ray.core.getPacUrl() )	
+		}
+		elseif(..config.proxy.mode === "proxy"){
+			inet.conn.setProxyAutoConfig(,v2ray.core.getPacUrl() )	
+			inet.conn.setProxy(,"SOCKS=127.0.0.1:"+v2ray.core.getPort());	
+		} 
+}
+
+var pacPath = io.appData("/win2ray-v2/proxy.pac.txt");
+var str = io.exist(pacPath) ? string.load(pacPath) || $"/pac.txt";
+if(str) winform.loadPacToEdit(str);
+
+winform.editPacProxy.modified = false;
+winform.editPacDirect.modified = false;
+winform.btnSave.disabled = true;
+winform.btnReset.disabled = true;
+
+winform.editPacDirect.limit = -1;
+winform.editPacDirect.onChange = function(){ 
+	winform.btnSave.disabled = false;
+	winform.btnReset.disabled = false;
+}
+
+winform.editPacProxy.limit = -1;
+winform.editPacProxy.onChange = function(){ 
+	winform.btnSave.disabled = false;
+	winform.btnReset.disabled = false;
+}
+
+import process;
+winform.lbTip.oncommand = function(id,event){
+	process.openUrl("https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Proxy_servers_and_tunneling/Proxy_Auto-Configuration_(PAC)_file")
+}
+
+import win.dlg.findReplace;
+var findDlgDirect = win.dlg.findReplace(winform);
+
+findDlgDirect.onSearch = function(findWhat,down,matchCase,wholeWord){
+	winform.currentEditPac.findText(findWhat,findDlgDirect.flags);
+}
+
+findDlgDirect.onReplace = function(findWhat,replaceWith,down,matchCase,wholeWord){
+	winform.currentEditPac.replaceText(findWhat,replaceWith,findDlgDirect.flags);		
+}
+
+findDlgDirect.onReplaceAll = function(findWhat,replaceWith,down,matchCase,wholeWord){
+	winform.currentEditPac.replaceAll(findWhat,replaceWith,findDlgDirect.flags) 
+}
+
+winform.editPacDirect.enablePopMenu(function(){
+	var items = {
+		{ "查找	Ctrl + F";
+			function(id){ 
+				findDlgDirect.find(winform.editPacDirect.selText)
+			}
+		};
+		{ "替换	Ctrl + H";
+			function(id){ 
+				findDlgDirect.replace(winform.editPacDirect.selText);	
+			}
+		} 
+	}
+	return items;
+});
+
+winform.editPacProxy.enablePopMenu(function(){
+	var items = {
+		{ "查找	Ctrl + F";
+			function(id){ 
+				findDlgDirect.find(winform.editPacProxy.selText)
+			}
+		};
+		{ "替换	Ctrl + H";
+			function(id){ 
+				findDlgDirect.replace(winform.editPacProxy.selText);	
+			}
+		} 
+	}
+	return items;
+});
+
+
+import win.ui.accelerator;
+var accelerator = win.ui.accelerator({
+
+    { 
+        ctrl = true; vkey = 'F'#; 
+        oncommand = function() findDlgDirect.find(winform.currentEditPac.selText); 
+    };  
+    
+    { 
+        ctrl = true; vkey = 'H'#; 
+        oncommand = function() findDlgDirect.replace(winform.currentEditPac.selText); 
+    };  
+    
+},winform );
+
+winform.enableDpiScaling();
+winform.show();
+win.loopMessage();
+
+return winform;

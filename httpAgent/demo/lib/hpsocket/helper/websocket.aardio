@@ -1,0 +1,19 @@
+﻿import crypt;
+import crypt.bin;
+namespace hpsocket.helper.websocket;
+
+sha1 = function(data){
+	var cr = ..crypt();
+	var hash = cr.createHash( 0x8004/*_CALG_SHA1*/,data ); 
+	var data = hash.getValue();
+	hash.destroy();
+	return ..crypt.bin.encodeBase64(data);
+}
+
+getSecAccept = function(data){
+	return sha1(..string.trim(data)+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+}
+
+getSecKey = function(data){
+	return ..crypt.bin.encodeBase64(..string.random(16) );
+}

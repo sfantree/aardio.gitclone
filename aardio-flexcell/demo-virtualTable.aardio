@@ -1,0 +1,47 @@
+import win.ui;
+import FlexCellLib;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add()
+/*}}*/
+
+import console
+console.open()
+
+//填充大量数据
+CellText =  {};
+for(i=1;50000;1){
+    table.push( CellText, {} );
+	for(j=1;5;1){
+		table.push(CellText[i],i++j);
+	}
+}
+
+//初始化界面,但禁止自动重绘
+var mGrd = FlexCellLib(winform,50001,6,false);
+//开启虚表功能
+mGrd.GetCellText = function(Row,Col,Text,Changed){
+	/***此事件在取得单元格文字时发生，可以用GetCellText事件实现虚表功能
+	 Row 返回一个整数，标识单元格所在的行号    
+	 Col 返回一个整数，标识单元格所在的列号 
+	 Text 字符串表达式，如果Changed参数设置为True，Text参数的值将替代单元格的实际文字 
+	 Changed 如果设置Changed=True，可以使Text参数的值将替代单元格的实际文字，否则，Text参数设置的值不会生效 
+	 示例:
+	 if(Row>0 and Col>0){ return "demoText",true; }
+	***/
+	if (Row > 0 and Col > 0){  
+        //注意:Text,Changed两个参数为返回值,需要在return后返还给函数本身
+        //例如下面例子中,CellText[Row][Col]赋值给了Text, 而true赋值给了Changed
+		return CellText[Row][Col] ,true ;
+	 }
+}
+
+//开启自动重绘
+mGrd.AutoRedraw = true;
+//刷新界面
+mGrd.Refresh();
+
+
+
+winform.show() 
+win.loopMessage();

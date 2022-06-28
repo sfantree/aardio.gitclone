@@ -1,0 +1,55 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="string.ocrLite简单演示";right=796;bottom=504)
+mainForm.add(
+button={cls="button";text="识别剪贴板图像";left=528;top=423;right=712;bottom=477;db=1;dr=1;z=2};
+edit={cls="edit";left=497;top=36;right=764;bottom=403;db=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=3};
+plus={cls="plus";left=25;top=36;right=474;bottom=403;db=1;dl=1;dr=1;dt=1;repeat="scale";z=1}
+)
+/*}}*/
+
+import string.ocrLite;
+import string.ocrLite.defaultModels;
+import win.clip;
+
+var ocr = string.ocrLite(,true);
+mainForm.button.oncommand = function(id,event){
+	var hBmp = win.clip.readBitmap()
+	if(!hBmp){
+		mainForm.edit.print("剪贴板未读取到图像")
+		return;
+	}
+	
+	var bmp = gdip.bitmap(hBmp);
+	var ocrRet = ocr.detectBitmap(bmp);
+	if(ocrRet){
+		mainForm.plus.background = ocrRet.resultBitmap;
+		
+		mainForm.edit.text = ocrRet.text;
+		mainForm.edit.text = "";
+		
+		import web.json;
+		for i,block in table.eachIndex(ocrRet.blocks){
+			mainForm.edit.print(block.text);
+			mainForm.edit.print(web.json.stringify(block.points,false));
+		}
+	}
+}
+
+mainForm.show();
+
+//请使用 string.ocrLite扩展库 以及 aardio 最新版
+var ocrResult = ocr.detectClient(mainForm.hwnd);
+if(ocrResult){  
+	
+	//在图文识别结果里模糊搜索最接近的文本所在的区块正中点位置的坐标。
+	var x,y = ocrResult.findPoint("识别剪贴板图像",0.1);
+	if(x && y){  
+		import mouse; 
+		//无句柄窗口可以直接用 winex.mouse.click() 点击
+		mouse.moveToWindow(x,y,mainForm.hwnd);
+		mouse.click();
+	}
+}
+
+win.loopMessage();

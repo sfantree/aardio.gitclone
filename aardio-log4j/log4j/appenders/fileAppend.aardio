@@ -1,0 +1,121 @@
+﻿// file 文件输出
+import thread
+namespace log4j.appenders.fileAppend
+	/*
+	todo:
+		1.日志限制大小滚动输出
+		2.定时清理日志，只保留最近几天内的日志
+		3.新增邮件日志等...
+	*/
+	var filePath = ..io.fullpath('/log/')
+	var maxFileSize = 1 * 1024 * 1024
+	joinFileName =function(fileName,maxFileSize){
+    	import table
+    	import string
+    	import time
+		var timeNow = time.now()
+		timeNow.format="%Y%m%d"
+		var dateStr  = tostring(timeNow)
+		var fileNameArr  =  string.split(fileName,'.')
+		table.insert(fileNameArr,dateStr,2)
+		if(not table.find(fileNameArr,'log')) table.push(fileNameArr,'log')
+		table.insert(fileNameArr,'.',-1)
+		var fileName = string.join(fileNameArr); 
+		var fileNumber = 1;
+		var newFileNameArr =  table.clone(fileNameArr)
+		while(checkFileSize(fileName,maxFileSize)){
+			newFileNameArr = table.clone(fileNameArr)
+			table.insert(newFileNameArr,'_'+ fileNumber,-2)
+			fileName =string.join(newFileNameArr);
+			fileNumber++
+		}
+		return fileName; 
+	}
+	checkFileSize = function(fileName,maxSize){
+			import io
+			var filePath = io.fullpath('/log/')
+			if(not io.exist(filePath + fileName)){
+				 return false; 
+			}
+			var file,err = io.open(filePath + fileName,"r");
+			if( file ) {
+				var size = file.size(1);
+				file.close();
+				if( size > maxSize ){
+					return  true
+				}else{
+					return false
+				}
+			}else{
+				return false; 
+			}	
+	}
+	..thread.set('joinFileName',joinFileName)
+	..thread.set('checkFileSize',checkFileSize)
+	dump =  function (loggingEvent,...){
+		var msg =  ..log4j.layouts[loggingEvent.layouts.type](loggingEvent,...)
+		var thrdHandle = ..thread.create(function(loggingEvent,msg,fileName,maxFileSize){
+			import fsys.log
+			import thread
+			import io
+			var fileName = loggingEvent.fileName
+			var maxFileSize = loggingEvent.appender.fileSize || maxFileSize
+			fileName = thread.call('joinFileName',owner,fileName,maxFileSize)
+			var filePath = io.fullpath('/log/')
+			thread.lock(fileName,function(){
+				var fsysLog = fsys.log(filePath+fileName)
+				fsysLog.print(msg)
+				fsysLog.close()
+				thread.unlock(fileName)
+			})
+		},loggingEvent,msg,fileName,maxFileSize)
+		..thread.waitAll(thrdHandle)
+		..raw.closehandle(thrdHandle)
+	}
+	clearLog =function(){
+		//批量清理文件
+		..thread.invoke( 
+			function(){
+				import fsys
+				import io
+				import time
+				var filePath = io.fullpath('/log/')
+				if(filePath ==null){
+					return;
+				}
+				while(true){
+					fsys.enum( filePath, //指定要遍历的目录
+						"*.log", //指定查询文件名,支持windows掩码
+						function(dir,filename,fullpath,findData){ //指定触发器
+							if(filename){ 
+           						var creatTime = fsys.fromFileTime(findData.ftCreationTime)
+           						var diffDay = time.now().diffday(time(creatTime))
+           						//删除大于15天的日志文件
+           						if(diffDay > 15){
+           							fsys.delete(fullpath)
+           						}
+							}
+						} 
+		 			); 
+					sleep(1000*60*60) //每个小时运行一次
+				}
+			}
+		)
+	
+	}
+	clearLog()
+	
+
+/**intellisense()
+loggingEvent = 输出事件 \n{
+		loggerCategory = this.loggerCategory; /分类
+		level = this.callLevel; //调用的日志级别
+		type =  appender.type; //日志输出方式
+		fileName = appender.fileName; //文件名
+		layouts = appender.layouts; //格式化函数
+		appender = appender //其它设置的属性
+}
+log4j.appenders.file.append(loggingEvent,...) = file输出日志  @loggingEvent 输出事件 @...输出msg
+joinFileName(fileName) = 拼结文件名为 fileName20060604.log
+checkFileSeze(fileName) = 测试文件大小
+end intellisense**/

@@ -1,0 +1,73 @@
+﻿import win.guid;
+import hpsocket.helper.headers;
+
+namespace httpAgent;
+
+class taskData{
+	ctor( url,onResponse,header,method,body ){
+		this.method = method:"GET";
+		this.url	= url;
+		this.header = ..hpsocket.helper.headers(header);
+		this.body	= body;
+		this.statue = 0;
+		this.lock	= false;
+		this.enOperation = 0;
+		this.errCode = 0;
+		this.errText = null;
+		
+		this.callback = onResponse;//最终的回调函数
+		this.uri = url.uri
+		this.response = null;
+		
+		this.iniTime = 0;
+		this.endTime = 0;
+		this.guid = ..win.guid.create();
+		this.isWS = url.ws;
+		
+	};
+	bindCallBack = function(func,name){
+		if name {//可以单独指定 onConnect, onSend, onReceive, onBody 的回调函数
+			owner[name] = func;
+			return ; 	
+		}
+		owner.callback = func;
+	}
+	onClose = function(enOperation,errCode){
+		owner.enOperation = enOperation;
+		owner.errCode	  = errCode;
+		owner.statue	  = -1;
+		owner.endTime = tonumber(..time());
+		owner.callBack();
+	}
+	onParseError = function(errText){
+		owner.statue	  = -2;
+		owner.endTime = tonumber(..time());
+		owner.errText = errText
+		owner.callBack();
+	}
+	connect = function(){
+		owner.statue = 3;
+		return owner.url.host,owner.url.port; 
+	}
+	request = function(){
+		owner.statue = 2;
+		owner.iniTime = tonumber(..time());
+		return owner.method,owner.url,owner.header,owner.body,owner.isWS; 
+	}
+	onComplete = function(response){
+		owner.statue = 1;
+		owner.response = response;
+		owner.endTime = tonumber(..time());
+		owner.callBack();
+	}
+	onUpgrade = function(upgradeType,websocket_obj){//当协议切换的时候，返回websocket对象
+		owner.upgradeType = upgradeType;
+		owner.statue = 4;
+		owner.endTime = tonumber(..time());
+		owner.callBack(websocket_obj);
+	}
+	callBack = function(alterdata){
+		//不指定返回数据的时候，返回自身，其中response是服务器返回值
+		if (owner.callback) owner.callback(owner.statue,alterdata:owner,owner.enOperation,owner.errCode);
+	}
+}

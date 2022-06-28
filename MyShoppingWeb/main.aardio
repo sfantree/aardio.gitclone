@@ -1,0 +1,53 @@
+
+if( !request ){
+
+	/*
+	创建一个兼容FastCGI接口的简单Web服务器，如果已经在Web服务器环境下这段可以省略。
+	*/
+	import fsys.log;
+	import wsock.tcp.simpleHttpServer;
+	import process;
+	import console;
+	global.onError = function( err,over ){ 
+    	if(!over){
+        	import debug;
+        	var stack = debug.traceback(,"调用栈",3);
+        	err =  ..string.concat(err,'\n',stack);
+    	}
+    	fsys.log.print( err );
+	} 
+
+	var server = wsock.tcp.simpleHttpServer("127.0.0.1",60000);
+	console.setTitle("web服务器已启动 " + server.getUrl() ); 
+	//console.dump(server)
+	process.execute( server.getUrl()  )
+	
+	server.run(
+		function(response,request){
+			/*
+//让浏览器识别为JSON
+			response.contentType = "text/json"
+			
+			//让aardio输出JSON时美化格式
+			response.jsonPrettyPrint = true
+			
+			//输出request对象（aardio会自动将对象转换为JSON）
+			response.write( request )
+*/
+			
+			
+			/*
+if (request.uri ="/") {
+				response.loadcode("index.aardio");
+			}
+*/
+				response.loadcode(request.path);
+		} 	
+	);
+	
+	return;
+}
+?>
+<script language="javascript">
+    window.location = "light/index.aardio";
+</script>

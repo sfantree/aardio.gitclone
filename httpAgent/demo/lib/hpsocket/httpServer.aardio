@@ -1,0 +1,181 @@
+﻿import hpsocket;
+import hpsocket.socket.httpServer;
+import hpsocket.listen.httpServer;
+namespace hpsocket
+
+class httpServer{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_HttpServerListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_HttpServer(pListener) );
+			this = ..hpsocket.listen.httpServer(pListener,"httpServer"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.httpServer(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else{ ..table.gc(this,"destroy"); }
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_HttpServer(this.pSocket);
+			::HPSocket.Destroy_HP_HttpServerListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.httpServer() = 创建TCP服务端\n!hpHttpServer.
+end intellisense**/
+
+/**intellisense(!hpHttpServer)
+pSocket = 组件句柄
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+getUrl() = 获取HTTP服务器URL\n可选在参数中指定URL子路径
+getWsUrl() = 获取WebSocket服务器URL\n可选在参数中指定URL子路径
+start(.("监听IP地址",监听端口) = 启动服务端通信组件\n所有参数可省略,可使用getUrl获取服务端访问地址\n成功返回true
+stop() = 关闭服务端通信组件\n成功返回true
+send(.(connId,buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(connId,buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+disconnect(connId,bForce) = 断开与某个客户端的连接
+disconnectLongConnections(.(时长,是否强制断开e) = 断开超过指定毫秒时长的连接
+disconnectSilenceConnections(.(时长,是否强制断开) = 断开超过指定毫秒时长的静默连接
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+getPendingDataLength(connId) = 获取连接中未发出数据的长度
+getConnectionCount() = 获取客户端连接数 
+getAllConnectionIds() = 获取所有连接ID
+getConnectPeriod(connId) = 获取某个客户端连接时长,毫秒 
+getSilencePeriod(connId) = 获取某个连接静默时间,毫秒
+getListenAddress() = 获取监听 Socket 的地址,端口号\n注意有2个返回值
+getLocalAddress(connId) = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress(connId) = 获取某个连接的远程地址,端口号\n注意有2个返回值
+sendPolicy = 发送策略
+freeSocketObjLockTime = 缓存对象锁定时间，毫秒
+freeBufferObjPool = 设置内存块缓存池大小\n通常设置为 Socket 缓存池大小的 2 - 3 倍
+freeBufferObjHold = 设置内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+freeSocketObjPool = 设置 Socket 缓存池大小\n通常设置为平均并发连接数量的 1/3 - 1/2
+freeSocketObjHold = 设置 Socket 缓存池回收阀值\n通常设置为 Socket 缓存池大小的 3 倍
+maxConnectionCount = 设置最大连接数\n组件会根据设置值预分配内存，因此需要根据实际情况设置，不宜过大
+workerThreadCount = 设置工作线程数量\n通常设置为 2 * CPU + 2
+markSilence = 设置是否标记静默时间，默认：true\n设置为 true 时 disconnectSilenceConnections 和 getSilencePeriod 函数才有效
+sendResponse(connId,body,headers,statusCode,desc) = 向客户端回复 HTTP 请求,\n返回布尔值\n参数：\nconnId: 连接 ID\nstatusCode -- HTTP 状态码\ndesc HTTP 状态描述\nheaders 回复请求头\nbody : 回复请求体
+sendWsMessage( = 向对端端发送 WebSocket消息
+sendWsMessage(.(connId,data,opCode,final,reserved,bodyLen) = 向对端端发送 WebSocket消息，返回布尔值\n消息参数：\n connId: 连接 ID\ndata : 消息体数据缓冲区\nopCode -- 操作码：0x0 - 0xF,可选参数默认为1\nfinal : 是否结束帧\nreserved 可选参数，RSV1/RSV2/RSV3 各 1 位\nmask 可选参数，数值掩码，\nbodyLen 可选参数，后续消息体长度\n后续消息体通过底层方法 send  函数发送
+release(connId) = 把连接放入释放队列，\n等待某个时间关闭连接\n通过 setReleaseDelay 函数设置等待时间
+sendLocalFile(connId,filename,headers,statusCode,desc) = 向指定连接发送 4096 KB 以下的小文件\n返回布尔值\n参数：\nconnId: 连接 ID\nfilename -- 文件路径\nheaders 回复请求头statusCode -- HTTP 状态码\ndesc HTTP 状态描述
+setReleaseDelay(v) = 设置连接释放延时\n默认：3000 毫秒
+getReleaseDelay() =  获取连接释放延时
+getMethod(connId) = 获取请求方法
+getHost(connId) = 获取主机
+getRequestUri(connId) = 获取请求URL\n也请是CGI中的REQUEST_URI
+getUrlFieldSet(connId) =  获取请求URL域掩码
+getUrlField(connId,enField) = 获取某个URL域值
+getContentEncoding(connId) = 获取内容编码
+getTransferEncoding(connId) = 获取传输编码
+getContentType(connId) = 获取内容类型
+getContentLength(connId) =  获取内容长度
+setLocalVersion(v) = 设置本地协议版本
+getLocalVersion(v) = 获取本地协议版本
+getVersion() = 获取协议版本
+isKeepAlive(connId) =  检查是否有 Keep-Alive 标识
+getWsSecAccept(connId) = 返回Sec-WebSocket-Accept响应头的值
+hpHttpServer.getWsSecProtocol(connId) = 以数组格式返回Sec-WebSocket-Protocol请求头的值\n失败返回空数组
+sendSwitchingProtocols(connId,headers) = @.sendSwitchingProtocols(connId,{\n	["Connection"] = "Upgrade";\n	["Upgrade"] = "websocket";\n	["Sec-WebSocket-Accept"] = ??.getWsSecAccept(connId);\n	["Sec-WebSocket-Protocol"] = ??.getWsSecProtocol(connId)[1];\n	__/*返回应答并切换通信协议*/\n} );
+sendWsSwitchingProtocols(.(connId,headers,protocol) = 应答WebSocket升级协议请求\n除connId以外其他参数为可选参数
+isUpgrade(connId) = 检查是否升级协议
+getParseErrorCode(connId) = 获取解析错误代码
+getHeader(connId,name) = 获取某个请求头\n单值
+getHeaders(connId,name) = 获取某个请求头\n多值
+getAllHeaders(connId) = 获取所有请求头
+getAllHeaders() = !hpsockethdrs.
+getAllHeaderNames(connId) = 获取所有请求头名称
+getCookie(connId,name) = 获取 Cookie
+getAllCookies(connId) = 获取所有 Cooki
+getUpgradeType(connId) = 获取协议升级类型
+getWsMessageState(connId) =获取当前 WebSocket 消息状态，返回值为表对象
+setConnectionExtra(connId,pExtra) = 对连接ID绑定指针\n如果使用了reallocString函数，不应再调用此函数
+getConnectionExtra(connId) = 返回连接ID绑定的指针\n如果使用了reallocString函数，返回的是动态指针
+reallocString(connId,__/*长度*/) = 预分配内存并将动态指针用setConnectionExtra函数绑定到指定连接\n长度为0时释放内存,使用此函数后不应再使用setConnectionExtra函数
+appendString(connId,pData,len) = 保存数据\n参数分别为连接ID,内存指针,内容长度\n该函数自动调用getConnectionExtra获取可用的动态指针\n使用reallocString函数分配动态指针给指定连接
+getString(connId) = 从指定连接绑定的动态指针中获取appendString函数保存的所有数据
+sslSetupContext(.(mode,certFile,keyFile,password,ca) = 初始化通信组件 SSL 环境参数\n仅SSL组件支持此函数接口
+sslAddContext(.(mode,certFile,keyFile,password,ca) = 增加 SNI 主机证书\n仅SSL组件支持此函数接口
+sslCleanup() = 清理通信组件 SSL 运行环境\n仅SSL组件支持此函数接口
+startHttp(.(connId) = 手工启动 HTTP 通信，当通信组件设置为非自动启动时，需要调用本方法启动 HTTP 通信
+setHttpAutoStart(.(bAutoStart) = 设置 HTTP 通信启动方式（默认：TRUE，自动启动）
+isHttpAutoStart() = 获取 HTTP 通信启动方式
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareListen = @.onPrepareListen = function(hpHttpServer,soListen){
+	__/*绑定监听地址前触发*/
+}
+onAccept = @.onAccept = function(hpHttpServer,connId,pClient){
+	__/*接受请求触发*/
+}
+onHandShake = @.onHandShake = function(hpHttpServer,connId,pClient){
+	__/*握手完成触发*/
+}
+onSend = @.onSend = function(hpHttpServer,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpHttpServer,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*只有HTTP 隧道协议接收到数据时会触发此事件*/
+}
+onClose = @.onClose = function(hpHttpServer,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpHttpServer){
+	__/*关闭通信组件触发*/
+}
+onMessageBegin = @.onMessageBegin = function(hpHttpServer,connId){
+	__/*开始解析数据,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onRequestLine = @.onRequestLine = function(hpHttpServer,connId,method,url){
+	__/*服务端请求行解析完成,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeader = @.onHeader = function(hpHttpServer,connId,name,value){
+	__/*请求头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeadersComplete = @.onHeadersComplete = function(hpHttpServer,connId){
+	__/*请求头完成事件,\n成功无返回值,返回1跳过当前请求BODY,返回2升级协议,\n出错返回-1停止解析断开连接*/
+}
+onBody = @.onBody = function(hpHttpServer,connId,pData,len){
+	var str = ..raw.tostring(pData,1,len);
+	__/*BODY报文事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkHeader = @.onChunkHeader = function(hpHttpServer,connId,len){
+	__/*Chunked报文头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkComplete = @.onChunkComplete = function(hpHttpServer,connId){
+	__/*Chunked报文结束事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onMessageComplete = @.onMessageComplete = function(hpHttpServer,connId){
+	__/*完成解析事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onUpgrade = @.onUpgrade = function(hpHttpServer,connId,upgradeType){
+	__/*升级协议触发,\nupgradeType 1为Web Socket协议，2为HTTP 隧道协议\n完成升级后,HTTP 隧道触发onReceive而非HTTP事件\nWeb Socket协议触发onWs....事件而非HTTP事件\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onParseError = @.onParseError = function(hpHttpServer,connId,errorCode,errorDesc){
+	__/*解析错误事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onWsMessageHeader = @.onWsMessageHeader = function(hpHttpServer,connId,final,reserved,opCode,mask,bodyLen){
+	__/*WebSocket数据包头事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageBody = @.onWsMessageBody = function(hpHttpServer,connId,pData,len){
+	__/*WebSocket数据包体事\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageComplete = @.onWsMessageComplete = function(hpHttpServer,connId){
+	__/*WebSocket数据完成事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+end intellisense**/

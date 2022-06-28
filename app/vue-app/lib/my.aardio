@@ -1,0 +1,98 @@
+﻿
+
+namespace my
+
+
+class Spider{
+   	
+	ctor(host, url, listReg, nextReg, itemReg, count){
+		this.host = host;
+		this.url = url;
+		this.listReg = buildReg(listReg)
+		this.nextReg = buildReg(nextReg)
+		this.itemReg = buildReg(itemReg)
+		this.count = count;
+		whttp=inet.whttp("Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.91 Safari/537.1");
+
+	}	
+	
+	
+	start = function(itemHandler){
+		pageCount=0;
+		itemCount=0;
+		this.dealPage(this.url, itemHandler);
+	}
+	
+	
+	
+	
+	dealPage=function(url, itemHandler){
+	
+		if(this.count && itemCount && itemCount>this.count){
+			return;
+		}
+    	//console.log("开始抓取 "++pageCount++" url:"+url);
+		var page,err = whttp.get(url);
+		if(err){
+			console.log("页面获取错误   url: "+url+"    "+err)
+			return;
+		}
+		var itemList = parseHtml(page, this.listReg);
+		//console.log("列表"++#itemList)
+		for i=1; #itemList{
+			itemHandler(itemList[i])
+			itemCount++;
+		}
+		//return;
+    	//console.log("结束抓取 "++pageCount++"  url:"+url);
+	
+	
+		
+		var nextPage = parseHtml(page, this.nextReg);
+		//console.dump(nextPage)
+		if(#nextPage >0){
+			var nextUrl = inet.url.joinpath(url,nextPage[1][1]);
+			pageCount++;
+			this.dealPage(nextUrl,itemHandler);
+		}else{
+	 		console.log("结束抓取 ");
+		}
+	}
+	
+	dealItem=function(itemUrl){
+		
+		itemUrl = inet.url.joinpath(this.url,itemUrl)
+		var page,err = whttp.get(itemUrl);
+		
+		string.save("f:/"++itemCount++".txt",page)
+		if(err){
+			console.log("页面获取错误   url: "+itemUrl+"    "+err)
+			return;
+		}
+		var item  = parseHtml(page, this.itemReg);
+		return itemUrl, item;
+	}
+}
+namespace Spider{
+    import preg;
+	import inet.url
+	import web.json;
+	import inet.whttp;
+   	import console;
+   	import string;
+   	
+	buildReg = function(reg){
+		return preg("/"+reg+"(.*?)/i");;
+	}
+	parseHtml = function(html,regex){
+		var list={};
+		var i=1;
+		for a,b,c,d in regex.gmatch( html  ) { 
+			if(a!=""){
+				list[i] = {a;b;c;d}
+				i++;
+			}
+		}
+		return list;
+	}
+}

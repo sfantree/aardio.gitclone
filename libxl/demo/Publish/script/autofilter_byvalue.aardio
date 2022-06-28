@@ -1,0 +1,63 @@
+import libxl;
+import console;
+
+var autofilter_byValue = function(){
+	io.open()
+	
+	var start = time.tick()
+	
+	var file = "export/autofilter_byValue.xlsx"
+	var xlExcel,err = libxl()
+	
+	var xlSheet = xlExcel.addSheet("my");
+    
+    if xlSheet{
+    	
+		xlSheet.Cell(3,2).value = "Country";
+		xlSheet.Cell(3,3).value = "Road injures";
+		xlSheet.Cell(3,4).value = "Smoking";
+		xlSheet.Cell(3,5).value = "Suicide";
+		
+    	xlSheet.Cell(4, 2).value ="USA";     	xlSheet.Cell(5, 2).value ="UK"; 
+    	xlSheet.Cell(4, 3).value = 64;         	xlSheet.Cell(5, 3).value =94;
+    	xlSheet.Cell(4, 4).value = 69;        	xlSheet.Cell(5, 4).value =55;
+    	xlSheet.Cell(4, 5).value = 49;      	xlSheet.Cell(5, 5).value = 64;
+	
+    	xlSheet.Cell(6, 2).value ="Germany"; 	xlSheet.Cell(7, 2).value ="Switzerland";
+    	xlSheet.Cell(6, 3).value =88;        	xlSheet.Cell(7, 3).value = 93; 
+    	xlSheet.Cell(6, 4).value =46;     		xlSheet.Cell(7, 4).value = 54;
+    	xlSheet.Cell(6, 5).value =55;      		xlSheet.Cell(7, 5).value = 50;
+	
+    	xlSheet.Cell(8, 2).value ="Spain";  	xlSheet.Cell(9, 2).value ="Italy"; 
+    	xlSheet.Cell(8, 3).value = 86;         xlSheet.Cell(9, 3).value = 75; 
+    	xlSheet.Cell(8, 4).value = 47;         xlSheet.Cell(9, 4).value = 52;
+    	xlSheet.Cell(8, 5).value = 69;         xlSheet.Cell(9, 5).value = 71;
+	
+    	xlSheet.Cell(10, 2).value ="Greece";   xlSheet.Cell(11, 2).value ="Japan";
+    	xlSheet.Cell(10, 3).value =67;         xlSheet.Cell(11, 3).value =91;
+    	xlSheet.Cell(10, 4).value =23;         xlSheet.Cell(11, 4).value =57;
+    	xlSheet.Cell(10, 5).value =87;         xlSheet.Cell(11, 5).value =36;
+    	
+    	var xlAutoFilter = xlSheet.autoFilter();
+    	xlAutoFilter.setRef("B3E11");
+    	
+    	var xlFilterColumn = xlAutoFilter.getColumn(1);
+		xlFilterColumn.filterText = "Japan"
+		xlFilterColumn.filterText = "USA"
+		xlFilterColumn.filterText = "Switzerland"
+    	
+    	xlSheet.applyFilter();
+    	
+		io.print(xlExcel.Save(file))
+		io.print(xlExcel.getErrMsg())
+		
+		xlExcel.Close()
+		
+		io.print("use " + (time.tick() - start + " ms"));
+	}
+
+};
+
+autofilter_byValue()
+
+console.pause(true);

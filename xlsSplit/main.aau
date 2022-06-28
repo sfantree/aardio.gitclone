@@ -1,0 +1,111 @@
+﻿import win.ui;
+import console
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=431;bottom=422;border="none";mode="popup";parent=...)
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowSizer;//支持拖动边框
+import web.layout.behavior.windowCommand;//支持标题栏按钮
+winform.text="xlsSplit"
+wbLayout = web.layout( winform )  
+wbLayout.go("/layout/frmRound.html") 
+
+//圆角窗口
+import win.util.round;
+win.util.round(winform)
+
+
+
+
+splitxls=function(sourcefile,template,savepath,maxnum){
+	var procinfo=wbLayout.getEle("procinfo")
+	procinfo.value=tostring(time())++" 开始分割"
+	win.delay(1)
+    import com.excel
+	var xls=com.excel( true )
+	var wb1=xls.WorkBooks.Open(sourcefile)
+	var sh1=wb1.Sheets(1)
+	var rownum=2
+	var pastebegin=2
+	var fileno=1
+	var rows=sh1.UsedRange.Rows.Count+1
+	while(rownum<rows){
+		procinfo.value=tostring(time())++" 第"++fileno++"个文件"+'\n'+procinfo.value
+		win.delay(1)
+
+  		var wb2,sh2
+  		if(#template){
+  	   		wb2=xls.WorkBooks.open(template)
+  	   		sh2=wb2.Sheets(1)
+  	   		pastebegin=sh2.UsedRange.Rows.Count+1
+	
+  		}
+  		else {
+  			wb2=xls.WorkBooks.Add()
+  			sh2=wb2.Sheets(1)
+			sh1.rows(1).Copy()
+  			sh2.Range("A1").PasteSpecial(xlPasteValues,xlNone,False,False)
+  		
+  		}
+		sh1.rows(rownum++":"++(rownum+maxnum-1)).Copy()
+  		sh2.Range("A"++pastebegin).PasteSpecial(xlPasteValues,xlNone,False,False)
+ 		if(#template){
+ 		    wb2.SaveAs(savepath++fileno)
+ 		}
+ 		else{
+ 			wb2.SaveAs( savepath++fileno,51)
+ 		}
+  		
+  		wb2.close() 
+  		fileno+=1
+  		rownum+=maxnum
+	
+	}
+	
+	wb1.close()
+	xls.Quit()
+	procinfo.value=tostring(time())++" 分割完毕！"+'\n'+procinfo.value
+	collectgarbage("collect")
+}
+
+dir = wbLayout.getEle("dir")
+dir.onButtonStateChanged = function (ltTarget,ltEle,reason,behaviorParams) 
+{
+    wbLayout.getEle("filepath").innerText=dir.value
+    
+}
+dir.attachEventHandler()
+
+submit=wbLayout.getEle("submit")
+
+submit.onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+    
+    var sourcefile=wbLayout.getEle("sourcefile").value
+    var maxnum=wbLayout.getEle("maxnum").value
+    var template=wbLayout.getEle("template").value
+    var dir=wbLayout.getEle("dir").value
+    
+    import fsys
+    if (template != "") && (fsys.getFileName(sourcefile)==fsys.getFileName(template)){
+      win.msgbox("待分割文件不能与模版文件同名！")
+      return ; 
+    }
+    ltEle.state.disabled=true
+    dir=dir+"\"+string.trimright(fsys.getFileName(sourcefile),"."++fsys.getExtensionName(sourcefile))
+    splitxls(sourcefile,template,dir,maxnum)
+    ltEle.state.disabled=false
+}
+submit.attachEventHandler()
+winform.show() 
+win.loopMessage();
+return winform;
+
+
+
+
+
+
+
+

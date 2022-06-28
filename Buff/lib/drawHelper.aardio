@@ -1,0 +1,541 @@
+﻿
+class drawHelper{
+	ctor(winform){
+		mainForm = winform;
+		screenWidth,screenHeight = win.getScreen();
+		
+		gdiRes={};
+		borderPen=null;  		//边框及十字线的颜色
+		borderDotPen=null;
+		setSizePen = null;		//拖动点的颜色
+		//whiteBrush,blackBrush=null;
+		darkBackgroundBrush=null;
+		lightBackgroundBrush=null;
+		backgroundImage=null;
+		
+		
+		selectedImage=null;
+		selectImageRect=null;
+		
+		mouseDown=null;
+		downPoint=null;
+		endPoint=null;
+		sizeGrip=_SZG_NONE;
+		sizeGripRectList={};
+		
+		
+		//drawColor=0xFF00FFFF; //天蓝色
+		drawColor = tonumber(common.drawColor,16);
+		drawPenWidth=1;
+		
+		drawType=_DRAW_NONE; 
+		drawOperateList={};
+		
+		//var str = tostring( common.maskAlpha,16 ) ++ common.maskColor;
+		maskAlpha = tonumber( common.maskColor,16 );
+	};
+	
+	
+	
+	init = function(){
+		
+		backgroundImage=gdip.bitmap(com.picture.snap().Handle);
+		mainForm.fullscreen(true);//全屏	
+		borderPen = gdip.pen( drawColor ,1,2);
+		//borderDotPen = gdip.pen(0xFFFFFFFF,1,2);
+		//borderDotPen.dashStyle=3;
+		//::Gdiplus.GdipSetPenDashArray(borderDotPen,{float x[]={3;5}},2)
+		..table.push(gdiRes,borderPen/*,borderDotPen*/);
+		
+		setSizePen = gdip.solidBrush(drawColor);
+		//whiteBrush= gdip.solidBrush(0xFFFFFFFF);
+		//blackBrush = gdip.solidBrush(0xFF000000);
+		//..table.push(gdiRes,whiteBrush,blackBrush);
+		
+		
+		var sw,sh = win.getScreen();
+	
+		var darkBackground = backgroundImage.clone();
+		var g = gdip.graphics(darkBackground);
+		var brush = gdip.solidBrush( maskAlpha );
+		g.fillRectangle(brush,0,0,backgroundImage.width,backgroundImage.height);
+		
+		brush.delete();
+		darkBackgroundBrush = gdip.textureBrush(darkBackground,4/*_WrapModeClamp*/);
+		lightBackgroundBrush = gdip.textureBrush(backgroundImage,4/*_WrapModeClamp*/);
+		//g.fillRectangle(darkBackgroundBrush,0,0,win.getScreen());
+		g.delete();
+		darkBackground.dispose();
+	}
+	
+		
+	//限制画图区域
+	doClipCursor = function(reset){
+		rect  =reset?win.getRect(win.getDesktop(),true):selectImageRect;
+		ClipCursor(rect);
+	}
+	
+	
+	//计算拖动点
+	calcSizeGripRect=function(){
+		var rect = selectImageRect;
+		var x,y = rect.left,rect.top;
+		var centerX= x+(rect.right-rect.left)/2;
+		var centerY= y+(rect.bottom-rect.top)/2;
+		var list = sizeGripRectList;
+		list[_SZG_TOP]=::RECT(centerX-3,y-3,centerX+3,y+3);
+		list[_SZG_BOTTOM]=::RECT(centerX-3,rect.bottom-3,centerX+3,rect.bottom+3);
+		list[_SZG_LEFT]=::RECT(x-3,centerY-3,x+3,centerY+3);
+		list[_SZG_RIGHT]=::RECT(rect.right-3,centerY-3,rect.right+3,centerY+3);
+		list[_SZG_TOPLEFT]=::RECT(x-3,y-3,x+3,y+3);
+		list[_SZG_TOPRIGHT]=::RECT(rect.right-3,y-3,rect.right+3,y+3);
+		list[_SZG_BOTTOMLEFT]=::RECT(x-3,rect.bottom-3,x+3,rect.bottom+3);
+		list[_SZG_BOTTOMRIGHT]=::RECT(rect.right-3,rect.bottom-3,rect.right+3,rect.bottom+3);
+	}
+
+	//设置光标
+	setSizeGripCur = function(){
+		var id = null; 
+		select(sizeGrip){
+			case _SZG_TOPLEFT,_SZG_BOTTOMRIGHT{
+				id = 0x7F82/*_IDC_SIZENWSE*/
+			}
+			case _SZG_TOPRIGHT,_SZG_BOTTOMLEFT{
+				id= 0x7F83/*_IDC_SIZENESW*/;
+			}
+			case _SZG_TOP,_SZG_BOTTOM{
+				id = 0x7F85/*_IDC_SIZENS*/;
+			}
+			case _SZG_LEFT,_SZG_RIGHT{
+				id = 0x7F84/*_IDC_SIZEWE*/;
+			}
+			case _SZG_ALL{
+				id = 0x7F86/*_IDC_SIZEALL*/;
+			}
+			else{
+				id = 0x7F00/*_IDC_ARROW*/
+			}		
+		}
+		win.cur.setCur(win.cur.load(id));
+	}
+	
+	//拖动点
+	setSizeGrip = function(x,y){
+		if(mouseDown){return;}
+		import win.cur;
+		var sg=_SZG_NONE;
+		for(k,rect in sizeGripRectList){
+			if(::PtInRect(rect,x,y)){
+				sg = k;
+				break;
+			}
+		}
+		if(sg==_SZG_NONE){
+			if(selectImageRect!=null&&::PtInRect(selectImageRect,x,y)){
+				sg = _SZG_ALL;
+			}	
+		}
+		sizeGrip=sg;
+		this.setSizeGripCur();
+	}
+
+	
+
+	//鼠标拖曳选取的RECT
+	getSelectImageRect=function(point){
+		var p1=downPoint;
+		var p2 =point;
+		
+		var left = ..math.min(p1.x,p2.x);
+		var top = ..math.min(p1.y,p2.y);
+		var right  = ..math.max(p1.x,p2.x);
+		var bottom = ..math.max(p1.y,p2.y);
+		selectImageRect = ::RECT(left,top,right,bottom); 
+		this.calcSizeGripRect();
+		return selectImageRect; 	
+	}
+
+	//缩放选取范围
+	changeSelectImageRect=function(point){
+		var rect = selectImageRect;
+		var left = rect.left;
+		var top = rect.top;
+		var right = rect.right;
+		var bottom = rect.bottom;
+		var w= rect.width();
+		var h = rect.height();
+		var sizeGripAll = false;
+		select(sizeGrip){
+			case _SZG_ALL{
+				left = left+(point.x-downPoint.x);
+				top = top+(point.y-downPoint.y);
+				if(left<0){left=0;}
+				if(left>screenWidth-w){left=screenWidth-w;}
+				if(top<0){top=0;}
+				if(top>screenHeight-h){top=screenHeight-h;}
+				right = left+w;
+				bottom = top+h;
+				sizeGripAll = true;
+			}
+			case _SZG_TOPLEFT{
+				left = point.x;
+				top = point.y;
+				if(left>right&&top>bottom){
+					sizeGrip = _SZG_BOTTOMRIGHT;
+				}
+				else if(left>right){
+					sizeGrip = _SZG_TOPRIGHT;
+				}
+				else if(top>bottom){
+					sizeGrip = _SZG_BOTTOMLEFT;
+				}
+			}
+			case _SZG_TOPRIGHT{
+				right = point.x;
+				top = point.y;
+				if(right<left&&top>bottom){
+					sizeGrip=_SZG_BOTTOMLEFT;
+				}
+				else if(right<left){
+					sizeGrip=_SZG_TOPLEFT;
+				}
+				else if(top>bottom){
+					sizeGrip=_SZG_BOTTOMRIGHT;
+				}
+			}
+			case _SZG_BOTTOMLEFT{
+				left = point.x;
+				bottom = point.y;
+				if(left>right&&bottom<top){
+					sizeGrip=_SZG_TOPRIGHT;
+				}
+				else if(left>right){
+					sizeGrip=_SZG_BOTTOMRIGHT;
+				}
+				else if(bottom<top){
+					sizeGrip=_SZG_TOPLEFT;
+				}
+			}
+			case _SZG_BOTTOMRIGHT{
+				right = point.x;
+				bottom = point.y;
+				if(right<left&&bottom<top){
+					sizeGrip=_SZG_TOPLEFT;
+				}
+				else if(right<left){
+					sizeGrip=_SZG_BOTTOMLEFT;
+				}
+				else if(bottom<top){
+					sizeGrip=_SZG_TOPLEFT;
+				}
+				
+			}
+			case _SZG_TOP{
+				top = point.y;
+				if(top>bottom){
+					sizeGrip = _SZG_BOTTOM;
+				}
+			}
+			case _SZG_BOTTOM{
+				bottom = point.y;
+				if(bottom<top){
+					sizeGrip = _SZG_TOP;
+				}
+			}
+			case _SZG_LEFT{
+				left = point.x;
+				if(left>right){
+					sizeGrip = _SZG_RIGHT;
+				}
+			}
+			case _SZG_RIGHT{
+				right = point.x;
+				if(right<left){
+					sizeGrip = _SZG_LEFT;
+				}
+			}
+		}
+	
+		rect = ::RECT(..math.min(left,right),..math.min(top,bottom),..math.max(left,right),..math.max(top,bottom));
+	
+		this.setSizeGripCur();
+		downPoint = point;
+		selectImageRect = rect;
+		this.calcSizeGripRect();
+		
+	}
+		
+	
+
+
+	//画瞄准线
+	drawCrosshair=function(g,x,y){
+		var offset = 5;
+		var sw,sh = win.getScreen();
+		var mousePos = ::POINT(x,y);
+		var left1 = ::POINT(x-offset,y);left2 = ::POINT(0,y);
+		var right1=::POINT(x+offset,y);right2 = ::POINT(sw-1,y);
+		var top1= ::POINT(x,y-offset);top2 = ::POINT(x,0);
+		var bottom1= ::POINT(x,y+offset);bottom2 = ::POINT(x,sh-1);
+		
+		if(left1.x - left2.x>10){
+			g.drawLine(borderPen,left1.x,left1.y,left2.x,left2.y);
+			//g.drawLine(borderDotPen,left1.x,left1.y,left2.x,left2.y);
+		}
+			
+		if(right2.x - right1.x >10){
+			g.drawLine(borderPen,right1.x,right1.y,right2.x,right2.y);
+			//g.drawLine(borderDotPen,right1.x,right1.y,right2.x,right2.y);
+		}
+		
+		if(top1.y-top2.y>10){
+			g.drawLine(borderPen,top1.x,top1.y,top2.x,top2.y);
+			//g.drawLine(borderDotPen,top1.x,top1.y,top2.x,top2.y);
+		}
+		
+		if(bottom2.y-bottom1.y>10){
+			g.drawLine(borderPen,bottom1.x,bottom1.y,bottom2.x,bottom2.y);
+			//g.drawLine(borderDotPen,bottom1.x,bottom1.y,bottom2.x,bottom2.y);
+		}
+	}
+
+
+
+	//动态画图
+	draw=function(){
+		var x,y = mouse.getPos();	
+		gdi.windowBuffer(mainForm.hwnd,
+	    	function( hdc,hMemDc,hMemBitmap,width,height ){
+	        	var g = gdip.graphics(hMemDc);
+	        	//var graphics g = gdip.graphics(hMemDc);
+	        	g.compositingQuality = 2/*_GdipCompositingQualityHighQuality*/ ;
+	        	g.smoothingMode = 2/*_GdipSmoothingModeHighQuality*/ ;
+	        	var sw,sh = win.getScreen();
+	        	g.fillRectangle(darkBackgroundBrush,0,0,sw,sh);
+	
+				var rect = selectImageRect;
+	        	if(rect!=null&&rect.width()!=0&&rect.height()!=0){
+	        		g.setClipRect(rect.left,rect.top,rect.width(),rect.height());
+	        		g.fillRectangle(lightBackgroundBrush,0,0,win.getScreen());
+	        		g.resetClip();	
+	        		
+	        		var path = gdip.path(1/*_FillModeWinding*/);
+	        		path.addRectangle(getRectInfo(rect));
+	        		
+	        		
+	        		g.drawPath(borderPen,path);
+	        		//g.drawPath(borderDotPen,path);
+	        		
+	        		for(k,rect in sizeGripRectList){
+	        			g.fillRectangle(setSizePen,getRectInfo(rect));
+	        		}
+	        		//::BitBlt(hdc, rect.left, rect.top, rect.width(), rect.height(), hMemDc, rect.left, rect.top, 0xCC0020/*_SRCCOPY*/);	
+	        
+	        	}
+	        	if( !selectedImage&&(#drawOperateList==0) ){
+	        		this.drawCrosshair(g,x,y);
+	        	}
+	        	g.delete();	        
+	        	::BitBlt(hdc, 0, 0, width, height, hMemDc, 0, 0, 0xCC0020/*_SRCCOPY*/);
+	        	
+	    	});
+		/**
+		if(selectedImage&&showTools){
+			var rect = selectImageRect;
+			var w=mainForm.drawToolbar.width;
+			var h=mainForm.drawToolbar.height;
+			var x = rect.right-w;
+			var y = rect.bottom+5;
+			x = ..math.max(0,x);
+			if(y+h>screenHeight){
+				y = rect.top - h -5;
+			}
+			y = ..math.max(5,y);
+		}
+		**/
+	}
+	/**
+	undo = function(){
+		if(selectedImage){
+			var op = ..table.pop(drawOperateList);
+			if(!op){
+				selectImageRect=null;
+				selectedImage= false;
+				drawType=_DRAW_NONE;	
+			}
+			this.draw();
+		}
+		else{
+			mainForm.close();
+		}	
+	}
+	**/
+	saveCapture = function(rect){
+		if(!rect){rect=selectImageRect;}
+		if(!rect){return;}
+		
+		//创建指定大小的空位图
+		var bmp = gdip.bitmap(rect.width(),rect.height());	
+		//创建画板
+		var g = gdip.graphics(bmp);
+		g.compositingQuality = 2/*_GdipCompositingQualityHighQuality*/ ;
+		g.smoothingMode = 2/*_GdipSmoothingModeHighQuality*/ ;
+		g.drawImageRectRect(backgroundImage,0,0,rect.width(),rect.height(),rect.left,rect.top,rect.width(),rect.height());	
+		
+		g.delete();
+		
+		var rsSelectedImage = {
+			imgData = bmp.copyHandle();
+			rect = rect;
+		}
+		
+		bmp.dispose();
+		this.dispose();
+		mainForm.endModal( rsSelectedImage );		
+	}
+	
+	
+	doWork = function(){
+		this.init();
+		mainForm.wndproc = function(hwnd,message,wParam,lParam){ 
+			select(message){
+			
+				case 0x201/*_WM_LBUTTONDOWN*/{
+					var x,y = win.getMessagePos(lParam);
+					mouseDown=true;
+					downPoint=::POINT(x,y);
+					return false; 
+				}
+				case 0x202/*_WM_LBUTTONUP*/{
+					var x,y = win.getMessagePos(lParam);
+					if(selectedImage){
+						endPoint = ::POINT(x,y);
+					}elseif( downPoint ){
+						selectImageRect = this.getSelectImageRect(::POINT(x,y));
+						
+						if(selectImageRect.width()==0&&selectImageRect.height()==0){
+							selectImageRect = null;
+						
+						}
+						if(selectImageRect!=null&&selectImageRect.width()!=0&&selectImageRect.height()!=0){
+							selectedImage = true;
+						}	
+						
+						
+					}
+					mouseDown = false;
+					downPoint = null;
+				}
+				case 0x200/*_WM_MOUSEMOVE*/{
+					var x,y = win.getMessagePos(lParam);
+					if(mouseDown){
+						if(selectedImage){
+							if(sizeGrip!=_SZG_NONE){
+								this.changeSelectImageRect(::POINT(x,y));
+							}
+						}
+						else{
+							selectImageRect = this.getSelectImageRect(::POINT(x,y));	
+						}
+					}elseif(selectedImage && #drawOperateList==0){
+						this.setSizeGrip(x,y);
+					}
+					this.draw();
+				}
+				case 0x205/*_WM_RBUTTONUP*/{
+					
+					if(!selectImageRect){
+						//mainForm.endModal(false);
+						this.dispose();
+						mainForm.close();
+					}else {
+						this.saveCapture(selectImageRect);
+					}
+					
+				} 
+				case 0x14/*_WM_ERASEBKGND*/{
+					return 0; 
+				}
+				
+			}
+		}
+		
+		mainForm.onClose = function(hwnd,message,wParam,lParam){
+			this.dispose();
+		}
+		
+	}
+	
+	//销毁画笔，画刷等资源
+	dispose = function(){	
+		for(k,res in gdiRes){
+			if(res!=null){
+				res.delete();
+			}
+		}	
+    		if(backgroundImage!=null){backgroundImage.dispose();} 
+	}
+
+	
+}
+
+
+
+namespace drawHelper{
+	import common;
+	
+	import mouse;
+	import com.picture;
+	import gdi;
+	import gdip.bitmap;
+	import gdip.pen;
+	import gdip.solidBrush;
+	import gdip.graphics;
+	import gdip.textureBrush;
+	import gdip.path;
+	
+	import win.cur;
+
+	
+	_SZG_NONE =0;
+	_SZG_TOP=1;
+	_SZG_BOTTOM=2;
+	_SZG_LEFT=3;
+	_SZG_RIGHT=4;
+	_SZG_TOPLEFT=5;
+	_SZG_TOPRIGHT=6;
+	_SZG_BOTTOMLEFT=7;
+	_SZG_BOTTOMRIGHT=8;
+	_SZG_ALL=9;
+	
+	_DRAW_NONE=0;
+	_DRAW_RECT=1;
+	_DRAW_ELLIPSE=2;
+	_DRAW_ARROW=3;
+	_DRAW_BRUSH=4;
+	_DRAW_MOSAIC=5;
+	
+	
+	ClipCursor = ::User32.api("ClipCursor","int(struct& lpRect)")
+	DrawEllipse = ::Gdiplus.api("GdipDrawEllipse","int(PTR grph,pointer pen,float x,float y,float Width,float Height)")
+	SetPenCustomEndCap = ::Gdiplus.api("GdipSetPenCustomEndCap","int(PTR pen,struct customCap)")
+	
+	
+	getRect=function(point1,point2){
+		return ::RECT(..math.min(point1.x,point2.x),..math.min(point1.y,point2.y),..math.max(point1.x,point2.x),..math.max(point1.y,point2.y));
+	}
+	
+	rectOffset = function(rect,offset){
+		return ::RECT(rect.left - offset,rect.top - offset,rect.right + offset,rect.bottom + offset);
+	}
+
+	getRectInfo = function(rect,offset){
+		if(offset!=null){
+			rect = rectOffset(rect,offset);
+		}
+		return rect.left,rect.top,rect.width(),rect.height(); 	
+	}
+	
+
+	
+}

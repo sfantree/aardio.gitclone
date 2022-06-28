@@ -1,0 +1,30 @@
+﻿io.open();
+array={a={aa="sh600848";b="sz000980bb";ab="sz000981";ac={aca="sz";acb="sh";b="sz000980b"}};b="sz000980";c="sz000981";d=123}
+each = function(t){
+        var tab = {}
+        var tkey = {}
+        var kk=""
+        ofor = function(t){   
+            for(k,v in t){
+                table.push(tkey,k)
+                if( type(v) == type.table ){ 
+                    kk=string.join(tkey,".") 
+                    tab[kk] = v
+                    ofor(v)                         
+                } 
+               kk=string.join(tkey,".")
+               tab[kk] = v
+               table.pop(tkey)              
+            }                
+        }
+        ofor(t)
+        return function(k){
+                return table.next(tab,k);
+        };
+}
+
+for( k,v in each(array)){
+    io.print( k,v) 
+}
+
+execute("pause")

@@ -1,0 +1,26 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+ 
+namespace web.layout.behavior.main.uninstallApp{
+	
+	
+	onButtonClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+		
+		var appid = ltOwner.getAttribute("appid");
+		if(appid && ..string.trim(appid) != "") {
+			if(..mainForm.msgboxTest('确定要卸载？\n'+appid)) {			
+				if(..libidevice.device.uninstallApp(appid)) {
+					ltOwner.parent().parent().delete();
+					..mainForm.msgbox("卸载成功！");
+				} else {
+					..mainForm.msgbox("卸载失败！");
+				}
+			}	
+			
+		}
+	}
+	
+}

@@ -1,0 +1,140 @@
+﻿//static 静态文本框
+import win.ui.ctrl.metaProperty;//导入控件属性元表支持
+namespace win.ui.ctrl;  
+
+class static{
+    ctor(parent,tParam){ 
+    	if(tParam){
+			if(tParam.edge) tParam.exstyle |= 0x20000/*_WS_EX_STATICEDGE*/;	
+			if(tParam.transparent)tParam.exstyle |= 0x20/*_WS_EX_TRANSPARENT*/;
+			if(tParam.notify)tParam.style |= 0x100/*_SS_NOTIFY*/ 
+			
+			if(tParam.nWrap) 
+				tParam.style |= 0xC/*_SS_LEFTNOWORDWRAP*/
+			else{
+				select(tParam.align) {
+					case  "center"  
+					tParam.style |= 0x1/*_SS_CENTER*/; 
+					case "right" 
+	   				tParam.style |= 0x2/*_SS_RIGHT*/; 
+					else  
+	   				tParam.style |= 0x0/*_SS_LEFT*/;
+				}
+			}
+			if(tParam.center)
+				tParam.style |= 0x200/*_SS_CENTERIMAGE*/ 
+		}
+    }
+	@_metaProperty;
+}
+static._metaProperty = metaProperty( )
+ 
+/***intellisense() 
+!static.cls = 设计时类名
+!static.color = 获取或修改字体颜色数值
+!static.bgcolor= 获取或修改景颜色数值
+!static.className = 运行时类名
+!static.hwnd = 控件句柄
+!static.id = 控件ID
+!static.text = 控件文本
+!static.disabledText = 指定文本时,禁用此控件,并显示指定文本,\n指定为null时,启用此控件,并恢复控件之前的正常文本
+!static.getForm() = 如果是窗体返回自身\n如果是控件则返回_parentForm\n!winform.
+!static.isForm = 标准库中所有控件以及窗体对象都拥有此同名函数\n窗体返回true,控件返回false
+!static.getForm() = 标准库中所有控件都拥有此同名函数用于返回控件所在窗口,\n窗口对象实现了同名函数用于返回窗口自身
+!static._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!static.getParent() = 返回父窗口\n!static.
+!static.setParent(__/*控件对象*/) = 改变父窗口 
+!static.addCtrl = @.addCtrl(\n	button={ cls="button";text="button";left=33;top=32;right=126;bottom=81;autoResize=false }  \n)
+!static.translateAccelerator = @.translateAccelerator = function(msg){ \n	__/*返回是否快捷键*/\n} 
+!static.adjust = @.adjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放后会自动触发此函数。\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 参数请参考 _WM_SIZE 消息参数说明,一般不用管。\n\n所有 win.form 创建的窗体和控件都支持此事件,\n重复赋值只会追加而不会覆盖此事件。\n一般不建议添加一个 wndproc 仅仅是为了处理  _WM_SIZE 消息，\n定义 adjust 事件是更好的选择。\n\n可主动调用此事件,省略参数时 cx,cy 参数默认设为窗口大小*/  \n}; 
+!static.preadjust = @.preadjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放后重绘前、触发 adjust 事件之前触发此事件。\n所有 win.form 创建的窗体和控件都支持此事件,\n与 adjust 事件不同，对 preadjust 重复赋值则覆盖而不是追加事件。 \n\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 为 _WM_SIZE 消息参数。*/  \n};
+!static._embedObject = 嵌入 COM 控件的容器对象\n!embedObject.
+!static.createEmbed( = 创建嵌入控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象。\n通常使用 util.metaProperty 为容器对象添加属性元表，\n属性元表可拦截属性、函数调用并调用 _object 对象,\n\ncreateEmbedEx 返回的容器已添加默认代理以直接访问 COM 对象
+!static.createEmbed(.(clsId,embedObj) = 创建嵌入控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象,\n@clsId 指定控件 CLSID,\n可选在参数@2中指定 COM 对象绑定的容器对象\n\n此函数失败会抛出异常
+!static.createEmbed(.(comObject,embedObj) = 嵌入 COM 控件,返回控件容器对象,\n容器对象的 _object 成员是传入的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象,\n@comObject 指定已创建成功的 COM 对象,\n可选在参数@2中指定 COM 对象绑定的容器对象\n\n此函数失败会抛出异常
+!static.tryCreateEmbed( = 创建嵌入控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象。\n通常使用 util.metaProperty 为容器对象添加属性元表，\n属性元表可拦截属性、函数调用并调用 _object 对象,\n\ncreateEmbedEx 返回的容器已添加默认代理以直接访问 COM 对象
+!static.tryCreateEmbed(.(clsId,embedObj) = 创建嵌入控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象,\n@clsId 指定控件 CLSID,\n可选在参数@2中指定 COM 对象绑定的容器对象\n\n成功返回容器对象,失败返回false,错误信息
+!static.createEmbedEx( = 创建嵌入控件,返回控件容器对象,\n容器对象的 _object 成员是创建的 COM 对象,\n容器对象可通过添加成员函数响应 COM 对象事件，\n容器对象的主要作用是充当访问 COM 对象的中间代理对象。\n此函数返回的容器已添加元表并创建代理以直接访问 COM 对象
+!static.createEmbedEx(.(clsId,embedObj) = 创建嵌入控件,返回控件容器对象,\n此函数返回的容器已添加元表并创建代理以直接访问 COM 对象,\n@clsId 指定控件 CLSID,如果控件不是自内存加载,\n则可省略 @clsId 并由 firstCoClassId函数自动获,\n可选在参数@2中指定 COM 对象绑定的容器对象\n\n此函数失败会抛出异常
+!static.createEmbedEx(.(comObject,embedObj) = 嵌入 COM 控件,返回控件容器对象,\n此函数返回的容器已添加元表并创建代理以直接访问 COM 对象,\n@comObject 指定已创建成功的 COM 对象,\n可选在参数@2中指定 COM 对象绑定的容器对象\n\n此函数失败会抛出异常
+!static.createEmbedEx() = !embedObject.
+!static.createEmbed() = !embedObject.
+!static.tryCreateEmbed() = !embedObject.
+!static.hide = 控件是否隐藏
+!static.disabled = 是否禁用
+!static.left = 左侧坐标
+!static.right = 右侧坐标
+!static.top = 顶部坐标
+!static.bottom = 底部坐标
+!static.width = 宽度
+!static.height = 高度
+!static.redraw() = 刷新
+!static.setRedraw(false) = 禁止重绘
+!static.setRedraw(true) = 恢复重绘
+!static.redrawTransparent() = 刷新\n透明背景时请使用此函数替代redraw()
+!static.show(true__) = 显示控件
+!static.getRect() = 控件区块位置(::RECT结构体)
+!static.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!static.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!static.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)
+!static.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!static.getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+!static.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!static.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!static.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!static.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!static.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!static.capture = 是否捕获全局鼠标消息
+!static.close() = 关闭控件窗口
+!static.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!static.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!static.update() = 重绘invalidate函数指定的区块
+!static.setFocus() = 设置焦点 
+!static.tabNext(.(移动焦点,是否反向) = 获取下一个支持tab控制焦点的控件\n参数@1为true会自动移动焦点到该控件\n参数@2为true则获取上一个控件,否则获取下一个控件
+!static.tabNext() = !static.
+!static.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!static.getPos() = 返回相对父窗口客户区的坐标,宽,高,\n参数为true返回屏幕坐标,宽,高,\nx,y,cx,cy=win.getPos(hwnd)
+!static.messageOnly() = 将窗口转换为message-only window\n该窗口不可见,仅用于消息分发
+!static.setTimeout(.(函数或代码,延时,其他附加参数) = 推迟执行指定的函数或代码\n此函数异步执行参数中指定的函数，不会阻塞当前代码继续执行，\n延时参数是可选参数，以毫秒为单位，默认为0毫秒\n可选用附加参数指定调用延时函数的实参\n返回值为定时器ID
+!static.setInterval(回调函数,延时毫秒数,->->->) = @.setInterval( \n	function(){\n		__/*参数@1指定执行函数,参数@2指定执行间隔，\n可选指定一个或多个回调参数，不指定回调参数则默认为:\n hwnd,message,timerId,tick,\n\n如果在定时器中执行了win.delay等继续消息循环的代码，\n在定时器退出前不会再触发同一定时器（重入）。\n\n定时器回调函数返回数值可修改时间间隔,\n返回false取消该定时器*/\n	},1000 \n)
+!static.changeInterval(.(定时器ID,间隔时间,回调函数) = 重新设置间隔时间或回调函数
+!static.clearInterval(__/*定时器ID*/) = 删除定时器\n参数如果为null则忽略不执行\n否则定时器ID必须是setInterval函数或setTimeout函数的返回值
+!static.msgbox("__") = 弹出对话框,可选用参数@2指定标题
+!static.msgboxErr("__") = 弹出错误对话框,可选用参数@2指定标题
+!static.msgboxTest("__") = 弹出询问对话框,可选用参数@2指定标题
+!static.msgInfo(__) = 显示提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgWarn(__) = 显示警告提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgOk(__) = 显示正确提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgErr(__) = 显示错误提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgGreat(__) = 显示竖大拇指图标提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgSorry(__) = 显示倒竖大拇指图标提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgSmile(__) = 显示微笑图标提示框\n请先调用win.dlg.message.install安装此函数
+!static.msgFrown(__) = 显示皱眉图标提示框\n请先调用win.dlg.message.install安装此函数
+!static.threadCallable() = 开启此控件的跨线程调用功能
+!static.saveScale() = 根据控件当前位置、缩放比例，更新控件的设计时位置参数。\n以避免下次窗口缩放自适应调整控件当前位置更改被清除，\n控件所有调整位置的属性或成员函数已自动调用此函数。
+!static.reloadScale() = 按设计时位置参数、重新调整控件位置以适应窗口当前缩放比例。\n父窗口缩放时会自动执行此操作。\n默认在启动窗口消息循环时会自适应调整所有控件。\n所以在启动消息循环前添加控件不必调用此函数
+!static.orphanWindow( = 如果当前是子窗口,\n移除窗口的WS_CHILD样式，使窗口孤立出来悬浮于原位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效
+!static.orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n可选参数 @transparent 如果为 true 则转换为分层透明窗口,\n可选利用 @hwndBuddy 参数将只有句柄的窗口托管在悬浮窗口之上实现相同的效果,\n伙伴窗口总是会保持在悬浮窗口前面，并保持相同的大小、位置\n可重复调用此函数更换伙伴窗口，旧的伙伴窗口必须自行关闭
+!static.group() = 将在此控件范围内的所有其他控件设为此控件的子窗口
+!static.translateCommand() = 这个函数开启消息转发功能,\n允许子窗口的_WM_COMMAND,_WM_CTLCOLORSTATIC等消息给父窗口,\n使父窗体可以处理这些消息控制控件的外观、触发命令等
+!static.resize(.(宽度,高度) = 如果指定了参数则调整窗口大小,\n无论是否实际调整窗口大小,发送 _WM_SIZE 消息给窗口
+!static.onDestroy = @.onDestroy = function(){\n	__/*窗口销毁前触发*/\n}
+!static.onnotify = @.onnotify = function(id,code,ptr){\n	__/*通知事件触发*/\n}
+!static.oncommand = @.oncommand = function(id,event){\n	__/*命令事件触发*/\n}
+!static.wndproc = @.wndproc = function(hwnd,message,wParam,lParam){\n	__/*窗口消息回调，返回任意非null值阻止默认回调\nwndproc重复赋值时追加函数而不是覆盖之前的回调\n设为null添除所有消息回调函数\nwndproc也可以是一个表,键要为处理的消息,值为对应的消息回调函数*/	\n}
+!static.wait(.(等待函数,超时,延时间隔) = 循环执行等待函数,并等待返回值\n直到等待函数返回非空值,或存在第二个返回值,或当前窗口关闭\n等待函数返回的值就是wait函数的返回值,\n如果指定超时,超过指定毫秒时返回null,\n除等待函数以外,所有参数可选
+!static.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!static.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!static.publish("__/*发布消息名*/",) = 在窗口所在界面线程发布消息,\n运行界面线程所有所有调用subscribe函数订阅此消息的函数,\n可添加任意个触发参数
+!static.reduce(array,callback,debounce) = @.reduce(\n	{__/*在这里指定要遍历处理每个元素的数组或表,\n并在回调函数中返回每次需要间隔的延时,以毫秒为单位,返回0或空值中断处理,\n回调参数为下一个元素的值和索引,处理完后回调参数为null,\n如果此时未返回null或0退出处理函数,将返回第一个元素继续遍历*/},\n	function(value,index){\n		if(value){\n			return 50\n		}\n	} \n)
+!static.enableDpiScaling(false) = 禁用DPI自动缩放,\n不指定参数启用DPI自动缩放,默认已启用
+!static.dpiScaleX = 窗口当前使用的DPI横坐标缩放系数,\n该值由界面系统自动维护，任何情况下都不应手动修改,\n\n这是一个以小数表示百分比的数，例如 1.25 表示 125%,\n窗口未使用缩放或未完成缩放初始化时，值可能为 null，\n如果要获取屏幕缩放设置应改用 gdi.getDpiScale 函数
+!static.dpiScaleY = 窗口当前使用的DPI纵坐标缩放系数,\n该值由界面系统自动维护，任何情况下都不应手动修改,\n\n这是一个以小数表示百分比的数，例如 1.25 表示 125%,\n窗口未使用缩放或未完成缩放初始化时，值可能为 null，\n如果要获取屏幕缩放设置应改用 gdi.getDpiScale 函数
+!static.dpiScale(.(x,y) = 将 @x,@y 表示的像素值乘以窗体当前 DPI 缩放倍数并返回,\n省略 @y 参数时仅返回 @x 转换后的值,\n所有 win.ui 创建的窗口或控件都提供这个函数
+!static.getRoot() = 获取顶层父窗口，这个函数会查找 orphanWindow 的父窗口
+!static._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+?win.ui.ctrl.static  =!static.
+win.ui.ctrl.static() = 静态文本控件\n!static.
+win.ui.ctrl.static = 静态文本控件支持库
+end intellisense***/
+ 

@@ -1,0 +1,71 @@
+
+var d = ... : {};
+var list = d.list : {};
+var user = owner.base.user;
+owner.view.loadcode("web.common.header",...);
+
+?>
+
+<div class="main layui-clear">
+  <div class="wrap">
+    <div class="content" style="margin-right:0">
+      <div class="fly-tab">
+        <span>
+          <a href="<?=mvcapp.urlAction("index","web.post")?>" <?=d.status ? '' : 'class="tab-this"' ?>>全部</a>
+          <a href="<?=mvcapp.urlAction("unsolved","web.post")?>" <?=d.status == 'unsolved' ? 'class="tab-this"' : '' ?>>未结帖</a>
+          <a href="<?=mvcapp.urlAction("solved","web.post")?>" <?=d.status == 'solved' ? 'class="tab-this"' : '' ?>>已采纳</a>
+          <a href="<?=mvcapp.urlAction("wonderful","web.post")?>" <?=d.status == 'wonderful' ? 'class="tab-this"' : '' ?>>精帖</a>
+          <? if(user.uid){ ?>
+          <a href="<?=mvcapp.urlAction("index","web.user")?>">我的帖</a>
+          <? } ?>
+        </span>
+        <form action="http://cn.bing.com/search" class="fly-search">
+          <i class="iconfont icon-sousuo"></i>
+          <input class="layui-input" autocomplete="off" placeholder="搜索内容，回车跳转" type="text" name="q">
+        </form>
+        <a href="<?=mvcapp.urlAction("add","web.post")?>" class="layui-btn jie-add">发布问题</a>
+      </div>
+    
+    <ul class="fly-list">
+      <?
+        for(i=1;#list.rows;1){
+      	var row = list.rows[i];
+      ?>
+        <li class="fly-list-li">
+          <a href="/u/<?=row.uid?>" class="fly-list-avatar">
+            <img src="<?=row.avatarUrl?>" alt="<?=row.nickname?>">
+          </a>
+          <h2 class="fly-tip">
+            <a href="<?=mvcapp.urlAction("detail&id=" ++ row.postId,"web.post")?>"><?=row.postTitle?></a>
+            <?= row.IsTop == "1" ? '<span class="fly-tip-stick">置顶</span>' :'' ?>
+            <?= row.IsFine == "1" ? '<span class="fly-tip-jing">精帖</span>' : ''?>
+          </h2>
+          <p>
+            <span><a href="/u/<?=row.uid?>"><?=row.nickname?></a></span>
+            <span><?=row.showtime?></span>
+            <span><?=row.categoryName ?></span>
+            <span class="fly-list-hint"> 
+              <i class="iconfont" title="回答">&#xe60c;</i> <?=row.replyCount?>
+              <i class="iconfont" title="人气">&#xe60b;</i> <?=row.viewCount?>
+            </span>
+          </p>
+        </li>
+      <? }; ?>
+      </ul>
+    
+    <? if(!list.total){ ?>
+    <div class="fly-none">并无相关数据</div>
+    <? } else { ?>
+    <div style="text-align: center">
+      <?  owner.view.loadcode("web.common.laypage",d.action,list.pages,list.curr);?>
+    </div>
+    <? } ?>
+    </div>
+    
+  </div>
+</div>
+
+<? owner.view.loadcode("web.common.footer");?>
+
+</body>
+</html>

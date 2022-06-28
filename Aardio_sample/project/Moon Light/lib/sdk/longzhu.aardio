@@ -1,0 +1,115 @@
+﻿import web.json;    
+import inet.http
+
+namespace sdk;
+class longzhu{
+	ctor(url){
+		var http = ..inet.http("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36")
+		var liveType = canHandle(url);
+	};
+	handle = {
+		star = function(url){
+			var html = http.get( url )
+			if( !html ){
+				return null, "网络连接有误"; 
+			}
+			
+			var pageData = ..string.match( html, "<@pageData =@>.+?(\{.+?\})\;" )
+			var roomInfo = ..string.match( html, "<@roomInfo =@>.+?(\{.+?\})\;" )
+			var roomHost = ..string.match( html, "<@roomHost =@>.+?(\{.+?\})\;" )
+			if( !( pageData ?  roomHost ? roomInfo) ){
+				return null, "网络数据解析有误"; 
+			}
+			pageData = ..web.json.parse(pageData)
+			roomHost = ..web.json.parse(roomHost)
+			roomInfo = ..web.json.parse(roomInfo)
+			
+			var ret = {
+				isLive = !!pageData.live;
+				ownerName = roomHost.username;
+				avatarUrl = roomHost.avatar;
+				roomId = roomInfo.RoomId;
+				roomUrl = url;
+				website = "longzhu";
+			}
+			
+			if( ret.isLive ){
+				ret.roomName = pageData.live.title;
+				
+				var streamInfo = http.get( "http://livestream.longzhu.com/live/getlivePlayurl?roomId=" ++ ret.roomId ++ "&lzv=1&v2" ) 
+				if( !streamInfo ){
+					return null, "获取直播信息失败"; 
+				}
+				streamInfo = ..web.json.parse(streamInfo)
+				
+				if( streamInfo.playLines ){
+					ret.streamUrl = streamInfo.playLines[1].urls[1].securityUrl	
+				}
+				else {
+					ret.isLive = false
+				}	
+					
+			}
+			return ret; 		
+		}
+		yoyo = function(url){
+			var name = ..string.match( url, handlePattern.yoyo );
+			var api = "http://yoyo-api.longzhu.com/api/room/init?domain=" ++ name ++ "&style=v&callback=roominit"
+			var html = http.get( api )
+			if( !html ){
+				return null, "网络连接有误"; 
+			}  
+			var info = ..web.json.parse( html ) 
+			if( info.status !== 10000 ){
+				return null, "解析数据有误"; 
+			}
+			
+			var ret = {
+				website = "longzhu";
+				roomId = info.data.baseInfo.roomId;
+				ownerName = info.data.baseInfo.nickname;
+				avatarUrl = info.data.baseInfo.avatar;
+				roomUrl = url;
+				isLive = info.data.live  ? info.data.live.isLive;
+			}
+			
+			if( ret.isLive ){
+				var url = "http://livestream.longzhu.com/live/getlivePlayurl?roomId=" ++ ret.roomId ++ "&v2"
+				var streamInfo = http.get( url )
+				if( !streamInfo ){
+					return null, "获取直播信息失败"; 
+				}
+				streamInfo = ..web.json.parse(streamInfo)
+				if( streamInfo.playLines ){
+					ret.streamUrl = streamInfo.playLines[1].urls[1].securityUrl		
+				}
+				else {
+					ret.isLive = false
+				}	
+			}
+			return ret; 
+		}
+	}
+	getStreamInfo = function(){
+		return this.handle[liveType](url); 
+	}
+	
+}
+namespace longzhu{
+    info = {
+        name = "龙珠";
+        url = "http://longzhu.com/";
+    }    
+    
+    handlePattern = {
+        star = "<@star.longzhu.com/@>(\w+)";
+        yoyo = "<@y.longzhu.com/@>(\w+)";
+    }
+    canHandle = function(url){
+    	for(k,v in handlePattern){
+    		if( ..string.match(url,v) ){
+    			return k; 
+    		}
+    	}
+    }	
+}

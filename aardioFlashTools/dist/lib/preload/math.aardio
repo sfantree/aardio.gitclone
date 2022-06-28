@@ -1,0 +1,91 @@
+//math 数值运算
+namespace preload;
+self.math = global.math;
+
+namespace math;
+
+_size64_meta._add = function(b){
+	return size64(owner).add(b);
+};
+
+_size64_meta._sub = function(b){
+	return size64(owner).sub(b);
+};
+
+_size64_meta._mod = function(b){
+	return size64(owner).mod(b);
+};
+
+_size64_meta._div = function(b){
+	return size64(owner).div(b);
+};
+
+_size64_meta._mul = function(b){
+	return size64(owner).mul(b);
+};
+
+_size64_meta._lshift = function(b){
+	return size64(owner).lshift(b);
+};
+
+_size64_meta._rshift = function(b){
+	return size64(owner).rshift(b);
+};
+
+_size64_meta._concat = function(b){
+	return tostring(owner) ++ tostring(b);
+};
+
+_size64_meta.swap = function(){
+	var a,b = owner.split32();
+	return size64(..raw.swap(b),..raw.swap(a));
+};
+
+_size64_meta.divf = function(b){
+	return tonumber( owner / b )  + ( tonumber(  owner % b ) / tonumber(b) )
+}
+
+isSize64  = function(v){
+	return v@ == _size64_meta;
+};
+
+isFinite = function(v){
+	return (type(v) == "number") &&  (v==v) &&  (v != 1/0) && (v !=-1/0)
+};
+
+isInteger = function(v) {
+    if(isFinite(v)){
+    	 var i,f = modf(v);
+    	 return !f;
+    }
+};
+
+stringify = function(v,p){  
+    var i,f = modf(v);
+    return (!f) ? ..string.format("%.0f",v) : ..string.trimright(..string.format("%."+(p:15)+"f",v),"0"); 
+};
+
+roundToEven = function (v,p){ 
+    p = p : 0;
+    var d = v * ( 10 ** p );
+    var i,n = floor(d),floor(d*10); 
+    	
+    if(n%5==0 && i%2 == 0 
+    	&& floor(n*10)== floor(d*100)
+    ) return i/( 10 ** p ); 
+    else return round(v,p);
+}; 
+
+mulDiv = ::Kernel32.api( "MulDiv", "int(int a,int b,int c)"); 
+
+/**intellisense(math)
+mulDiv(.(a,b,c) = 返回a乘b再除以c的结果,并自动四舍五入转为整数\n可尽量使运算不会溢出,运算错误则返回-1\n\n注意这个函数是系统 API 函数，\n参数只能传入数值不能传入字符串
+round( = 四舍五入，舍入规则以取整为例：\n小数小于0.5取相邻的绝对值更小的整数，\n小数大于0.5取相邻的绝对值更大的整数，\n小数等于0.5取相邻的正无穷大方向的整数。\n\n注意四舍五入非常多的规则，\n各种语言的默认实现并不完全一致，\n计算机浮点数都存在可容忍的精度误差，\n如果无法接受并一定要追求完美，这边建议试试重新发明计算机
+round(.(数值,精度) = 四舍五入取接近的数，\n精度指定小数后的位数,默认为0（取整）
+roundToEven( = aardio 改良版银行家舍入法，\n舍入规则为：尾数四舍六入，五后为零前凑偶（只看一位零）。\n\n解决问题1:1到9出现机率一样，5到9进位导致进多舍少。\n解决问题2:浮点数误差导致的不合理舍入。\n\n注意四舍五入非常多的规则，\n各种语言的默认实现并不完全一致，\n计算机浮点数都存在可容忍的精度误差，\n如果无法接受并一定要追求完美，这边建议试试重新发明计算机
+roundToEven(.(数值,精度) = 使用改良版银行家舍入法转换并返回参数@1指定的数值，\n参数@2指定返回数值的小数位数,默认为0（也就是取整）
+isSize64(__) = 判断参数是否 math.size64 长整数对象
+isFinite(__) = 如果参数是一个有效数值,\n并且不是正负无穷大则返回 true，否则返回 false。\n如果传入字符串会直接返回 false
+isInteger(__) = 参数是一个数值并且是整数返回true，否则返回false。\n如果传入字符串会直接返回 false
+stringify(.(数值,最大精度) = 数值转换为10进制字符串,最大精度默认为15,\n不使用科学计数法，小数尾部不会有0
+end intellisense**/

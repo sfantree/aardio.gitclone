@@ -1,0 +1,26 @@
+import console; 
+console.open();
+
+import com.excel;
+var excel = com.excel(false);
+
+excel.alerts = false;
+
+var sht = excel.ActiveWorkbook.ActiveSheet;
+var col = excel.activecell.column;
+
+var rc = sht.usedrange.rows.count;
+
+import console.progress;
+var bar = console.progress();
+
+for (i=1; rc){
+	bar.setProgress(math.round(i*100/rc), math.round(i*100/rc) + "% processing ......");
+	var txt = sht.cells(i, col).text;
+	if !#txt continue;
+	if string.startWith(txt,"008") sht.cells(i, col).value2 = "H" ++ txt;
+}
+
+excel.alerts = true;
+
+console.pause(true);

@@ -1,0 +1,436 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="Moon Light";right=1023;bottom=446;border="none")
+mainForm.add()
+/*}}*/
+
+if( _STUDIO_INVOKED ){
+	import console;
+	console.open();
+}
+
+import thread.command;
+import web.json
+import win.ui.shadow
+import web.layout;
+import web.layout.fontAwesome;
+
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.tabs;
+import web.layout.behavior.splitter;
+import web.layout.behavior.player;
+import web.layout.behavior.roomListItem;
+
+import sdk;
+import helper;
+import public;
+import moonLight;
+
+
+var wb = web.layout( mainForm )
+
+if( _STUDIO_INVOKED ){
+	import web.layout.debug
+	wb.attachEventHandler( web.layout.debug )	
+}
+import win.reg;
+import win.version;
+if(win.version.isWin7Later){
+	var reg = win.reg(
+		"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings");
+	reg.setDwValue("SecureProtocols",2720);	
+}
+
+wb.go("/res/main_lt.html")
+
+var frmBar = mainForm.loadForm("/res/layout/frmBar.aardio")
+var frmPlayer = web.layout.behavior.player.frmPlayer
+var playerFrmMgr = helper.formManager( frmPlayer )
+
+playerFrmMgr.onMouseLeave = function(wParam,lParam){
+    frmBar.setRect( frmPlayer.getRect(true) );
+	if(!frmBar._layout.querySelector(".danmu").state["checked"]){
+		frmBar.show(false);
+		switchflag = false;
+	} else {
+		frmBar._layout.querySelector(
+			"#container  #bottom").style["visibility"] = "collapse";
+		switchflag = false;
+	}
+}
+
+playerFrmMgr.onMouseClick = function(wParam,lParam){
+	numflag := 0;
+	numflag ++;
+	if(numflag == 2){
+		switchflag = !switchflag;
+		numflag = 0;	
+	}
+	frmBar.setRect( frmPlayer.getRect(true) );
+	if(switchflag){
+		if(!frmBar._layout.querySelector(".danmu").state["checked"]){
+			frmBar.show(true);
+		} else {
+			frmBar._layout.querySelector(
+				"#container  #bottom").style["visibility"] = "visible";
+		}
+		
+	} else {
+		if(!frmBar._layout.querySelector(".danmu").state["checked"]){
+			frmBar.show(false);
+		} else {
+			frmBar._layout.querySelector(
+				"#container  #bottom").style["visibility"] = "collapse";
+		}
+		
+	}	
+}
+
+playerFrmMgr.onMouseDoubuleClick = function(wParam,lParam){
+/*
+	var mpv = web.layout.behavior.player.mpv;
+	mpv.stop();
+*/
+}
+
+playerFrmMgr.onMouseEnter = function(wParam,lParam){
+    frmBar.setRect( frmPlayer.getRect(true) )
+	//frmBar.show(true)	
+}
+
+playerFrmMgr.onMouseDrag = function(wParam,lParam){
+    frmBar.setRect( frmPlayer.getRect(true) )	
+}
+
+playerFrmMgr.onRestore = function(){
+    
+    frmBar.setRect( frmPlayer.getRect(true) )	
+    frmBar.show(false)  
+}
+
+playerFrmMgr.bindTracker()
+playerFrmMgr.bindFullscreen( frmPlayer )
+playerFrmMgr.bindFullscreen( mainForm )
+playerFrmMgr.bindFullscreen( frmBar )
+
+
+var updateRoomInfo = function(roomInfo){
+    if( !roomInfo.website ){
+    	error("参数 roomInfo 缺少直播平台名称",2)
+    }
+    if( !roomInfo.roomId ){
+    	error("参数 roomInfo 缺少直播间号码",2)
+    } 
+
+	var item = wb.querySelector( string.format(`.item[website="%s"][room-id="%s"]`, roomInfo.website, roomInfo.roomId) )
+	if( !item ){
+		return ; 
+	}
+
+    item.live = tostring( roomInfo.isLive )
+	item.$1(".avatar").src := roomInfo.avatarUrl;
+	item.$1(".owner-name").innerText = roomInfo.ownerName;
+	item.$1(".owner-website-icon").innerText = roomInfo.roomName;
+}
+
+var moonLightClient = moonLight();
+moonLightClient.onUpdateRoomInfo = function(info){
+	updateRoomInfo(info)
+}
+
+// 添加直播间
+var addRoom = function(roomInfo){
+    	if( !roomInfo.website ){
+    		error("参数 roomInfo 缺少直播平台名称 website",2)
+    	}
+    	if( !roomInfo.roomId ){
+    		error("参数 roomInfo 缺少直播间号码 roomId",2)
+    	} 
+    	if( !roomInfo.roomUrl ){
+    		error("参数 roomInfo 缺少直播间地址 roomUrl",2)
+    	}      	   	
+    	
+    	var roomList = wb.querySelector(".room-list")
+    	
+    	// 检测直播间是否存在列表上	
+    	var isExist;
+    	roomList.enumQuery(
+    		function(ltEle){
+    			if( ltEle.website == roomInfo.website ?  ltEle["room-id"] == roomInfo.roomId ){
+    				isExist = true
+    				return true; 
+    			}	 
+    		},"li"
+    	)
+    	if( isExist ){
+    		return null, "该直播间已添加过"; 
+    	}   		
+    	
+    	// 新增一个直播间	
+    	var item = roomList.createElement( "li")
+    	item.class = "item"
+    	item.website = roomInfo.website;
+    	item["room-id"] = tostring(roomInfo.roomId);
+    	item["room-url"] = roomInfo.roomUrl;
+    	item.name = "item-select"; /*单选必须有name属性*/
+    	item["owner-name"] = roomInfo.ownerName;
+    	item["avatar-url"] = roomInfo.avatarUrl;
+		item.live = roomInfo.isLive ? "true" : "false"
+    	
+    	// 加入主播头像
+    	var avatar = item.createElement("img")
+    	avatar.src = roomInfo.avatarUrl
+    	avatar["room-url"] = roomInfo.roomUrl;
+    	avatar.class = "avatar"
+		
+		// 主播信息区域
+		var ownerInfo = item.createElement( "div" )
+		ownerInfo.class = "owner-info";
+		
+		// 主播名字
+    	var ownerName = ownerInfo.createElement("div", roomInfo.ownerName )
+    	ownerName.class = "owner-name"
+    	
+    	var ownerWebsiteIcon = ownerInfo.createElement("span" )
+    	ownerWebsiteIcon.class = "owner-website-icon";
+		for(k,v in sdk.website){
+			if(v.sdk == item.website){
+				ownerWebsiteIcon.style["foreground-image"] = string.format(
+						"url(%sfavicon.ico)", v.url);
+/*
+$(#left).style["background-image"] = "url(file://d:/1.jpg)"; // or 
+$(#left).style["background-image"] = [url:"file://d:/1.jpg"]; // CSS "functions" are tuples in terms of script
+*/
+				break;
+			}
+		
+		}
+    	
+    	// 加入在线状态
+    	var liveState = item.createElement("div")
+    	liveState.class = "live-state"
+		
+		// 如果主播在线就把这行选中
+		if( roomInfo.isLive ){
+    		roomList.enumQuery(
+    			function(ltEle){
+    					ltEle.state.checked = false
+    			},"li.item"
+    		)
+    		item.state.checked = true    			
+		}
+		
+		// 滚动条拉到最后
+		item.scrollToView()
+		
+		moonLightClient.thWorks.push( roomInfo )
+		
+		return true; 			
+}
+
+
+// 定时刷新主播信息
+mainForm.addtimer( 
+	90000,
+	function(hwnd,msg,id,tick){
+		wb.querySelector(".room-list").enumQuery(
+			function(ltEle){
+				moonLightClient.thWorks.push( {website=ltEle.website;roomUrl = ltEle["room-url"];} )
+			},"li.item"
+		)		
+	} 
+)
+
+var addDanmu = function(sdk, interhtml, ...){
+	var danmulist = wb.querySelector( "#container.main .right-side .container .danmu" );
+	if( !danmulist ){
+		return ; 
+	}
+	if(danmulist.childCount() > 66){
+		for(i,eleChild in danmulist.eachChild(1, danmulist.childCount() - 66, 1)){
+			eleChild.delete();
+		}
+	}
+	if( sdk ? interhtml ){
+		var item = danmulist.createElement( "li");
+		item.innerHTML = interhtml;
+		item.scrollToView();
+	}
+
+}
+import thread.command;
+var listener = thread.command();
+import thread.table;
+var thrdTable = thread.table("weblayout",true/*清空*/ );
+listener.pushdanmu = function(sdk, s, roomid, ...){
+	var danmutime = tostring(time(time(), "%H:%M:%S"));
+	var interhtml;
+		select(s.type) {
+			case "chatmsg" {
+				var htmls = /*<span id="nn">%s</span><span id="level">[lv%s] </span>{%s}<br><span id="txt">%s</span>*/; 
+				interhtml = string.format(htmls, s.nn, s.level, danmutime, s.txt);
+				addDanmu(sdk, interhtml, ...);
+			}
+			case "uenter" {
+				var htmls = /*<span id="nn">%s</span><span id="level">[lv%s] </span>{%s}<br><span id="txt">进入 %s 直播间</span>*/; 
+				interhtml = string.format(htmls, s.nn, s.level, danmutime, s.rid);
+				addDanmu(sdk, interhtml, ...);
+			}
+			case "ssd" {
+				var htmls = /*%s <span id="nn"><a href="%s">%s</a></span>*/; 
+				interhtml = string.format(htmls, danmutime, s.url, s.content);
+				addDanmu(sdk, interhtml, ...);
+			}
+			else {
+			}
+		}
+
+}
+listener.sidebarCtrl = function(){
+	if(thrdTable.sidebarico){
+		wb.$1("#container.main .right-side").style["visibility"] = "visible";
+	} else {
+		wb.$1("#container.main .right-side").style["visibility"] = "collapse";
+	}
+}
+
+var playUrl = function(url){
+    var mpv = web.layout.behavior.player.mpv;
+    mpv.loadFile("\res\loading.MP4")
+    // 获取直播信息 
+    var streamInfo, err = win.invoke(
+        function(url){
+        	import sdk;
+
+    		return sdk( url ).getStreamInfo(); 
+        },url 
+    )
+
+    if( !streamInfo ){
+        mainForm.msgboxErr( err )
+        return ; 
+    }
+/*
+    import console
+    console.dumpJson(streamInfo)
+*/
+	thread.invoke( 
+		function(streamInfo){
+			import sdk;
+			import thread.table;
+			import thread.command;
+			
+			var thrdTable = thread.table("weblayout");
+			thrdTable.current = thread.getId();
+			
+			thread.command.stopdanmu();
+			
+			if(streamInfo.website == "douyu"){
+				var v = sdk[streamInfo.website](streamInfo.roomUrl);
+				v.get_danmu();
+			}
+
+		}, streamInfo
+	)
+    if( streamInfo.isLive ){
+        // 记录当前播放的直播间地址
+        var player = wb.getEle("playerContainer")
+        
+        player.url = url
+        
+        
+        mpv.loadUrl( streamInfo.streamUrl )
+    }
+    else {
+    	mainForm.msgboxErr("该主播没有开播")
+    }
+    return streamInfo; 	
+}
+
+// 重新加载当前播放的视频
+var reload = function(){
+	var player = wb.getEle("playerContainer")
+    if( player.url ){
+    	playUrl( player.url )
+    }
+}
+
+// 加入公共函数
+public.reload = reload;
+public.playUrl = playUrl;
+public.addRoom = addRoom;
+
+var readSetting = function(){
+	var settingFile = string.load("\setting.json")
+	if( !settingFile ){
+		return ; 
+	}
+	
+	var ok, ret = call( web.json.parse,,settingFile)
+	if( !(ok ? ret) ){
+		return ; 
+	}
+	if( ret.error !== 0 ){
+		return ; 
+	}
+	
+	var roomList = ret.data.roomList
+	for(i=1;#roomList;1){
+		var info = roomList[i]
+		if( info.roomId ? info.roomUrl ? info.website ){
+			addRoom(info)
+		}
+		
+	}
+}
+
+var saveSetting = function(){
+	var roomList = wb.querySelector(".room-list")
+	var ret = {
+		error = 0;
+		data = {
+			roomList = {}
+		}
+	}
+	roomList.enumQuery(
+		function(ltEle){
+			 table.push(ret.data.roomList,{
+			 	ownerName = ltEle["owner-name"];
+			 	roomId = ltEle["room-id"];
+			 	avatarUrl = ltEle["avatar-url"];
+			 	roomUrl = ltEle["room-url"];
+			 	website = ltEle.website;
+			 })
+		},"li"
+	)
+	var json = web.json.stringify( ret, true )
+	string.save("\setting.json",json )
+}
+
+readSetting()
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    saveSetting()
+}
+
+wb.onButtonClick = {
+    ["show-add-room-form"] = function (ltTarget,ltOwner,reason,behaviorParams) {
+		var frm = mainForm.loadForm("\res\layout\frmAddRoom.aardio")
+		frm.doModal()
+	}
+}
+wb.onVisualStateChanged =
+    				function (scTarget,scOwner,shown,behaviorParams) {
+	if(scTarget.class == "right-side panel"){
+		frmBar.setRect(frmPlayer.getRect(true));
+	}
+}
+
+
+win.ui.shadow( mainForm, 50, 3 )
+
+mainForm.enableDpiScaling();
+mainForm.show(); 
+win.loopMessage(); 
+
+moonLightClient.thWorks.waitClose()

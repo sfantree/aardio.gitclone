@@ -1,0 +1,46 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form2";right=759;bottom=399;border="none";exmode="toolwindow";parent=...)
+winform.add()
+/*}}*/
+
+winform.transparent(true);
+
+import web.layout;
+import web.layout.behavior.player;
+import web.layout.behavior.volIco;
+import web.layout.behavior.volSlider;
+import web.layout.behavior.danmuIco;
+import web.layout.behavior.audioOutputDevice;
+import web.layout.behavior.reload;
+import web.layout.behavior.stop;
+import web.layout.behavior.blackScreenPatch;
+import web.layout.behavior.popup;
+import public;
+
+var mpv = web.layout.behavior.player.mpv
+import thread.table;
+import thread.command;
+var thrdTable = thread.table("weblayout");
+
+var wb = web.layout( winform )
+wb.go("/res/bar_lt.html")
+
+wb.onMenuItemClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+	if( ltTarget.class == "output-device-item" ){
+		mpv.setOutputDevice( ltTarget["device-name"] )
+	} 	
+}
+wb.onButtonStateChanged = function (ltTarget,ltOwner,reason,behaviorParams) {
+	if(ltOwner.class == "sidebar ico ico-check"){
+		if(ltOwner.state.checked){
+			thrdTable.sidebarico = true;
+		} else {
+			thrdTable.sidebarico = false;
+		}
+		thread.command.sidebarCtrl();
+	}
+}
+
+winform.show(false);
+return winform;

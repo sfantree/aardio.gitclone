@@ -1,0 +1,60 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+ 
+namespace web.layout.behavior.main.link{
+	
+	onMouseClick = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+		
+		var link = ltOwner.getAttribute("link");
+		var selected = ..wbLayout.querySelector('#headerTools ul li[selected="selected"]');
+		if(selected) {
+			selected.setAttribute("selected","");
+		}
+		ltOwner.setAttribute("selected","selected");
+		if(link == "about") {
+			var aboutForm = ..mainForm.loadForm("/form/about.aau");
+			aboutForm.doModal(..mainForm.hwnd);
+			return;
+		}
+		if(..string.trim(link) != "" && ..libidevice.device.getStatus()) {		
+			select(link) {
+				case "index" {
+					var deviceInfo = ..libidevice.device.getDeviceInfo();
+					if(type(deviceInfo) == type.table && deviceInfo.device_name) {
+						..libidevice.device.showDeviceInfo(deviceInfo);
+						return;
+					}					
+				}
+				case "applist" {
+					if(..libidevice.device.showAppList()) {
+						return;
+					}
+				}
+				case "piclist" {
+					if(..libidevice.device.showPicList()) {
+						return;
+					}
+				}
+				case "filesystem" {
+					if(..libidevice.device.showFileList()) {
+						return;
+					}			
+				}
+				case "others" {
+					var frame = ..wbLayout.getEle("contentFrame");
+					frame.src = "/res/others.html";
+					frame.xcall("load","/res/others.html");	
+					return;
+				}
+				else {
+				}
+			}			
+		}		
+		var frame = ..wbLayout.getEle("contentFrame");
+		frame.src = "/res/index.html";
+		frame.xcall("load","/res/index.html");	
+	}
+}

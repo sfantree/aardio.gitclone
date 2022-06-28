@@ -1,0 +1,30 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="music demo";right=374;bottom=666;bgcolor=16711422;border="none";composited=1;max=false;min=false;mode="popup";sysmenu=false;title=false)
+mainForm.add(
+custom={cls="custom";text="自定义控件";left=0;top=0;right=375;bottom=667;db=1;dl=1;dr=1;dt=1;repeat="tile";z=1}
+)
+/*}}*/
+
+//初始化
+var cform = mainForm.custom.loadForm("\dlg\main1.aardio");
+//加载右侧界面
+subscribe("切换右",function(...){
+    
+	mainForm.custom.loadForm("\dlg\main2.aardio");
+} )
+//加载左侧界面
+subscribe("切换左",function(...){
+    
+	mainForm.custom.loadForm("\dlg\main1.aardio");
+} )
+
+//加载字体
+import fonts
+..fonts.addFamily( 
+	..io.appData("aardio/std/semibold.otf",$"~/lib/fonts/.res/semibold.otf"),"semibold"
+)
+
+mainForm.show();
+return win.loopMessage();

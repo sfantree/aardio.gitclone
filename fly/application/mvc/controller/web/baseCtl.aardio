@@ -1,0 +1,64 @@
+
+import common.code;
+import svc.web.webUserSvc;
+
+namespace mvc.controller.web
+
+base = class {
+	ctor( checklogin ){
+	
+		this.session = ..carl.mvc.common.proxy(tabUserLogin);
+
+		this.isLogin = !!tabUserLogin;
+		
+		this.userId = this.session.userId;
+		
+		this.uid = ..common.getUid(this.userId);
+		
+		if(checklogin){
+			if(!this.isLogin) reLogin();
+		}
+		
+		this.user = ..carl.mvc.common.proxy(getNowUser());
+		
+	};
+	
+	reLogin = function(){
+		reLogin();
+	}
+	
+}
+
+namespace base{
+
+	string = ..string;
+	table = ..table;
+	
+	loginUrl = ..mvcapp.urlAction("index","web.login");
+	
+	tabUserLogin = ..carl.session.get("tabUserLogin");
+	
+	reLogin = function(){
+		if(..request.headers["x-requested-with"] == "XMLHttpRequest"){
+			..mvcapp.loadActionAfter(,,, false,"未登录");
+			..response.close();
+		}
+		else {
+			var redirect = ..inet.url.encode(..request.uri);
+			var url = ..string.concat(..request.scheme,"://",..request.host,loginUrl);			
+			url =  ..inet.url.appendExtraInfo(url,"redirect=" ++ redirect);
+			..response.redirect(url);
+		}
+	}
+	
+	getNowUser = function(){
+		if( !tabUserLogin ) return;
+		var tabUser,err = ..svc.web.webUserSvc.getInfo(tabUserLogin.UserId);
+		if(!tabUser){//用户不存在
+			..carl.session.clear();
+			..response.redirect(loginUrl)
+		}
+		return tabUser;
+	}
+		
+}

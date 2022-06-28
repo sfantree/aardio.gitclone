@@ -1,0 +1,389 @@
+import fonts.fontAwesome;
+import win.ui;
+import solidedge.application;
+import solidedge.DraftDocument;
+import win.ui.menu;
+//import access;
+import config;
+/*DSG{{*/
+var winform = win.form(text="TBM";right=501;bottom=354;image=$"\res\SE BG.jpg";bkBottom=0;bkLeft=0;bkRight=0;bkTop=0)
+winform.add(
+button={cls="button";text='\uF062';left=72;top=144;right=96;bottom=167;bgcolor=16777215;dl=1;dt=1;flat=1;font=LOGFONT(name='FontAwesome');z=9};
+button2={cls="button";text='\uF00C  OK';left=387;top=306;right=488;bottom=345;db=1;default=1;dr=1;font=LOGFONT(name='FontAwesome');z=16};
+button3={cls="button";text='\uF00D  Cancel';left=280;top=306;right=381;bottom=345;db=1;dr=1;font=LOGFONT(name='FontAwesome');z=17};
+button4={cls="button";text='\uF017 ';left=305;top=184;right=329;bottom=208;dl=1;dt=1;font=LOGFONT(name='FontAwesome');hide=1;z=27};
+button5={cls="button";text='\uF0C7 ';left=178;top=184;right=202;bottom=208;dl=1;dt=1;font=LOGFONT(name='FontAwesome');z=28};
+button6={cls="button";text='\uF06E';left=104;top=144;right=128;bottom=167;bgcolor=16777215;dl=1;dt=1;flat=1;font=LOGFONT(name='FontAwesome');z=32};
+button7={cls="button";text='\uF142';left=487;top=103;right=501;bottom=127;color=8421504;dr=1;dt=1;flat=1;font=LOGFONT(h=-11;name='FontAwesome');z=35};
+cb_approve_date={cls="edit";left=215;top=248;right=300;bottom=272;dl=1;dt=1;z=15};
+cb_approver={cls="combobox";left=48;top=245;right=178;bottom=270;dl=1;dt=1;items={};mode="dropdown";z=13};
+cb_design_date={cls="edit";left=215;top=184;right=300;bottom=208;dl=1;dt=1;z=10};
+cb_designer={cls="combobox";left=48;top=185;right=178;bottom=210;dl=1;dt=1;items={};mode="dropdown";z=11};
+cb_material={cls="combobox";left=47;top=103;right=235;bottom=129;dl=1;dt=1;edge=1;items={};mode="dropdown";z=3};
+cb_model_no={cls="combobox";left=300;top=58;right=488;bottom=84;dr=1;dt=1;edge=1;items={};mode="dropdown";z=2};
+cb_name_cn={cls="combobox";left=47;top=58;right=235;bottom=84;dl=1;dt=1;edge=1;items={};mode="dropdown";z=1};
+cb_review_date={cls="edit";left=215;top=216;right=300;bottom=240;dl=1;dt=1;z=14};
+cb_reviewer={cls="combobox";left=48;top=215;right=178;bottom=240;dl=1;dt=1;items={};mode="dropdown";z=12};
+cb_tol={cls="combobox";left=340;top=148;right=488;bottom=174;dr=1;dt=1;edge=1;items={"GB/T 1804-m";"GB/T 1804-c";"GB/T 1804-v"};mode="dropdown";z=18};
+cb_weight={cls="combobox";left=300;top=103;right=488;bottom=129;dr=1;dt=1;edge=1;items={};mode="dropdown";z=4};
+chkPaint={cls="checkbox";text="喷粉标准 &Q/LD J52005";left=136;top=152;right=314;bottom=172;bgcolor=16777215;dl=1;dt=1;z=8};
+chkReplaceTB={cls="checkbox";text="自动替换成新版图框";left=344;top=272;right=480;bottom=296;checked=1;color=16711680;db=1;dr=1;hide=1;z=29};
+groupbox={cls="groupbox";text='\uF016  当前文件';left=16;top=9;right=488;bottom=47;aw=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(name='FontAwesome');z=5};
+rd_M={cls="radiobutton";text="自制件(&E)";left=24;top=328;right=96;bottom=344;bgcolor=16777215;db=1;dl=1;group=1;z=30};
+rd_P={cls="radiobutton";text="外购件(&F)";left=96;top=328;right=160;bottom=344;bgcolor=16777215;db=1;dl=1;z=31};
+seDocPath={cls="static";left=48;top=24;right=480;bottom=41;align="right";aw=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=6};
+static={cls="static";text="设计";left=15;top=190;right=45;bottom=209;dl=1;dt=1;transparent=1;z=19};
+static10={cls="static";text="唤起快捷键 Alt+T";left=168;top=320;right=272;bottom=336;align="right";color=32768;db=1;dr=1;transparent=1;z=34};
+static2={cls="static";text="审核";left=15;top=220;right=45;bottom=243;dl=1;dt=1;transparent=1;z=20};
+static3={cls="static";text="批准";left=15;top=250;right=45;bottom=275;dl=1;dt=1;transparent=1;z=21};
+static4={cls="static";text="名称";left=15;top=63;right=45;bottom=82;dl=1;dt=1;transparent=1;z=22};
+static5={cls="static";text="材料";left=15;top=106;right=45;bottom=125;dl=1;dt=1;transparent=1;z=23};
+static6={cls="static";text="型号";left=269;top=63;right=299;bottom=82;dr=1;dt=1;transparent=1;z=24};
+static7={cls="static";text="重量";left=269;top=105;right=299;bottom=124;dr=1;dt=1;transparent=1;z=25};
+static8={cls="static";text="版本";left=15;top=149;right=45;bottom=168;dl=1;dt=1;transparent=1;z=26};
+static9={cls="static";text='\uF0E2';left=24;top=24;right=40;bottom=40;dl=1;dt=1;font=LOGFONT(name='FontAwesome');transparent=1;z=33};
+version={cls="edit";left=48;top=144;right=72;bottom=170;align="center";dl=1;dt=1;font=LOGFONT(h=-13);z=7}
+)
+/*}}*/
+
+/*initDeclare{{*/
+var seApp, seDFT, seSht, seBlk, seLbs;
+var initDeclare = function(){
+	seApp := solidedge.application();
+	if (! seApp) return false; 
+	if (seApp.Documents.Count==0) return false; 
+	if (seApp.ActiveDocumentType !== 2 /*Draft Document Type*/) return false; 
+	seDFT = solidedge.DraftDocument(seApp.ActiveDocument);
+	if (seDFT.Sheets.Count == 0) return false ; 
+	seSht = seDFT.ActiveSheet;
+	seBlk = seDFT.getTitleBlock(seSht); //获取titleblock		
+	if !seBlk {
+		var x,y = seDFT.getTitleBlockOrigin(seSht);
+		var firstSheetTitleBlock = seDFT.getTitleBlock(seDFT.getFirstSheet());
+		if firstSheetTitleBlock {
+			firstSheetTitleBlock.Duplicate ();
+			seBlk =seDFT.getTitleBlock(seSht);
+			seApp.ActiveWindow.Update(); /* ActiveWindow = SheetWindow */
+		}else {   		
+    		for (i=1; seDFT.Blocks.Count) {
+        		if (seDFT.Blocks.item(i).name=="Title 2020") {
+    				seBlk = seSht.BlockOccurrences.Add("Title 2020", x, y);
+    				break;
+    			}
+    		}
+    		if !seBlk{
+    	    	import win.dlg.message;
+    	    	var dlg = win.dlg.message(mainForm.hwnd);
+    	    	if dlg.ask( "找不到Title Blocks定义,插入新TitleBlock?" ){
+					solidedge.DraftDocument.replaceNewTitleBlock(seDFT);
+					seBlk = seDFT.getTitleBlock(seSht);
+				}
+    		}
+		}
+	}	
+	if ( seBlk ) seLbs = seDFT.getLabelTable(seBlk);	//获取titleblock lable
+	return true; 
+}
+
+/*}}*/
+/*loadFromTab{{*/
+var loadFromTab = function(_blk){
+	winform.cb_name_cn.text = _blk["零件名称"];
+	winform.cb_model_no.text = _blk["型号/项目名称"];
+	winform.cb_material.text = _blk["材料"];
+	winform.cb_weight.text = _blk["质量/体积"];
+	_blk["版本"] := seDFT.getVerFromBlkCorner(seBlk);
+	_blk["版本"] := seDFT.getVerFromShtCorner(seSht);
+	winform.version.text = _blk["版本"];
+	winform.chkPaint.checked = (_blk["喷粉标准"]=="Q/LD J52005");
+	winform.cb_tol.text = _blk["公差等级"];
+	winform.cb_designer.text = _blk["设计"];
+	winform.cb_design_date.text = _blk["设计日期"];
+	winform.cb_reviewer.text = _blk["审核"];
+	winform.cb_review_date.text = _blk["审核日期"];
+	winform.cb_approver.text = _blk["批准"];
+	winform.cb_approve_date.text = _blk["批准日期"];
+
+
+}
+/*}}*/
+/*loadDefaults{{*/
+var loadDefaults = function(){
+	if (winform.cb_designer.text == "" or winform.cb_designer.text == "-")
+		winform.cb_designer.text = config.tbm.Designer;
+	if (winform.cb_reviewer.text == "" or winform.cb_reviewer.text == "-")
+		winform.cb_reviewer.text = config.tbm.Reviewer;
+	if (winform.cb_approver.text == "" or winform.cb_approver.text == "-")
+		winform.cb_approver.text = config.tbm.Approver;
+	if (winform.cb_design_date.text == "YYYY.MM.DD" or winform.cb_design_date.text == "" or winform.cb_design_date.text == "2016.11.19")
+		winform.cb_design_date.text = tostring(time(,"%Y.%m.%d"));;
+	if (winform.cb_review_date.text == "YYYY.MM.DD" or winform.cb_review_date.text == "" or winform.cb_review_date.text == "2016.11.18")
+		winform.cb_review_date.text = tostring(time(,"%Y.%m.%d"));;
+	if (winform.cb_approve_date.text == "YYYY.MM.DD" or winform.cb_approve_date.text == "" or winform.cb_approve_date.text == "2016.11.18")
+		winform.cb_approve_date.text = tostring(time(,"%Y.%m.%d"));;
+	if (winform.version.text == "") winform.version.text = "00";
+}
+/*}}*/
+/*loadLists{{*/
+var loadPromptList = function(winform){
+	import config;
+	import sqlite;
+	var dbpath = config.dbServer.path + "tbm.db"
+	var dbRs = sqlite(dbpath);	//打开数据库连接
+	import tarray;
+	var tab = dbRs.getTable("select * from SE_TBM_Lists");
+	for(name,ctrl in winform.eachControl() ){
+		if ctrl.cls !== "combobox" continue ; 
+		var keyword = string.trimleft(name,"cb_");
+		ctrl.items = tarray.getCol(
+			table.filter(tab, function(v, index){
+				return v.ListName == keyword;
+			}) , "Title"
+		)
+	}
+	dbRs.close();
+}
+/*}}*/
+/*其它基础函数{{*/
+var updateDate = function(){
+    var t = tostring(time(,"%Y.%m.%d"));;
+    winform.cb_design_date.text = t;
+    winform.cb_review_date.text = t;
+	winform.cb_approve_date.text = t;
+}
+var showTimeBtn = function(){
+    var t = tostring(time(,"%Y.%m.%d"));
+	winform.button4.hide = (
+		winform.cb_design_date.text == t
+		and
+		winform.cb_review_date.text == t
+		and 
+		winform.cb_approve_date.text == t
+	
+	) ? 1: 0;
+}
+var showSaveNameBtn = function(){
+	var Default_Designer = config.tbm.Designer;
+	var Default_Reviewer = config.tbm.Reviewer;
+	var Default_Approver = config.tbm.Approver;
+	winform.button5.hide = (
+		winform.cb_designer.text == Default_Designer
+		and
+		winform.cb_reviewer.text == Default_Reviewer
+		and
+		winform.cb_approver.text == Default_Approver
+	) ? 1 : 0;
+}
+var writeToDrw = function(Lbs){
+	if !Lbs return ; 
+    Lbs["型号/项目名称"].Value = winform.cb_model_no.text;
+    Lbs["零件名称"].Value = winform.cb_name_cn.text;
+    Lbs["材料"].Value = winform.cb_material.text;
+    Lbs["质量/体积"].Value = winform.cb_weight.text;
+    Lbs["喷粉标准"].Value = winform.chkPaint.checked ? "Q/LD J52005" : "";
+    Lbs["公差等级"].Value = winform.cb_tol.text;
+    Lbs["设计"].Value = winform.cb_designer.text;
+    Lbs["审核"].Value = winform.cb_reviewer.text;
+    Lbs["批准"].Value = winform.cb_approver.text;
+    Lbs["设计日期"].Value = winform.cb_design_date.text;
+    Lbs["审核日期"].Value = winform.cb_review_date.text;
+    Lbs["批准日期"].Value = winform.cb_approve_date.text;
+    Lbs["版本"].Value = winform.version.text;
+}
+var iniFrmCTRL = function(){
+	var seBlk = seDFT.getTitleBlock(seDFT.ActiveSheet);
+	if !seBlk return ; 
+	winform.chkReplaceTB.hide = (seBlk.Block.Name == "Title 2020");
+	
+	select(seDFT.getSourcingType(seDFT.getFirstSheet())) {
+    	case "P" {
+    		winform.rd_M.checked = false;
+    		winform.rd_P.checked = true;
+    	}
+    	case "M" {
+    		winform.rd_M.checked = true;
+    		winform.rd_P.checked = false;
+    	}
+    	else {
+    		winform.rd_P.hide = 1;
+    		winform.rd_M.hide = 1;
+    	}
+	}
+}
+
+/*}}*/
+/*控件事件{{*/
+winform.button3.oncommand = function(id,event){
+    mainForm.show(false); //隐藏窗口
+	win.setActive(seApp.hWnd);
+}
+var saveLists = function(winform){
+	import config;
+	import sqlite;
+	var dbpath = config.dbServer.path + "tbm.db"
+	var dbRs = sqlite(dbpath);	//打开数据库连接
+
+	//replace语句根据主键查询,不存在相同数据则插入新的,否则更新已存在的数据
+	var cmd = dbRs.prepare("INSERT INTO SE_TBM_Lists VALUES (@ID,@ListName,@Title);" );
+	
+	for name, ctrl in winform.eachControl("combobox"){
+		var keyword = string.trimleft(name,"cb_");
+		if #ctrl.text and !ctrl.find(ctrl.text) {
+			cmd.step(  
+				Title = ctrl.text;
+				ListName = keyword;
+			);
+			ctrl.add(ctrl.text);
+		}
+	}
+	dbRs.close();
+}
+/*
+var removeFromLists = function(winform, ctrl){
+	import config;
+	import sqlite;
+	var dbpath = config.dbServer.path + "tbm.db"
+	var dbRs = sqlite(dbpath);	//打开数据库连接
+
+	//replace语句根据主键查询,不存在相同数据则插入新的,否则更新已存在的数据
+	var ListName = string.trimleft(ctrl.id,"cb_");
+	var Title = ctrl.text;
+	
+	db.exec("DELETE FROM SE_TBM_Lists", {ListName = ListName; Title = Title} )
+	table.removeByValue(ctrl.items, Title);
+
+	dbRs.close();	
+}
+for(name,ctrl in winform.eachControl("combobox") ){
+    ctrl.oncommand = function(id,event){
+        if(event == ){
+			var pop = win.ui.popmenu(winform);//创建弹出菜单
+			pop.add("删除此条记录",
+				function(id){
+					
+				}
+			)
+			win.setForeground(winform.hwnd)	//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+			var pt = ::POINT();
+			::User32.GetCursorPos(pt);   		
+			pop.popup(pt.x,pt.y,true );
+        }
+    }
+
+}
+*/
+
+winform.button2.oncommand = function(id,event){
+    mainForm.show(false); //隐藏窗口
+	win.setActive(seApp.hWnd);
+	
+	initDeclare();
+	thread.invoke( saveLists, winform);
+	
+	if (winform.chkReplaceTB.hide == 0){
+		if (winform.chkReplaceTB.checked){
+			solidedge.DraftDocument.replaceNewTitleBlock(seDFT);
+			seBlk = seDFT.getTitleBlock(seSht);
+		}
+	}
+    writeToDrw(seDFT.getLabelObjectTable(seDFT.getTitleBlock(seSht)));
+	{
+		var blkObj = seDFT.getLabelObjectTable(seDFT.getBlkByName("Version_CCR 2020",seSht));
+		if blkObj {
+			if (winform.rd_P.checked == 1) blkObj["属性"].value = "P";
+			if (winform.rd_M.checked == 1) blkObj["属性"].value = "M";
+		}
+	
+	}
+	
+    if !#config.tbm.Designer {
+		winform.button5.oncommand();    /* 智能保存常用姓名 */
+    };
+    
+
+}
+winform.button.oncommand = function(id,event){
+    var v = tonumber(winform.version.text);
+	v += 1;
+	winform.version.text =  (v >= 10) ? v : "0" ++ v;
+}
+winform.button4.oncommand = function(id,event){
+	updateDate();
+}
+winform.button5.oncommand = function(id,event){
+    config.tbm.Designer = winform.cb_designer.text;
+	config.tbm.Reviewer = winform.cb_reviewer.text;
+	config.tbm.Approver = winform.cb_approver.text;
+	config.tbm.save();
+}
+winform.cb_designer.onEditChange= function(){ 
+	showSaveNameBtn();
+	winform.button5.top = winform.cb_designer.top - 1;
+	winform.button5.bottom = winform.cb_designer.bottom - 3;
+	
+}
+winform.cb_reviewer.onEditChange= function(){ 
+	showSaveNameBtn();
+	winform.button5.top = winform.cb_reviewer.top - 1;
+	winform.button5.bottom = winform.cb_reviewer.bottom - 3;
+}
+winform.cb_approver.onEditChange= function(){ 
+	showSaveNameBtn();
+	winform.button5.top = winform.cb_approver.top - 1;
+	winform.button5.bottom = winform.cb_approver.bottom - 3;
+}
+
+/*}}*/
+
+winform.show();
+var frmReLoad = function(){
+    var initSucc = initDeclare();
+    winform.seDocPath.text = initSucc;
+	if  (initSucc){
+
+		loadFromTab(seLbs);	//读取当前内容
+		loadDefaults();	//读取默认值(新图纸)
+		iniFrmCTRL();
+		showTimeBtn();
+		showSaveNameBtn();
+		winform.seDocPath.text = seDFT.FullName ? seDFT.FullName : "无法获取DFT信息, 点击此处刷新重试";
+//		winform.redraw();
+	}
+}
+//frmReLoad();
+subscribe("refresh",frmReLoad);
+winform.seDocPath.oncommand = function(id,event){
+	frmReLoad();
+}
+
+winform.button6.oncommand = function(id,event){
+    var pcode = seDFT ? string.match(seDFT.FullName,"\d+") : null;
+	loadcodex("\forms\main\check_QHC_Release.aardio", pcode);
+}
+thread.invoke( loadPromptList, winform )
+
+//loadPromptList();	//读取提示清单
+
+winform.button7.oncommand = function(id,event){
+	if !seDFT return ; 
+	var menu = win.ui.popmenu(winform);//创建弹出菜单
+	for index, item in com.each(seDFT.ModelLinks){
+		menu.add(
+			text = "["+ index +"] " + item.ModelDocument.Name;
+			proc = function(id){
+				winform.cb_weight.text = string.replace("%{Mass|R_}","_",index)
+			}
+		);
+	}
+	var pt = ::POINT();
+	::User32.GetCursorPos(pt);
+	//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+	win.setForeground(winform.hwnd);
+	menu.popup(pt.x,pt.y,true );	
+}
+
+
+
+
+win.loopMessage();
+return winform;

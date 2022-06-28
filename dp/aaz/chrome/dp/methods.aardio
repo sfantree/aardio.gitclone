@@ -1,0 +1,49 @@
+﻿
+namespace aaz.chrome.dp.methods;
+Browser = 1;
+Debugger = 1;
+DOM = 1;
+DOMDebugger = 1;
+Emulation = 1;
+Input = 1;
+IO = 1;
+Log = 1;
+Network = 1;
+Page = 1;
+Performance = 1;
+Profiler = 1;
+Runtime = 1;
+Security = 1;
+Target = 1;
+
+/*
+EXPERIMENTAL
+*/
+Accessibility = 1;
+Animation = 1;
+ApplicationCache = 1;
+Audits = 1;
+BackgroundService = 1;
+CacheStorage = 1;
+Cast = 1;
+CSS = 1;
+Database = 1;
+DeviceOrientation = 1;
+DOMSnapshot = 1;
+DOMStorage = 1;
+Fetch = 1;
+HeadlessExperimental = 1;
+HeapProfiler = 1;
+IndexedDB = 1;
+Inspector = 1;
+LayerTree = 1;
+Media = 1;
+Memory = 1;
+Overlay = 1;
+ServiceWorker = 1;
+Storage = 1;
+SystemInfo = 1;
+Tethering = 1;
+Tracing = 1;
+WebAudio = 1;
+WebAuthn = 1;

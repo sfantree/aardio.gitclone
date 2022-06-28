@@ -1,0 +1,34 @@
+namespace cstabfunc;
+import win;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio Form";right=349;bottom=249;parent=...)
+winform.add(
+button={cls="button";text="调用tab1中函数";left=20;top=183;right=153;bottom=228;z=2};
+button2={cls="button";text="调用tab2中函数";left=185;top=183;right=318;bottom=228;z=3};
+tab={cls="tab";left=34;top=35;right=304;bottom=160;edge=1;z=1}
+)
+/*}}*/
+
+page1 = winform.tab.loadcode("\res\child1.aardio")
+page2 = winform.tab.loadcode("\res\child2.aardio")
+
+winform.button2.oncommand = function(id,event){
+	winform.tab.items[2].child2func(2);
+}
+
+winform.button.oncommand = function(id,event){
+	page1.child1func(1);
+}
+
+winform.csfunc =function(){
+	win.msgbox("我是父窗口中的winform.csfunc()函数","aardio");
+}
+
+csfunc =function(){ //tab中使用名字空间cstabfunc访问
+	win.msgbox("我是父窗口中的csfunc()函数","aardio");
+}
+
+winform.show();
+win.loopMessage();
+return winform;

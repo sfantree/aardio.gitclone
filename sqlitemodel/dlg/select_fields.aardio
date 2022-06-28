@@ -1,0 +1,182 @@
+import win.ui;
+import math;
+/*DSG{{*/
+var winform = win.form(text="选择字段";right=628;bottom=539)
+winform.add(
+button={cls="button";text=">>";left=254;top=83;right=295;bottom=119;z=3};
+button2={cls="button";text="<<";left=254;top=142;right=295;bottom=178;z=4};
+button3={cls="button";text="上移";left=565;top=83;right=606;bottom=119;z=6};
+button4={cls="button";text="下移";left=565;top=142;right=606;bottom=178;z=7};
+button5={cls="button";text="确定";left=441;top=497;right=540;bottom=529;z=8};
+button6={cls="button";text=">>>";left=254;top=241;right=295;bottom=277;z=9};
+button7={cls="button";text="<<<";left=255;top=297;right=296;bottom=333;z=10};
+checklist={cls="checklist";left=5;top=32;right=241;bottom=455;edge=1;items={};msel=1;vscroll=1;z=1};
+listbox={cls="listbox";left=314;top=32;right=550;bottom=455;edge=1;items={};msel=1;vscroll=1;z=5};
+static={cls="static";text="可选字段";left=19;top=10;right=168;bottom=29;transparent=1;z=2}
+)
+/*}}*/
+
+winform.button5.oncommand = function(id,event){
+	//winform.msgbox( winform.button.text );
+	var labels = {}
+
+	for(i=1;winform.listbox.count;1){
+		table.push(labels, winform.listbox.getItemText(i))
+	}
+
+
+
+	winform.endModal( labels )
+
+}
+
+winform.onClose = function(){
+   winform.button5.oncommand()
+}
+
+winform.button.oncommand = function(id,event){
+	var ids = {}
+	for(i=1;winform.checklist.count;1){
+		if(winform.checklist.getChecked(i)){
+			table.push(ids, i)
+			winform.listbox.add(winform.checklist.getItemText(i))
+		}
+	}
+
+	table.reverse(ids);
+
+	for(i=1;#ids;1){
+		winform.checklist.delItem(ids[i]);
+	}
+
+}
+
+winform.button2.oncommand = function(id,event){
+	var ids = {}
+	for(i=1;winform.listbox.count;1){
+		if(i<=3){
+			continue;
+		}
+		if(winform.listbox.getSelected(i)){
+			table.push(ids, i)
+			winform.checklist.addItem(winform.listbox.getItemText(i))
+		}
+	}
+
+	var idx = 1;
+
+
+	if(#ids>0){
+		table.reverse(ids);
+		for(i=1;#ids;1){
+			winform.listbox.delete(ids[i]);
+		}
+
+		//console.log("ids")
+		//console.varDump(ids)
+
+		maxid = ids[1] - #ids + 1
+
+		idx =  math.min(winform.listbox.count, maxid)
+
+		//console.log("maxid", maxid)
+		//console.log("winform.listbox.count", winform.listbox.count)
+		//console.log("idx", idx)
+	}else {
+		idx =  winform.listbox.count;
+	}
+
+
+	if(winform.listbox.count>3){
+		//winform.listbox.selIndex = idx;
+		winform.listbox.setSelected(idx);
+	}
+}
+
+winform.button3.oncommand = function(id,event){
+	var idx = winform.listbox.selIndex
+	var txt = winform.listbox.selText
+
+	var upperIdx = idx - 1
+	var upperTxt = winform.listbox.getItemText(upperIdx)
+
+	var n = winform.listbox.count
+
+	if(idx <=4 or txt==null){
+		return
+	}
+
+	winform.listbox.delete(idx) //删掉当前项
+	winform.listbox.add(upperTxt,idx) //又把当前项，加回来
+
+	winform.listbox.delete(upperIdx) //删掉上一项
+	winform.listbox.add(txt,upperIdx) //又把上一项，加回来
+
+	winform.listbox.selIndex = upperIdx  //一直选中， 就可以一直点 上移
+}
+
+winform.button4.oncommand = function(id,event){
+	var n = winform.listbox.count
+
+	var idx = winform.listbox.selIndex
+	var txt = winform.listbox.selText
+
+	if(idx == n or idx<=3 or txt==null){
+		return
+	}
+
+	var lowerIdx = idx + 1
+	var lowerTxt = winform.listbox.getItemText(lowerIdx)
+
+	winform.listbox.delete(idx) //删掉当前项
+	winform.listbox.add(lowerTxt,idx) //又把当前项，加回来
+
+	winform.listbox.delete(lowerIdx) //删掉上一项
+	winform.listbox.add(txt,lowerIdx) //又把上一项，加回来
+
+	winform.listbox.selIndex = lowerIdx  //一直选中， 就可以一直点 下移
+}
+
+winform.button6.oncommand = function(id,event){
+	var ids = {}
+	for(i=1;winform.checklist.count;1){
+
+			table.push(ids, i)
+			winform.listbox.add(winform.checklist.getItemText(i))
+
+	}
+
+	table.reverse(ids);
+
+	for(i=1;#ids;1){
+		winform.checklist.delItem(ids[i]);
+	}
+}
+
+winform.button7.oncommand = function(id,event){
+	var reversedTopN = 3;
+
+	var ids = {}
+	for(i=1;winform.listbox.count;1){
+		if(i<=reversedTopN){
+			continue;
+		}
+
+		table.push(ids, i)
+		winform.checklist.addItem(winform.listbox.getItemText(i))
+
+	}
+
+	table.reverse(ids);
+	for(i=1;#ids;1){
+		winform.listbox.delete(ids[i]);
+	}
+
+	if(winform.listbox.count>reversedTopN){
+		winform.listbox.selIndex = winform.listbox.count
+	}
+}
+
+winform.show();
+win.loopMessage();
+return winform;

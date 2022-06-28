@@ -1,0 +1,74 @@
+//功能介绍:将网上下载的新版本绿色软件解压后快速移动到本机绿色软件文件夹
+ //发布为exe使用
+ import win.ui;
+ import fsys;
+ /*DSG{{*/
+ var winform = win.form(parent=...; exmode="toolwindow";bottom=247;text="AAuto Form";right=248 )
+ winform.add( 
+listbox={ dr=1;dl=1;bgcolor=16777215;vscroll=1;right=231;left=14;dt=1;db=1;cls="listbox";bottom=237;text="listbox";top=13;font=LOGFONT( name="SimSun";h=-12 );z=1;edge=1;
+ items={  }
+ }
+ )
+ /*}}*/
+ 
+//指定绿色软件文件夹
+ var _greendir="E:\绿色软件运行营";
+ var dirtab={};
+ 
+//判断空文件夹
+ var isEmputy=function(pathdir){
+     var n=0;
+     fsys.enum(pathdir, 
+            "*.*", 
+            function(){ 
+                n++;
+             } 
+            );
+     return n; 
+}
+ 
+winform.listbox.wndproc = function(hwnd,message,wparam,lparam){
+     if(message=0x203){    
+        var index=winform.listbox.selIndex;
+         if(index){    
+            //移动文件夹下的所有文件
+             fsys.move(_CMDLINE++"\*.*",dirtab[index])
+             //移动完成后删除文件夹
+             if(!isEmputy(_CMDLINE)){    
+                fsys.delete(_CMDLINE)
+             }   
+             winform.close();
+         }
+     }
+ }
+ //读取相似文件夹到listbox
+ var readDir=function(pathdir){
+     var tpath = io.splitpath( pathdir )
+     var p=string.lower(tpath.file);
+     fsys.enum(  _greendir, 
+                p, 
+                function(dir){ 
+                    if(dir){
+                         //不区分大小写
+                         var ,j=string.find(string.lower(dir),p)
+                         if(j){    
+                            table.push(dirtab,dir);
+                         }
+                     }
+                 }
+                 ,false 
+              );
+ }
+ //拖动文件夹到exe
+ if(fsys.isDir(_CMDLINE)){    
+    readDir(_CMDLINE);
+     for(i=1;#dirtab;1){
+         winform.listbox.add(io.splitpath(dirtab[ i ]).file)
+     }
+      
+ }else {
+     win.msgbox("请拖动文件夹到exe","错误")
+     return ; 
+}
+ winform.show() 
+win.loopMessage();

@@ -1,0 +1,68 @@
+﻿namespace aacs
+{
+
+import dotNet
+import help
+import table
+
+var clr,err = dotNet.clr( "v4.0","v2.0" ); 
+if(!clr) 
+{
+    error("当前系统未安装.Net Framework 2.0 以上版本")
+    return
+}
+
+function addAArdioInterface(par)
+{
+	var addtable={callAArdio = function(code){loadcode(code)();}}
+	return table.concat(par,addtable)
+}
+
+class aacs
+{
+	ctor(lang="C#")
+	{
+		//创建C#编译器
+		var appDomain = clr.createAppDomain();
+		this.compiler = appDomain.createCompiler(lang);
+		this.compiler.Reference("System.dll")
+	};
+	
+	assembly=null;
+	
+	inCompile=function(fileName)
+	{
+		this.compiler.Source=..help.readFile(fileName)
+		this.compiler.getParameters().getGenerateInMemory()
+		this.assembly=this.compiler.Compile()
+	};
+	getObject=function(namespaceName,className) //调用程序集创建类对象
+	{
+		return this.assembly.createInstance(namespaceName+"."+className)
+	};
+	//从aauto中调用，参数和返回值仅支持void和object
+	callFun=function(namespaceName,className,funName,parObject)
+	{
+		if(parObject==null)
+		{
+			return this.assembly.invokeStaticMember(namespaceName+"."+className,funName)
+		}
+		return this.assembly.invokeStaticMember(namespaceName+"."+className,funName,parObject)
+	};
+	callObjectFun=function(object,func,parObject)
+	{
+		if(parObject==null)
+		{
+			return appDomain.invokeInstanceMember(object,func)
+		}
+		return appDomain.invokeInstanceMember(object,func,parObject)
+	};
+	run=function()
+	{
+		this.callFun("MainSpace","Program","Main")
+	}
+	
+}
+
+
+}

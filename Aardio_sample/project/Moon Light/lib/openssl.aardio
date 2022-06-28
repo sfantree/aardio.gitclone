@@ -1,0 +1,81 @@
+﻿class openssl {
+	ctor(...){
+		import wsock; 
+		import wsock.err;
+	}
+	sslread = function(){
+		if(! ..wsock.open() ){ 
+		     return ..wsock.err.lasterr(); 
+		}
+
+		var hSocket = ..wsock.socket(0x2/*_AF_INET*/,0x1/*_SOCK_STREAM 建立流式套接口*/,6/*_IPPROTO_TCP*/ )
+		if( hSocket = _INVALID_SOCKET ){ 
+     		wsock.close() //关闭wsock
+    		return hSocket; 
+ 		}
+
+		var service = ..wsock.sockaddr_in( this.host, this.port );
+		if(!service)
+     		return service;
+ 		service.sin_family = 0x2;/*_AF_INET*/
+
+		if ..wsock.connect( hSocket,service,..raw.sizeof(service)) = -1;/*_SOCKET_ERROR*/ {  
+     		return _SOCKET_ERROR;
+ 		}
+
+		// 初始化ssl
+		api.SSL_load_error_strings();
+		api.SSL_library_init();
+
+
+		var sslCtx = api.SSL_CTX_newP( api.SSLv23_client_methodP() );
+		if !sslCtx
+     		return sslCtx; 
+     
+		var ssl = api.SSL_newP(sslCtx);
+		if !ssl
+     		return ssl;
+
+		// 绑定ssl套接字
+		api.SSL_set_fd(ssl, hSocket);
+		// 建立ssl连接
+		api.SSL_connect(ssl);
+
+
+		var data = /***********
+ GET / HTTP/1.1
+ Host: www.baidu.com
+ Connection: keep-alive
+ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36
+ Upgrade-Insecure-Requests: 1
+ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+ Accept-Language: zh-CN,zh;q=0.9
+ ***********/
+ data ++= '\r\n\r\n'
+
+// 发送请求
+::Openssl.SSL_write(ssl, data, #data)
+
+// 读取数据
+var buf = raw.buffer(200)
+while( ::Openssl.SSL_read(ssl,buf,200)  ){
+     io.print( buf )
+ }
+
+
+// 释放资源
+..wsock.closesocket(hSocket)
+ ..wsock.close();
+ ::Openssl.SSL_shutdown(ssl)
+ ::Openssl.SSL_free(ssl)
+ ::Openssl.SSL_CTX_free(sslCtx)
+
+	}
+	
+
+}
+namespace openssl{
+	_dllPath = ..fsys.appData(..fsys.getSysDir("ssleay32.dll"),
+					$"~\lib\openssl\ssleay32.dll");
+	api = ..raw.loadDll(_dllPath,"ssleay32.dll","cdecl");
+}

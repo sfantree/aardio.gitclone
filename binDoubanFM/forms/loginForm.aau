@@ -1,0 +1,86 @@
+﻿/*
+ **************************
+ *
+ * 豆瓣FM 登录窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+
+//io.open();
+
+import win.ui;
+import web.layout;
+import web.layout.behavior.windowCommand;
+
+
+var loginForm = ..win.form(
+	parent=...;
+	text="登录到豆瓣";
+	border="none";
+	right=341;
+	bottom=231;
+	exmode="toolwindow");
+	
+loginForm.transparent(true); // 透明窗体
+wbLayout_login = web.layout(loginForm,0xFFFF/*_HL_HANDLE_ALL*/); // 接受onkeydown事件
+wbLayout_login.go("/res/login.html");
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_login.onButtonClick = {
+	toLogin = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.login(true);
+	}
+	toRegist = function (ltTarget,ltEle,reason,behaviorParams) {
+		process.execute("http://www.douban.com/accounts/register");
+	}
+	login_close = function (ltTarget,ltEle,reason,behaviorParams) {
+		loginForm.close();
+	}
+}
+
+
+
+
+/*
+ * 回车键事件
+ */
+wbLayout_login.onKeyDown = function (ltTarget,ltEle,keyCode, altState, ltKeyParams) {
+    if( keyCode == 0xD/*_VK_RETURN*/ ){
+		binFM.to.login(true);
+        return true;
+    }
+}
+
+
+
+
+/*
+ * 窗体事件
+ */	
+loginForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+        	if(channelId==-3) binFM.ui.slideRight("close");
+			loginForm.show(false);
+			loginFormShown = false;
+			return "noclose";
+		}
+		else{
+			
+		}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+
+//loginForm.show();
+
+win.loopMessage();
+return loginForm;  

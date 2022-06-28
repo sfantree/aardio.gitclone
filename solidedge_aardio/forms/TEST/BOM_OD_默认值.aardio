@@ -1,0 +1,96 @@
+import console; 
+console.open();
+
+import console.progress;
+var bar = console.progress();
+
+import com.excel;
+var excel = com.excel(true);
+
+import config;
+import sqlite;
+var db = sqlite(config.dbServer.path + "qhc_OD_lib.db");
+
+/*wbcollect{{*/
+wbcollect = {
+	[1] = {
+		wbname = {"\\ccnqia05\kaifa-SAP数据整理—研发中心\SCU - CGL & SGL\CGL服务柜默认配置---- 2021.6.29.xlsx", false, true, null, null},
+		sname = "Sheet1"
+	}
+	[2] = {
+		wbname  = {"\\ccnqia05\kaifa-\01 QHC产品资料汇总\3 SAP 数据整理\2.18-MONAXIS 王金海\Monaxis系列默认配置2020.3.23.xlsx", false, true, null, null},
+		sname = "Monaxis默认配置"
+	}
+}
+/*}}*/
+/*getTabFromRange{{*/
+var getTabFromRange = function(range){
+	var simpleName = function(str){
+		str = string.replace(tostring(str),"（","(");
+		str = string.replace(str,"）",")");
+		str = string.match(str,"<:+>");
+		return string.trim(str); 
+	}
+    var eArr = range.value;
+	var tab = {}; 
+	tab.fields = table.shift(eArr);
+	for(j=1;#tab.fields){
+		tab.fields[j] = simpleName(tab.fields[j]);
+	}
+	tab = table.concat(tab, eArr);
+	return tab; 	
+}
+/*}}*/
+
+var addTab2DB = function(etab){
+	var fieldsName = {};
+	var foam = {};
+
+	for (i=1; #etab){
+		fieldsName[i] = string.join(etab[i].fields,", ");
+		foam[i] = string.join(table.array(#etab[i].fields,"?"),",");
+	}
+	
+
+	if db.existsTable("默认配置")
+		db.exec("drop table " ++ "默认配置");
+	db.exec( "CREATE TABLE [" ++ "默认配置" ++ "](" ++ fieldsName[i] ++");");
+
+	
+	console.log("开始导入数据库");
+
+	console.clearScreen();
+	
+	for(i=1;#etab){
+		db.beginTrans();
+		var n = #etab[i];
+		for (j = 1; n){
+    		bar.setProgress(math.round(j*100/n), math.round(j*100/n) +"% processing " ++ _sname[i] ++ "......");
+			var cmd = db.prepare("INSERT INTO [" ++ _sname[i] ++ "] VALUES("++ foam[i] ++ ");");
+			if #etab[i][j] > #etab[i].fields etab[i][j] = table.slice(etab[i][j],1,#etab[i].fields) //解决多余列问题
+			cmd.bind.parameters(table.unpack(etab[i][j])).step();
+		};
+		db.commitTrans();
+	}
+	if db.existsTable("分类汇总") db.exec("DROP table 分类汇总");
+	if db.existsTable("特性汇总") db.exec("DROP table 特性汇总");
+	db.exec("CREATE TABLE 分类汇总 AS
+	SELECT DISTINCT 分类新.分类, 分类新.分类描述
+	FROM 分类新;");
+	db.exec("CREATE TABLE 特性汇总 AS
+	SELECT DISTINCT 特性参数规划表新.特性, 特性参数规划表新.特性描述
+	FROM 特性参数规划表新;");
+}
+
+for (i=1; #wbcollect){
+	var wb = excel.WorkBooks.Open(table.unpack(wbcollect[i].wbname));
+	var etab = getTabFromRange(wb.Sheets(wbcollect[i].sname).UsedRange));
+	wb.Close(false);
+	addTab2DB (etab);
+}
+
+db.close();
+excel.Quit();
+
+console.log("完成")
+console.pause(true);

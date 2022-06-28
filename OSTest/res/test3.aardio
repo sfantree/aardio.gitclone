@@ -1,0 +1,5 @@
+import console; 
+var num = console.getNumber( "请输入数值:" )
+
+console.log("您输入的是" ,num );
+console.pause(true);

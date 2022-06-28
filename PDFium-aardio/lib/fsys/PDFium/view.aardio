@@ -1,0 +1,26 @@
+﻿
+import win
+import console
+import fsys.PDFium
+namespace fsys.PDFium
+//dll = ..raw.loadDll( "~\lib\fsys\PDFium\.dll\pdfium.dll",,"cdecl" )
+var dll = ..fsys.PDFium.dll
+import gdi
+class view{
+	ctor( doc,hwnd ){
+		this.hwnd = hwnd
+		this.dc = ::GetDC(hwnd);
+		this.doc = doc
+		
+	};
+	//渲染页面到指定窗口
+	renderPage = function(){
+		var x,y,w,h = ..win.getClientPos(this.hwnd)
+		dll.FPDF_RenderPage(this.dc,this.doc.page, x, y, w, h, 0, 0)
+	}
+}
+
+namespace fsys.PDFium{
+		
+}
+

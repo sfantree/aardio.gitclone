@@ -1,0 +1,12 @@
+import console; 
+test = {};
+table.push(test,{name = "A";arrive = 1;lasttime = 2;});
+table.push(test,{name = "B";arrive = 3;lasttime = 2;});
+table.push(test,{name = "C";arrive = 2;lasttime = 2;});
+sortbyarr = function(b){
+	return owner.arrive < b.arrive;
+}
+
+//table.sort(test,sortbyarr);
+console.dump(test);
+console.pause(true);

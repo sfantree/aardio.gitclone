@@ -1,0 +1,125 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="sciterjs-browser";right=959;bottom=591;bgcolor=16777215;border="none")
+mainForm.add(
+close={cls="plus";left=935;top=4;right=953;bottom=22;background="\res\close.png";dr=1;dt=1;notify=1;transparent=1;z=13};
+custom={cls="custom";left=0;top=65;right=962;bottom=592;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;z=7};
+dev={cls="plus";left=934;top=37;right=950;bottom=53;background="\res\dev.png";dr=1;dt=1;notify=1;z=10};
+go={cls="plus";left=708;top=35;right=728;bottom=55;background="\res\go.png";dr=1;dt=1;notify=1;transparent=1;z=8};
+max={cls="plus";left=904;top=5;right=922;bottom=23;background="\res\max.png";dr=1;dt=1;notify=1;transparent=1;z=12};
+min={cls="plus";left=873;top=4;right=891;bottom=22;background="\res\min.png";dr=1;dt=1;notify=1;transparent=1;z=11};
+note={cls="plus";left=1;top=65;right=963;bottom=593;db=1;dl=1;dr=1;dt=1;link=1;multiline=1;wrap=1;z=16};
+open={cls="plus";left=15;top=36;right=31;bottom=52;background="\res\open.png";dl=1;dt=1;notify=1;transparent=1;z=9};
+plus={cls="plus";left=859;top=0;right=965;bottom=27;bgcolor=15263976;dr=1;dt=1;z=2};
+plus3={cls="plus";left=8;top=4;right=26;bottom=22;background="\res\logo.png";dl=1;dt=1;transparent=1;z=4};
+plus4={cls="plus";left=0;top=26;right=962;bottom=65;bgcolor=16250871;border={top=1;color=-2434342};dl=1;dr=1;dt=1;z=3};
+plus5={cls="plus";text="sciterjs-browser";left=37;top=1;right=160;bottom=23;align="left";dl=1;dt=1;font=LOGFONT(h=-15);notify=1;transparent=1;z=5};
+refresh={cls="plus";left=48;top=35;right=68;bottom=55;background="\res\refresh.png";dl=1;dt=1;notify=1;transparent=1;z=6};
+rk={cls="button";text="刷新";left=741;top=32;right=777;bottom=56;dr=1;dt=1;hide=1;z=15};
+topbar={cls="plus";left=0;top=0;right=862;bottom=27;bgcolor=15263976;dl=1;dr=1;notify=1;z=1};
+url={cls="plus";left=81;top=33;right=698;bottom=58;align="left";border={color=-6250332;radius=5;width=1};dl=1;dr=1;dt=1;editable="edit";notify=1;textPadding={left=5;top=5;right=5;bottom=5};z=14}
+)
+/*}}*/
+
+mainForm.note.text = /*
+1. Left file button to view local sciterjs project
+2. Right developer tools button to open inspector
+3. Support hot reloading (need to use with sciterjs-treact)
+4. https://github.com/veluxa/sciterjs-react
+*/
+
+import process;
+import winex;
+
+var pid = null;
+var url = _ARGV[1]
+var width = _ARGV[2]
+var height = _ARGV[3]
+
+if(width) { mainForm.width = width }
+if(height) { mainForm.height = height + 81 }
+
+function go(url){
+    
+    if(!url || url == "") return mainForm.msgbox("url error"); 
+    
+    mainForm.note.hide = true;
+
+	if(pid){
+		process.kill(pid)
+	}
+	
+	var params = string.concat(
+		mainForm.rk.hwnd," ",
+		mainForm.custom.hwnd," ",
+		url
+	)
+	
+	pid = process.execute("\SciterJsDevView.exe",params,,0/*_SW_HIDE*/)
+
+	win.setForeground(mainForm.hwnd)
+}
+
+if(url) {
+    mainForm.url.text = url; 
+	go(url) 
+}
+
+mainForm.close.oncommand = function(id,event){
+	mainForm.hitClose()
+}
+
+mainForm.max.oncommand = function(id,event){
+	mainForm.hitMax()
+}
+
+mainForm.min.oncommand = function(id,event){
+	mainForm.hitMin()
+}
+
+mainForm.refresh.oncommand = function(id,event){
+	go(mainForm.url.text)
+}
+
+mainForm.go.oncommand = function(id,event){
+	go(mainForm.url.text)
+}
+
+mainForm.dev.oncommand = function(id,event){
+	process.execute("\inspector.exe");
+}
+
+mainForm.topbar.wndproc = function(hwnd,message,wParam,lParam){
+    select( message ) { 
+        case 0x201/*_WM_LBUTTONDOWN*/{
+            mainForm.hitCaption();
+        }
+    }
+}
+
+import fsys.dlg
+mainForm.open.oncommand = function(id,event){
+	var path = fsys.dlg.open("html|*.html|htm|*.htm","select file")
+	if(path){
+		mainForm.url.text = "file://" + string.replace(path,"\\","/")
+		go(mainForm.url.text)
+	}
+}
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    if(!pid){ 
+    	var p = process.find("SciterJsDevView.exe")
+    	if(p) pid = p.id 
+    }else {
+    	process.kill(pid)
+    }
+}
+
+mainForm.rk.oncommand = function(id,event){
+	go(mainForm.url.text)
+}
+
+import win.ui.shadow
+win.ui.shadow(mainForm)
+mainForm.show();
+return win.loopMessage();

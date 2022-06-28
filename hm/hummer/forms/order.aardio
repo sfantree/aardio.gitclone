@@ -1,0 +1,88 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=939;bottom=772;bgcolor=16777215)
+winform.add(
+custom={cls="custom";left=148;top=11;right=921;bottom=751;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;z=4};
+static={cls="static";left=139;top=7;right=140;bottom=757;bgcolor=16752414;clip=1;db=1;dl=1;dt=1;z=3};
+strip1={cls="plus";text="测试文本";left=31;top=34;right=139;bottom=63;bgcolor=16752414;clip=1;dl=1;dt=1;z=1};
+strip2={cls="plus";text="测试文本";left=31;top=63;right=139;bottom=92;bgcolor=16752414;clip=1;dl=1;dt=1;z=2}
+)
+/*}}*/
+
+//创建高级选项卡
+import win.ui.tabs;
+
+//至少要添加2个创建好的选项卡(作为设计模板,创建成功后可清除)
+var tbs = win.ui.tabs(winform.strip2,winform.strip1);
+winform.text = loginUserName;
+//指定选项卡的外观样式,用法请参考plus控件说明
+tbs.skin(
+    background = {  //背景
+        default = 0xFFFFFFFF;
+    }
+    color = { //文本颜色
+        hover = 0xF00000FF; 
+    } 
+    border = { //边框
+        default = { bottom = 1;color= 0xFF1E9FFF;  }
+        hover = { bottom = 1;right = 4;color= 0xFF1E9FFF; }
+    }
+    checked = { //选中状态
+        background = { 
+            hover = 0xFF99CCFF;
+            focus = 0xFF1E9FFF;
+            active = 0xFF333366;
+            default = 0xFF1E9FFF;
+        }
+        color = { //文本颜色
+            hover = 0xFF000000; 
+            default = 0xFFFFFFFF; 
+        } 
+        border = { //边框
+            hover = { right = 2;color=0xFF1E9FFF}
+            default = { right = 2;color=0xFF1E9FFF}
+        }
+    }
+)
+
+//动态添加更多选项卡
+tbs.add({
+    text="标题文111本"; 
+})
+
+tbs.add({
+    text="标题文222本"; 
+})
+
+import web.form;
+var wb = web.form( win.form() )
+wb.go("http://bbs.aardio.com/forum.php?mod=viewthread&tid=22149&from=portal");
+
+//动态添加更多选项卡
+tbs.add({
+    text="打开网站";  
+    hasCloseButton = true;//允许显示关闭按钮
+},wb._form)
+
+//也可以用下面的代码自定义关闭按钮的外观样式
+tbs.closeButton.skin(
+    background = { 
+        hover = 0xFFe35c51; 
+        active = 0xFF8f241b;
+        default = 0x99FFCC66; 
+    }
+    color = {
+        hover = 0xFFFFFFFF; 
+        active = 0xFFEEEEEE;
+        default = 0xCCFFFFFF; 
+    } 
+)
+
+//可以自定义关闭按钮在选项卡上的显示位
+tbs.beforeShowCloseButton = function(strip,rcStrip,rcCloseButton){
+    return rcStrip.right - rcCloseButton.width() - 5, rcStrip.top + ( rcStrip.height() - rcCloseButton.height() )/2;
+}
+
+winform.show();
+win.loopMessage();
+return winform;

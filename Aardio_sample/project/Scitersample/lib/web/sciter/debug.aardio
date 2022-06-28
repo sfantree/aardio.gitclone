@@ -1,0 +1,50 @@
+//debug 调试信息
+import console;
+import web.sciter;
+namespace web.sciter;
+
+namespace debug; 
+
+_output_debug = ..thread.tostdcall(  
+  	function(param,subsystem,severity,text,length){
+  		if( wchar == '\f'# ) return; 
+  		
+  		import console;
+  		console.open(); 
+  		io.stdout.write( string.fromUnicode(text,65001,length) );
+  	},"void(pointer param, INT subsystem, pointer severity, ptr text, INT length)"
+);
+
+//跨线程回调函数可能被其他线程调用,应当在线程结束前注销
+::Sciter.SetupDebugOutput( 0, ,_output_debug);
+..table.gc(self,function(){
+	::Sciter.SetupDebugOutput();	
+} )
+
+//为CSSS!添加全局函数 debug;
+debug = function(...){
+	..console.open();
+		
+	var args = {...}
+	for(i=1;#args;1){
+		if( type(args[i]) != type.table ){
+			write(args[i]," ");
+		}
+		else {
+			write("节点对象:",args[i].outerHTML," ");
+		} 
+	}
+	write('\r\n');
+	return true;
+}
+_event_subsriptions = 0x200/*_HL_HANDLE_METHOD_CALL*/ | 0x80000000/*_HL_DISABLE_INITIALIZATION*/;
+
+var stderr = ..io.stderr;
+write = function(...){
+	..console.open(); 
+	stderr.write(...);
+} 
+
+/**intellisense()
+web.sciter.debug = 导入此库即启用debug模式,\n支持在控件台输出Sciter内部错误信息.\n\n调用 wbSciter.attachEventHandler( web.sciter.debug )\n可为CSS脚本添加全局函数 debug()
+end intellisense**/

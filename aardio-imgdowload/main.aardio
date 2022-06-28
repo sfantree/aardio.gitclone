@@ -1,0 +1,189 @@
+// 下载https://www.4493.com图片并保存信息到sqlit3数据库。 by aslyr 最后修改于2018.1.3 23:00
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=759;bottom=469)
+mainForm.add(
+btn_load_explore={cls="button";text="浏览图片";left=651;top=292;right=709;bottom=324;z=17};
+btn_pause={cls="button";text="暂停采集";left=553;top=292;right=611;bottom=324;z=4};
+btn_start={cls="button";text="开始采集";left=450;top=294;right=508;bottom=322;z=3};
+edit={cls="edit";left=17;top=71;right=427;bottom=456;autohscroll=false;edge=1;hscroll=1;multiline=1;vscroll=1;z=5};
+edit_first={cls="edit";left=481;top=196;right=530;bottom=222;edge=1;multiline=1;z=7};
+edit_getimg_rul={cls="edit";text=".picsboxcenter img";left=549;top=109;right=642;bottom=136;edge=1;z=13};
+edit_imgpage_rule={cls="edit";text="#allnum";left=550;top=146;right=643;bottom=173;edge=1;z=15};
+edit_imgpath_rule={cls="edit";text="h1";left=549;top=62;right=642;bottom=89;edge=1;z=11};
+edit_last={cls="edit";left=581;top=195;right=631;bottom=222;edge=1;multiline=1;z=9};
+edit_url={cls="edit";text="https://www.4493.com/wangluomeinv/141169/1.htm";left=57;top=20;right=444;bottom=48;edge=1;z=1};
+static={cls="static";text="获取图片页数规则";left=443;top=155;right=541;bottom=179;transparent=1;z=16};
+static2={cls="static";text="从";left=461;top=202;right=494;bottom=227;transparent=1;z=6};
+static3={cls="static";text="页  到";left=542;top=201;right=585;bottom=230;transparent=1;z=8};
+static4={cls="static";text="页";left=647;top=203;right=680;bottom=228;transparent=1;z=10};
+static5={cls="static";text="图片名规则";left=443;top=67;right=507;bottom=91;transparent=1;z=12};
+static6={cls="static";text="获取图片规则";left=443;top=113;right=518;bottom=137;transparent=1;z=14};
+网址={cls="static";text="网址";left=21;top=25;right=62;bottom=50;transparent=1;z=2}
+)
+/*}}*/
+
+mainForm.btn_load_explore.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.btn_load_explore.text );
+	var exploreform,wb = mainForm.loadForm("\res\图片查看器.aardio");
+	
+}
+
+
+
+function get_url(urls,page_num){
+    //通过jquery获取共有几页照片，然后遍历取出所有页面url
+    var url_tab={};
+    url_tab[1]=urls;
+
+    if(tonumber(page_num,10) >=2){
+    	for(i=2;page_num;1){
+			var num=string.lastIndexAny(urls,".") //每个网站规则不一样，其他网站需要修改规则
+			var url=string.replace(urls,"\d+.htm",i+".htm",); 
+			table.push(url_tab,url)
+	
+		}
+    }
+	return url_tab; //获得所有网页地址
+	
+}
+
+function get_page_num(html,girlname_rule,imgpage_rule){
+	import web.mshtml; //导入mshtml，使用其jQuery解析地址
+	var webs=web.mshtml();
+		webs.write(html);
+	var page_num=webs.jQuery(imgpage_rule).text();//使用jquery获取共几页内容
+	//var page_num=string.match(page_nums,"\d+");//取出共page_num页每个网站不同需要修改
+	var girlname=webs.jQuery(girlname_rule).text();
+	var girlname=string.replace(girlname,"[\\/]","") //去除图片名称中的“/\”
+	var imgpath=girlname; //在根目录创建图片名称目录
+	return imgpath,page_num; //返回目录和共多少页
+}
+
+function get_html(url){
+    //获取网页内容
+    import inet.http
+	import zlib  //如果网页压缩，解压缩
+	var net=inet.http(); //创建连接对象
+	referer=string.match(url,"(.+)/\d+/")
+	net.referer=referer+"/"
+	var html,err=net.get(url);
+	if(!html){
+		mainForm.edit.print(err)
+	}
+	var code=string.match(html,"charset=([\w-""]{1,10})\""") //用匹配取出charset值，然后判断是否为utf-8编码
+	
+	if(code!="utf-8" and code!="""utf-8" and code!="""UTF-8" and code!="UTF-8"){
+		html=string.fromto(html,0,65001) //转换非utf-8编码网页内容到utf-8
+	}
+	html=string.replace(html,"script","scropt") //阻止弹出网页cookie选项
+	return html; 
+}
+
+function get_imgpath(html,jpgs_rule){
+    //获取网页中的图片标题，图片的jquery对象
+    import fsys;
+    import web.mshtml; //导入mshtml，使用其jQuery解析地址
+	var webs=web.mshtml();
+		webs.write(html);
+	var jpgs=webs.jQuery(jpgs_rule);
+	
+	return jpgs; 
+}
+
+
+mainForm.btn_start.oncommand = function(id,event){
+    
+    mainForm.edit.text=null; //点击采集按钮时先清空文本框内容
+	var urls=mainForm.edit_url.text;  //传入网页网址
+	var girlname_rule=mainForm.edit_imgpath_rule.text; //传入获取图片集名字jquery选择器规则
+	var jpgs_rule=mainForm.edit_getimg_rul.text; //传入获取图片标签jquery选择器规则
+	var imgpage_rule=mainForm.edit_imgpage_rule.text;//传入获取共几页标签jquery选择器规则
+	var html=get_html(urls); //调用get_html()方法获取网页内容
+	var imgpath,page_num=get_page_num(html,girlname_rule,imgpage_rule);
+	var url_tab=get_url(urls,page_num);
+	var tab={} //用tab数组接收图片地址
+	class imgClass{
+		ctor( page_url,img_url ){
+			 this.page_url=page_url;
+			 this.img_url=img_url; 
+			};	
+	        }
+	for(i=1;#url_tab;1){
+		html=get_html(url_tab[i])
+		var jpgs=get_imgpath(html,jpgs_rule);
+	    //用jquery对象length取出图片总数，遍历取出图片的src属性。
+	    
+		for(x=0;jpgs.length-1;1){
+			    var imgClass=imgClass(url_tab[i],jpgs[x].src)
+				table.push(tab,imgClass); //将所有图片地址放到tab数组中
+		}
+	
+	}
+	mainForm.edit.print("共"+#tab+"照片");
+	mainForm.edit.print(tab);
+	mainForm.edit.print("将要下载  "+imgpath);
+	import thread.works //使用多线程下载图片
+	works=thread.works( 2,
+		function(v) {
+			import inet.http;
+			import zlib;
+			import sqlite
+			var db=sqlite("\demo1.db")
+			if( not db.existsTable("t_img") ){  
+				/*
+				如果不存在t_img表，就创建一个
+				sqlite可以象MSSQL那样将表名等标识符放在方括号里(避免表名是保留字等),
+				也可以将MYSQL那样将表示放在反引号里(键盘左上角波浪线下面的符号)
+				也可以按ANSI SQL约定放在双引号里,更可以放在单引号里
+				
+				SQL里面一般应当用单引号包含字符串( 各种数据库都支持的标准写法 )
+				双引号在ANSI SQL中规定用来包含表名 - 一个容易让人误解的规定,所以MSSQL用了中括号,而MYSQL用了反引号。
+				*/
+				db.exec( "CREATE TABLE [t_img](id INTEGER PRIMARY KEY AUTOINCREMENT, name, url UNIQUE, filepath,web_id,datatime);")  
+			}  	
+			var whttp=inet.http();
+			var img_url=v.y;	
+			var img_name=v.x;
+			var page_name=v.z
+			var img_path=v.z	
+			var img_blob=whttp.get(v.y);
+			if( io.exist("/"+v.z+"/第"+v.x+"张.jpg")){v.g.edit.print("文件已存在")}else {
+				string.save("/"+v.z+"/第"+v.x+"张.jpg",img_blob)
+				v.g.edit.print("第"+v.x+"图片下载完毕")
+			 }
+			var cmd = db.prepare(" INSERT OR IGNORE INTO t_img (name,url,filepath) VALUES (@name,@url,@filepath);")
+			cmd.bind.parameterByNamesAt( //绑定命名参数 
+        	name= tostring(v.z+'第'+v.x+'张');
+        	url =tostring(v.y);
+        	filepath=tostring("/"+v.z+"/第"+v.x+"张.jpg"))
+        	v.g.edit.print(tostring(v.z+'第'+v.x+'张已存入数据库'))
+			cmd.step();//执行命令	
+
+		} );
+
+	for(i=1;#tab;1){
+		//works.push只能传入一个值，使用类传递多个参数（x为第几张照片，y为图片地址，z为保存路径，g为mainForm对象）
+		class b{
+			ctor( x,y,z,g,i ){
+			 this.x=x;
+			 this.y=y;
+			 this.z=z;
+			 this.g=g;
+			 this.i=i;
+			};	
+		}
+		c=b(i,tab[i].img_url,imgpath,mainForm,tab[i].page_url);
+		works.push(c) 
+	
+	}
+	
+	works.waitClose()//等待线程结束。
+	
+	mainForm.edit.print("全部下载好了，请打开根目录查看照片")
+	
+}
+
+mainForm.enableDpiScaling();
+mainForm.show();
+win.loopMessage(); 

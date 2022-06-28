@@ -1,0 +1,858 @@
+﻿//richedit 富文本框
+import win.ui.menu;
+import win.ui.ctrl.edit; 
+namespace win.ui.ctrl; 
+  
+class richedit{
+    ctor(parent,tParam){ 
+        if( tParam ){
+			if( (!tParam.className) || (tParam.className == "RICHEDIT50W") ){
+				if( !_dll ) _dll = ..raw.loadDll("msftedit.dll"); 
+				tParam.cls = "RICHEDIT50W" //Windows XP SP1 RichEdit v4.1以上,支持透明背景
+			}
+			else{
+				if( !_dll2 ) _dll2 = ..raw.loadDll("RICHED20.DLL"); 
+				tParam.cls = "RichEdit20W"	//Windows XP RichEdit v3.0 以上
+			} 
+				
+			if( tParam.multiline ){
+				tParam.style |= 4/*_ES_MULTILINE*/
+				tParam.style |= 0x1000/*_ES_WANTRETURN*/;
+			}
+				
+			if( tParam.readonly )
+				tParam.style |= 0x800/*_ES_READONLY*/
+			if( tParam.password )
+				tParam.style |= 0x20/*_ES_PASSWORD*/
+				
+			if( (tParam.hidesel !== null ) && (!tParam.hidesel) )
+				tParam.style |= 0x100/*_ES_NOHIDESEL*/
+			
+			if( (tParam.savesel === null ) || tParam.savesel )
+				tParam.style = tParam.style | 0x00008000/*_ES_SAVESEL*/
+				 
+			if( tParam.autoscroll !== null ){
+				if( tParam.autoscroll ){
+					tParam.style = tParam.style | 0x40/*_ES_AUTOVSCROLL*/  |  0x80/*_ES_AUTOHSCROLL*/;
+				}  
+			}
+			else {
+				if( tParam.autovscroll === null ||  tParam.autovscroll ) {
+					tParam.style |=   0x40/*_ES_AUTOVSCROLL*/ ;
+				}
+				if( tParam.autohscroll === null ||  tParam.autohscroll ) {
+					tParam.style |=  0x80/*_ES_AUTOHSCROLL*/ ;
+				} 
+			}
+			
+			select(tParam.align) {
+				case  "center"   
+					tParam.style |= 0x1/*_ES_CENTER*/; 
+				case "right" 
+					tParam.style |= 0x2/*_ES_RIGHT*/; 
+				else 
+					tParam.style |= 0x0/*_ES_LEFT*/;
+			}
+				
+			if(tParam.edge) tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/;
+			
+			this["(text)"] = tParam.text;
+			tParam.text = "";
+			
+			var handleKeys = {[0xD/*_VK_RETURN*/]=1;[0x1B/*_VK_ESC*/]=1;[0x9/*_VK_TAB*/]=1;}
+			var multiline = tParam.multiline;
+			this.defaultTranslateAccelerator = function(msg){ 
+				if( msg.message == 0x100/*_WM_KEYDOWN*/) {
+					var vk = msg.wParam;
+					if(!handleKeys[vk]) return;
+					
+					var ctrl = ::GetKeyState( 0x11/*_VK_CONTROL*/ ) & 0x8000;
+    				var alt = ::GetKeyState( 0x12/*_VK_ALT*/ ) & 0x8000;
+    				var shift = ::GetKeyState( 0x10/*_VK_SHIFT*/ ) & 0x8000;
+    				if( ctrl || alt || shift ) return; 
+					
+					if(vk ===0xD/*_VK_RETURN*/ && this.onOk){
+						if(this.onOk()){ return true; }
+					}
+					
+ 					if( tParam.tabstop && ( vk == 0x9/*_VK_TAB*/ ) || (( vk == 0xD/*_VK_RETURN*/) && (!multiline)) ){
+						owner.tabNext(true); 
+						return true;
+					}
+					
+					if( vk == 0x1B/*_VK_ESC*/ ){
+						if(this.onCancel && this.onCancel()){
+							return true;
+						}
+						if( this.parent.onCancel ) this.parent.onCancel();
+						return true;
+					}	
+				}	
+			}
+			
+			this._commandFuncnames ={[0x300/*_EN_CHANGE*/]="onChange";[0x100/*_EN_SETFOCUS*/] ="onFocusGot";[0x200/*_EN_KILLFOCUS*/]="onFocusLost"}
+	    }
+	    
+    };
+    onCreated = function(){
+    	::SendMessageInt(this.hwnd,0x478/*_EM_SETLANGOPTIONS*/,0,0);
+    	this.text = this["(text)"];
+    	this["(text)"] = null;
+    	
+    	if(this.password){
+    		this.disableInputMethod();
+    	}
+    };
+	@_metaProperty;
+} 
+
+var TEXTRANGE = class {
+	struct	chrg = {
+		int cpMin;
+		int cpMax;
+	};
+	ustring	lpstrText;
+}
+var ENLINK_STRUCT = class {
+	struct	hdr = ::NMHDR();
+	int msg;
+	int wParam;
+	int lParam;
+	struct	chrg = {
+		int cpMin;
+		int cpMax;
+	};
+}
+
+class CHARFORMAT2 {
+	INT cbSize = 116;
+	INT mask;
+	INT effects;
+	int yHeight;
+	int yOffset;
+	INT textColor;
+	BYTE charSet;
+	BYTE pitchAndFamily;
+	WORD faceName[0x20/*_LF_FACESIZE*/];
+	WORD weight;
+	word spacing;
+	INT backColor;
+	INT lcid;
+	INT reserved;
+	word style;
+	WORD kerning;
+	BYTE underlineType;
+	BYTE animation;
+	BYTE revAuthor; 
+	getFont = function(){
+		var lf = ::LOGFONT();
+		if (owner.mask & 0x8000000/*_CFM_CHARSET*/) lf.charSet = owner.bCharSet; 
+		if (owner.mask & 0x400000/*_CFM_WEIGHT*/)  lf.weight = owner.wWeight;
+		if (owner.mask  & 0x80000000/*_CFM_SIZE*/) lf.point = owner.yHeight / 1440 * 72;  
+		
+		if ( owner.mask & 3 == 3)  {
+			lf.weight =  owner.effects & 1/*_CFE_BOLD*/
+			lf.italic = owner.effects & 2/*_CFE_ITALIC*/
+		}
+		
+		if (owner.mask & 0x4000000C== 0x4000000C)  {
+			lf.underline = owner.effects & 4/*_CFE_UNDERLINE*/ 
+			lf.strike =  owner.effects & 8/*_CFE_STRIKEOUT*/
+		}
+		
+		if (owner.mask & 0x20000000/*_CFM_FACE*/)  {
+			lf.family = owner.pitchAndFamily;
+			lf.name = owner.faceName;
+		}
+		
+		return lf;	
+	} 
+}  
+
+richedit._metaProperty =  metaProperty( 
+    edit._metaProperty/*自edit控件继承属性元表*/,{
+	setCharformat = function(fm,wParam){
+		fm = ..table.mix( CHARFORMAT2(),fm );
+		if( fm.mask === null ){
+			fm.mask = 0;
+			with fm{
+				if(  textColor )  mask =  mask | 0x40000000/*_CFM_COLOR*/
+				if(  backColor )  mask =  mask | 0x4000000/*_CFM_BACKCOLOR*/
+				if(  yHeight )  mask =  mask | 0x80000000/*_CFM_SIZE*/
+				if(  yOffset )  mask =  mask | 0x10000000/*_CFM_OFFSET*/
+				if(  charSet )  mask =  mask | 0x8000000/*_CFM_CHARSET*/
+				if(  faceName )  mask =  mask | 0x20000000/*_CFM_FACE*/
+				if(  weight )  mask =  mask | 0x400000/*_CFM_WEIGHT*/
+				if(  spacing )  mask =  mask | 0x200000/*_CFM_SPACING*/
+				if(  lcid )  mask =  mask | 0x2000000/*_CFM_LCID*/ 
+				if(  style )  mask =  mask | 0x80000/*_CFM_STYLE*/
+				if(  kerning )  mask =  mask | 0x100000/*_CFM_KERNING*/
+				if(  underlineType )  mask =  mask | 4/*_CFM_UNDERLINE*/
+				if(  revAuthor )  mask =  mask | 0x8000/*_CFM_REVAUTHOR*/ 
+			}
+		}
+
+		return !!::SendMessageByStruct( owner[["hwnd"]], 0x444/*_EM_SETCHARFORMAT*/, wParam || 0/*_SCF_DEFAULT*/, fm );
+	};
+	getCharformat = function(wParam){
+		var f = CHARFORMAT2();
+		::SendMessageByStruct(owner[["hwnd"]],0x43A/*_EM_GETCHARFORMAT*/,wParam || 0/*_SCF_DEFAULT*/,f)
+		return f;
+	};
+	getFont = function(){
+		var lf = owner.getCharformat().getFont().stripPoint(,owner.hwnd);
+		if(lf){
+			lf.color = owner.color
+			return lf;	
+		}
+	}; 
+	setSelCharformat = function(fm){
+		return owner.setCharformat(fm,1/*_SCF_SELECTION*/);
+	};
+	getSelCharformat = function(){
+		var f = CHARFORMAT2();
+		::SendMessageByStruct(owner[["hwnd"]],0x43A/*_EM_GETCHARFORMAT*/,1/*_SCF_SELECTION*/,f) 
+		return owner.getCharformat(1/*_SCF_SELECTION*/);
+	}; 
+	langOptions = {
+		_get = function(){  
+			return ::SendMessage(this.hwnd,0x479/*_EM_GETLANGOPTIONS*/);
+		}
+		_set = function( v ){ 
+     		::SendMessageInt(this.hwnd,0x478/*_EM_SETLANGOPTIONS*/,0,v);
+		} 	
+	} 
+	selText = {
+		_get = function(){  
+			 var min,max = owner.getsel();
+			 if(max && max>=min){
+ 		  		var len,str = ::SendMessageByStr( owner[["hwnd"]],0x43E/*_EM_GETSELTEXT*/,0,(max-min)*2+2); 
+ 		  		if( len ){  return str; } 
+			} 
+		}
+		_set = function( str ){ 
+			return ::User32.SendMessage(owner[["hwnd"]],0xC2/*_EM_REPLACESEL*/,,tostring(str))
+		} 	
+	};
+	text = {
+		_get = function(){ 
+			return ..win.getText( owner[["hwnd"]] );
+		}
+		_set = function(v){
+			var zoom = owner.zoom;
+			..win.setText( owner[["hwnd"]],v !== null ? tostring(v) : "" );  
+			var transParent = owner[["transparent"]];
+			if( transParent === null ){
+				transParent = !!..win.getStyleEx(owner.hwnd,0x20/*_WS_EX_TRANSPARENT*/);
+				owner[["transparent"]] = transParent;
+			}
+			
+			owner.zoom = zoom;
+			if( transParent ) owner.redrawTransparent();
+		}
+	};
+	zoom = {
+		_get = function(){   
+			var numerator ={int v};
+			var denominator ={int v};
+			::User32.SendMessage(owner.hwnd,0x4E0/*_EM_GETZOOM*/,numerator,denominator)
+			if(numerator.v && numerator.v){
+				var v = numerator.v / denominator.v;
+				if(owner[["dpiScaleY"]]){
+					v = v / owner[["dpiScaleY"]];
+				}
+				return v;
+			}
+			return 0;
+		}
+		_set = function(v){
+			var style = ..win.getStyle(owner.hwnd);
+			var left =  !(style & 3/*_ES_CENTER | _ES_RIGHT*/ ) 
+			
+			if(v){
+				if(left && owner[["dpiScaleY"]]){
+					v = v * owner[["dpiScaleY"]];
+				}	
+			}
+			else {
+				if(left && owner[["dpiScaleY"]]!==1) v = owner[["dpiScaleY"]];
+			}
+
+			if(v){
+				::User32.SendMessage(owner.hwnd,0x4E1/*_EM_SETZOOM*/,v * 100,100)
+			}  
+			else {
+				::User32.SendMessage(owner.hwnd,0x4E1/*_EM_SETZOOM*/,0,0)
+			}
+		}	
+	};
+	onDpiFontChange = function(f,scale){ 
+		var style = ..win.getStyle(owner.hwnd);
+		if(style & 3/*_ES_CENTER | _ES_RIGHT*/ ){
+			//Richedit BUG：如果不是左对齐,只要设置缩放 —— 包含中文就会偏移错乱
+			return owner.setFont(f)
+		}
+		
+		var zoom = 1;
+		var numerator ={int v};
+		var denominator ={int v};
+		::User32.SendMessage(owner.hwnd,0x4E0/*_EM_GETZOOM*/,numerator,denominator)
+		if(numerator.v && numerator.v){
+			zoom = numerator.v / denominator.v;
+		}
+			
+		var v = zoom * scale;
+		v = v!=1?v:0;
+		  
+		if(v){
+			::User32.SendMessage(owner.hwnd,0x4E1/*_EM_SETZOOM*/,v * 100,100)
+		}  
+		else {
+			::User32.SendMessage(owner.hwnd,0x4E1/*_EM_SETZOOM*/,0,0)
+		}
+	};
+    rangeText = function(min,max){
+    	if(min>0)min--;
+    	var rg = TEXTRANGE();
+		rg.chrg.cpMin = min;
+		rg.chrg.cpMax = max;
+		rg.lpstrText = ..raw.buffer( (max-min)*2 )
+		::User32.SendMessage(owner.hwnd, 0x44B/*_EM_GETTEXTRANGE*/, 0, rg); 
+		return rg.lpstrText;
+    }
+	modifyEvent = function( remove=0,add=0 ){ 
+		var e = ( ::SendMessage(owner.hwnd, 0x43B/*_EM_GETEVENTMASK*/ ) & ~remove ) | add ; 
+		::SendMessageInt(owner.hwnd, 0x445/*_EM_SETEVENTMASK*/, 0, e )
+		return e;
+	}
+	limit = {  
+		_set = function( v ){ 
+     		::SendMessageInt(owner[["hwnd"]], 0x435/*_EM_EXLIMITTEXT*/, 0, v) 
+		} 	
+		_get = function(){ 
+			return ::SendMessage(owner[["hwnd"]], 0xD5/*_EM_GETLIMITTEXT*/);
+		}
+	} 
+	wrap = { 
+    	_set = function(v){
+    		var hwnd = owner.hwnd;;
+    		if (v) {  
+        		var hdc = ::GetDC(hwnd); 
+        		::SendMessage(hwnd, 0x448/*_EM_SETTARGETDEVICE*/, hdc);
+        		::ReleaseDC(hwnd, hdc);
+    		}
+    		else 
+        		::SendMessageInt(hwnd, 0x448/*_EM_SETTARGETDEVICE*/, 0, 1);
+    	}
+	};
+	link =  {
+		_set = function(v){
+			owner.modifyEvent( , 0x4000000/*_ENM_LINK */ ) 
+			::SendMessageInt(owner.hwnd, 0x000045b/*EM_AUTOURLDETECT*/, v?1:0, 0);
+			owner.text = owner.text; 
+		} 
+	};
+	color = {
+		_get = function(){   
+			var f = owner.getCharformat(  0x40000000/*_CFM_COLOR*/  );
+			return f ? f.textColor;
+		}
+		_set = function(v){   
+			owner.setCharformat( textColor = v; mask = 0x40000000/*_CFM_COLOR*/  )
+		}	
+	};
+	bgcolor = {
+		_set = function(v){   
+			::SendMessageInt(owner.hwnd,0x443/*_EM_SETBKGNDCOLOR*/,0, v);
+		}	
+	};
+	onChange = {
+		_get = function(){   
+			return null;
+		}
+		_set = function(v){   
+			if(v) owner.modifyEvent(,0x1/*_ENM_CHANGE*/)
+			owner[["onChange"]] = v;
+		}	
+	};
+	canRedo = function(){
+    	return !!::SendMessage(owner.hwnd,0x455/*_EM_CANREDO*/)
+    };
+    canPaste = function(){
+        return !!::SendMessage(owner.hwnd,0x432/*_EM_CANPASTE*/)
+    };
+    onHyperlink = {
+		_get = function(){   
+			return owner[["onHyperlink"]];
+		}
+		_set = function(v){ 
+			owner[["onHyperlink"]] = v;
+			
+			owner.prenotify = {
+				[0x070B/*_EN_LINK*/] = function(id,code,ptr){
+					if(!owner.onHyperlink) return;
+					var link = ..raw.convert(ptr, ENLINK_STRUCT() );
+					owner.onHyperlink(link.msg,tostring(owner.rangeText( link.chrg.cpMin+1,link.chrg.cpMax)) )	
+				}
+			}
+		}	
+	}; 
+    streamOut = function(format,callback){
+    	if( format === null ) format = 2/*_SF_RTF*/;
+    	callback = ..raw.tostdcall(callback,"INT(INT cookie, pointer buf,INT count, INT & read)");
+    	var edstream = { INT cookie = format;INT err; pointer pfnCallback = callback } ;
+    	::SendMessageByStruct(owner.hwnd,0x44A/*_EM_STREAMOUT*/,format,edstream);
+    	if( !edstream.err )return true;
+    	return null,edstream.err;
+    };
+   	streamIn = function(format,callback){
+    	if( format === null ) format = 2/*_SF_RTF*/;
+    	if(type.isString(callback)){
+    	    var file = ..io.open(callback,"rb");
+    	    if(!file){
+    	    	if(..io.localpath(callback)){
+    	    		format = ..string.load(callback);
+    	    		callback = null;
+    	    	}
+    	    	else {
+    	    		return null,"opening file  failed";
+    	    	}
+    	    }
+    	    else {
+    	    	callback = function(format,buf,len){ 
+    				var size = file.readBuffer(buf,len):0;
+    				if(!size){ file.close() } 
+        			return 0,size;
+    			}
+    	    }
+    	}
+    	
+    	if(callback===null){
+    		var str = format : "";
+    		format = 2/*_SF_RTF*/;
+    		
+    		var offset = 0;
+    		callback = function(format,buf,len){
+        		var size = #str - offset;
+        		if(size>len){ size = len;  }
+        		if(!size){return 0,0 }
+        		
+        		..raw.copy(buf,..raw.toPointer(str,offset),size);
+        		offset = offset+size;
+        		return 0,size;
+    		};
+    	}
+ 
+    	callback = ..raw.tostdcall(callback,"INT(INT cookie, pointer buf,INT count, INT & read)");
+    	var edstream = { INT cookie = format;INT err; pointer pfnCallback = callback } ;
+    	::SendMessageByStruct(owner.hwnd,0x449/*_EM_STREAMIN*/,format,edstream);
+    	if( !edstream.err )return true;
+    	return null,edstream.err;
+    }; 
+    getTextObjectModel = function(){
+    	//About TOM: http://msdn.microsoft.com/en-us/library/windows/desktop/bb787607%28v=vs.85%29.aspx
+    	var out = {pointer ptr}
+		if( ::SendMessageByStruct(owner.hwnd,0x43C/*_EM_GETOLEINTERFACE*/,0,out) ){
+			var textDocument = ..com.QueryObject(out.ptr);
+			..com.Release(out.ptr);
+			return textDocument;
+		}  
+    };
+    replaceAll  = function(str,rep,flags){
+        owner.setsel(0);
+        while(owner.replaceText(str,rep,flags) ){}; 
+    };
+    replaceText  = function(str,rep,flags,b,e){
+        var min,max = owner.getsel();
+        if( max && max >= min){
+        	owner.selText = rep;
+        }
+        
+        var min,max = owner.findText(str,flags,b,e);
+        if( min > 0  && max >= min ){
+        	return min,max;
+        }; 
+    };
+    findText = function(str,flags,b,e){
+        if(flags===null) flags = 0x1/*_FR_DOWN*/;
+        
+        var asel = (b===null) && (e===null);
+        var re,min,max = ::SendMessageByInt(owner[["hwnd"]],0xB0/*_EM_GETSEL*/,0,0); 
+        var len = owner.getLength();
+        
+        if( flags & 0x1/*_FR_DOWN*/){
+            if(b===null) { 
+            	if( min === len  ) b = 0; 
+            	else b = max;
+            }
+            
+        	if(e===null) e = -1;
+        	if( e < b && ( e >= 0)) b,e = e,b; 
+        }
+        else {
+        	if(b===null)  { 
+            	if( max === 0  ) b = len; 
+            	else b = min;
+            } 
+        	if(e===null) e = 0;
+         	if( b < e && ( b >= 0) ) b,e = e,b;
+        }
+      
+        var ft = {
+  			struct chrg = {int min=b;int max=e};
+  			ustring text = str;
+  			struct chrgText = {int min;int max};
+		} 
+    	
+		::User32.SendMessage(owner[["hwnd"]],0x47C/*_EM_FINDTEXTEXW*/,flags,ft);
+		var min,max = ft.chrgText.min,ft.chrgText.max;
+		if( (min >=0) && (max >= 0 ) ) {
+          	if( min == max ) return min;
+      	  	min = min +1;
+      	  	if(asel) owner.setsel(min,max);
+      	}
+      	else {
+      		if(asel) {
+      			if( flags & 0x1/*_FR_DOWN*/)owner.setsel(-1);
+      			else owner.setsel(0);
+      		}
+      	} 
+      	
+      	return min,max;  
+    };
+}) 
+
+//@Deprecated
+richedit._metaProperty.onlink = richedit._metaProperty.onHyperlink
+ 
+/***intellisense()
+win.ui.ctrl.richedit = 多功能文本框控件支持库
+win.ui.ctrl.richedit() = 多功能文本框控件\n!richedit.
+?win.ui.ctrl.richedit  =!richedit.
+!richedit.zoom = 缩放比例，必须大于 1/32 并小于 32\nRichedit 存在一个 BUG：如果不是左对齐,只要设置缩放 —— 包含中文就会偏移错乱,\n所以右对齐或居中对齐后，自动 DPI 缩放将会更改为设置文本框默认字体,\n这会导致局部字体样式被重置为默认字体
+!richedit.color = 取或修改字体颜色、数值
+!richedit.bgcolor= 获取或修改背景颜色、数值
+!richedit.cls = 设计时类名
+!richedit.className = 运行时类名
+!richedit.modifyEvent(.(移除通知,添加通知) = 启用或禁用通知消息,返回EVENTMASK值
+!richedit.lineCount = 获取行数
+!richedit.setsel(.(起始位置,结束位置) = 设置选区,以字符为单位\n1为首字符，选区包含起始与结束位置\n如果结束位置小于开始位置,自动交换参数位置,\n注意richedit实际以＼n换行,输入字符中的＼r＼n作为一个字符计数\n可以用-1表示文本尾部
+!richedit.setsel(.(当前位置) = 无选区,\n移动光标到指定位置的字符后面
+!richedit.getsel() = 获取选区起始位置,结束位置\n选区包含起始与结束位置的字符，首字符位置为1\n开始位置在指定的字符前面,结束位置表示指定的字符后面\n只有一个返回值时表示无选区,并表示输入光标在指定字符后面\n返回0表示输入光标在最前面,并且无选区
+!richedit.selText = 获取或写入选区文本\n可写入UTF8或UTF16字符串，其他类型转为字符串写入
+!richedit.selLine = 获取或设置当前行,\n光标移动到该行开始处,并且滚动到该行,\n设为-1跳转到最后一行
+!richedit.modified = 文本内容是否已修改
+!richedit.getLength() = 获取文本长度\n注意是按字符计数，而不是按字节计数
+!richedit.rangeText(.(起始位置,结束位置) = 返回指定位置文本\n1表示首字符
+!richedit.text = 获取或写入编辑控件文本属性,\n可写入UTF8或UTF16字符串，其他类型转为字符串写入,\n注意 edit 控件使用'\r\\n'表示换行,而richedit控件则使用'\\n'表示换行，\n用双引号或反引号包含字符串赋值时换行会自动格式化换行为'\\n'，\n例如 winform.richedit.txt = "文本\n第二行文本"
+!richedit.disabledText = 指定文本时,禁用此控件,并显示指定文本,\n指定为null时,启用此控件,并恢复控件之前的正常文本
+!richedit.log( __,'\r\n' ) = 追加字符串到文本框,可输入多个参数\n如果超出limit属性设定的字符数限制则移除头部多余的字符\n为提升性能,limit不可过大
+!richedit.dump(__/*变量*/) = 显示变量的值,支持多参数\n注意仅显示普通table,string,number等类型的值,不显示函数等
+!richedit.hwnd = 控件句柄
+!richedit.id = 控件ID
+!richedit.readonly = 是否只读\n只读时禁止编辑
+!richedit._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!richedit.getParent() = 返回父窗口\n!static.
+!richedit.setParent(__/*控件对象*/) = 改变父窗口 
+!richedit.hide = 控件是否隐藏
+!richedit.disabled = 控件时否可见
+!richedit.left = 左侧坐标
+!richedit.right = 右侧坐标
+!richedit.top = 顶部坐标
+!richedit.bottom = 底部坐标
+!richedit.width = 宽度
+!richedit.height = 高度
+!richedit.limit = 字符数限制
+!richedit.scrollCaret() = 滚动到光标处
+!richedit.deselect() = 取消选定
+!richedit.setSelCharformat(.(charformat2) = 使用CHARFORMAT2结构体设置文本样式,可仅指定部分字段,\n此函数会禁用控件的DPI字体缩放，建议在显示窗体后再调用。
+!richedit.setCharformat(.(charformat2,wParam) = 使用CHARFORMAT2结构体设置文本样式,可仅指定部分字段\nwParam可省略,可选值参考EM_SETCHARFORMAT消息,\n此函数会禁用控件的DPI字体缩放，建议在显示窗体后再调用。
+!richedit.getSelCharformat() = !charformat2.
+!richedit.getCharformat() = !charformat2.
+!richedit.getCharformat(.(mask) = 返回CHARFORMAT2结构体\n参数指定获取字段掩码,省略获取全部值
+!richedit.getSelCharformat(mask) = 返回选区CHARFORMAT2结构体\n参数指定获取字段掩码,省略获取全部值 
+!richedit.print(.(->->->) = 将多个参数转换为字符串,\n并使用制表符分隔各参数追加到文本尾部\n并追加换行\n\n对于table对象,aardio会序列化为文本然后输出,\n如果当前已经导入了web.json，则自动转换为json后输出,\n可以用于调试代码显示变量的值
+!richedit.printf(.(->->->) = 将多个参数调用string.format格式化后追加到文本尾部\n并追加换行
+!richedit.appendText(.(追加文本) = 追加文本并移动光标到文本尾部\n支持零个、或多个文本参数\n返回文本总长度
+!richedit.lineScroll(.(滚动到指定行) = 滚动条移动到指定行\n如果不指定参数则滚动到最后一行 
+!richedit.lineToChar(__/*指定行号*/) = 获取指定行首字符位置\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!richedit.lineFromChar(__/*指定位置*/) = 返回指定位置行数
+!richedit.lineFromChar() = 不指定参数则返回当前行
+!richedit.lineText(__/*指定行号*/) = 获取指定行文本\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!richedit.lineText() = 不指定行号参数,则获取当前行文本 
+!richedit.lineLength(__/*指定行号*/) = 返回指定行字符数\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!richedit.lineSel(.(行号,替换文本) = 选择指定的行的全部文本,\n行号为-1时表示选取最后一行,\n可选使用参数@2指定一个字符串用于替换该行文本
+!richedit.redraw() = 刷新
+!richedit.show(true__) = 显示控件
+!richedit.getRect() = 控件区块位置(::RECT结构体)
+!richedit.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!richedit.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!richedit.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)
+!richedit.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!richedit.setClientRect(.(RECT区块) = 参数为指定文本客户区的RECT结构体\n文本框必须在设计时指定为多行\n在文本框改变大小必须重新设置
+!richedit.inflateClientRect(.(dx,dy) = 正数增大,负数缩小文本客户区\n文本框必须在设计时指定为多行\n在文本框改变大小必须重新设置
+!richedit.setPadding(.(上,右,下,左) = 设置文本边距\n文本框必须在设计时指定为多行\n在文本框改变大小后仍然可以保持此边距
+!richedit.padding = 文本边距\n应通过setPadding函数设置该值
+!richedit.getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+!richedit.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!richedit.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!richedit.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!richedit.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!richedit.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!richedit.capture = 是否捕获全局鼠标消息
+!richedit.close() = 关闭控件窗
+!richedit.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!richedit.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!richedit.update() = 重绘invalidate函数指定的区块
+!richedit.wrap = 是否启用自动换行,仅richedit支持
+!richedit.onHyperlink = @.onHyperlink =function(message,href){\n\n	if( message = 0x202/*_WM_LBUTTONUP*/ ) {\n		import process;\n		process.openUrl(href);\n	}\n}
+!richedit.setFocus() = 设置焦点 
+!richedit.tabNext(.(移动焦点,是否反向) = 获取下一个支持tab控制焦点的控件\n参数@1为true会自动移动焦点到该控件\n参数@2为true则获取上一个控件,否则获取下一个控件
+!richedit.tabNext() = !static.
+!richedit.disableInputMethod() = 在此控件中关闭输入法, 仅支持英文输入
+!richedit.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!richedit.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+!richedit.vScroll() = 滚动到底部
+!richedit.hScroll() = 滚动到右侧
+!richedit.vScroll(_SB__) = 滚动竖向滚动条
+!richedit.hScroll(_SB__) = 滚动横向滚动条
+!richedit.selectAll() = 全选
+!richedit.popMenu() = 弹出右键菜单
+!richedit.enablePopMenu() = 启用右键菜单\n\n可选在参数中使用一个表指定要添加的菜单项数组,\n参数将传递给win.ui.popmenu对象的addTable函数\n参数也可以是返回菜单项数组的函数
+!richedit.redo() = 重做
+!richedit.undo() = 撤消
+!richedit.clear() = 清除选中文本
+!richedit.copy() = 复制
+!richedit.cut() = 剪切
+!richedit.paste() = 粘贴
+!richedit.canRedo() = 能否重做
+!richedit.canUndo() = 能否撤消
+!richedit.canPaste() = 能否粘贴
+!richedit.canCopy() = 能否复制  
+!richedit.langOptions = 设置输入和远东语言选项\n选项为数值,使用_IMF_前缀常量表示
+!richedit.streamIn(格式,RTF文件路径) = 读入RTF文档或普通文档，读入RTF文档同时禁用DPI自动缩放字，\n参数@1省略时默认值为RTF格式。
+!richedit.streamIn(格式,输入函数) = @.streamIn( ,function(format,buf,len){  \n	return 0,file.readBuffer(buf,len);__/*读入RTF文档，同时禁用DPI自动缩放字体*/\n} )
+!richedit.streamIn(RTF文本) = 加载RTF文本，\n格式参数可省略，默认为RTF,\n调用此函数加载RTF文档会自动禁用DPI自动缩放字体。
+!richedit.streamOut(格式,输出函数) = @.streamOut( ,function(format,buf,len){  \n	var ok,bytes = file.writeBuffer(buf,len);__/*保存RTF文档*/ \n	return 0,bytes;\n} )
+!richedit.saveScale(.(scaleX,scaleY,dpiScaleX,dpiScaleY) = 根据控件当前的运行时位置更新设计时大小\如果控件允许自动缩放，窗口缩放时依据设计时大小按比例缩放\n所有参数可省略,并且不建议写参数
+!richedit.orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效\n此控件不建议指定参数
+!richedit.getTextObjectModel() = 返回COM对象\n!TextDocument.
+!richedit.threadCallable() = 开启此控件的跨线程调用功能
+!richedit.lines(忽略空白) = @for line in ??.lines(true){ 
+	__/*遍历所有文本行,\n如果迭代器参数为true则清除每行首尾空格,并忽略空行*/
+}
+!richedit.translateAccelerator(msg) = @.translateAccelerator = function(msg){ 
+    var vk = msg.wParam;
+ 	if( (vk == 0x9/*_VK_TAB*/ ) || (vk = 0xD/*_VK_RETURN*/) ){
+		if( msg.message == 0x100/*_WM_KEYDOWN*/) {
+			owner.tabNext(true); 
+			return true;__/*在此事件中可拦截键盘消息并自定义快捷键\ntabNext函数切换到下一个支持tab控制键的控件\n如果这是一个快捷键返回true以取消该消息的默认行为*/
+		}
+	}	
+}
+!richedit.onOk() = @.onOk = function(){ 
+	__/*当前已按下回车,返回true阻止默认事件*/
+	return true; 	
+}
+!richedit.onCancel() = @.onCancel = function(){ 
+	__/*当前已按下ESC,返回true阻止默认事件*/
+	return true; 	
+}
+!richedit.onChange() = @.onChange = function(){ 
+	if(owner.onModified)owner.onModified(true);
+	__/*响应事件，文本内容已变更*/
+}
+!richedit.onModified = @.onModified = function(modified){ 
+	__/*使用代码变更modified属性后触发此事件,\n用户编辑文本导致变更modified属性不会触发此事件，\n可在onChange事件内主动调用此事件*/
+}
+!richedit.onFocusGot() = @.onFocusGot = function(){ 
+	__/*响应事件，文本框已获得输入焦点*/
+}
+!richedit.onFocusLost() = @.onFocusLost = function(){
+	__/*响应事件，文本框已失去输入焦点*/
+}
+!richedit.adjust = @.adjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放时会自动触发此函数。\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 参数请参考 _WM_SIZE 消息参数说明,一般不用管。\n\n所有 win.form 创建的窗体和控件都支持此事件,\n重复赋值只会追加而不会覆盖此事件。\n一般不建议添加一个 wndproc 仅仅是为了处理  _WM_SIZE 消息，\n定义 adjust 事件是更好的选择。\n\n可主动调用此事件,省略参数时 cx,cy 参数默认设为窗口大小*/  \n}; 
+!richedit.preadjust = @.preadjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放后重绘前、触发 adjust 事件之前触发此事件。\n所有 win.form 创建的窗体和控件都支持此事件,\n与 adjust 事件不同，对 preadjust 重复赋值则覆盖而不是追加事件。 \n\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 为 _WM_SIZE 消息参数。*/  \n};
+!richedit.resize(.(宽度,高度) = 如果指定了参数则调整窗口大小,\n无论是否实际调整窗口大小,发送 _WM_SIZE 消息给窗口
+!richedit.addCtrl(tParam) = @.addCtrl(\n	spin={\n		cls="spin";marginRight=4;marginTop=1;marginBottom=4;width=16;\n		oncommand = function(id,event,pos){ \n			if( pos && event == 0x4/*_SB_THUMBPOSITION*/ ){\n 				winform.edit.text = string.format("%.2f",pos / 100 )\n			}\n		}\n	}\n)__/*在edit控件窗口内添加子窗口*/
+!richedit.replaceAll( = 全部替换查找到的文本
+!richedit.replaceAll(.(查找字符串,替换字符串,选项) = 全部替换查找到的文本\n选项可使用win.dlg.findReplace对象的flags属性
+!richedit.replaceText( = 替换替换文本
+!richedit.replaceText(.(查找字符串,替换字符串,选项,开始位置,结束位置) = 替换当前选区并查找下一个，\n选项可使用 win.dlg.findReplace 对象的 flags 属性,\n不指定查找范围时,aardio 根据选区自动确定下次替换的范围\n替换完全部文本会重新重新设置查找范围为全部文本，\n此函数返回2个数值，表示下一个找到的字符串起始、结束位置
+!richedit.findText( = 查找文本
+!richedit.findText(.(查找字符串,选项,开始位置,结束位置) = 查找\n选项可使用 win.dlg.findReplace 对象的 flags 属性,\n不指定查找范围时,aardio 根据选区自动确定下次替换的范围\n替换完全部文本会重新重新设置查找范围为全部文本\n\n此函数返回2个数值，表示查找到的字符串起始、结束位置\n如果参数中未指定查找位置,会自动选中查找到的字符串
+!richedit.passwordChar = 指定隐藏密码的占位字符,该字符使用UTF-16编码,\n例如指定为'*'u隐藏密码,指定为null正常显示文本
+!richedit.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!richedit.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!richedit.publish("__/*发布消息名*/",) = 在窗口所在界面线程发布消息,\n运行界面线程所有所有调用subscribe函数订阅此消息的函数,\n可添加任意个触发参数
+!richedit.onDpiFontChange = @.onDpiFontChange = function(f){\n	return owner.setFont(f);__/*自定义DPI字体缩放*/\n};
+!richedit.showBalloonTip(.(title,text,icon) = 在输入光标处显示汽泡提示,\n@title参数指定标题,\n@text参数指定文本,\nicon指定图标句柄，可省略，\n此函数仅支持edit控件，不支持richedit控件
+!richedit.showInfoTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用提示信息图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略，\n此函数仅支持edit控件，不支持richedit控件
+!richedit.showWarningTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用警告图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略，\n此函数仅支持edit控件，不支持richedit控件
+!richedit.showErrorTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用错误图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略，\n此函数仅支持edit控件，不支持richedit控件
+!richedit.getRoot() = 获取顶层父窗口，这个函数会查找 orphanWindow 的父窗口
+!richedit._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+!TextDocument.tomTrue = 真值
+!TextDocument.tomFalse = 假值
+!TextDocument.tomToggle = 切换原来的值
+!TextDocument.tomUndefined = 未定义值
+!TextDocument.Name = 文件名
+!TextDocument.Saved  = 是否保存 
+!TextDocument.DefaultTabStop = 制表符宽度
+!TextDocument.New() = 新建文件
+!TextDocument.Open(.(filename,flags,codepage) = 打开文档
+!TextDocument.Save(.(filename,flags,codepage) = 保存文档 
+!TextDocument.BeginEditCollection() = 开始编辑
+!TextDocument.EndEditCollection() = 结束编辑
+!TextDocument.Undo(.(number) = 撤消
+!TextDocument.Redo(.(number) = 重做
+!TextDocument.Range(.(first,lim) = 返回选区
+!TextDocument.RangeFromPoint(.(x,y) = 指定坐标返回选区
+!TextDocument.Selection = 选区对象 
+!TextDocument.Selection.Font = 字体\n!TomTextFont.
+!TomTextFont.Name = 字体名
+!TomTextFont.Bold = 是否粗体,\n可使用tomTrue,tomFalse等值
+!TomTextFont.Size = 字体大小
+!TomTextFont.ForeColor = 字体颜色
+!charformat2.getFont() = 返回LOGFONT对象
+!charformat2.mask = 掩码
+!charformat2.effects = 效果
+!charformat2.yHeight = 大小
+!charformat2.yOffset = 偏移
+!charformat2.textColor = 颜色
+!charformat2.charSet = 字符集
+!charformat2.pitchAndFamily = 字体族
+!charformat2.faceName = 字体名
+!charformat2.weight = 重量
+!charformat2.spacing = 字体间距
+!charformat2.backColor = 背景色
+!charformat2.lcid = 区域ID
+!charformat2.underlineType = 下划线类型
+_ENM_NONE=@0x0/*_ENM_NONE*/
+_ENM_CHANGE=@0x1/*_ENM_CHANGE*/
+_ENM_UPDATE=@0x2/*_ENM_UPDATE*/
+_ENM_SCROLL=@0x4/*_ENM_SCROLL*/
+_ENM_SCROLLEVENTS=@0x8/*_ENM_SCROLLEVENTS*/
+_ENM_DRAGDROPDONE=@0x10/*_ENM_DRAGDROPDONE*/
+_ENM_PARAGRAPHEXPANDED=@0x20/*_ENM_PARAGRAPHEXPANDED*/
+_ENM_PAGECHANGE=@0x40/*_ENM_PAGECHANGE*/
+_ENM_KEYEVENTS=@0x10000/*_ENM_KEYEVENTS*/
+_ENM_MOUSEEVENTS=@0x20000/*_ENM_MOUSEEVENTS*/
+_ENM_REQUESTRESIZE=@0x40000/*_ENM_REQUESTRESIZE*/
+_ENM_SELCHANGE=@0x80000/*_ENM_SELCHANGE*/
+_ENM_DROPFILES=@0x100000/*_ENM_DROPFILES*/
+_ENM_PROTECTED=@0x200000/*_ENM_PROTECTED*/
+_ENM_CORRECTTEXT=@0x400000/*_ENM_CORRECTTEXT*/
+_ENM_IMECHANGE=@0x800000/*_ENM_IMECHANGE*/
+_ENM_LANGCHANGE=@0x1000000/*_ENM_LANGCHANGE*/
+_ENM_OBJECTPOSITIONS=@0x2000000/*_ENM_OBJECTPOSITIONS*/
+_ENM_LINK=@0x4000000/*_ENM_LINK*/
+_ENM_LOWFIRTF=@0x8000000/*_ENM_LOWFIRTF*/
+_IMF_AUTOKEYBOARD=@1/*_IMF_AUTOKEYBOARD*/
+_IMF_AUTOFONT=@2/*_IMF_AUTOFONT*/
+_IMF_IMECANCELCOMPLETE=@4/*_IMF_IMECANCELCOMPLETE*/
+_IMF_IMEALWAYSSENDNOTIFY=@8/*_IMF_IMEALWAYSSENDNOTIFY*/
+_IMF_AUTOFONTSIZEADJUST=@0x10/*_IMF_AUTOFONTSIZEADJUST*/
+_IMF_UIFONTS=@0x20/*_IMF_UIFONTS*/
+_IMF_DUALFONT=@0x80/*_IMF_DUALFONT*/
+_IMF_SMODE_PLAURALCLAUSE=@1/*_IMF_SMODE_PLAURALCLAUSE*/
+_IMF_SMODE_NONE=@2/*_IMF_SMODE_NONE*/
+_IMF_FORCENONE=@1/*_IMF_FORCENONE*/
+_IMF_FORCEENABLE=@2/*_IMF_FORCEENABLE*/
+_IMF_FORCEDISABLE=@4/*_IMF_FORCEDISABLE*/
+_IMF_CLOSESTATUSWINDOW=@8/*_IMF_CLOSESTATUSWINDOW*/
+_IMF_VERTICAL=@0x20/*_IMF_VERTICAL*/
+_IMF_FORCEACTIVE=@0x40/*_IMF_FORCEACTIVE*/
+_IMF_FORCEINACTIVE=@0x80/*_IMF_FORCEINACTIVE*/
+_IMF_FORCEREMEMBER=@0x100/*_IMF_FORCEREMEMBER*/
+_IMF_MULTIPLEEDIT=@0x400/*_IMF_MULTIPLEEDIT*/
+_SF_TEXT=@1/*_SF_TEXT*/
+_SF_RTF=@2/*_SF_RTF*/
+_SF_UNICODE=@0x10/*_SF_UNICODE*/
+_SF_UTEXT=@0x11/*_SF_UTEXT*/
+_SFF_PWI=@0x800/*_SFF_PWI*/
+_SF_PWI=@0x10802/*_SF_PWI*/
+_SCF_DEFAULT=@0/*_SCF_DEFAULT*/
+_SCF_SELECTION=@1/*_SCF_SELECTION*/
+_SCF_WORD=@2/*_SCF_WORD*/
+_SCF_ALL=@4/*_SCF_ALL*/
+_SCF_USEUIRULES=@8/*_SCF_USEUIRULES*/
+_SCF_ASSOCIATEFONT=@0x10/*_SCF_ASSOCIATEFONT*/
+_SCF_NOKBUPDATE=@0x20/*_SCF_NOKBUPDATE*/
+_SCF_ASSOCIATEFONT2=@0x40/*_SCF_ASSOCIATEFONT2*/
+_CFM_BOLD=@1/*_CFM_BOLD*/
+_CFM_ITALIC=@2/*_CFM_ITALIC*/
+_CFM_UNDERLINE=@4/*_CFM_UNDERLINE*/
+_CFM_STRIKEOUT=@8/*_CFM_STRIKEOUT*/
+_CFM_PROTECTED=@0x10/*_CFM_PROTECTED*/
+_CFM_LINK=@0x20/*_CFM_LINK*/
+_CFM_SMALLCAPS=@0x40/*_CFM_SMALLCAPS*/
+_CFM_ALLCAPS=@0x80/*_CFM_ALLCAPS*/
+_CFM_HIDDEN=@0x100/*_CFM_HIDDEN*/
+_CFM_OUTLINE=@0x200/*_CFM_OUTLINE*/
+_CFM_SHADOW=@0x400/*_CFM_SHADOW*/
+_CFM_EMBOSS=@0x800/*_CFM_EMBOSS*/
+_CFM_IMPRINT=@0x1000/*_CFM_IMPRINT*/
+_CFM_DISABLED=@0x2000/*_CFM_DISABLED*/
+_CFM_REVISED=@0x4000/*_CFM_REVISED*/
+_CFM_REVAUTHOR=@0x8000/*_CFM_REVAUTHOR*/
+_CFM_SUBSCRIPT=@0x30000/*_CFM_SUBSCRIPT*/
+_CFM_SUPERSCRIPT=@0x30000/*_CFM_SUPERSCRIPT*/
+_CFM_ANIMATION=@0x40000/*_CFM_ANIMATION*/
+_CFM_STYLE=@0x80000/*_CFM_STYLE*/
+_CFM_KERNING=@0x100000/*_CFM_KERNING*/
+_CFM_SPACING=@0x200000/*_CFM_SPACING*/
+_CFM_WEIGHT=@0x400000/*_CFM_WEIGHT*/
+_CFM_UNDERLINETYPE=@0x800000/*_CFM_UNDERLINETYPE*/
+_CFM_LCID=@0x2000000/*_CFM_LCID*/
+_CFM_BACKCOLOR=@0x4000000/*_CFM_BACKCOLOR*/
+_CFM_CHARSET=@0x8000000/*_CFM_CHARSET*/
+_CFM_OFFSET=@0x10000000/*_CFM_OFFSET*/
+_CFM_FACE=@0x20000000/*_CFM_FACE*/
+_CFM_COLOR=@0x40000000/*_CFM_COLOR*/
+_CFM_SIZE=@0x80000000/*_CFM_SIZE*/
+_CFE_PROTECTED=@0x10/*_CFE_PROTECTED*/
+_CFM_EFFECTS=@0x4000003F/*_CFM_EFFECTS*/
+_CFM_EFFECTS2=@0x44037FFF/*_CFM_EFFECTS2*/
+_CFM_ALL=@-134217665/*_CFM_ALL*/
+_CFM_ALL2=@-16777217/*_CFM_ALL2*/
+_CFE_BOLD=@1/*_CFE_BOLD*/
+_CFE_ITALIC=@2/*_CFE_ITALIC*/
+_CFE_UNDERLINE=@4/*_CFE_UNDERLINE*/
+_CFE_STRIKEOUT=@8/*_CFE_STRIKEOUT*/
+_CFE_LINK=@0x20/*_CFE_LINK*/
+_CFE_SUBSCRIPT=@0x10000/*_CFE_SUBSCRIPT*/
+_CFE_SUPERSCRIPT=@0x20000/*_CFE_SUPERSCRIPT*/
+_CFE_AUTOCOLOR=@0x40000000/*_CFE_AUTOCOLOR*/
+_CFE_SMALLCAPS=@0x40/*_CFE_SMALLCAPS*/
+_CFE_ALLCAPS=@0x80/*_CFE_ALLCAPS*/
+_CFE_HIDDEN=@0x100/*_CFE_HIDDEN*/
+_CFE_OUTLINE=@0x200/*_CFE_OUTLINE*/
+_CFE_SHADOW=@0x400/*_CFE_SHADOW*/
+_CFE_EMBOSS=@0x800/*_CFE_EMBOSS*/
+_CFE_IMPRINT=@0x1000/*_CFE_IMPRINT*/
+_CFE_DISABLED=@0x2000/*_CFE_DISABLED*/
+_CFE_REVISED=@0x4000/*_CFE_REVISED*/
+_CFE_AUTOBACKCOLOR=@0x4000000/*_CFE_AUTOBACKCOLOR*/
+_CFU_UNDERLINENONE=@0/*_CFU_UNDERLINENONE*/
+_CFU_UNDERLINE=@1/*_CFU_UNDERLINE*/
+_CFU_UNDERLINEWORD=@2/*_CFU_UNDERLINEWORD*/
+_CFU_UNDERLINEDOUBLE=@3/*_CFU_UNDERLINEDOUBLE*/
+_CFU_UNDERLINEDOTTED=@4/*_CFU_UNDERLINEDOTTED*/
+_CFU_UNDERLINEDASH=@5/*_CFU_UNDERLINEDASH*/
+_CFU_UNDERLINEDASHDOT=@6/*_CFU_UNDERLINEDASHDOT*/
+_CFU_UNDERLINEDASHDOTDOT=@7/*_CFU_UNDERLINEDASHDOTDOT*/
+_CFU_UNDERLINEWAVE=@8/*_CFU_UNDERLINEWAVE*/
+_CFU_UNDERLINETHICK=@9/*_CFU_UNDERLINETHICK*/
+_CFU_UNDERLINEHAIRLINE=@0xA/*_CFU_UNDERLINEHAIRLINE*/
+_CFU_UNDERLINEDOUBLEWAVE=@0xB/*_CFU_UNDERLINEDOUBLEWAVE*/
+_CFU_UNDERLINEHEAVYWAVE=@0xC/*_CFU_UNDERLINEHEAVYWAVE*/
+_CFU_UNDERLINELONGDASH=@0xD/*_CFU_UNDERLINELONGDASH*/
+_CFU_UNDERLINETHICKDASH=@0xE/*_CFU_UNDERLINETHICKDASH*/
+_CFU_UNDERLINETHICKDASHDOT=@0xF/*_CFU_UNDERLINETHICKDASHDOT*/
+_CFU_UNDERLINETHICKDASHDOTDOT=@0x10/*_CFU_UNDERLINETHICKDASHDOTDOT*/
+_CFU_UNDERLINETHICKDOTTED=@0x11/*_CFU_UNDERLINETHICKDOTTED*/
+_CFU_UNDERLINETHICKLONGDASH=@0x12/*_CFU_UNDERLINETHICKLONGDASH*/
+_CFU_INVERT=@0xFE/*_CFU_INVERT*/
+_CFU_CF1UNDERLINE=@0xFF/*_CFU_CF1UNDERLINE*/
+end intellisense***/

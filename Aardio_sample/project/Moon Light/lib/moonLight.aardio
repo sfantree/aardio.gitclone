@@ -1,0 +1,32 @@
+﻿import util.metaProperty;
+import thread.works;   
+    
+class moonLight{
+	ctor(){
+		this.thWorks = ..thread.works( 2,
+			function( args ) {			
+				var plugn = sdk[args.website]
+				if( !plugn ) return ;
+				
+				var roomInfo = plugn( args.roomUrl ).getStreamInfo()  
+				if( roomInfo ){
+					thread.command.post( "onUpdateRoomInfo", roomInfo)
+				}
+			},1000, function(){
+				import thread.command;
+				import sdk;			
+			}
+		);
+		this.thCmd = ..thread.command()
+	};
+	@_metaProperty
+}
+namespace moonLight{
+    _metaProperty = ..util.metaProperty(
+    	onUpdateRoomInfo = {
+    		_set = function( func ){
+    			owner.thCmd.onUpdateRoomInfo = func;
+    		} 	
+    	};
+    ) 	
+}

@@ -1,0 +1,138 @@
+import win.ui;
+import win.ui.menu;
+import win.util.tray;
+/*DSG{{*/
+SoundBox = win.form(cls="SoundBox";text="SoundBox";right=471;bottom=455;border="dialog frame";max=false;min=false)
+ctrls = SoundBox.add(
+button={cls="button";text="S1";left=24;top=408;right=160;bottom=432;z=1};
+button10={cls="button";text="S10";left=24;top=312;right=160;bottom=336;z=10};
+button11={cls="button";text="S11";left=168;top=312;right=304;bottom=336;z=11};
+button12={cls="button";text="S12";left=312;top=312;right=448;bottom=336;z=12};
+button13={cls="button";text="N1";left=24;top=240;right=160;bottom=264;z=13};
+button14={cls="button";text="N2";left=168;top=240;right=304;bottom=264;z=14};
+button15={cls="button";text="N3";left=312;top=240;right=448;bottom=264;z=15};
+button16={cls="button";text="N4";left=24;top=208;right=160;bottom=232;z=16};
+button17={cls="button";text="N5";left=168;top=208;right=304;bottom=232;z=17};
+button18={cls="button";text="N6";left=312;top=208;right=448;bottom=232;z=18};
+button19={cls="button";text="N7";left=24;top=176;right=160;bottom=200;z=19};
+button2={cls="button";text="S2";left=168;top=408;right=304;bottom=432;z=2};
+button20={cls="button";text="N8";left=168;top=176;right=304;bottom=200;z=20};
+button21={cls="button";text="N9";left=312;top=176;right=448;bottom=200;z=21};
+button22={cls="button";text="F4";left=24;top=104;right=160;bottom=128;z=22};
+button23={cls="button";text="F5";left=168;top=104;right=304;bottom=128;z=23};
+button24={cls="button";text="F6";left=312;top=104;right=448;bottom=128;z=24};
+button25={cls="button";text="F7";left=24;top=72;right=160;bottom=96;z=25};
+button26={cls="button";text="F8";left=168;top=72;right=304;bottom=96;z=26};
+button27={cls="button";text="F9";left=312;top=72;right=448;bottom=96;z=27};
+button28={cls="button";text="F10";left=24;top=40;right=160;bottom=64;z=28};
+button29={cls="button";text="F11";left=168;top=40;right=304;bottom=64;z=29};
+button3={cls="button";text="S3";left=312;top=408;right=448;bottom=432;z=3};
+button30={cls="button";text="F12";left=312;top=40;right=448;bottom=64;z=30};
+button4={cls="button";text="S4";left=24;top=376;right=160;bottom=400;z=4};
+button5={cls="button";text="S5";left=168;top=376;right=304;bottom=400;z=5};
+button6={cls="button";text="S6";left=312;top=376;right=448;bottom=400;z=6};
+button7={cls="button";text="S7";left=24;top=344;right=160;bottom=368;z=7};
+button8={cls="button";text="S8";left=168;top=344;right=304;bottom=368;z=8};
+button9={cls="button";text="S9";left=312;top=344;right=448;bottom=368;z=9};
+groupbox={cls="groupbox";text="F键盘区";left=16;top=16;right=456;bottom=136;edge=1;z=31};
+groupbox2={cls="groupbox";text="数字键盘区";left=16;top=152;right=456;bottom=272;edge=1;z=32};
+groupbox3={cls="groupbox";text="小键盘区";left=16;top=288;right=456;bottom=440;edge=1;z=33}
+)
+/*}}*/
+
+SoundBox.popmenu = win.ui.popmenu(SoundBox);//创建弹出菜单
+SoundBox.popmenu.add('&配置',function(id){
+	//在下面输入菜单响应代码
+	
+});
+SoundBox.popmenu.add();//分隔线
+SoundBox.popmenu.add('&退出',function(id){ SoundBox.close() })
+var menu = win.ui.menu(SoundBox);//创建主菜单
+menu.add('文件',SoundBox.popmenu)
+
+
+
+// 添加音乐资源
+import fsys.media
+// 读取配置文件
+import fsys.config
+config = fsys.config("/");
+cfg = config.mcfg.load();
+
+
+// 当前播放的音乐
+var currentPlay;
+
+// 当按钮过多的时候这里会比较卡
+// function stopAll() {
+//     for k, v in ctrls {
+//         // 如果有mediaFile这个属性
+//         if (v["mediaFile"]) {
+//             v["mediaFile"].stop();
+//             v["mediaFile"].seek(1);
+//         }
+//     }
+// }
+
+function stopSound(){
+	if (currentPlay) {
+    	currentPlay.stop();
+        currentPlay.seek(1);
+    }    
+	
+}
+
+
+// 空格键, 停止所有
+SoundBox.reghotkey(
+    function(id,mod,vk){
+        stopSound();
+    }, 0, 0x20
+);
+	
+
+// 遍历按钮控件, 按配置文件更按钮改标题
+for k, v in ctrls {
+    // 是按钮才做配置
+    if (v.className == "button") {
+        // 按按钮名称做配置, 如果有则更改标题(text属性)
+        // 标题, 音乐, 快捷键必须要指定
+        // SoundBox.msgbox(cfg[v.text]);
+        if (cfg[v.text]) {
+            if (cfg[v.text]["name"] && cfg[v.text]["path"] && cfg[v.text]["hotkey"]) {              
+                // 更改控件名称必须在最后, 否则控件名称变了之后 v.text 已经更改
+                // 而键名貌似不能为中文名称, 所以一但配置文件中 text 为中文就会出错
+                
+                // 给按钮添加一个属性, 用于载入音乐资源
+            	SoundBox[k]["mediaFile"] = fsys.media(cfg[v.text]["path"]);
+            	
+            	// 添加播放动作
+            	SoundBox[k]["playSound"] = function() {
+            		stopSound();
+                    currentPlay = SoundBox[k]["mediaFile"];
+            	    SoundBox[k]["mediaFile"].play();
+            	}
+            
+                // 给按钮单击绑定动作函数
+                SoundBox[k]["oncommand"] = SoundBox[k]["playSound"];
+                SoundBox.reghotkey(                                 // 注册全局热键
+                    function(id, mod, vk) {
+                        if (SoundBox[k]["playSound"]) {
+                            // 先登记当前要播放的音频
+                            SoundBox[k]["playSound"]();
+                        }
+                    }, 0, tonumber(cfg[v.text]["hotkey"], 16));  
+            	SoundBox[k]["text"] = cfg[v.text]["name"];          // 更改按钮名称
+            }
+        } else {
+            // 没有做过配置, 直接禁用掉
+            SoundBox[k]["disabled"] = true;
+        }
+    }
+}
+
+
+SoundBox.enableDpiScaling();
+SoundBox.show();
+
+return win.loopMessage(); 

@@ -1,0 +1,145 @@
+import win.ui;
+import console;
+import thread;
+import thread.manage;
+import thread.command;
+/*DSG{{*/
+var winform = win.form(text="抽奖";right=759;bottom=469;border="thin";exmode="toolwindow";max=false;min=false;mode="popup";sysmenu=false)
+winform.add(
+static={cls="static";text="下一个就是你哦";left=0;top=0;right=760;bottom=464;ah=1;align="center";aw=1;center=1;color=128;db=0.01;dl=1;dr=1;font=LOGFONT(h=-80;name='微软雅黑');transparent=1;z=1};
+static2={cls="static";text="大奖";left=8;top=16;right=752;bottom=112;align="center";center=1;dl=0.01;dr=0.01;dt=0.03;font=LOGFONT(h=-53;name='微软雅黑');transparent=1;z=2};
+开始={cls="button";text="开始";left=248;top=368;right=520;bottom=448;dl=1;dr=1;font=LOGFONT(h=-53;name='微软雅黑');z=4};
+恭喜={cls="button";text="恭喜";left=248;top=368;right=520;bottom=448;dl=1;dr=1;font=LOGFONT(h=-53;name='微软雅黑');z=3}
+)
+/*}}*/
+
+//console.pause(); 
+var listener,RUNNING,x显示, 换行符 ,可爱的人,
+	times,PEOPLE,奖项,人员 
+	= thread.command(),true , "x显示" ,  '\r\n', "可爱的人" ,
+	0,"PEOPLE",{},{} ; 
+
+winform.随机人员=function(arrPEOPLE){
+    var l=#arrPEOPLE;
+    for(i=1;10;1){
+		var v=(math.random(1,99999))%l;
+		var v1=v+1;
+		var a=arrPEOPLE[v1];
+		if(#a) return a;
+    } 
+    return "";
+}
+
+subscribe("抽奖效果_RUNNING",function(...){  
+    ////console.log("抽奖效果_RUNNING");
+    ////console.pause();  
+    var txttabl=thread.get("txttabl");
+	if(!#txttabl) return ;
+	////console.varDump( txttabl ) 	
+    win.invoke(
+    	function(txttabl){
+    		import win;
+    		import console;
+    		import thread; 
+    		if(!#txttabl) return ;
+    		var 可爱的人="可爱的人";
+    		for(i=1;#txttabl;1){ 
+				while(1){
+					t=thread.get(可爱的人);
+					if(!t || !#t ) break;
+					sleep(50);
+				}
+    			t = table.pop(txttabl,1);      
+				thread.set(可爱的人,t); 	 
+				sleep(50); 	
+    		}
+    		sleep(200);
+    		thread.set("抽奖完成","抽奖完成") ;
+    		thread.set("txttabl",);    	  
+    	} ,txttabl
+    )     	
+});
+    
+subscribe("抽奖效果_START",function(){    
+    ////console.log("抽奖效果_START"); 
+    var txttabl={} ;
+    var times=(math.random(1,100000))%6000;
+	if(times<3000) times+=5000 ;
+	elseif(times<5000) times+=3000 ; //一个大于2000的毫秒数 
+	///winform.text= 奖项[1] ++"  "++times ;   
+	thread.set("txttabl",);
+	var arrPEOPLE=string.split(PEOPLE, 换行符); 
+    for(i=100;times;100){
+        var 人家=winform.随机人员(arrPEOPLE); 
+		if(#人家){ table.insert(txttabl,人家); }
+	}
+	table.insert(txttabl,人员[2] ); 
+	thread.set("txttabl",txttabl ) ;  ///////////////////所有人
+	sleep(100);	
+	publish("抽奖效果_RUNNING","") ; 
+
+});
+
+subscribe("抽奖效果_TITLE",function(text){   
+	winform.static2.color = math.random(1,16777215);
+	winform.static2.text= text;  
+}) 
+
+winform.开始.oncommand = function(id,event){
+	winform.开始.show(false) ;	
+	publish("抽奖效果_START","") ;	
+}
+winform.onInitDialog = function(hwnd,message,wParam,lParam){ 
+    ////console.log("winform.onInitDialog") ;
+	PEOPLE=thread.get(PEOPLE) ;    
+	奖项= thread.get("抽奖结果_奖项");
+	人员= thread.get("抽奖结果_人员");
+	winform.center() ;  
+	var text =  (奖项[1] ++" "++ 奖项[3]) ;
+	publish("抽奖效果_TITLE",text ) ;   
+	 
+};
+ 
+  
+winform.setInterval(
+	100,function(){ 
+		var t =thread.get(可爱的人);
+		//////console.varDump(t) ;
+		if( #t ) {
+			winform.static.color=math.random(1,16777215);
+			winform.static.text= t  ;  
+			thread.set(可爱的人,);
+		}    
+	}
+);
+
+winform.setInterval(
+	200,function(){ 
+		var 抽奖完成 =thread.get("抽奖完成"); 
+		if( #抽奖完成 ) {	 	 
+			thread.set("抽奖完成" , );  
+    		thread.set("txttabl" ,  );  /// 清理抽奖现场 
+			thread.set(可爱的人 ,  ); 
+			winform.恭喜.show(true); 
+			winform.static.color=math.random(1,16777215);
+    	}
+	}
+);
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    ////console.log("winform.onClose "); 
+	thread.set("抽奖完成" , ); 
+	sleep(100);
+	publish("抽奖效果结束","抽奖效果结束")	;
+	
+}
+ 
+winform.恭喜.oncommand = function(id,event){
+	winform.close();
+}
+
+
+winform.恭喜.show(false);
+winform.show();
+win.loopMessage();
+return winform;

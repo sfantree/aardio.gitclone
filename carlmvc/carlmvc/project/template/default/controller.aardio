@@ -1,0 +1,64 @@
+
+namespace ${controller}
+
+import ${svc};
+
+loginVisit = false;//需要登录访问请设为true,在过滤器中实现
+webAPi = true;
+
+var ${tableNameSvc} = ${svc};//服务层
+var tabAdminLogin = ..carl.session.get("tabAdminLogin");//获取登录session
+
+//首页视图
+index = function(){
+	owner.view.loadcode("${tableNamePath}.${tableNamePath}");
+}
+
+//分页
+getPageList = function(tabPage){
+	tabPage := {};
+	return ${tableNameSvc}.getPageList(tabPage); 
+}
+
+//新增,修改
+save = function(){
+	var tpost = request.post;	
+	return ${tableNameSvc}.save(tpost); 
+}
+
+//单条信息
+getInfo = function(${tableKeyId}){
+	if(!${tableKeyId}) return false,"无效ID";
+	return ${tableNameSvc}.getInfo(${tableKeyId}); 
+}
+
+search = function(tabRules){
+	tabRules := {}
+	var tabPage = {};
+	tabPage.page = tabRules.page;
+	tabPage.rows = tabRules.rows;
+	tabPage["filters"] = {}
+	tabPage["filters"]["rules"] = tabRules.rules;
+	var tab,err = ${tableNameSvc}.getPageList(tabPage);
+	if(!tab) return false,err;
+	tab.Success = true;
+	return tab;
+}
+
+add = function(tabJson){
+	if(type(tabJson) != type.table) return false,"不是有效JSON格式";
+	return saveApi(tabJson);
+}
+
+update = function(tabJson){
+	if(type(tabJson) != type.table) return false,"不是有效JSON格式";
+	if(!#tabJson.${tableKeyId}) return false,"无效ID";
+	var tab,err = getInfo(tabJson.${tableKeyId});
+	if(!tab) return false,err;
+	table.mixin(tab,tabJson)
+	return saveApi(tabJson);
+}
+
+saveApi = function(tabJson){
+	
+}

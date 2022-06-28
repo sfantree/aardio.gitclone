@@ -1,0 +1,21 @@
+
+namespace mvc.controller.web
+
+message = class {
+	ctor( ){
+		this.base = ..mvc.controller.web.base(true);//继承基类控制器
+	};
+	
+	nums = function(){
+		var tab = {}
+		tab.status = 0;
+		//tab.count = 2;
+		return tab; 	
+	}
+	
+	read = function(){
+		
+		return true; 
+	}
+	
+}

@@ -1,0 +1,49 @@
+﻿namespace aapy
+{
+
+import py3
+import help
+
+class aapy
+{
+	ctor(){};
+	//如果使用控制台，需要提前显式调用open()
+	
+	directlyRun=function(fileName)
+	{
+		if(!..py3.execfile(fileName))
+		{error("程序有错误，运行失败")}
+	};
+	
+	source=null;
+	
+	inCompile=function(fileName)
+	{
+		this.source=..help.readFile(fileName)
+	};
+	run=function()
+	{
+		if(!..py3.exec(this.source))
+		{error("程序有错误，运行失败")}
+	};
+	callFun=function(func,par=false)
+	{
+		var relstr=""
+		if(par!=false)
+		{
+			//参数为list，元素都使用字符串
+			for(v in par)
+			{relstr+=v+","}
+			relstr=..help.deleteLast(relstr)
+		}
+		
+		var code=func+"("+relstr+")" //注意原来的代码给留一个结尾换行
+		var newcode=this.source+code
+		
+		if(!..py3.exec(newcode))
+		{error("程序有错误，运行失败")}
+		//注意，没有返回值。以后有办法再加吧
+	};
+}
+
+}

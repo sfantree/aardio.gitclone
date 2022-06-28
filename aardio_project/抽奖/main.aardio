@@ -1,0 +1,355 @@
+import process;
+import access;
+import fsys.dlg;
+import win.ui;
+import win.ui.atom;
+import time ;
+import time.performance;
+ 
+///////////////////////////////////////////
+/*DSG{{*/
+mainForm = win.form(text="抽奖";right=703;bottom=591;border="thin";max=false)
+mainForm.add(
+EXCEL={cls="button";left=616;top=270;right=648;bottom=300;flat=1;image=$"\res\e.bmp";z=11};
+groupbox={cls="groupbox";left=8;top=16;right=168;bottom=584;edge=1;font=LOGFONT(h=-20;name='微软雅黑');z=1};
+groupbox3={cls="groupbox";text="中奖结果";left=176;top=272;right=696;bottom=584;edge=1;font=LOGFONT(h=-20;name='微软雅黑');z=2};
+groupbox4={cls="groupbox";left=176;top=16;right=696;bottom=232;edge=1;font=LOGFONT(h=-20);z=4};
+["listview人员"]={cls="listview";left=16;top=48;right=160;bottom=576;edge=1;z=8};
+["listview奖项"]={cls="listview";left=184;top=48;right=688;bottom=224;edge=1;font=LOGFONT(h=-17;name='微软雅黑');fullRow=1;gridLines=1;vscroll=1;z=6};
+["listview结果"]={cls="listview";left=176;top=304;right=688;bottom=576;edge=1;font=LOGFONT(h=-17;name='微软雅黑');z=9};
+人员设置={cls="button";text="人员设置";left=40;top=8;right=144;bottom=40;font=LOGFONT(h=-20;name='微软雅黑');z=3};
+奖项设置={cls="button";text="奖项设置";left=184;top=8;right=288;bottom=40;font=LOGFONT(h=-20;name='微软雅黑');z=5};
+抽奖={cls="button";text="抽        奖";left=336;top=240;right=552;bottom=272;font=LOGFONT(h=-20;name='微软雅黑');z=7};
+清理={cls="button";left=650;top=270;right=682;bottom=300;flat=1;image=$"\res\q.bmp";z=10};
+设置={cls="button";left=650;top=12;right=682;bottom=42;flat=1;image=$"\res\favicon.ico";z=12}
+)
+/*}}*/
+
+var 换行符='\r\n' ;
+var PEOPLE="PEOPLE" ;
+var 奖项S="奖项S" ;
+var 抽奖效果="复杂" ;
+var 过程修改="是" ;
+
+
+import config;
+var config_file_name="main";
+get_config=function(name){ return config[config_file_name][name]  }
+set_config=function(name,val){config[config_file_name][name]=val; }
+
+/*不可重复启动*/            
+var atom,hwnd = mainForm.atom("29E6A8B6-DC07-4832-B9C8-EE25FF5CE06E.choujiang");
+if(!atom){ 
+    win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+
+
+加载_PEOPLE=function(PEOPLE){ 
+	var arrPEOPLE=string.split(PEOPLE, 换行符);
+	if(!#arrPEOPLE) return ;
+	mainForm.listview人员.clear() ;
+	var c=1;
+	for(k,v in arrPEOPLE){ 
+		v=string.trim(v);	
+		if(!#v) continue; 	  
+		mainForm.listview人员.addItem( { text={ c;v }  } )
+		c++;
+	}  
+   mainForm.listview人员.adjust();
+} 	
+
+加载_奖项S=function(奖项S){  
+ 	mainForm.listview奖项.clear(); 
+   for(i=1;#奖项S ;1){
+   		mainForm.listview奖项.addItem( 奖项S[i] )
+   }
+   mainForm.listview奖项.adjust();
+   mainForm.listview奖项.redraw(); 
+}
+
+获取已抽奖数量=function(名称){
+    var 数量=0;
+	var items= mainForm.listview结果.items;
+	for i,v in items {
+		if (v[1] == 名称 ) 数量++;
+	}
+	return 数量;
+}
+
+
+可以抽奖=function(奖项序号){
+	var 奖项= mainForm.listview奖项.getRowTable(奖项序号);
+	//console.varDump(奖项序号,奖项 )
+	var 奖项数量=tonumber(奖项[2]);
+	var 已抽奖数量= 获取已抽奖数量(奖项[1]); 
+	return 已抽奖数量 < 奖项数量;
+}
+
+
+随机数=function(pp){
+	var tk = time.performance.tick();
+	tk=tk%100000 ;	
+	var t= (100* ( math.random()* 999999+tk))%pp;
+	var fff=string.format("%d",t );
+	return 1+tonumber(fff);
+}
+
+
+
+ 
+展示抽奖结果=function(人员序号 ){
+	var 奖项序号 = mainForm.listview奖项.selIndex;
+	var 奖项= mainForm.listview奖项.getRowTable(奖项序号); 
+	var 人员= mainForm.listview人员.getRowTable(人员序号);
+	thread.set("抽奖结果_奖项",奖项 );
+	thread.set("抽奖结果_人员",人员 );
+	if ( 抽奖效果=="复杂") {
+		sleep(100) ;
+		var frmChild = mainForm.loadForm($"\dlg\抽奖效果2.aardio","自动开始"); //
+		frmChild.center();
+		frmChild.doModal(); 
+	/*}elseif( 抽奖效果=="简单"){*/
+	}else{
+		win.msgbox(人员);	
+		publish("抽奖效果结束","") ;
+	} 
+	
+}
+
+subscribe("重新加载抽奖效果设置",function(...){
+	抽奖效果=get_config("抽奖效果");
+	if(!抽奖效果){
+		 抽奖效果="复杂";
+		set_config( "抽奖效果", 抽奖效果 ); 
+	}
+} )
+
+
+subscribe("抽奖效果结束",function(...){   
+    var 奖项= thread.get("抽奖结果_奖项" );
+    var 人员= thread.get("抽奖结果_人员" );     
+	mainForm.listview结果.addItem( { text={ 奖项[1] ; 人员[2]++"("++人员[1]++")"; 奖项[3] }  } )  ;		
+	mainForm.listview结果.adjust();	
+	thread.set("抽奖结果_奖项", );
+	thread.set("抽奖结果_人员", );
+} )
+
+var 抽中的人员={};
+ 
+开始抽奖=function(){ 
+    var pp=mainForm.listview人员.items;    
+    for(k=1;#pp;1){  
+        var v1 = 随机数( #pp );   
+        var fv1=function(s){ return "##"++tostring(s)+"##" ; }
+        var sv=fv1(v1);
+		var t=table.find( 抽中的人员, sv ); 
+    	if(!t){ /*v1是没有抽过奖的人*/
+			table.push( 抽中的人员, sv ); 	
+			展示抽奖结果(v1);
+			break;     	
+    	} 
+    	if( k ==#pp)  win.msgboxErr("抽奖人员不足","警告");    	  
+    }      
+}
+
+mainForm.抽奖.oncommand = function(id,event){
+	var cc=mainForm.listview奖项.checked ;
+	var pp=mainForm.listview人员.items;
+	if( !#cc || !#pp ){
+		win.msgboxErr("请选择奖项和人员");
+		return ; 
+	}
+	var b=可以抽奖(cc[1]);
+	if(!b){ 
+		var c=cc[1];
+		var 奖项=mainForm.listview奖项.items[c][1];
+		win.msgboxErr( 奖项 ++ " 已经抽完了");
+		return ; 
+	}
+	开始抽奖(); 
+}
+
+mainForm.清理.oncommand = function(id,event){
+    var litems=mainForm.listview结果.items;
+    if(!#litems) return ;  
+	var t=win.msgboxTest("清理中奖信息?","警告");
+	if(!t) return ;  
+	mainForm.listview结果.clear();
+	table.clear(抽中的人员);
+	
+}
+
+mainForm.人员设置.oncommand = function(id,event){
+	var frmChild = mainForm.loadForm($"\dlg\人员设置.aardio");
+	frmChild.center();
+	frmChild.doModal(); 
+}
+
+mainForm.奖项设置.oncommand = function(id,event){	
+	var frmChild = mainForm.loadForm($"\dlg\奖项设置.aardio");
+	frmChild.center();
+	frmChild.doModal(); 
+
+}
+
+
+mainForm.onInitDialog = function(hwnd,message,wParam,lParam){
+	//var t=thread.get(PEOPLE);
+	//if(#t){ 加载_PEOPLE(t); }
+	mainForm.center()
+} 
+
+subscribe("PEOPLE_CHANGE",function(n1){  
+	var t=thread.get(PEOPLE) 
+	if(t) 加载_PEOPLE(t);		 
+} ) ;
+
+subscribe("奖项S_CHANGE",function(n1){   
+	var t=thread.get(奖项S) 
+	if(t) 加载_奖项S(t); 
+    mainForm.setTimeout(function(){  
+		mainForm.listview奖项.selIndex=1;	
+		mainForm.listview奖项.setChecked(1,true) ;  
+		mainForm.listview奖项.setFocus();
+    } , 200 );
+		 
+} ) ;
+
+mainForm.setTimeout(function(){ 
+	publish("重新加载抽奖效果设置",);    
+},500);
+
+/* 过程修改 */
+mainForm.setInterval(
+	200,function(){
+		var pp=mainForm.listview结果.items;
+		if(pp && #pp){ 
+			过程修改=get_config("过程修改");
+			if(!过程修改) 过程修改="是" ;
+			mainForm.人员设置.disabled= ( "否" ==过程修改 );
+			mainForm.奖项设置.disabled= ( "否" ==过程修改 ); 
+		}else{
+			mainForm.人员设置.disabled= false ;
+			mainForm.奖项设置.disabled= false ;			
+		}
+	}
+);
+
+/*这个不能用订阅模式*/
+mainForm.setInterval(
+	100,function(){
+		var t=thread.get("listview奖项_单选" ) ;
+		if(t){
+			thread.set("listview奖项_单选", ) ;   
+			mainForm.listview奖项.setChecked(0,false) ; ///全部非选
+			mainForm.listview奖项.setChecked(t,true)  ;	///单选
+		}
+	}
+);
+ 
+mainForm.listview奖项.onnotify = function(id,code,ptr){ 
+	if( code == 0xFFFFFF9B/*_LVN_ITEMCHANGED*/ ){ 
+		var i=owner.selIndex ;   
+		if(i) thread.set("listview奖项_单选", i ) ;  		 
+	} 
+}
+
+
+mainForm.listview结果.getRowTable = function(row){
+    return owner.items[row]; 
+}
+mainForm.listview人员.getRowTable = function(row){
+    return owner.items[row]; 
+}
+mainForm.listview奖项.getRowTable = function(row){
+    return owner.items[row]; 
+}
+ 
+///自适应列宽度 
+mainForm.listview人员.adjust = function(cx,cy){
+    mainForm.listview人员.fillParent(2);
+} 
+///自适应列宽度 
+mainForm.listview奖项.adjust = function(cx,cy){
+    mainForm.listview奖项.fillParent(3);
+} 
+///自适应列宽度 
+mainForm.listview结果.adjust = function(cx,cy){
+    mainForm.listview结果.fillParent(3);
+} 
+
+mainForm.EXCEL.oncommand = function(id,event){ 
+	var items=mainForm.listview结果.items;
+    if(!#items) return ;
+     
+	var files=io.tmpname("张平")+"_中奖清单.xls"; 
+	if(io.exist(files)) fsys.delete(files);
+	var db,err = access(files)  ;
+	//创建表	
+	if( !db.existsTable( "中奖清单" ) ){
+		db.exec("CREATE TABLE 中奖清单 (奖项 VARCHAR(255), 中奖者 VARCHAR(255), 奖品 VARCHAR(255) )");
+	}    
+	for(i=1;#items;1){
+		var row=mainForm.listview结果.getRowTable(i);
+		if( ""==row[1]) continue;
+		var sql="INSERT INTO [中奖清单$](奖项,中奖者,奖品)values('"++row[1]++"','"++row[2]++"','"++row[3]++"')";
+		db.exec(sql);
+	}
+	db.exec( "INSERT INTO [中奖清单$](奖项,中奖者,奖品)values('"++tostring(time())++"','','')");
+	db.exec( "INSERT INTO [中奖清单$](奖项,中奖者,奖品)values('','','')");
+	db.close();
+	var xls=fsys.dlg.save("excel文件(*.xls)|*.xls","请保存",fsys.getSpecial( _CSIDL_DESKTOP ) ,mainForm.hwnd,,"中奖清单.xls");
+	if(!#xls) return ;
+	if(io.exist(xls)){ 
+		if(!win.msgboxTest("文件已存在,是否要覆盖?","警告")){ return ; }
+	} 
+	fsys.move(files,xls);	 
+	process.explore(xls);	
+}
+
+
+mainForm.onOk = function(){
+    mainForm.抽奖.oncommand()
+}
+
+/*在窗口内创建热键*/
+import win.ui.accelerator;
+var accelerator = win.ui.accelerator({
+    {  
+        vkey = ' '#; ///空格键 
+        oncommand = function() { win.msgbox("aa"); mainForm.抽奖.oncommand() ; mainForm.抽奖.setFocus(); } 
+    };   
+},winform );
+
+mainForm.listview奖项.insertColumn("奖项",130,,0x0/*_LVCFMT_LEFT*/) 
+mainForm.listview奖项.insertColumn("数量",60,,0x3/*_LVCFMT_CENTER*/) //第二列开始可以使用_LVCFMT_CENTER居中5
+mainForm.listview奖项.insertColumn("奖品",-1,,0x0/*_LVCFMT_LEFT*/)
+ 
+mainForm.listview奖项.fullRow=true;
+mainForm.listview奖项.gridLines=true;
+mainForm.listview奖项.checkbox=true; //出现复选框
+
+mainForm.listview人员.modifyStyle(,0x4000/*_LVS_NOCOLUMNHEADER*/) ;//不要表头
+mainForm.listview人员.insertColumn("",26,,0x3/*_LVCFMT_CENTER*/) 
+mainForm.listview人员.insertColumn("人员",-1,,0x0/*_LVCFMT_LEFT*/)  ;
+mainForm.listview人员.fullRow=true;
+mainForm.listview人员.gridLines=true;
+
+mainForm.listview结果.insertColumn("奖项",140,,0x3/*_LVCFMT_LEFT*/) 
+mainForm.listview结果.insertColumn("中奖者",140,,0x3/*_LVCFMT_CENTER*/) //第二列开始可以使用_LVCFMT_CENTER居中5 
+mainForm.listview结果.insertColumn("奖品",-1,,0x0/*_LVCFMT_LEFT*/)
+
+mainForm.设置.oncommand = function(id,event){
+	var frmChild = mainForm.loadForm($"\dlg\设置.aardio");
+	frmChild.doModal();	
+}
+
+mainForm.listview结果.fullRow=true;
+mainForm.listview结果.gridLines=true;
+
+mainForm.抽奖.setFocus();
+
+mainForm.show();
+return win.loopMessage();

@@ -1,0 +1,191 @@
+﻿
+
+// 随机语言
+math.randomize()
+lang = {}
+if math.random(0, 1){
+
+    lang.trayTip = /*
+雪星转屏 v2.2.0
+-----------------
+单击左键逆时针旋转屏幕90度
+*/
+    lang.winformText = "雪星转屏 v2.2.0"
+    lang.cmdlineHelpTitle = "命令行调用方式 - 雪星转屏"
+    lang.cmdlineHelp = /*
+命令行调用方式:
+-----------------
+this.exe =-90
+this.exe =0
+this.exe =90
+this.exe =180
+this.exe =270
+this.exe +0
+this.exe +90
+this.exe +180
+this.exe +270
+this.exe -0
+this.exe -90
+this.exe -180
+this.exe -270
+-----------------
+*/
+    lang.about = /*
+雪星转屏 v2.2.0 作者 Snowstar(SnowstarCyan@gmail.com)(QQ:997596439)
+于 2016年1月28日 完成
+于 2021-03-20 更新
+
+如果有更新, 会在这里发布
+https://snomiao.com
+*/
+    lang["= 0  "       ] = "= 0            (&1)"
+    lang["= 90 "       ] = "= 90           (&2)"
+    lang["= 180"       ] = "= 180          (&3)"
+    lang["= 270"       ] = "= 270          (&4)"
+    lang["+ 270 (-90)" ] = "+ 270 (-90)    (&A)"
+    lang["+ 180"       ] = "+ 180          (&S)"
+    lang["+ 90 "       ] = "+ 90           (&D)"
+    lang.menu_cmdline    = "命令行调用方式 (&C)"
+    lang.menu_about      = "关于雪星转屏   (&H)"
+    lang.menu_exit       = "退出           (&E)"
+
+}else{
+
+    lang.trayTip = /*
+Snowstar Rotate Screens v2.2
+-----------------
+Left Click to rotate -90 deg
+*/
+    lang.winformText = "About - Snowstar Rotate Screens v2.2.0"
+    lang.cmdlineHelpTitle = "Command Lines - Snowstar Rotate Screens"
+    lang.cmdlineHelp = /*
+Command Lines:
+-----------------
+this.exe =0
+this.exe =90
+this.exe =180
+this.exe =270
+this.exe +0
+this.exe +90
+this.exe +180
+this.exe +270
+this.exe -0
+this.exe -90
+this.exe -180
+this.exe -270
+-----------------
+*/
+    lang.about = /*
+Snowstar Rotate Screens v2.2.0 by Snowstar(SnowstarCyan@gmail.com)(QQ:997596439)
+Done At 2016y 01m 28d
+
+Get Updates:
+http://www.SnowstarCyan.com
+*/
+    lang["= 0  "       ] = "= 0            (&1)"
+    lang["= 90 "       ] = "= 90           (&2)"
+    lang["= 180"       ] = "= 180          (&3)"
+    lang["= 270"       ] = "= 270          (&4)"
+    lang["+ 270 (-90)" ] = "+ 270 (-90)    (&A)"
+    lang["+ 180"       ] = "+ 180          (&S)"
+    lang["+ 90 "       ] = "+ 90           (&D)"
+    lang.menu_cmdline    = "Command Lines  (&C)"
+    lang.menu_about      = "About SRS      (&H)"
+    lang.menu_exit       = "Exit           (&E)"
+}
+
+import csslab.monitor
+
+if( #_ARGV ){
+    io.utf8 = true
+    argv = _ARGV[1]
+    op = ..string.charAt(argv, 1)
+    num = tonumber(..string.sub(argv,2,,true))
+    io.print(argv, op, num)
+    select op {
+        case "="{
+            csslab.monitor.RotateAllMonitor( num , true)
+        }
+        case "-"{
+            csslab.monitor.RotateAllMonitor( num )
+        }
+        case "+"{
+            csslab.monitor.RotateAllMonitor( -num )
+        }
+        else{
+            io.print( lang.cmdlineHelp )
+        }
+    }
+
+    return null
+}
+
+import mouse;
+import win.util.tray
+import win.ui.menu;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(cls="form_SRS";text="-";right=479;bottom=167;border="dialog frame";max=false;min=false)
+winform.add(
+txtAbout={cls="edit";left=8;top=8;right=472;bottom=160;autohscroll=false;edge=1;multiline=1;readonly=1;z=1}
+)
+/*}}*/
+
+io.close()
+
+winform.text = lang.winformText
+winform.txtAbout.text = lang.about
+
+Command_Line = function(){
+    return lang.cmdlineHelp
+}
+
+About = function(){
+    winform.show()
+}
+winform.popmenu = win.ui.popmenu(winform);
+winform.popmenu.addTable( {
+    { lang["= 0  "]; function(id){ csslab.monitor.RotateAllMonitor(-0  , true) } };
+    { lang["= 90 "]; function(id){ csslab.monitor.RotateAllMonitor(-90 , true) } };
+    { lang["= 180"]; function(id){ csslab.monitor.RotateAllMonitor(-180, true) } };
+    { lang["= 270"]; function(id){ csslab.monitor.RotateAllMonitor(-270, true) } };
+    { };
+    { lang["+ 270 (-90)"]; function(id){ csslab.monitor.RotateAllMonitor(-270) } };
+    { lang["+ 180"      ]; function(id){ csslab.monitor.RotateAllMonitor(-180) } };
+    { lang["+ 90 "      ]; function(id){ csslab.monitor.RotateAllMonitor(-90 ) } };
+    { };
+    { lang.menu_cmdline; function(id){ win.msgbox(Command_Line(), lang.cmdlineHelpTitle) } };
+    { lang.menu_about  ; function(id){ About() } };
+    { };
+    { lang.menu_exit; function(id){ win.quitMessage() } };
+} )
+
+tray = win.util.tray(winform)
+tray.tip = lang.trayTip
+winform.wndproc = {
+    //[tray.message] = function(hwnd,message,wParam,lParam){
+    //    if lParam == 514{
+    //        csslab.monitor.RotateAllMonitor(90)
+    //    }
+    //    if lParam == 516{
+    //        csslab.monitor.RotateAllMonitor(-90)
+    //    }
+    //}
+    [ 0xACCF/*_WM_TRAYMESSAGE*/] = function(hwnd,message,wParam,lParam){
+        if( lParam = 0x201/*_WM_LBUTTONDOWN*/ ){
+            csslab.monitor.RotateAllMonitor(90)
+        }
+        if( lParam = 0x204/*_WM_RBUTTONDOWN*/ ){
+            x,y = mouse.getPos();
+
+            win.setForeground(winform.hwnd)
+            winform.popmenu.popup(x, y, true)
+        }
+    }
+    [0x10/*_WM_CLOSE*/] = function(){
+        winform.show(false)
+        return 1
+    }
+}
+
+win.loopMessage();

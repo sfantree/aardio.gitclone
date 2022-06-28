@@ -1,0 +1,254 @@
+﻿namespace syncOpt;
+
+import fsys;
+
+createEggInfo = function(project, path){
+    var pkInfo = /*Metadata-Version: 1.0
+Name: project
+Version: 1.0
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: kanade
+Author-email: kanade@blisst.cn
+License: UNKNOWN
+Description: UNKNOWN
+Platform: Windows10*/
+	var ep = /*[scrapy]
+settings = %s.settings*/
+
+	..string.save(fsys.joinpath(path, "EGG-INFO","dependency_links.txt"), '\r\n')
+	..string.save(fsys.joinpath(path, "EGG-INFO","entry_points.txt"), ..string.format(ep, project))
+	..string.save(fsys.joinpath(path, "EGG-INFO","PKG-INFO"), pkInfo)
+	..string.save(fsys.joinpath(path, "EGG-INFO","SOURCES.txt"), '')
+	..string.save(fsys.joinpath(path, "EGG-INFO","top_level.txt"), project)
+	..string.save(fsys.joinpath(path, "EGG-INFO","zip-safe"), '\r\n')
+	
+}
+syncProject = function(mainForm, host, project){
+    import scrapydAPI;
+ 	import thread;
+ 	import zlib.zip ;
+ 	import win;
+ 	
+ 	var exePath = fsys.getCurDir()
+ 	var projectPath = fsys.joinpath(exePath, 'projects', project)
+	createEggInfo(project, projectPath)
+	var zipfile = ..string.format("/%s.egg", project)
+	var zip = zlib.zip(zipfile);
+	fsys.enum(projectPath, "*.*",
+    	function(dir,filename,fullpath,findData){ 
+    		if(!filename){ 
+        		zip.compress(fullpath, function(len, path){})
+        	}
+    	}  
+	)
+	zip.close()
+	var version = tostring(tonumber(..time.now()))
+	win.invoke( 
+		function(mainForm, host, project, zipfile, version){
+			import scrapydAPI;
+			import fsys;
+			import fsys.file;
+			
+			var exePath = fsys.getCurDir()
+			var now = tostring(time.now())
+			var status, err = scrapydAPI.addItem(host, project, zipfile, version)
+			if(status){
+				tip = string.format("时间:%s, %s项目同步到%s主机成功，", now, project, host)
+			}
+			else {
+				tip = string.format("时间:%s, %s同步到%s失败", now, project, host)
+				
+			}
+			mainForm.static.text = tip
+			var path = fsys.joinpath(exePath, 'log', string.format("%d%02d%02d.log", time.now().year, time.now().month,  time.now().day))
+			string.save(path, tostring(time.now()) + tip+'\n', true)
+				
+		}, mainForm, host, project, zipfile, version
+	)
+}
+
+syncSomeProject = function(mainForm, hosts, projects){
+    var exePath = fsys.getCurDir()
+    
+	for(i=1;#projects;1){
+		for(j=1; #hosts; 1){
+			syncProject(mainForm, hosts[j], projects[i])
+			mainForm.tab.items[1].listview.setItemText(tostring(..time.now()), j, 6)
+		}
+	}
+}
+//同步所有项目到所有主机
+syncAllProject = function(mainForm){
+    var exePath = fsys.getCurDir()
+    if(!..io.exist('/projects')) fsys.createDir('/projects');
+    files, dirs, alldirs = fsys.list('/projects')
+    
+	for(i=1;#dirs;1){
+		for(j=1; #mainForm.hostInfos; 1){
+			syncProject(mainForm, mainForm.hostInfos[j][2], dirs[i])
+			mainForm.tab.items[1].listview.setItemText(tostring(..time.now()), j, 6)
+		}
+	}
+}
+//刷新主机Tab
+refreshHost = function(mainForm, logger){
+    import win
+    var curTab = mainForm.tab.items[1];
+    for(i=1; #mainForm.hostInfos;1){
+        curTab.listview.setItemText('', i, 4);
+		curTab.listview.setItemText('', i, 5);
+    }
+    //import web.json;
+   	//..io.print(web.json.stringify(mainForm.hostInfos))
+    for(i=1; #mainForm.hostInfos;1){
+        if(i > #mainForm.hostInfos) break;
+        host = mainForm.hostInfos[i][2];
+        nodeName, err = win.invoke(function(host){
+			import scrapydAPI;
+			status, err = scrapydAPI.getStatus(host);
+			return status, err
+		}, host)
+		if(nodeName) {
+			curTab.listview.setItemText('正常', i, 4);
+			curTab.listview.setItemText(nodeName, i, 5);
+		}
+		else curTab.listview.setItemText('错误', i, 4);
+    }
+    
+}
+//软件启动时加载host.txt
+loadHost = function(mainForm){
+    import fsys.file;
+    var exePath = fsys.getCurDir()
+    var file = fsys.joinpath(exePath,'hosts.txt')
+	var curTab = mainForm.tab.items[1];
+	if(!..io.exist(file)) return false;
+	var f = fsys.file(file, 'r');
+	var id = 1;
+	while(true){
+ 		d = f.read()
+		if(d){
+			var line = ..string.split(d, ',')
+			if(!(#line)) continue;
+			..table.push(mainForm.hostInfos, line)
+			mainForm.hosts[line[1]] = line[2]
+			var text = {id; line[1]; line[2]}
+			curTab.listview.addItem({text=text})
+			id += 1;
+		}
+		else break;
+	}
+	f.close()
+}
+//同步projects目录到项目管理tab
+refreshProject = function(mainForm){
+    curTab = mainForm.tab.items[2]
+    if(!..io.exist('/projects')) fsys.createDir('/projects');
+	var files, dirs, alldirs = fsys.list('/projects')
+	curTab.listview.clear()
+    for(i=1;#dirs;1){
+		var dir = tostring(dirs[i])
+		curTab.listview.addItem({text = {i; dirs[i]}});
+	}
+}
+
+createTask = function(mainForm){
+    import scrapydAPI;
+    
+	name, hostname, host, project, spider, runtime, interval = ..table.unpack(mainForm.task)
+   	//添加到界面
+   	x = type(spider) == 'table' ? '所有爬虫' : spider
+   	var taskInfo = {'';name; hostname; project; x};
+   	var taskTab = mainForm.tab.items[3]
+	var row = taskTab.listview.addItem({text = taskInfo})
+	..table.push(mainForm.tasks, mainForm.task)
+	//添加任务
+   	if(..string.indexAny(runtime, '/') and ..string.indexAny(runtime, ':')){
+   		t = ..time(runtime).diffsecond(..time.now()) * 1000
+   	}
+   	else{
+   		t = tonumber(runtime) * 1000
+   	}
+   	if(t < 0 or t = 0) t = 1000;
+   	var taskId = mainForm.setInterval( 
+   		t, function(hwnd, msg, id, tick){
+   			if(type(spider) == 'table'){
+   				var jobids = {}
+   				for(i=1;#spider;1){
+   					if(spider[i] == 'all') continue;
+   					var jobid, err = scrapydAPI.runSpider(host, project, spider[i])
+   					if(jobid){
+   						..table.push(jobids, {host;project;jobid;spider[i]})
+   						tip = ..string.format("任务ID：%d, 任务已运行, 主机: %s 项目：%s 爬虫: %s", id,  host, project,spider[i])
+   						taskTab.listview.setItemText('已运行', row, 6)
+   					}
+   					else{
+   						tip = ..string.format("任务ID：%d, %s运行失败, 原因: %s", id, name, err)
+   						taskTab.listview.setItemText('失败', row, 6)
+   					}
+   					var exePath = fsys.getCurDir()
+   					mainForm.static.text = tip
+					var path = fsys.joinpath(exePath, 'log', ..string.format("%d%02d%02d.log",
+										 ..time.now().year, ..time.now().month,  ..time.now().day))
+					..string.save(path, tostring(..time.now()) + tip+'\n', true)
+   				}
+   				mainForm.jobids[tostring(id)] = jobids
+   						
+   			}
+   			else{
+   				var jobid, err = scrapydAPI.runSpider(host, project, spider)
+   				if(jobid){
+   					mainForm.jobids[tostring(id)] = {{host;project;jobid;spider}}
+   					tip = ..string.format("任务ID：%d, 任务已运行, 主机: %s 项目：%s 爬虫: %s", id,  host, project,spider)
+   					taskTab.listview.setItemText('已运行', row, 6)
+   				}
+   				else{
+   					tip = ..string.format("任务ID：%d, %s运行失败, 原因: %s", id, name, err)
+   					taskTab.listview.setItemText('失败', row, 6)
+   				}
+   				var exePath = fsys.getCurDir()
+   				mainForm.static.text = tip
+				var path = fsys.joinpath(exePath, 'log', ..string.format("%d%02d%02d.log",
+					 ..time.now().year, ..time.now().month,  ..time.now().day))
+				..string.save(path, tostring(..time.now()) + tip+'\n', true)
+   			}
+   			return tonumber(interval) * 1000
+   		} 
+   	)
+   	taskTab.listview.setItemText('待运行', row, 6)
+   	taskTab.listview.setItemText(taskId, row, 1)
+}
+
+cancelTask = function(mainForm){
+	var taskTab = mainForm.tab.items[3]
+    var taskId = taskTab.listview.getItemText(taskTab.listview.selIndex, 1)
+    mainForm.tasks[taskId] = null
+    for(i=1;#mainForm.jobids[taskId];1){
+    	host, project, jobid, spider = ..table.unpack(mainForm.jobids[taskId][i])
+    	var status, err = win.invoke(
+    		function(host, project,jobid){
+    			import scrapydAPI;
+    			var status, err = scrapydAPI.cancelSpider(host, project, jobid)
+    			return status, err
+    		} ,host, project, jobid
+    	)
+    	if(status){
+   			tip = ..string.format("任务ID：%d, 任务已停止, 主机: %s 项目：%s 爬虫: %s", taskId,  host, project,spider)
+   			taskTab.listview.setItemText('已停止', row, 6)
+   		}
+   		else{
+   			tip =.. string.format("任务ID：%d, 执行失败, 原因: %s", taskId, err)
+   			taskTab.listview.setItemText('停止失败', row, 6)
+   		}
+   		var exePath = fsys.getCurDir()
+   		mainForm.static.text = tip
+		var path = fsys.joinpath(exePath, 'log', ..string.format("%d%02d%02d.log", ..time.now().year, ..time.now().month,  ..time.now().day))
+		..string.save(path, tostring(..time.now()) + tip+'\n', true)
+	}
+	mainForm.jobids[taskId] = null
+	taskTab.listview.delItem(taskTab.listview.selIndex)
+    mainForm.clearInterval(tonumber(taskId))
+}
+
+

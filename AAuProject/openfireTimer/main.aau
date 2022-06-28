@@ -1,0 +1,425 @@
+import win.ui;
+import win.util.tray;
+import process;
+import raw;
+import inet.whttp;
+import io;
+import advapi32;
+/*DSG{{*/
+mainForm = ..win.form( right=380;bottom=126;max=false;text="定时启动器";parent=...)
+mainForm.add( 
+spin={ top=57;bottom=77;z=5;right=107;left=87;cls="spin" };
+startOf={ bottom=43;right=110;left=9;top=22;z=11;text="启动openfire服务";cls="button" };
+houredit={ right=87;bottom=78;text="0";left=58;top=57;z=4;edge=1;cls="edit" };
+startTimer={ bottom=120;right=116;left=29;top=99;z=9;text="启动定时任务";cls="button" };
+static={ bottom=20;right=238;left=11;top=1;z=1;notify=1;text="当前时间";transparent=1;cls="static" };
+lastRunDate={ bottom=90;right=366;left=217;text="上次运行:";top=62;transparent=1;z=14;cls="static" };
+stopTimer={ disabled=1;bottom=120;text="停止定时任务";left=136;top=99;z=10;right=223;cls="button" };
+ofState={ bottom=44;right=370;left=247;text="服务器状态";top=27;transparent=1;z=13;cls="static" };
+minedit={ right=193;bottom=78;text="0";left=164;top=57;z=7;edge=1;cls="edit" };
+stopOf={ bottom=43;right=231;left=130;top=22;z=12;text="停止openfire服务";cls="button" };
+state={ bottom=120;color=255;right=371;border=1;top=97;center=1;z=2;align="center";left=230;cls="static" };
+ofAdmin={ bottom=25;right=343;left=242;top=4;z=15;text="openfire控制台";cls="button" };
+spin2={ top=57;bottom=77;z=8;right=213;left=193;cls="spin" };
+hourlab={ bottom=82;right=82;left=11;text="时(24):";top=62;transparent=1;z=3;cls="static" };
+minlab={ bottom=81;right=161;left=117;text="分(60):";top=61;transparent=1;z=6;cls="static" }
+)
+/*}}*/
+
+var arg = _CMDLINE;
+if(arg=='debug')
+io.open();
+var schSCManager  = OpenSCManager(,,0xF003F/*_SC_MANAGER_ALL_ACCESS*/);
+if(schSCManager==null){
+	mainForm.msgboxErr("the service control manager 初始化失败");
+	mainForm.close();
+}
+var schService = OpenService(schSCManager,"Openfire",0xF01FF/*_SERVICE_ALL_ACCESS*/);
+if(schService==null){
+	mainForm.msgboxErr("Openfire 服务初始化失败，请检查");
+	mainForm.close();
+}
+
+var ssStatus = SERVICE_STATUS();
+
+var checkOfWb = function(){
+	var url = "http://localhost:9090";
+	var whttp = inet.whttp();
+	
+	assert( whttp.beginRequest( url ) ) 
+	whttp.disableRedirects();
+	
+	//读取HTTP状态码
+	var ok,stat,total = whttp.send();
+	whttp.close();
+	return ok,stat,total
+}
+
+//初始化openfire状态
+var of_running = false;
+var initOfServiceState = function(init){
+	var loop_state = function(){
+		QueryServiceStatus(schService,ssStatus);
+		select(ssStatus.dwCurrentState) {
+			case 0x4/*_SERVICE_RUNNING*/ {
+				mainForm.ofState.color = 0xff0000;
+				mainForm.ofState.text = "openfire服务已启动"; 
+				mainForm.startOf.disabled = true;  
+				mainForm.stopOf.disabled = false;  
+				mainForm.ofAdmin.disabled = false; 
+				//mainForm.msgbox()
+				of_running = true;
+				return false;
+			}
+			case 0x1/*_SERVICE_STOPPED*/ {
+				mainForm.ofState.color = 0x0000ff;
+				mainForm.ofState.text = "openfire服务已停止";
+				mainForm.stopOf.disabled = true;
+				mainForm.startOf.disabled = false;
+				mainForm.ofAdmin.disabled = true; 
+				//检查是否通过其他方式启动了openfire
+				if(init){
+					ok,stat,total = checkOfWb();
+					if(ok){
+						mainForm.msgboxErr("Openfire服务器以非服务方式启动了，请先退出","警告");
+						mainForm.close();
+					}	
+				}
+				of_running = false;
+				return false;
+			}
+		
+		}
+		io.print("重新初始化openfire服务状态");
+	}
+	loop_state();
+	var tmId1 = mainForm.addtimer( 
+		300,
+		loop_state
+	)
+	
+}
+
+initOfServiceState(true);
+
+//启动服务器函数
+startOfFn = function(showMsg){
+	mainForm.startOf.disabled = true; 
+	var startReturn = StartService(schService,0,null);
+	if(startReturn){
+		var i = 1;
+		var ss = {".";".."};
+		var loop_state = function(hwnd,msg,id,tick){
+				if(ok){
+					initOfServiceState();
+					if(showMsg)
+						mainForm.msgbox("Openfire 服务启动成功","提示");
+					return false; 
+				}else{
+					mainForm.ofState.color = 0x00;
+					mainForm.ofState.text = "正在启动Openfire."+ss[i%2+1]; 
+				}
+				ok = checkOfWb();
+				i++;
+				io.print("等待完全启动openfire服务...");
+			} 
+		loop_state();
+		var tmId = mainForm.addtimer( 
+			2000,
+			loop_state
+		)	
+	}else{
+		mainForm.msgboxErr("Openfire 服务启动失败","警告");
+	}
+}
+
+//停止服务函数
+stopOfFn = function(showMsg){
+	mainForm.stopOf.disabled = true;
+	var closeReturn = ControlService(schService,0x1/*_SERVICE_CONTROL_STOP*/,ssStatus);
+	if(closeReturn){
+		if(showMsg)
+			mainForm.msgbox("Openfire 服务已停止","提示");
+	}else{
+		mainForm.msgboxErr("停止Openfire 服务失败","警告");
+	}
+	initOfServiceState();
+}
+
+//--------------------绑定按钮事件-------------------------
+mainForm.startOf.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startOf.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			startOfFn();
+			//process.execute("sc","start Openfire");
+		}
+	}
+}
+
+mainForm.stopOf.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startOf.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			stopOfFn();
+			//process.execute("sc","stop Openfire");
+		}
+	}
+}
+
+mainForm.ofAdmin.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.ofAdmin.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			process.execute("http://localhost:9090");
+		}
+	}
+}
+
+
+//var mainThread_id = thread.getId();
+//thread.set("mainThread_id", mainThread_id);
+
+task_t = function(ms){
+	import win;
+	import thread.event;
+	import process;
+	
+	//var evt = thread.event("定时事件 GUID:064748DD-AC15-4143-B077-BCC5B6ABAD92")
+	//while( ! evt.wait(ms) ){ 
+		var tm = time();
+		var needHour = thread.get("startHour") - tonumber(tm.hour,10);
+		var needMin = thread.get("startMin") - tonumber(tm.minute,10)-1;
+		var needSec = 59-tm.second;
+		if(needMin<0){	
+			needMin = 60+needMin;
+			needHour -= 1;
+		}
+		if(needHour<0){
+			needHour = 24 + needHour;
+		}
+		var needText = "任务倒计时:"+string.format("%02i", needHour)+":"+string.format("%02i",needMin)+":"+string.format("%02i", needSec);
+		mainForm.state.text = needText;
+		//win.setText(hwnd,needText);
+		if(needHour==0&&needMin==0&&needSec==0){
+			loop_handler();
+			//发送重启消息去主线程
+			//::PostThreadMessage(thread.get("mainThread_id"),0x400/*_WM_USER*/+9999,0,0);
+			//process.execute("sc","stop Openfire");
+			//process.execute("sc","start Openfire");
+		}
+	//}
+}
+
+//import thread.event;
+//var evtTask = thread.event("定时事件 GUID:064748DD-AC15-4143-B077-BCC5B6ABAD92",false);
+
+
+//定时线程通过主线程接收
+loop_handler = function(msg){
+	//if(msg.message==0x400/*_WM_USER*/+9999){
+		//process.execute("sc","stop Openfire",,false);
+		var closeReturn = ControlService(schService,0x1/*_SERVICE_CONTROL_STOP*/,ssStatus); 
+		initOfServiceState();
+		var isStopping = true;
+		var startReturn = StartService(schService,0,null);
+		var i = 1;
+		var ss = {".";".."};
+		var scTm = function(hwnd,msg,id,tick){
+				if(of_running&&!isStopping){
+					var tm = time();
+					tm.format="%Y-%m-%d %H:%M:%S"
+					mainForm.lastRunDate.text = '上次执行：\r\n'+tostring(tm);
+					var logFile = io.open("ofTimer.Log","a");
+					logFile.write('-->成功执行定时重启，执行时间：'+tostring(tm)+'\n');
+					logFile.flush();
+					logFile.close();
+					return false;	
+				} 
+				//process.execute("sc","start Openfire",,false);
+				var ok = checkOfWb();
+				mainForm.ofState.color = 0x00;
+				mainForm.ofState.text = "正在重启Openfire."+ss[i%2+1]; 
+				i++;
+				io.print('定时重启:startReturn:'+startReturn+',closeReturn:'+closeReturn);
+				if(closeReturn==0){
+					closeReturn = ControlService(schService,0x1/*_SERVICE_CONTROL_STOP*/,ssStatus); 
+					initOfServiceState();
+					io.print('重新close');
+				}
+				if(ok){
+					initOfServiceState();
+					isStopping = false;	
+					io.print('完全启动');
+				}else if(startReturn==0){
+					startReturn = StartService(schService,0,null);
+					io.print('重新start');
+				}
+				
+			} 
+		var tmId = mainForm.addtimer( 
+			1000,
+			scTm
+		)
+	//}
+}
+
+var tmId;
+mainForm.startTimer.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startTimer.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			startHour = tonumber(mainForm.houredit.text,10);
+			startMin = tonumber(mainForm.minedit.text,10);
+			thread.set("startHour",startHour );
+			thread.set("startMin", startMin);
+			mainForm.startTimer.disabled = true;
+			mainForm.stopTimer.disabled = false;
+			tmId = mainForm.addtimer( 
+				1000,
+				task_t
+			)
+			//hThread = thread.create(task_t,1000);
+			//thread.waitOne(hThread)
+			//mainForm.startTimer.disabled = false;
+			//mainForm.stopTimer.disabled = true;
+			//mainForm.state.text = "";
+
+		}
+	}
+	
+}
+
+mainForm.stopTimer.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startTimer.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			mainForm.killtimer(tmId);
+			mainForm.startTimer.disabled = false;
+			mainForm.stopTimer.disabled = true;
+			mainForm.state.text = "";
+			//evtTask.set();//使事件对象切换为有信号状态,使wait函数退出;
+		}
+	}
+	
+}
+
+mainForm.houredit.oncommand = function(id,event){
+     select(event) {
+     	case 0x300/*_EN_CHANGE*/{
+     		var val =  tonumber(mainForm.houredit.text,10);
+        	if(val>=0&&val<24){
+        		mainForm.spin.pos = val;
+        	}else{
+        		mainForm.houredit.text = "00";
+        	}
+     	}
+     	
+     }
+	
+}
+
+mainForm.minedit.oncommand = function(id,event){
+     select(event) {
+     	case 0x300/*_EN_CHANGE*/ {
+     		var val =  tonumber(mainForm.minedit.text,10);
+        	if(val>=0&&val<=59){
+        		mainForm.spin2.pos = val;
+        	}else{
+        		mainForm.minedit.text = "00";
+        	}
+     	}
+     	
+     }
+	
+}
+
+
+mainForm.spin.oncommand = function(id,event,pos){
+	if( pos && event==4){
+		mainForm.houredit.text = string.format("%02i", pos);
+		io.print(pos);
+	}
+	if(pos == 0 && event==4)
+		mainForm.houredit.text = string.format("%02i", pos);
+}
+
+mainForm.spin2.oncommand = function(id,event,pos){
+	if( pos && event==4){
+		mainForm.minedit.text = string.format("%02i", pos);
+	}
+	if(pos == 0 && event==4)
+		mainForm.minedit.text = string.format("%02i", pos);
+}
+
+
+mainForm.static.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.static.text );
+	
+	
+}
+
+mainForm.spin.setRange(0,23);
+mainForm.spin2.setRange(0,59);
+
+var tray;
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x205/*_WM_RBUTTONUP*/{
+			//鼠标右键弹起,下面获取坐标
+			var x,y = win.getMessagePos(lParam);
+			
+		}
+		case( 0x400/*_WM_USER*/+9981 ) { //托盘图标消息
+            select(lParam){
+                case = (0x203/*_WM_LBUTTONDBLCLK*/ ){//双击托盘图标打开窗口
+                	if(tray) tray.delete();
+                    mainForm.show(true);
+                }
+            
+            }                                                  
+
+         } 
+        case( 0x112/*_WM_SYSCOMMAND*/ ){ //系统命令消息
+            if( wParam == 0xF020/*_SC_MINIMIZE*/ ){ //用户点击了最小化按钮
+                import win.util.tray;
+                tray = win.util.tray(mainForm.hwnd) //创建托盘图标
+                tray.message = 0x400/*_WM_USER*/ + 9981 //设置托盘图标回调消息
+                tray.pop("Openfire 定时器" );
+                tray.tip = "双击显示Openfire 定时器";
+                mainForm.show(false); //隐藏窗口
+                return true;//阻击默认消息传递，取消最小化过程
+
+              } 
+        }
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+        	if(tray) tray.delete();
+        	mainForm.killtimer(tmId);
+        	//evtTask.set();
+        }
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+var ff=function(hwnd,msg,id,tick){//定时执行代码    
+     var tm=time()
+     tm.format="%Y-%m-%d %H:%M:%S";
+     mainForm.static.text="当前时间：" ++ tostring(tm);
+ }
+ ff()
+ tmid = mainForm.addtimer(
+     1000/*毫秒*/,
+     ff
+ );
+//test();
+
+
+var tm = time();
+mainForm.houredit.text = tm.hour;
+mainForm.minedit.text = tm.minute;
+
+mainForm.show() ;
+win.loopMessage();
+//主线程消息循环监听定时线程消息
+//win.loopMessage(loop_handler); 
+io.close();

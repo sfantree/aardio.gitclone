@@ -1,0 +1,104 @@
+import console; 
+import log4j;
+/*
+	1.log4j是一个java的日志管理库。
+	2.个人只实现了一部分功能，日志分类输出 ，日志等级过滤， 控制台日志和文件日志输出
+	3.日志输出为多线程加了线程锁保证日志输出不会乱
+	4.得益于aardio全局常量 _STUDIO_INVOKED 实现了默认输出IDE调试下为console ,编译后为 file ,默认文件名defaut
+*/
+logger = log4j.getLogger('mainForm.addOrder') //参数为日志分类 
+logger.debug('默认输出格式为[时间] [日志等级] [日志分类]')
+
+//修改默认level等级为全部输出
+log4j.configure({
+    		level = "ALL";
+})
+logger = log4j.getLogger('日志分类：ALL') //参数为日志分类比如 
+
+logger.trace('trace')
+logger.debug('debug')
+logger.info('info')
+logger.warn('warn')
+logger.error('error')
+logger.fatal('fatal')
+logger.mark('mark')
+console.pause(true);
+
+
+//修改默认level等级为ERROR
+console.clearScreen()
+console.log('修改默认level等级为ERROR ')
+log4j.configure({
+    		level = "ERROR";
+})
+logger = log4j.getLogger('日志等级为ERROR')
+logger.trace('trace')
+logger.debug('debug')
+logger.info('info')
+logger.warn('warn')
+logger.error('error')
+logger.fatal('fatal')
+logger.mark('mark')
+console.pause(true);
+
+//关掉默认日志输出 
+
+
+log4j.configure({
+    	level = 'OFF';
+})
+logger = log4j.getLogger('日志等级为ERROR')
+console.clearScreen()
+console.log('关掉默认日志输出 ')
+
+logger.trace('trace')
+logger.debug('debug')
+logger.info('info')
+logger.warn('warn')
+logger.error('error')
+logger.fatal('fatal')
+logger.mark('mark')
+console.pause()
+/**
+	新增一个console输出和file输出只记录ERROR以上日志
+	新增一个file输出只记录warn以上日志
+**/
+
+log4j.configure({
+		appenders = {
+				appenderName =  {  
+					type = 'console'; 
+					fileName = 'fileName.log'; 
+					layouts = { ['type'] = 'basic'};
+				};
+				fileError = {
+					type = 'file'; 
+					fileName = 'file1_error.log'; 
+					layouts = { ['type'] = 'basic'};
+				}
+				fileWarn =  {  
+					type = 'file'; 
+					fileName = 'file12_warn.log'; 
+					layouts = { ['type'] = 'basic'};
+				};
+				
+			};
+			categories = { 
+   	 			fileAndConsole =  { appenders = { 'appenderName';'fileError' }; level="ERROR"};
+   	 			fileWarn =  { appenders = { 'fileWarn' }; level="WARN"}
+    	}
+})
+
+console.clearScreen()
+console.log('新增一个console输出和file输出只记录ERROR以上日志,新增一个file输出只记录warn以上日志 ')
+logger = log4j.getLogger('日志等级为All')
+logger.trace('trace')
+logger.debug('debug')
+logger.info('info')
+logger.warn('warn')
+logger.error('error')
+logger.fatal('fatal')
+logger.mark('mark')
+console.pause()
+
+

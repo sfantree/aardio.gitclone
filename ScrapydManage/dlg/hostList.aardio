@@ -1,0 +1,39 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="主机列表";right=346;bottom=407)
+winform.add(
+button={cls="button";text="确定";left=238;top=339;right=330;bottom=393;font=LOGFONT(h=-16);z=1}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+    var checkHosts = {}
+	for(i=1; #mainForm.hostInfos;1){
+		if(winform["checkbox"++i].checked){
+			table.push(checkHosts, winform["checkbox"++i].text)
+		}
+	}
+	mainForm.checkHosts = checkHosts
+	winform.close()
+}
+var checkBox = {
+    cls="checkbox";
+    text="checkbox";
+    left=45;
+    top=40;
+    right=277;
+    bottom=77;
+    font=LOGFONT(h=-20)
+}
+for(i=1; #mainForm.hostInfos;1){
+    var text =mainForm.hostInfos[i][1]
+    checkBox.text = text
+    winform.add( 
+        ["checkbox"++i] = table.clone(checkBox);
+    )
+    checkBox.top += 45;
+    checkBox.bottom += 45;
+}
+
+win.loopMessage();
+return winform;

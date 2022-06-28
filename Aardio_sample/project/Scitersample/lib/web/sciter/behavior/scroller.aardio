@@ -1,0 +1,32 @@
+//scroller 自动滚动
+ namespace web.sciter.behavior.scroller;
+
+namespace sinking {
+	//鼠标以SINKING(捕获模式)向下传递下,使用sinking名字空间响应事件
+	
+	onMouseMove = function (scTarget,scOwner,x,y,mouseParams) {
+		
+		if( mouseParams.button_state )
+			return false; // only mouse move in unpressed state.
+		
+		var scrollInfo = scOwner.getScrollInfo(); 
+		var pos = scrollInfo.pos;
+		var rect =scrollInfo.rect;
+		var size = scrollInfo.size
+		
+		if( x < rect.left || x > rect.right ||   y < rect.top || y > rect.bottom )
+			return false;
+		
+		var vh = rect.bottom - rect.top;
+		if( vh >= size.cy  )
+			return false;
+		
+		var dh = size.cy - vh; 
+		var py = ( y * dh) / vh;
+		if( py != pos.y ) {
+			pos.y = py; 
+			scOwner.setScrollPos(pos.x,pos.y,false);
+		}
+		return false; 
+	}
+}

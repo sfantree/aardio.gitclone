@@ -1,0 +1,133 @@
+import win;
+import win.ui;
+import crypt;
+import time;
+import config;
+import fsys;
+import fsys.dlg;
+/*DSG{{*/
+mainForm = win.form(text="战网地图保存器";right=296;bottom=264;border="dialog frame";max=false;mode="popup")
+mainForm.add(
+["button战网路径"]={cls="button";text="浏览..";left=255;top=32;right=295;bottom=64;z=3};
+["edit战网路径"]={cls="edit";left=1;top=32;right=257;bottom=64;bgcolor=16777215;edge=1;font=LOGFONT(h=-20);multiline=1;readonly=1;z=2};
+["richedit日志"]={cls="richedit";left=1;top=88;right=296;bottom=264;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;multiline=1;readonly=1;z=5};
+static={cls="static";text="战网路径";left=1;top=1;right=104;bottom=33;color=16711680;font=LOGFONT(h=-23;weight=700);help=1;notify=1;transparent=1;z=1};
+["static2战网路径"]={cls="static";left=2;top=64;right=296;bottom=88;center=1;color=255;font=LOGFONT(h=-13);transparent=1;z=4}
+)
+/*}}*/
+
+import win.ui.atom;
+var atom,hwnd = mainForm.atom("F47011CFB-B4ED-4637-8F19-C76B3B8DC7F9.ra2ol_watch");
+if(!atom){ 
+	win.quitMessage();	return;
+} 
+
+var 换行符='\r\n';
+var config_file_name="ra2ol_watch";
+get_config=function(name){ return config[config_file_name][name]  }
+set_config=function(name,val){config[config_file_name][name]=val; }
+
+
+///首次加载
+subscribe("首次加载",function(...){
+	var 首次加载=get_config("首次加载")||"0";
+	var 首次加载=tonumber(首次加载);
+	set_config("首次加载",1)
+	if(首次加载<1){
+		var str=/*
+1,本程序是用来保存红警战网临时地图的
+2,保存后的地图可以修改成单机地图<尤里的复仇>
+		*/;
+		win.msgboxTest(str,"首次加载",mainForm.hwnd);
+	}
+} )
+
+
+///日志记录器
+subscribe("记录日志",function(文本){
+    var 时间=tostring(time.now());
+    var str=..string.format("[%s] %s", 时间 , 文本 ) ;
+    mainForm.richedit日志.appendText(str++换行符);
+} )
+
+
+///执行监听    
+subscribe("监听目录",function(目录){
+	var 临时地图_名称=get_config("临时地图_名称")||set_config("临时地图_名称","yuri.dll");
+	var 临时地图_路径=io.joinpath(目录,临时地图_名称);
+	if(io.exist(临时地图_路径)) {
+		var 临时地图_文本=..string.load(临时地图_路径);
+		var 临时地图_md5=..string.left(crypt.md5(临时地图_文本),18);
+		var 新地图_名称=临时地图_md5++".yuri.yrm";
+		var 新地图_路径=io.joinpath(目录,新地图_名称);
+		if(io.exist(新地图_路径)) {
+		}else{
+			..string.save(新地图_路径,(临时地图_文本||";@_@;") ) ;
+			publish("记录日志", 新地图_名称) ;
+		}		
+	}	
+} )
+
+
+///选择战网执行程序
+mainForm.button战网路径.oncommand = function(id,event){
+	var str= fsys.dlg.open("战网客户端<ra2ol.exe>|ra2ol.exe;","战网客户端",,mainForm.hwnd) ;
+	if(io.exist(str)) {
+		var splitpath=io.splitpath(str); 
+		mainForm.static2战网路径.text=str;
+		mainForm.edit战网路径.text=splitpath.file; 
+		set_config("战网客户端_路径",str );
+	}	
+}
+
+
+///双击判断
+var 获得有效点击=function(timout){
+	var 有效点击=1+(mainForm.有效点击||0);
+	mainForm.有效点击=1;
+	mainForm.setTimeout(function(){ 
+		mainForm.有效点击=0;
+	},timout);;
+	return 有效点击; 
+}
+
+
+///清理缓存
+mainForm.static.oncommand = function(id,event){
+    var 两次点击=获得有效点击(300);
+    if(两次点击>=2){
+		set_config("首次加载",0);
+		set_config("战网客户端_路径", );
+		mainForm.richedit日志.text="";
+		mainForm.edit战网路径.text="";
+		mainForm.static2战网路径.text="";
+    }
+}
+
+///加载配置数据
+mainForm.setTimeout(function(){
+	var str=get_config("战网客户端_路径")||"";
+	if(io.exist(str)) {
+		var splitpath=io.splitpath(str); 
+		mainForm.static2战网路径.text=str;
+		mainForm.edit战网路径.text=splitpath.file; 
+	}
+	publish("首次加载",)
+},200);
+
+
+///定时监听
+mainForm.setInterval( 
+	1000,function(){
+		var str=get_config("战网客户端_路径")||"";
+		if(io.exist(str)) {
+			var splitpath=io.splitpath(str); 
+			var dir=splitpath.dir;			
+			publish("监听目录",dir)
+		}		
+	} 
+)
+
+
+mainForm.show();
+return win.loopMessage();

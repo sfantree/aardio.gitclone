@@ -1,0 +1,41 @@
+import console; 
+import config
+import win.ui;
+//// console.pause();
+import web.form;
+import web.kit.form;
+
+var mainForm = win.form(text="http://www.xstuk.com/";right=439;bottom=391)
+var wb = web.kit.form(  mainForm ) 
+
+
+
+
+var url="http://www.xstuk.com/xinsh/angukut/20211024/112123_3.html"
+wb.go(url)
+//wb.wait();
+/*
+for(index,tagName,childCount,xNode in wb.jQuery("div.pagelist a").eachChild() ){
+	console.log( index,tagName,childCount,xNode.outerXml() ) 
+}
+*/
+
+var last_1_href= wb.querySelector("div.pagelist>p>b>a:nth-last-child(2)");
+//var aaa= wb.querySelector("div.pagelist>p>b>a")
+console.dump( last_1_href['href']  ) 
+
+/*
+var aaa= wb.querySelector("div.pagelist").querySelectorAll("a")
+for ( i=1;i<#aaa;1) {
+
+var last_1_href= aaa[i] ;//.querySelectorAll("a")['href']
+console.log( last_1_href ) 
+}
+*/
+
+ 
+ 
+
+mainForm.show();
+
+return win.loopMessage();

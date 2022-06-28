@@ -1,0 +1,1156 @@
+﻿import util.metaProperty;
+namespace win.ui.ctrl;
+
+class metaProperty{
+	ctor( properties,... ){
+		this = ..util.metaProperty(properties,...);//直接继承
+		this._serialize = ..thread.callWndMeta._serialize; 
+	};
+	@_metaPrototype;//原型继承
+} 
+
+namespace metaProperty { 
+    
+	_metaPrototype = { 
+		_get = {
+			threadCallable = function(){
+				if( ! owner.isForm ){
+					if( owner._defaultProc[[0xACCD/*_WM_THREAD_CALLWND*/]] ) return;
+					owner.wndproc = {[0xACCD/*_WM_THREAD_CALLWND*/] = function( hwnd,message,wParam,lParam ){ 
+       						return ..thread.applyCallWnd(owner,wParam,lParam)
+       				} }
+				}
+				else for(name,ctrl in owner.eachControl() ) ctrl.threadCallable();
+			};
+			bgcolor = {
+				_get = function(){
+					return owner[["(bgcolor)"]];
+				}
+				_set = function(v){
+					if( owner[["(bgbrush)"]] ){  
+						::DeleteObject(  owner[["(bgbrush)"]]  );
+		 				owner[["(bgbrush)"]]  = null 
+					} 
+					if( ( type(v) == type.number ) && (v!=-1)) { 
+						owner[["(bgcolor)"]] = v;
+						owner[["(bgbrush)"]] := ::CreateSolidBrush( v );
+					}
+				} 
+			};
+			redraw = function( flag = 0x185/*_RDW_ALLCHILDREN | _RDW_INVALIDATE | _RDW_UPDATENOW  | _RDW_ERASE*/ ) { 
+				if( owner[["initializing"]] ) return;
+				return ::RedrawWindow(owner[["hwnd"]],{},null,flag);
+ 			};
+ 			setRedraw = function(d){
+ 				::SendMessageInt( owner[["hwnd"]],0xB/*_WM_SETREDRAW*/,d?1:0,0)
+ 			};
+ 			redrawTransparent = function(){ 
+ 				if( owner[["initializing"]] ) return;
+ 				var hParent = ..win.getParent(owner.hwnd); 
+ 				var hwnd = owner.hwnd;
+ 				if( hParent ? (!owner.cacheOrphanWindowRect__) ?( owner[["transparent"]]:  ..win.getStyleEx(hwnd,0x20/*_WS_EX_TRANSPARENT*/) ) ){  
+ 					var rc = ..win.getRect(hwnd);
+ 					var ctrl = owner;
+ 					
+ 					while(hParent){
+						::InvalidateRect( hParent,rc,1 ); 
+						::UpdateWindow( hParent ); 
+						if( ..win.getStyle(hParent,0x2000000/*_WS_CLIPCHILDREN*/) ){
+							::RedrawWindow(hwnd,{},null,0x105 /*_RDW_INVALIDATE | _RDW_UPDATENOW*/ );
+						}
+						
+						hwnd = hParent;
+						ctrl = ctrl[["parent"]];
+						hParent = ..win.getParent(hwnd);
+						
+						if(! ( 
+								hParent && ( ctrl[["transparent"]] || ..win.getStyleEx(hwnd,0x20/*_WS_EX_TRANSPARENT*/) || ..win.getStyle(hwnd,0x7/*_BS_GROUPBOX*/) ) 
+							) )break;
+							
+						..win.mapRect(hwnd,hParent,rc);
+ 					}
+				}	
+				else {
+					::RedrawWindow(owner[["hwnd"]],{},null,0x185/*_RDW_ALLCHILDREN | _RDW_INVALIDATE | _RDW_UPDATENOW  | _RDW_ERASE*/);
+				} 
+ 			};
+ 			invalidate = function(rc,erase=1){ 
+ 				rc := {} 
+ 				var hwnd = rc.hwnd; 
+ 				if(hwnd)rc = ..win.getRect(hwnd);
+ 				::InvalidateRect(owner.hwnd,rc,erase?1:0); 
+ 			};
+ 			update = function(){
+ 				return ::UpdateWindow(owner[["hwnd"]])
+ 			};
+ 			capture = { 
+				_set = function( v ){ 
+					if(v) ..win.setCapture(owner[["hwnd"]])
+					else if(::User32.GetCapture()==owner.hwnd)
+						..win.releaseCapture(); 
+				} 	
+				_get = function(){
+					return owner.hwnd == ::User32.GetCapture();
+				}
+			};  
+			text = {
+				_get = function(){ 
+					return ..win.getText( owner[["hwnd"]] );
+				}
+				_set = function(v){ 
+					if( owner[["setText"]] ) return owner.setText(v);
+					
+					..win.setText( owner[["hwnd"]],v !== null ? tostring(v) : "" );  
+					var transParent = owner[["transparent"]];
+					if( transParent === null ){
+						transParent = !!..win.getStyleEx(owner.hwnd,0x20/*_WS_EX_TRANSPARENT*/);
+						owner[["transparent"]] = transParent;
+					}
+					if( transParent ) owner.redrawTransparent();
+				}
+			};
+			disabledText = {
+				_get = function(){ 
+					if(owner[["(disabledText)"]]) return owner.text;
+				}
+				_set = function(v){
+					if(v){
+						if(!owner[["(disabledText)"]]) {
+							owner[["(disabledText)"]] = owner.text;
+							owner.disabled = true;
+							
+							if(type(v)=="table"){
+								var ctrl = owner;
+								
+								if( owner.iconStyle ){
+									if(#v.text){ owner.text = v.text;}
+									
+									owner[["(disabledIconText)"]] = owner.iconText;
+									owner[["(disabledReduceId)"]] = owner.reduce(v,function(value,index){
+										if(value) ctrl.iconText = value;
+										return 150;
+									} )
+								}
+								else{
+									var a,b = ..string.match(owner.text,"^\s*(:)\s(.+)"); 
+									if(!b ||(#a==#b)) b = owner.text;
+								 	if(#v.text) b = v.text;
+								 	
+									owner[["(disabledReduceId)"]] = owner.reduce(v,function(value,index){
+										if(value) ctrl.text = value + " " + b;
+										return 150;
+									} )
+								} 
+								
+								return;
+							} 
+						}
+						
+						if(type(v)==="string"){
+							owner.text = v;	
+						} 
+					}
+					else {
+						if(owner[["(disabledReduceId)"]] ){
+							owner.clearInterval(owner[["(disabledReduceId)"]]);
+							owner[["(disabledReduceId)"]] = null;
+						}
+						
+						if(owner[["(disabledText)"]]) {
+							owner.text = owner[["(disabledText)"]];
+							owner[["(disabledText)"]] = null;
+						}
+						
+						owner.iconText = owner[["(disabledIconText)"]];
+						owner[["(disabledIconText)"]] = null; 
+						
+						owner.disabled = false;
+					} 
+				}
+			};
+			onDropFiles = {
+				_set = function(v){
+					owner[["onDropFiles"]] = v;
+					::Shell32.DragAcceptFiles(owner[["hwnd"]],true);
+				}
+			};
+			hide = {
+				_get = function(){ 
+					return ! ..win.getStyle(owner[["hwnd"]],0x10000000/*_WS_VISIBLE*/ ) 
+				}
+				_set = function(v){ 
+					owner.show(!v ? true:0x0/*_SW_HIDE*/)
+				}
+			
+			};
+			msgbox = function(str,title,style){
+				return ..win.msgbox(str,title,style,owner[["hwnd"]] )
+			};
+			msgboxTest = function(str,title){
+				return ..win.msgboxTest(str,title,owner[["hwnd"]]  )
+			}; 
+			msgboxErr = function(str,title){
+				return ..win.msgboxErr(str,title,owner[["hwnd"]]  )
+			};
+			close = function(){
+				if( ! owner.isForm ){
+					
+					var p = owner[["_parentForm"]]; 
+					if( p && p._ctrlHwnd[owner.hwnd] ){
+						
+						p._ctrlHwnd[owner.hwnd]=null;
+						if(owner.id) p._ctrlId[owner.id]=null;
+						p._ctrlAutoResize[owner.hwnd]=null;
+						
+				
+						if( owner._onDestroy ) owner._onDestroy();
+						if( owner.onDestroy ) {
+							owner.onDestroy();
+							owner.onDestroy = null;
+						}
+	
+						if( owner[["(bgbrush)"]] ){  
+							::DeleteObject( owner[["(bgbrush)"]]  );
+							owner[["(bgbrush)"]] = null;
+						} 
+						if( owner[["(ownFontHandle)"]] ){  
+							::DeleteObject( owner[["(ownFontHandle)"]]  );
+							owner[["(ownFontHandle)"]] = null;
+						}
+						
+						owner._closed = true;
+					}
+				}  
+				
+				if( ..win.isWindow(owner.hwnd)  ){
+					::PostMessage(owner[["hwnd"]],0x10/*_WM_CLOSE*/,0,0);
+				}
+			};
+			autoResize = { 
+				_get = function(){
+					return !!owner[["_parentForm"]][["_ctrlAutoResize"]][[owner.hwnd]]
+				} 
+				_set = function(v){ 
+					var p = owner[["_parentForm"]];
+					if( p  ){
+						p._ctrlAutoResize[owner.hwnd] = v?owner:null;
+					} 
+				} 
+			};
+			modifyStyle = function(remove=0,add=0,flags){
+					return ..win.modifyStyle(owner[["hwnd"]],remove,add,flags);
+			}; 
+			modifyStyleEx = function(remove=0,add=0,flags){
+					return ..win.modifyStyleEx(owner[["hwnd"]],remove,add,flags);
+			}; 
+			show = function(flag) {
+				..win.show(owner[["hwnd"]],flag);
+			};
+			showChildren = function(flag){
+				for hwnd in ..win.eachChild(owner[["hwnd"]]) {
+			    	..win.show(hwnd,flag);
+				}
+			};
+			disabled = {
+				_get = function(){
+					return ..win.getStyle(owner[["hwnd"]],0x8000000/*_WS_DISABLED*/ ) 
+				}
+				_set = function(v){
+					..win.enable(owner[["hwnd"]],!v?1:0);  
+				}
+			
+			};
+			tailWndproc = {
+				_set = function(v){
+					var pre = owner[["wndproc__"]];
+					owner[["wndproc__"]] = null;
+					owner.wndproc = v;
+					if( pre ){
+						owner.wndproc = pre;
+					}
+				};
+			};
+			wndproc = { 
+				//追加式赋值,可赋值为回调函数,或者键为消息ID,值为回调函数的表对象
+				_set = function(v){  
+					if( v === null){
+						owner[["wndproc__"]] = null;
+						return;
+					};
+					
+					var this = owner; 
+					var tv = type(v);
+					if( tv == type.table ){
+						if( owner[["_defaultProc"]] ){
+							..table.assign( owner[["_defaultProc"]],v );
+							return;
+						}
+						else{
+							owner[["_defaultProc"]] = v;
+							v = function(hwnd,message, wParam, lParam){
+								var proc = this[["_defaultProc"]][message];
+								if(proc){
+									var ok,ret = call(proc,this,hwnd,message,wParam,lParam);
+									if(ok) return ret;
+									error(ret,2); 
+								};
+							}  
+						};
+					}
+					elseif( tv != type.function ) 
+						error("消息回调函数必须是一个函数对象!",2) 
+			 			
+					var pre = owner[["wndproc__"]];
+					if( pre ){ 
+						owner[["wndproc__"]] = function(...){ 
+							var ok,ret = call(v,this,...); 
+							if(!ok) error(ret,2); 
+							if( ret!==null ) return ret;
+									
+							var ok,ret =  call(pre,this,...);
+							if(ok) return ret;
+							error(ret,2);
+							
+						}
+						return;
+					} 
+			 		else{
+						owner[["wndproc__"]] = v;
+					}
+			 		
+					//真正的回调函数只能创建一次
+					if(owner[["_wndproc_c"]] )
+						return;
+					  	
+					var wndproc = function(hwnd,  message, wParam , lParam){
+						if( this[["wndproc__"]] ){
+							var result; 
+							result = this.wndproc__( hwnd,  message, wParam , lParam);
+							if( result !== null ) return result;
+						}
+						return  ::CallWindowProc( this._wndproc_c_prev,  hwnd,message, wParam , lParam ); 
+					}
+					
+					owner[["_defWindowProc"]] = function(hwnd, message, wParam , lParam){
+	    				return ::CallWindowProc(this._wndproc_c_prev, hwnd, message, wParam , lParam);
+	    			}; 
+	    			
+					owner[["_wndproc_c"]] = ..raw.tostdcall( wndproc , "addr(addr,INT,ADDR,addr)",owner);
+					owner._wndproc_c_prev =  ::SetWindowPointer(owner[["hwnd"]],0xFFFFFFFC/*_GWL_WNDPROC*/,  owner[["_wndproc_c"]]  ); 
+				};
+				_get = function(){
+					return owner[["wndproc__"]];
+				};
+			};
+			/*
+			属性元表中只能预定义 _prenotify,创建对象后只能对 prenotify 赋值,
+			值只能为 null 或 table,不可指定为函数。
+			*/
+			prenotify = {
+				_get = function(){
+					return owner._prenotify;
+				}
+				_set = function(v){
+					owner[["_prenotify"]] = ..table.assign(owner._prenotify,v);
+				}
+			};
+			//追加式赋值
+			adjust = {
+				_set = function(v){
+					if( v===null ){
+						owner[["adjust__"]] = null;
+						return;
+					}
+					if(type(v) != type.function ) error("adjust函数必须是一个函数对象!",2) 
+					
+					var pre = owner[["adjust__"]];
+					if( !pre  ){ 
+						owner[["adjust__"]] = v;
+					}
+					else {
+						owner[["adjust__"]] = function(...){
+							var ret = pre(...);
+							if( ret!==null )
+								return ret;
+									
+							return v(...); 
+						} 
+					} 
+				}
+				_get = function(){
+					return owner.__adjust__;
+				} 
+			};
+			__adjust__ = function(cx,cy,wParam){
+				if( owner[["(adjusting)"]] ) return;
+				owner[["(adjusting)"]] = true;
+				
+				if( cx === null ) {
+					var rc = ::RECT();
+					(owner.isForm ? ::GetWindowRect : ::GetClientRect)(owner.hwnd,rc);
+					cx,cy = rc.width(),rc.height();
+				}
+				
+				if( wParam === null ) wParam = 0;
+				if( owner.preadjust ) owner.preadjust(cx,cy,wParam); 
+				if( owner._preadjust ) owner._preadjust(cx,cy,wParam); 
+				if( owner[["_adjust"]] ) owner._adjust(cx,cy,wParam);
+				if( owner[["adjust__"]] ) owner.adjust__(cx,cy,wParam);
+				
+				owner[["(adjusting)"]] = null;
+			}; 
+			left = {
+				_get = function(){
+					return ..win.getRect( owner.hwnd ).left; 
+				}
+				_set = function(x2){
+					var x,y,cx,cy = owner.getPos(); 
+					owner.setPos( x2,y,x-x2+cx,cy );
+				} 
+			};
+			right = {
+				_get = function(){
+					return ..win.getRect( owner.hwnd ).right; 
+				}
+				_set = function(v){
+					var x,y,_,cy = owner.getPos(); 
+					owner.setPos( , ,v-x,cy );  
+				}
+			
+			};
+			top = {
+				_get = function(){
+					return ..win.getRect( owner.hwnd ).top; 
+				}
+				_set = function(y2){
+					var x,y,cx,cy = owner.getPos(); 
+					owner.setPos( x,y2,cx,y-y2+cy ); 
+				} 
+			}; 
+			bottom = {
+				_get = function(){
+					return ..win.getRect( owner.hwnd ).bottom;  
+				}
+				_set = function(v){
+					var x,y,cx = owner.getPos(); 
+					owner.setPos( , ,cx,v-y );
+				}
+			}; 
+			height = {
+				_get = function(){
+					var x,y,cx,cy = owner.getPos();
+					return cy;
+				}
+				_set = function(v){
+					var x,y,cx  = owner.getPos() 
+					owner.setPos( , ,cx,v );
+				} 
+			};
+			width = {
+				_get = function(){
+					var x,y,cx = owner.getPos();
+					return cx;
+				}
+				_set = function(v){
+					var x,y,cx,cy = owner.getPos() 
+					owner.setPos( , ,v,cy );
+				} 
+			};
+			getPos = function(scr){
+				return ..win.getPos(owner.hwnd,scr)
+			};
+			setPos = function(...){
+				..win.setPos(owner.hwnd,...);
+				
+				owner.saveScale();
+				
+				if( !owner.isForm ) owner.adjust();
+			};
+			resize = function(cx,cy){
+				if(cx && cy ) ..win.setPos(owner.hwnd,,,cx,cy);
+				var rc = ..win.getClientRect(owner.hwnd);
+				::SendMessageInt(owner.hwnd,0x5/*_WM_SIZE*/,0,::MAKELONG(rc.width(),rc.height()) );
+				if( !owner.isForm ) owner.adjust();	
+			};
+			center = function(hTarget){
+				..win.center(owner.hwnd,hTarget[["hwnd"]] : hTarget )
+				
+				owner.saveScale();
+				
+				if( !owner.isForm ) 
+					owner.adjust();	
+			};
+			getRect = function(screen){ 
+				return ..win.getRect( owner.hwnd,screen );
+			};
+			setRect = function(rc,screen){
+				..win.setRect(owner.hwnd,rc,screen) 
+				
+				owner.saveScale();
+				
+				if( !owner.isForm ) 
+					owner.adjust();
+			};
+			getClientRect = function(){
+				return ..win.getClientRect(owner.hwnd)
+			}; 
+			dpiScale = function(x,y){
+				x = x * (owner.dpiScaleX : 1);
+				if(y) y = y * (owner.dpiScaleX : 1);
+				return x,y;
+			};
+			saveScale = function(scaleX,scaleY,dpiScaleX,dpiScaleY){
+				var form = owner._parentForm;
+				if(!form) return;
+				
+				if( scaleX === null ){
+					scaleX,scaleY,dpiScaleX,dpiScaleY = form.getScale();
+				}
+				
+				var rc = owner.getRect();
+				if( !  ..win.getStyle(owner.hwnd,0x40000000/*_WS_CHILD*/) ){
+					..win.toClientRect(owner._parentForm.hwnd,rc);
+					owner.cacheOrphanWindowRect__ = rc;
+				}
+				
+				if(!owner._defRect) owner._defRect = {};	
+				if( (scaleX == 1) && ( scaleY == 1) ){
+					..table.assign(owner._defRect,rc);
+					return true;
+				}
+				
+				var defCtrl = owner._defRect;
+   				if( owner[["dl"]] )
+					defCtrl.left = rc.left / dpiScaleX;
+				else
+					defCtrl.left = rc.left / scaleX ;
+				
+				if( owner[["dt"]] )
+					defCtrl.top =  rc.top / dpiScaleY ;
+				else
+					defCtrl.top = rc.top / scaleY ;
+				
+				var defParent = form._defClientRect;
+				var parent = form.getClientRect();
+				
+				if( owner[["dr"]] ) {
+					if( owner.parent != owner ){
+						parent = owner.parent.getClientRect();
+						defParent = owner.parent._defClientRect;
+					} 
+					defCtrl.right =  defParent.right - ( parent.right - rc.right)/ dpiScaleX ;
+						
+					if( owner[["aw"]] == false ) && ( owner[["dl"]] == false )
+						defCtrl.left = defCtrl.right - (rc.width()/ dpiScaleX);
+				}
+				else {
+					if( owner[["aw"]] )
+						defCtrl.right = rc.right / scaleX ;
+					else
+						defCtrl.right  = defCtrl.left + rc.width() / dpiScaleX; 
+				}
+	
+				if( owner[["db"]] ) 	{
+					if( (owner.parent != owner) && ( !owner[["dr"]] ) ){
+							parent = owner.parent.getClientRect()
+							defParent = owner.parent._defClientRect
+					}
+						
+					defCtrl.bottom =  defParent.bottom - ( parent.bottom - rc.bottom)/ dpiScaleY ; 
+					if( ( owner[["ah"]] == false ) && ( owner[["dt"]] == false ) )
+						defCtrl.top  =  defCtrl.bottom  - (rc.height() / dpiScaleY) ;
+				}
+				else{
+					if( owner[["ah"]] )
+						defCtrl.bottom = rc.bottom / scaleY;
+					else
+						defCtrl.bottom = defCtrl.top + rc.height() / dpiScaleY; 
+				}	
+				return true;
+			};
+			reloadScale = function(){ 
+				var form = owner._parentForm;
+				if(!form) return;
+			
+				var hwnd = owner.hwnd;
+    			if(!hwnd) return;
+				if(!form._ctrlAutoResize[hwnd]) return;
+				
+				var defDlg = form._defClientRect;
+				if(!defDlg) return;
+					
+				var dlg = form.getClientRect();
+				if( dlg.width() == 0 ){ return;} 
+			
+				var scaleX = (dlg.right-dlg.left)/(defDlg.right-defDlg.left);
+				var scaleY = (dlg.bottom-dlg.top)/(defDlg.bottom-defDlg.top); 
+				var dpiScaleX,dpiScaleY = (form.dpiScaleX : 1) ,(form.dpiScaleY : 1);
+				
+   				var defCtrl; 
+   				var l,t,r,b,w,h;
+   				var ctrlSize = {};
+			
+   				var parent = dlg;
+   				var defParent = defDlg;
+   				if( owner.parent != form ){
+   					var size = ctrlSize[owner.parent.hwnd] ;
+   					if(size){
+   						parent = ::RECT(0,0,size.cx,size.cy);	
+   					}
+   					else {
+   						parent = owner.parent.getClientRect();
+   					}
+			
+					defParent = owner.parent._defClientRect;
+				};
+				
+   				defCtrl = owner._defRect;
+   				w = defCtrl.right-defCtrl.left;
+				h = defCtrl.bottom -defCtrl.top;
+					
+   				if( owner[["dl"]] ){
+   					if( owner[["dl"]] < 1 ){ 
+   						l = parent.left + parent.width() *owner[["dl"]];
+   					}
+   					else{
+						l = defCtrl.left * dpiScaleX;
+					}
+				}
+				else
+					l = defCtrl.left * scaleX ;
+				
+				if( owner[["dt"]] ){
+					if( owner[["dt"]] < 1 ){
+   						t = parent.top + parent.height()*owner[["dt"]];
+   					}
+   					else{
+						t = defCtrl.top * dpiScaleY ;
+					}
+				}
+				else
+					t = defCtrl.top * scaleY ;
+				
+				
+				if( owner[["dr"]] ) { 
+					if( owner[["dr"]] < 1 ){  
+   						r = parent.right - parent.width() *owner[["dr"]];
+   					}
+   					else{
+						r = parent.right - ( defParent.right - defCtrl.right)* dpiScaleX ;
+					} 
+					
+					if( owner[["aw"]] == false ) && ( owner[["dl"]] == false )
+						l = r  - (w* dpiScaleX);
+				}
+				else {
+					if( owner[["aw"]] )
+						r = defCtrl.right * scaleX ;
+					else
+						r = l+w* dpiScaleX; 
+				}
+			
+				if( owner[["db"]] ) 	{
+					if( owner[["db"]] < 1 ){ 
+   						b = parent.bottom - parent.height() *owner[["db"]];
+   					}
+   					else{
+						b = parent.bottom - ( defParent.bottom - defCtrl.bottom )* dpiScaleY ;
+					}
+					
+					if( ( owner[["ah"]] == false ) && ( owner[["dt"]] == false ) )
+						t  = b  - (h* dpiScaleY) ;
+				}
+				else{
+					if( owner[["ah"]] )
+						b = defCtrl.bottom * scaleY;
+					else
+						b = t + h* dpiScaleY; 
+				}
+				
+				if(backOnly){
+					owner.setPos(l,t,r-l,b-t);
+					return;
+				}
+					
+				if( !..win.getStyle(owner.hwnd,0x40000000/*_WS_CHILD*/) ){ 
+					var rc = ::RECT(l,t,r,b); 
+					owner.cacheOrphanWindowRect__ = rc;
+   					var l,t = ..win.toScreen(form.hwnd,rc.left,rc.top);
+					..win.setPos( hwnd,l,t,rc.width() ,rc.height() ,,0x14/*_SWP_NOACTIVATE | _SWP_NOZORDER*/);	
+				}
+				else{ 
+					..win.setPos( hwnd,..math.floor(l),t, r - l, b - t ,,0x1C/*_SWP_NOACTIVATE | _SWP_NOZORDER | _SWP_NOREDRAW*/ );
+   					
+   				} 
+   				 
+   				owner.adjust(); 
+			}
+			getParent = function(){
+				return owner.parent;
+			};
+			setParent = function(parent){
+				if( parent[["hwnd"]] && ( (parent._parentForm == owner._parentForm) || (parent == owner._parentForm) ) ){ 
+					var rc = owner.getRect(true);
+					..win.toScreenRect(owner.parent.hwnd,owner[["_defRect"]] );
+					..win.setParent(owner.hwnd,parent[["hwnd"]] );
+					owner.parent = parent;
+					..win.toClientRect(owner.parent.hwnd,owner[["_defRect"]] );
+					..win.setRect(owner.hwnd,rc,true);
+				}
+				else 
+					error("父窗口必须在同一窗体内!",2);
+			};
+			addCtrl = function(param){
+				if( owner.isForm )
+					return owner.add(param) ; 
+				
+				var ret = owner._parentForm.add(param,owner);
+				for(k,v in param){
+					if(v.oncommand){
+						owner.translateCommand();
+						break;
+					} 
+				} 
+				return ret;	
+			};
+			wait = function(proc,...){
+    			return ..win.wait(proc,owner.hwnd,...)
+    		};
+			translateCommand = function(){
+				if( owner.isForm ) return;
+				var defaultProc = ..win._form._defaultProc;
+				var winform = owner._parentForm;
+				var f = function(hwnd,message,wParam,lParam){
+					return defaultProc[message](winform,hwnd, message, wParam, lParam);
+				}
+				owner.wndproc = {
+					[0x111/*_WM_COMMAND*/] = f;
+					[0x004E /*_WM_NOTIFY*/] = f;
+					[0x138/*_WM_CTLCOLORSTATIC*/ ]  = f;
+					[0x133/*_WM_CTLCOLOREDIT*/] = f;
+ 					[0x135/*_WM_CTLCOLORBTN*/] = f;
+ 					[0x134/*_WM_CTLCOLORLISTBOX*/] = f;  
+ 					[0x114/*_WM_HSCROLL*/] = f; 
+ 	   				[0x115/*_WM_VSCROLL*/] = f;
+ 	   				[0x2C/*_WM_MEASUREITEM*/] = f;
+ 	   				[0x2B/*_WM_DRAWITEM*/] = f;
+ 	   				[0x115/*_WM_VSCROLL*/] = f;
+ 	   				[0x115/*_WM_VSCROLL*/] = f;
+				};
+			};
+			tabNext = function(focus,prev){
+				var f = owner._parentForm;
+				if(f){
+					var hwnd = ::User32.GetNextDlgTabItem(f.hwnd,owner.hwnd,prev);
+					if(hwnd) {
+						if( focus ) ..win.setFocus(hwnd)
+						return f._ctrlHwnd[hwnd];
+					}
+				}
+			};
+			setFocus = function(){
+				..win.setFocus(owner.hwnd)
+			}; 
+			vScroll = function(pos = 0x7/*_SB_BOTTOM*/){ 
+				::SendMessageInt(owner[["hwnd"]],0x115/*_WM_VSCROLL*/ , pos, 0); 
+			};
+			hScroll = function(pos = 0x7/*_SB_RIGHT*/ ){
+				::SendMessageInt(owner[["hwnd"]],0x114/*_WM_HSCROLL*/ , pos, 0);
+			}; 
+			getFont = function(){
+				var font = ..gdi.getFont(owner[["hwnd"]])
+				if(font){
+					font.color = owner.color
+					return font;
+				}
+			};
+			onDpiFontChange = function(f){
+				return owner.setFont(f)
+			};
+			setFont = function(f,own = true ){
+				var hfont = ..gdi.setFont( owner[["hwnd"]],f ); 
+				if(f[["color"]]!==null) owner.color = f.color;
+				
+				if(hfont){
+					if( owner[["transparent"]] && ..win.getParent(owner.hwnd) ) owner.redrawTransparent();
+			 	
+					if( own ){
+						if(owner[["(ownFontHandle)"]]){
+							::DeleteObject(owner[["(ownFontHandle)"]]); 
+						}
+						owner[["(ownFontHandle)"]] = hfont;
+						if( f[["handle"]] ){
+							f[["handle"]] = null; 
+						} 
+					}
+					
+					return true; 
+				}
+			};
+			enableDpiScaling = function(scaleX,scaleY){
+				if( scaleX === false ){
+					owner.enableDpiScaling(1,1);
+					owner.onDpiChanged = null;
+					owner.disableDpiScaling = true;	
+					return;
+				}
+				
+				if(scaleX === "init"){
+					if( !owner["(dpiScalingInitialized)"] ){
+						if(..win.ui.disableDpiScaling || owner.disableDpiScaling) return; 
+					}
+				}
+				
+				owner.disableDpiScaling = null;
+				if(! ::User32.IsWindow(owner.hwnd) ){
+					owner.close();
+					return;
+				}
+				
+				if(!( scaleX && scaleY ) ) {
+					scaleX,scaleY = ..gdi.getDpiScale(,owner.hwnd);
+				}  
+				
+				if( !owner[["dpiScaleX"]] ) {
+					owner[["dpiScaleX"]] = 1;
+					owner[["dpiScaleY"]] = 1;
+				}
+				var origScaleX,origScaleY = owner[["dpiScaleX"]],owner[["dpiScaleY"]];
+				owner[["dpiScaleX"]] = scaleX;
+				owner[["dpiScaleY"]] = scaleY;
+				
+				if( owner.isForm ){
+					owner["(dpiScalingInitialized)"] = true;
+					
+					if(!owner.onDpiChanged){
+						owner.onDpiChanged = function(dpiX,dpiY,rect){
+							owner.enableDpiScaling(dpiX/96,dpiY/96,rect)
+						}
+					}
+					if( ( origScaleX == scaleX) && (origScaleY == scaleY ) ) {
+						 
+						owner.enumControl(function(ctrl){
+							if(ctrl.enableDpiScaling && !ctrl.disableDpiScaling)ctrl.enableDpiScaling(scaleX,scaleY);
+						});
+						
+							
+   						if(#owner._onlyDirectDrawBackground){
+   							for(k,ctrl in owner._onlyDirectDrawBackground){
+   								if(ctrl.enableDpiScaling && !ctrl.disableDpiScaling)ctrl.enableDpiScaling(scaleX,scaleY);
+   							} 
+   						} 
+						return;
+					}
+				}
+				
+				if( owner._beforeDpiChanged ) owner._beforeDpiChanged(scaleX,scaleY,origScaleX,origScaleY);
+				var font = owner.getFont();
+				if( font ){
+					font.h = ( font.h / origScaleY ) * scaleY;
+					owner.onDpiFontChange(font,scaleY/origScaleY);
+				}
+				
+				if( owner.isForm ){
+					owner.enumControl(function(ctrl){
+						if(ctrl.enableDpiScaling && !ctrl.disableDpiScaling)ctrl.enableDpiScaling(scaleX,scaleY);
+					});
+					
+						
+   					if(#owner._onlyDirectDrawBackground){
+   						for(k,ctrl in owner._onlyDirectDrawBackground){
+   							if(ctrl.enableDpiScaling && !ctrl.disableDpiScaling)ctrl.enableDpiScaling(scaleX,scaleY);
+   						} 
+   					}
+					
+					if( !owner["_parentForm"] //orphanWindow 
+						){
+						var placement;
+						var x,y,cx,cy = owner.getPos();
+						if(..win.isZoomed(owner.hwnd)||..win.isIconic(owner.hwnd)){
+							placement = ..win.getPlacement(owner.hwnd);
+							x,y,cx,cy = placement.rcNormalPosition.xywh(); 
+						}
+						else {
+							x,y,cx,cy = owner.getPos();
+						}
+						
+						var isChild = ..win.getStyle(owner.hwnd,0x40000000/*_WS_CHILD*/); 
+						var cx2,cy2,x2,y2;  
+						
+						if(!isChild){
+							var clientRc = owner.getClientRect();
+							var bx,by = cx - clientRc.width(), cy - clientRc.height();
+							
+							cx2 = ( (cx - bx) / origScaleX ) * scaleX + bx;
+							cy2 = ( (cy - by) / origScaleY ) * scaleY + by;
+							x2 = x -(cx2 - cx)/2;
+							y2 = y -(cy2 - cy)/2; 
+							
+							var sx = ::GetSystemMetrics(0x10/*_SM_CXFULLSCREEN*/) ;
+							var sy = ::GetSystemMetrics(0x11/*_SM_CYFULLSCREEN*/) + ::GetSystemMetrics(0x4/*_SM_CYCAPTION窗口标题的高度*/);
+							
+							if( x2+cx2 > sx &&  x+cx<=sx){x2 = sx-(sx-(x+cx))-cx2;}
+							if( ( x == 0 ) || ( x2 <0 && x>0 ) ){x2 = 0;}
+							if( y2+cy2 > sy &&  y+cy<=sy){y2 = sy-(sy-(y+cy) )-cy2;}
+							if( ( y == 0 ) || ( y2 <0 && y>0 ) ){y2 = 0;}
+						}
+						else {
+							cx2 = ( cx / origScaleX ) * scaleX;
+							cy2 = ( cy / origScaleY ) * scaleY;
+							x2 = x -(cx2 - cx)/2;
+							y2 = y -(cy2 - cy)/2; 
+						}
+
+						if(!placement){
+							owner.setPos(x2,y2, cx2,cy2 );
+						}
+						else {
+							placement.rcNormalPosition.setPos(x2,y2,cx2,cy2);
+							placement.update(owner.hwnd)
+						} 
+					}
+				}
+				
+				if( owner._afterDpiChanged ) owner._afterDpiChanged(scaleX,scaleY,origScaleX,origScaleY);
+				if( owner.afterDpiChanged ) owner.afterDpiChanged(scaleX,scaleY,origScaleX,origScaleY);
+			};
+			scaleDpiAware = function(x,y){return owner.enableDpiScaling(x,y);};
+			theme = { 
+				_get = function(){ 
+				}
+				_set = function(v){
+					if(..win.setWindowTheme){
+						if(v === true )
+							v =   "Explorer";
+							
+						var subid = " ";
+						if(v)subid=null;
+							..win.setWindowTheme(owner[["hwnd"]],v:" ",subid); 
+					}
+				}
+			}; 
+			rect = { //废弃
+				_get = function(){ return owner.getRect(); } 
+			};
+			clientRect = { //废弃
+				_get = function(){ return owner.getClientRect() }  
+			};
+			font = { //废弃
+				_get = function(){ return owner.getFont() }
+				_set = function(v){ owner.setFont(v) }
+			}; 
+			messageOnly = function(){
+				if(!owner._messageOnly){
+					..win.setParent( owner.hwnd,-3/*_HWND_MESSAGE*/);
+					owner._messageOnly = true;
+					..table.gc(owner,"close");
+				}
+				return owner;
+			};
+			sendMessage = function(msg,wParam,lParam){
+				return ::User32.SendMessage(owner.hwnd,msg,wParam,lParam);
+      		};
+      		postMessage = function(msg,wParam,lParam){
+				return ::User32.PostMessage(owner.hwnd,msg,wParam,lParam);
+      		};
+			isForm = {
+				_get = function(){ return false } 
+			};
+			getForm = function(){
+				return owner._parentForm;
+			};
+			setTimeout = function(...){
+				return owner._parentForm.setTimeout(...);
+			};
+			setInterval = function(...){
+				return owner._parentForm.setInterval(...);
+			};
+			clearInterval = function(...){
+				return owner._parentForm.clearInterval(...);
+			};
+			changeInterval = function(...){
+				return owner._parentForm.changeInterval(...);
+			};
+			["reduce"] = function(a,proc,debounce){
+    			
+    			if(owner[["lastReduceId"]]){
+    				if(debounce || (debounce===null)){
+    					owner.clearInterval(owner[["lastReduceId"]]);
+    				}
+    			}
+    			
+    			var k = 0;
+				owner[["lastReduceId"]] = owner.setInterval(function(){
+						k = (k + 1);
+						if( k > #a) {
+							k = 0; 
+							return proc() : 0
+						}
+						
+						return proc(a[k],k) : 0;
+					},1 
+				)
+				
+				return owner[["lastReduceId"]] ;
+			}
+			orphanWindow = function(trans,hwndBuddy){
+				if( owner._parentForm ){  
+					
+					if( ..win.getStyle(owner.hwnd,0x40000000/*_WS_CHILD*/) ){ 
+						var visible = ..win.getStyle(owner.hwnd,0x10000000/*_WS_VISIBLE*/);
+						..win.modifyStyle(owner.hwnd,0x10000000/*_WS_VISIBLE*/);
+						
+						var rc = owner.getRect();
+						owner.cacheOrphanWindowRect__ = rc;
+						var x,y = ..win.toScreen(owner._parentForm.hwnd,rc.left,rc.top); 
+						
+						..win.setParent(owner.hwnd,0);
+					
+						owner.modifyStyle(0x40000000/*_WS_CHILD*/,0x80000000/*_WS_POPUP*/ );
+						..win.setOwner(owner.hwnd,owner._parentForm.hwnd);
+						if( trans ) owner.modifyStyleEx(,0x80000/*_WS_EX_LAYERED*/); 
+						var swp =  0x1C/*_SWP_NOACTIVATE | _SWP_NOZORDER | _SWP_NOREDRAW*/;
+
+						..win.setPos(owner.hwnd,x,y, , ,,swp | (visible?0x40/*_SWP_SHOWWINDOW*/:0x80/*_SWP_HIDEWINDOW*/));
+						if( visible){ owner.redraw(); }	
+					}
+			 	 
+					if(hwndBuddy){
+						..win.setOwner(hwndBuddy,owner.hwnd);
+						owner.onSetOrphanWindowPos = function(x,y,cx,cy,flags){
+							..win.setPos(hwndBuddy,x,y,cx,cy,,flags:(0x14/*_SWP_NOACTIVATE | _SWP_NOZORDER*/));
+						}
+						
+						var x,y,cx,cy = ..win.getPos(owner.hwnd);
+						owner.onSetOrphanWindowPos(x,y,cx,cy,,0x14);
+					} 
+					
+					return true;
+				}
+			};
+			getRoot = function(){
+				if(owner._parentForm){
+					return owner._parentForm.getRoot();	
+				}
+				return ..win.getRoot(owner.hwnd)
+			};
+			onDirectDrawBackground = {
+				_set = function(v){
+					if(!owner._parentForm) return;
+					..table.push( owner._parentForm._directDrawBackground,owner);
+					owner[["onDirectDrawBackground"]] = v;
+					owner._parentForm.hasBackground = true;
+				};
+				_get = lambda() null;
+			}
+			group = function(){ 
+				if( owner.isForm ){
+					for hwnd,ctrl in owner.eachControlEx("groupbox"){
+						ctrl.group(); 
+					} 
+					return;
+				};
+				
+				if(!owner._parentForm) return;
+				
+    			var this = owner;
+        		var rcGroup = this.getRect(); 
+        		for hwnd,ctrl in owner._parentForm.eachControlEx(){
+        			if( ctrl == this ) continue;
+        			if( ctrl.parent == this.parent ){
+    					var rc = ctrl.getRect();
+    					if( rcGroup.left<rc.left && rcGroup.top<rc.top && rcGroup.right>rc.right && rcGroup.bottom>rc.bottom){
+    						ctrl.setParent(this);
+    					}
+    				}
+        		}
+        		
+        		owner.translateCommand();
+    		};
+    		tryCreateEmbed = function(...){
+    			var ok,obj = call(owner.createEmbed,owner,... );
+    			if(ok) return obj;
+    			return null,obj;
+    		};
+			createEmbed = function(progId,embedObject,connet=true){
+			
+				if(! ..com[["CreateEmbed"]] )
+					error("未导入com支持库!",2);
+					
+				embedObject := {};
+				var ok,err = call(..com.CreateEmbed,, embedObject ,owner,progId );
+				if(!ok) {
+					if(type(progId) != type.string ) error(err,2);
+					var ok,obj = call(..com.CreateObject,, progId );
+					if( ok ) ok,err = call(..com.CreateEmbed,, embedObject ,owner,obj );
+					if( !ok ) error(err,2)
+				}
+				
+				owner._embedObject = embedObject;
+				owner._onDestroy = function(){ 
+					//必须按以下顺序释放资源
+					collectgarbage("collect") 
+					if( ..com.IsObject(embedObject._object) ){
+						..com.ReleaseConnection(embedObject._object); 
+						..com.Release(embedObject._object) 
+					}
+					embedObject._host.close();
+					embedObject = null;
+				};
+				
+				owner.defaultTranslateAccelerator = function(msg){ 
+					return embedObject._host.tranacc(msg)
+				}; 
+				owner.isDialogMessage = function(hwnd,msg){ };
+				owner._adjust = function( cx,cy,wParam ) {	 
+					if(embedObject){	
+						embedObject._host.adjust();
+					}
+				}; 
+				
+				if( owner.isForm ? owner.onEraseBkgnd === null ){
+					owner.onEraseBkgnd  = lambda() 0;
+				}
+				else {
+					owner.modifyStyle(,0x2000000/*_WS_CLIPCHILDREN*/);
+					owner.modifyStyleEx(0x20/*_WS_EX_TRANSPARENT*/);
+				}
+			
+				var sink, cookie;
+				if(connet){
+					try{ sink, cookie = ..com.Connect(embedObject._object, embedObject ) } 
+				}
+				return embedObject,sink,cookie;
+			};
+			createEmbedEx = function(winform,clsId,iid){
+				var embed = owner.createEmbed(winform,clsId,iid);
+				embed@ = {
+					_get = embed._object;
+					_set = function(k,v){ 
+						if(type(v) === "function") owner[[k]] = v;
+						else owner._object[k] = v; 
+					}
+				};
+				
+				return embed;
+			};
+			publish = function(name,...){
+				..publish(name,...)
+			};
+		};
+	};
+	
+	with _metaPrototype._get {
+		addtimer = setInterval; settimer = changeInterval; killtimer = clearInterval;
+	}
+	
+	mixin = function(meta){
+		..table.assign(_metaPrototype._get,meta);
+	}
+}
+
+/**intellisense(win.ui.ctrl)
+metaProperty = 窗口控件属性元表,\n继承自util.metaProperty
+metaProperty(properties,default) = @.metaProperty(\n\n	属性 = {\n		_get = function(){ \n			/*读取属性代码写在这里*/\n			return null;\n		}\n		_set = function( v ){\n			/*写入属性代码写在这里*/\n			..io.print( owner,v)\n		} 	\n	};\n)
+metaProperty.mixin(__) = 混入属性元表成员到窗口默认属性元表
+end intellisense**/

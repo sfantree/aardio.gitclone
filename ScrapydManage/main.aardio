@@ -1,0 +1,247 @@
+import win.ui;
+import win.ui.menu;
+import fsys.file;
+import thread;
+import scrapydAPI;
+import syncOpt;
+import fsys;
+import winex;
+/*DSG{{*/
+mainForm = win.form(text="ScrapyManage";right=577;bottom=548;border="dialog frame")
+mainForm.add(
+static={cls="static";text="提示信息：";left=12;top=492;right=567;bottom=532;transparent=1;z=2};
+tab={cls="tab";left=10;top=14;right=570;bottom=482;edge=1;z=1}
+)
+/*}}*/
+
+mainForm.hostInfos = {} //保存主机列表
+mainForm.hosts = {}   //保存主机名和IP端口的字典
+mainForm.tasks = {}  //保存任务列表
+mainForm.jobids = {} //保存已运行任务ID
+mainForm.jobs = {} //保存服务器任务队列
+//主机管理界面右键弹出
+mainForm.hostPopmenu = win.ui.popmenu(mainForm); 
+mainForm.hostPopmenu.add('添加主机',function(id){ 
+    var frmChild = mainForm.loadForm("\dlg\hostInfo.aardio");
+	frmChild.show();
+	while(!mainForm.hostInfo){
+   		win.delay(100)
+   	} 
+   	if (mainForm.hostInfo != 'error'){
+   		//import web.json;
+   		//io.print(web.json.stringify(mainForm.hostInfos))
+   		var name, host = table.unpack(mainForm.hostInfo)
+   		for(i=1;#mainForm.hostInfos;1){
+   			if(name == mainForm.hostInfos[i][1]) {
+   				win.msgbox('已存在同名主机，创建失败!','错误信息');
+   				mainForm.hostInfo = null
+   				return null;
+   			} 
+   		}
+   		var hostInfo = {''; name; host};
+   		var hostTab = mainForm.tab.items[1]
+		var id = hostTab.listview.addItem({text = hostInfo})
+		hostTab.listview.setItemText(id, id, 1)
+		table.push(mainForm.hostInfos, mainForm.hostInfo)
+		mainForm.hosts[name] = host
+ 	}
+ 	var f = fsys.file('hosts.txt', 'w')
+ 	for(i=1;#mainForm.hostInfos;1){
+ 		f.write(string.join(mainForm.hostInfos[i], ',') + '\n')
+ 	}
+ 	f.close()
+ 	mainForm.hostInfo = null
+ 	
+})
+mainForm.hostPopmenu.add('刷新列表状态',function(id){ 
+    syncOpt.refreshHost(mainForm)
+})
+mainForm.hostPopmenu.add('同步所有项目到所有主机', function(id){ 
+    mainForm.static.text = ''
+    syncOpt.syncAllProject(mainForm)
+})
+mainForm.hostPopmenu.add('查看任务队列', function(id){ 
+    var curTab = mainForm.tab.items[1];
+	if(curTab.listview.getItemText(curTab.listview.selIndex, 4) == '正常'){
+		var frmChild = mainForm.loadForm("\dlg\taskList.aardio");
+		frmChild.show();
+	}
+	else win.msgbox('主机状态异常，请检查后刷新状态！','错误信息');
+})
+mainForm.hostPopmenu.add('删除主机', function(id){ 
+    var curTab = mainForm.tab.items[1]
+    mainForm.hosts[mainForm.hostInfos[curTab.listview.selIndex][1]] = null
+    curTab.listview.delItem(curTab.listview.selIndex)
+   	table.remove(mainForm.hostInfos, curTab.listview.selIndex)
+    var f = fsys.file('hosts.txt', 'w')
+ 	for(i=1;#mainForm.hostInfos;1){
+ 		f.write(string.join(mainForm.hostInfos[i], ',') + '\n')
+ 	}
+ 	f.close()
+ 	
+ 
+})
+//项目管理弹出菜单
+mainForm.projectPopmenu = win.ui.popmenu(mainForm); 
+mainForm.projectPopmenu.add('刷新项目列表', function(id){ 
+    syncOpt.refreshProject(mainForm)
+})
+mainForm.projectPopmenu.add('同步所有项目到', function(id){ 
+    var frmChild = mainForm.loadForm("\dlg\hostList.aardio");
+	frmChild.show();
+	var hosts = {}
+	while(!mainForm.checkHosts){
+   		win.delay(100)
+   	}
+   	mainForm.static.text = ''
+   	for(i=1;#mainForm.checkHosts;1){
+   		table.push(hosts,mainForm.hosts[mainForm.checkHosts[i]])
+   	}
+   	if(!..io.exist('/projects')) fsys.createDir('/projects');
+    files, dirs, alldirs = fsys.list('/projects')
+	syncOpt.syncSomeProject(mainForm, hosts, dirs)
+	mainForm.checkHosts = null
+})
+
+mainForm.projectPopmenu.add('同步到', function(id){ 
+    var frmChild = mainForm.loadForm("\dlg\hostList.aardio");
+    var projectTab = mainForm.tab.items[2]
+	
+    if(!projectTab.listview.selIndex) return;
+	frmChild.show();
+	while(!mainForm.checkHosts){
+   		win.delay(100)
+   	}
+   	mainForm.static.text = ''
+   	var hosts = {}
+	for(i=1;#mainForm.checkHosts;1){
+   		table.push(hosts,mainForm.hosts[mainForm.checkHosts[i]])
+   	}
+   	project = projectTab.listview.getItemText(projectTab.listview.selIndex, 2)
+   	syncOpt.syncSomeProject(mainForm, hosts, {project})
+   	mainForm.checkHosts = null
+})
+
+mainForm.taskPopmenu = win.ui.popmenu(mainForm); 
+mainForm.taskPopmenu.add('创建任务', function(id){ 
+    var frmChild = mainForm.loadForm("\dlg\taskInfo.aardio");
+	frmChild.show();
+	while(!mainForm.task){
+   		win.delay(100)
+   	} 
+   	if (mainForm.task != 'error'){
+   		syncOpt.createTask(mainForm)
+   	}
+ 	var f = fsys.file('tasks.txt', 'w')
+ 	for(i=1;#mainForm.tasks;1){
+ 		f.write(string.join(mainForm.tasks[i], ',') + '\n')
+ 	}
+ 	f.close()
+ 	mainForm.task = null
+    
+})
+mainForm.taskPopmenu.add('取消任务', function(id){
+    syncOpt.cancelTask(mainForm)
+})
+
+
+var main = function(){
+    //添加主机管理Tab
+	var hostTab = mainForm.tab.add(text='主机管理'; bottom=272;right=569 )
+	hostTab.add(
+		listview={cls="listview";left=0;top=0;right=575;bottom=274;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-14;name='宋体');fullRow=1;gridLines=1;msel=false;z=1}
+	)
+	hostTab.listview.insertColumn('ID',  25,,0x0/*_LVCFMT_LEFT*/) 
+	hostTab.listview.insertColumn('名称',  100,,0x0/*_LVCFMT_LEFT*/) 
+	hostTab.listview.insertColumn("接口", 135,,0x0/*_LVCFMT_LEFT*/) 
+	hostTab.listview.insertColumn("状态", 40,,0x0/*_LVCFMT_LEFT*/)
+	hostTab.listview.insertColumn("节点名", 100,,0x0/*_LVCFMT_LEFT*/)  
+	hostTab.listview.insertColumn("最后同步时间", 150,,0x0/*_LVCFMT_LEFT*/)  
+	//添加项目管理Tab
+	var itemTab = mainForm.tab.add(text='项目管理'; bottom=272;right=569 )
+	itemTab.add(
+		listview={cls="listview";left=0;top=0;right=575;bottom=274;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-14;name='宋体');fullRow=1;gridLines=1;msel=false;z=1}
+	)
+	itemTab.listview.insertColumn('ID',  25,,0x0/*_LVCFMT_LEFT*/) 
+	itemTab.listview.insertColumn('名称', 100,,0x0/*_LVCFMT_LEFT*/) 
+	//添加任务管理
+	var taskTab = mainForm.tab.add(text='任务管理'; bottom=272;right=569 )
+	taskTab.add(
+		listview={cls="listview";left=0;top=0;right=575;bottom=274;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-14;name='宋体');fullRow=1;gridLines=1;msel=false;z=1}
+	)
+	taskTab.listview.insertColumn('taskID',  50,,0x0/*_LVCFMT_LEFT*/) 
+	taskTab.listview.insertColumn('名称',  100,,0x0/*_LVCFMT_LEFT*/)
+	taskTab.listview.insertColumn('主机',  100,,0x0/*_LVCFMT_LEFT*/)
+	taskTab.listview.insertColumn('项目',  100,,0x0/*_LVCFMT_LEFT*/)
+	taskTab.listview.insertColumn('爬虫',  120,,0x0/*_LVCFMT_LEFT*/)
+	taskTab.listview.insertColumn('状态',  60,,0x0/*_LVCFMT_LEFT*/)
+	
+	syncOpt.loadHost(mainForm)
+	//syncOpt.syncAllProject(mainForm)
+	syncOpt.refreshProject(mainForm)
+	
+}
+//io.open()
+main()
+
+
+//主机Tab中的listview消息回调
+mainForm.tab.items[1].listview.onnotify = function(id, code, ptr){ 
+    select(code) {
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  {
+    		var x,y = win.getCursorPos();
+    		mainForm.hostPopmenu.popup(x, y, true);//弹出菜单
+    	}
+    }
+    
+}
+mainForm.tab.items[2].listview.onnotify = function(id, code, ptr){ 
+    select(code) {
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  {
+    		var x,y = win.getCursorPos();
+    		mainForm.projectPopmenu.popup(x, y, true);//弹出菜单
+    		
+    	}
+    }
+    
+}
+mainForm.tab.items[3].listview.onnotify = function(id, code, ptr){ 
+    select(code) {
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  {
+    		var x,y = win.getCursorPos();
+    		mainForm.taskPopmenu.popup(x, y, true);//弹出菜单
+    			
+    	}
+    }
+    
+}
+//延迟500ms执行函数，并每隔180000ms执行一次
+intervalID1 = mainForm.setInterval(
+	500, function(){
+		import syncOpt;
+    	syncOpt.refreshHost(mainForm)
+    	return 180000
+	}
+	
+);
+
+intervalID2 = mainForm.setInterval(
+	60000, function(){
+		import syncOpt;
+    	syncOpt.refreshProject(mainForm)
+    	return 3600000
+	}
+	
+);
+
+intervalID3 = mainForm.setInterval(
+	3600000, function(){
+		import syncOpt;
+    	syncOpt.syncAllProject(mainForm)
+    	return 3600000
+	}
+	
+);
+
+mainForm.show();
+return win.loopMessage();

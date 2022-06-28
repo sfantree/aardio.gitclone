@@ -1,0 +1,15 @@
+
+/*DSG{{*/
+var winform = win.form(text="参考图菜单";right=759;bottom=469)
+winform.add(
+button={cls="button";text=">>";left=347;top=28;right=411;bottom=432;z=7};
+groupbox={cls="groupbox";text="参考图菜单";left=493;top=20;right=738;bottom=445;edge=1;z=1};
+groupbox2={cls="groupbox";text="功能列表";left=34;top=20;right=269;bottom=248;edge=1;z=3};
+groupbox3={cls="groupbox";text="其他";left=37;top=273;right=265;bottom=437;edge=1;z=4};
+listbox={cls="listbox";left=512;top=52;right=718;bottom=430;edge=1;items={};z=2};
+listbox2={cls="listbox";left=55;top=44;right=241;bottom=230;edge=1;items={};z=5};
+listbox3={cls="listbox";left=64;top=299;right=230;bottom=421;edge=1;items={};z=6}
+)
+/*}}*/
+
+return winform; 

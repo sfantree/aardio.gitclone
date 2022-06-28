@@ -1,0 +1,78 @@
+﻿import win.ui;
+/*DSG{{*/
+var examInfoForm = ..win.form(text="考试须知";right=1024;bottom=640;border="thin";max=false)
+examInfoForm.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+ 
+
+
+
+ 
+var wbLayout = web.layout( examInfoForm )
+wbLayout.go("/res/考试须知.html") ;
+//页面按钮点击事件
+
+
+wbLayout.onButtonClick = {
+
+	
+	login=function(ltTarget,ltEle,reason,behaviorParams){//
+	    var loginForm = examInfoForm.loadForm("\ui\登陆.aau");
+		loginForm.show();
+		examInfoForm.close();
+		
+	}
+	exit=function(ltTarget,ltEle,reason,behaviorParams){
+		examInfoForm.close();
+	}
+	
+	
+	
+}
+
+wbLayout.getEle("ksxz").value=" 
+     一、每科目考试时间为60分钟。考试开始后30分钟内不得交卷；考试满60分钟，或到达规定考试截止时间，系统自动交卷。
+    
+     二、考生正确录入准考证号和身份证号进入考试系统，在规定的时间段内考试和计时。
+    
+     三、《财经法规与会计职业道德》试题题型为：单选30题，每题1分；多选20题，每题2分；判断题20题，每题1分；案例分析题2题，每题5分。其中，判断题答案错误的，每错一题倒扣0.5分，判断题得分扣完为止。单选题、判断题答题后试题自动跳转到下一题，多选题答题后需要点击“下一题”按钮。
+    
+     四、《会计基础》试题题型为：单选30题，每题1分；多选20题，每题2分；判断题20题，每题1分；计算分析题2题，每题5分。其中，判断题答案错误的，每错一题倒扣0.5分，判断题得分扣完为止。单选题、判断题答题后试题自动跳转到下一题，多选题答题后需要点击“下一题”按钮。
+    
+     五：《初级会计电算化》试题划分为理论试卷和实务试卷两部分，需要分别交卷。理论部分单选20题，每题1分；多选10题，每题2分；判断20题，每题1分，共60分。其中，判断题答题错误的，每错一题倒扣0.5分，判断题得分扣完为止。实务部分40分。
+    
+     六、“一科”考生在《财经法规与会计职业道德》交卷后，完成会计从业资格考试，迅速离场。
+    
+     七、“三科”考生的答卷顺序为：《财经法规与会计职业道德》、《会计基础》、《初级会计电算化》。必须按顺序答题、交卷后，才能进行下一科目的考试。交卷后不得再进行已交卷科目的考试！三科全部交卷后，完成会计从业资格考试，迅速离场。
+    
+     八、出现计算机故障等特殊情况的，应举手询问监考人员，监考人员按规定进行处理。
+";
+
+//checkbox事件
+wbLayout.onButtonStateChanged = {
+	is_agree=function(ltTarget,ltEle,reason,behaviorParams){
+
+	
+	   if(wbLayout.getEle("login").disabled){
+	   	 wbLayout.getEle("login").setAttribute("disabled",null);
+	   	 wbLayout.getEle("login").style["color"]="red";
+	   	 wbLayout.getEle("login").style["background"]="url('images/login2.jpg') no-repeat";
+	   }else {
+	   		 wbLayout.getEle("login").setAttribute("disabled","true");
+	   		 wbLayout.getEle("login").style["color"]="gray";
+	   		 wbLayout.getEle("login").style["background"]="url('images/login.jpg') no-repeat";
+	   }
+	   
+	    
+	}
+	
+}
+
+
+
+examInfoForm.show() 
+win.loopMessage();

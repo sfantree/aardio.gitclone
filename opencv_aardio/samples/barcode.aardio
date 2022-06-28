@@ -1,0 +1,15 @@
+import cv2
+//相关模型至https://github.com/WeChatCV/opencv_3rdparty下载
+det = cv2.barcode("./assets/model/sr.prototxt","./assets/model/sr.caffemodel")
+img = cv2.imread("./assets/images/barcode.png")
+infos,points = det.detectAndDecode(img)
+for(i=1;#infos;1){
+	cv2.line( img,points[1],points[2],::Scalar(255),2 )
+	cv2.line( img,points[2],points[3],::Scalar(255),2 )
+	cv2.line( img,points[3],points[4],::Scalar(255),2 )
+	cv2.line( img,points[4],points[1],::Scalar(255),2 )
+	cv2.putText( img,infos[i],points[1] )
+}
+
+cv2.imshow("img",img)
+cv2.waitKey(0)

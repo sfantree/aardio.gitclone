@@ -1,0 +1,45 @@
+﻿import hpsocket.socket.client;
+namespace hpsocket.socket;
+
+class udpCast{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.client(obj);
+	};
+	getMaxDatagramSize = function(){
+		return ::HPSocket.HP_UdpCast_GetMaxDatagramSize(this.pSocket);
+	}
+	setMaxDatagramSize = function(size){
+		::HPSocket.HP_UdpCast_SetMaxDatagramSize(this.pSocket,size);
+	}
+	getRemoteAddress = function(){
+		var addr ={ WORD value[]='000.000.000.000.'u}
+		var addrlen = {int value}
+		var port = {WORD value}
+		if(::HPSocket.HP_UdpCast_GetRemoteAddress(this.pSocket,addr,addrlen,port))
+			return addr.value,port.value;
+	}
+	setReuseAddress = function(reuse){
+		::HPSocket.HP_UdpCast_SetReuseAddress(this.pSocket,reuse);
+	}
+	getReuseAddress = function(){
+		return ::HPSocket.HP_UdpCast_IsReuseAddress(this.pSocket);
+	}
+	setCastMode = function(mode){
+		::HPSocket.HP_UdpCast_SetCastMode(this.pSocket,mode);
+	}
+	getCastMode = function(){
+		return ::HPSocket.HP_UdpCast_GetCastMode(this.pSocket);
+	}
+	setMultiCastTtl = function(v){
+		::HPSocket.HP_UdpCast_SetMultiCastTtl(this.pSocket,v);
+	}
+	getMultiCastTtl = function(){
+		return ::HPSocket.HP_UdpCast_GetMultiCastTtl(this.pSocket);
+	}
+	setMultiCastLoop = function(v){
+		::HPSocket.HP_UdpCast_SetMultiCastLoop(this.pSocket,v);
+	}
+	getMultiCastLoop = function(){
+		return ::HPSocket.HP_UdpCast_IsMultiCastLoop(this.pSocket);
+	}
+}

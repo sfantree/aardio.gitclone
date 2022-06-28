@@ -1,0 +1,32 @@
+import util.metaProperty;
+namespace util.buffer;
+
+headers = class {
+	ctor () {
+		this["Content-Type"] = "text/html";
+	}
+	@_meta;
+}
+
+namespace headers {
+	_meta = {
+		_get = function (k) {
+			k = canonicalize(k);
+			return owner[[k]];
+		}
+		_set = function (k, v) {
+			k = canonicalize(k);
+			owner[[k]] = v;
+		}
+	}
+	
+	canonicalize = function (k) {
+		k = ..string.replace( ..string.lower(k), "(\-[a-z])", function (c) {
+			return ..string.upper(c);
+		} );
+		k = ..string.replace( k, "^([a-z])", function (c) {
+			return ..string.upper(c);
+		} );
+		return k;
+	}
+}

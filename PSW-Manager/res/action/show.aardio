@@ -1,0 +1,65 @@
+ //显示详细的信息
+  
+ show=function(c){
+  	var id="";
+ 	var whereTitle='';
+ 	 
+ 	var tm=muchzz('show.+-i([0-9,]+)',c);//匹配列表行数
+ 	id =tm? tm:id;
+ 	//console.log('-----'+id)
+ 	if(id==''){
+ 		return ;
+ 	}
+ 	
+ 	var h,e=getWebData('op=getlist&where='+inet.url.encodeUri(' id in ('+id+') '));
+ 	if(e=="" && h!='[]'){
+ 		var json=web.json.parse(h);//
+ 		for adptInfo,hh in json{
+ 			console.log('---------------------------------------------------------------------start:'+hh['id']);
+			var remark_=hh['remark'];
+			try{
+					remark_=remark_==null?'':crypt.bin.decodeBase64(remark_);//..string.sub( hh['pswtext'],1,8),
+			}
+			catch(e){
+				remark_='';
+			}
+			console.log('### '+hh['id']+" | "+crypt.bin.decodeBase64(hh['title'])+' | '+remark_+' | '+hh['createdatetime']+' | '+hh['modifydatetime']);
+		 	//console.log(hh['id']+" "+..string.sub(crypt.bin.decodeBase64(hh['title']),1,10,true),remark_,hh['createdatetime'],hh['modifydatetime']);
+			//console.log('---------Detail:');
+			
+			
+			try{
+				var psw=hh['pswtext'];
+				if(psw!=''){
+					//console.log(psw);
+					psw=crypt.bin.decodeBase64(psw);
+					//console.log(psw);
+					var csp = crypt();
+					csp.setPassword(enpsw);
+					psw=csp.decrypt(psw)
+					console.log(psw);
+					
+					var p=web.json.parse(psw);
+					//console.log(p);
+					var i=0;
+					for k,v in  p { 
+						i++;
+						//k为键,v是匹配的值,在这里键值对无序的随机出现。
+						//tab[i+'']=k+'>'+v;//这里的i是数值，变成文本后面好操作
+						io.print('line '+i+' ',k+'>'+v); //显示: 键,值 
+					}
+					
+				 
+				}
+			}
+			catch(e){
+				console.log('ERROR:',e);
+			}
+			
+			console.log('---------------------------------------------------------------------end:'+hh['id']);
+			console.log();
+		} 	
+ 	
+ 	}
+ }
+ 

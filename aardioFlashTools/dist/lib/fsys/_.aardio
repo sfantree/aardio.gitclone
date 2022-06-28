@@ -1,0 +1,516 @@
+import fsys.path;
+namespace fsys;
+
+GetCurrentDirectory := ::Kernel32.api( "GetCurrentDirectoryW", "INT(INT len, ustring &buf)");  
+FindFirstFile := ::Kernel32.api("FindFirstFileW", "int(ustring,struct&)") 
+FindNextFile := ::Kernel32.api("FindNextFile", "int(int,struct&)") 
+FindClose := ::Kernel32.api("FindClose", "int(int)") 
+
+longpath = path.long; 
+shortpath = path.short; 
+joinpath = ..io.joinpath;
+var fullpath = ..io.fullpath;
+
+getCurDir = function(){
+	var re,str = GetCurrentDirectory(0x104,0x208/*_MAX_WPATH_BYTES*/)
+	return ..io.joinpath(str,"/");
+}
+
+setCurDir = function(dir){ 
+	return ::Kernel32.SetCurrentDirectory( fullpath(dir+"\") );
+}
+
+getSysDir = function(toPath){
+	return getSpecial(0x29 /*_CSIDL_SYSTEMX86*/,toPath);
+}
+
+getWinDir = function(toPath){ 
+	return getSpecial(0x24 /*_CSIDL_WINDOWS*/,toPath)
+}
+
+getTempDir = function(){ 
+	return ..string.expand("%TMP%") : appData("Temp") ;
+}
+
+getDrive = function(){
+	return ..io.splitpath( ..io.fullpath("/") ).drive;
+} 
+
+getExtensionName = function(path){
+	var p = ..string.lastIndexAny(path,".");
+	if(p) return ..string.lower( ..string.right( path,-(p+1) ) );
+}
+
+getFileName = function(path){ 
+	path = path ? ..string.trimright(path,"\/");
+	return path ? ..io.splitpath( path ).file;
+}
+
+getParentDir = function(path){
+	if(!path) error("路径参数不能为空",2);
+	path = ..string.trimright(path,"\/");
+	var tPath =  ..io.splitpath(path);
+	if( tPath ? #tPath.file ) return tPath.dir;
+}
+
+createParentDir = function(dir,clear){
+	if(!#dir)error("路径不能为空",2);
+	var dir = getParentDir(dir);
+	if(dir) return createDir( dir,clear);
+}
+
+createDir = function(dir,clear){
+	if( clear === true ){
+		if( ! ( ::Kernel32.GetFileAttributesW(dir) & 4/*_FILE_ATTRIBUTE_SYSTEM*/) )
+			delete(dir)
+	}
+	return ..io.createDir(dir);
+}
+
+searchFile = function(filename,...){
+	if( ... ){ 
+		var dir = {...}
+		var path;
+		for(i=1;#dir ){
+			path = joinpath(dir[i],filename)
+			if( ..io.exist(path ) )
+				return path;
+		} 
+	} 
+	else{
+	
+		return ..io.exist( filename )
+			|| searchFile( filename, ..io.localpath("\"))
+			|| searchFile( filename, ..io._exedir )
+			|| searchFile( filename,getCurDir() ) 
+			|| searchFile( filename,getSysDir() ) 
+			|| searchFile( filename,getWinDir() )  
+	}
+}
+
+SHGetFolderLocation = ::Shell32.api("SHGetFolderLocationW","int(int hwndOwner, int nFolder,pointer hToken,INT reserved,pointer &ppidl)" )
+SHFileOperation = ::Shell32.api("SHFileOperationW","int(pointer lpFileOp)"); 
+SHGetPathFromIDList = ::Shell32.api("SHGetPathFromIDListW","bool(POINTER pidl,ustring & str)");  
+ILCreateFromPath = ::Shell32.api("ILCreateFromPathW","pointer(ustring path)");  
+idListFromPath = function(path){
+	return ILCreateFromPath( fullpath(path) )
+}
+
+::Ole32 := ..raw.loadDll("Ole32.dll")
+pathFromIdList = function(pIdl,free){ 
+	if(!pIdl)return;
+	var ok,path = SHGetPathFromIDList(pIdl,0x208/*_MAX_WPATH_BYTES*/)
+	if(free)::Ole32.CoTaskMemFree(pIdl)
+	if(ok)return path;
+} 
+getSpecial = function(id=0,toPath=true,token){
+	var re,pIdl = SHGetFolderLocation (0,id,token,0); 
+	if(re>=0){ 
+		if(toPath) {
+			var path = pathFromIdList(pIdl,true); 
+			if( type(toPath) == "string" ) path = ..fsys.joinpath(path,toPath);
+			return path;
+		}
+		return pIdl;
+	}
+} 
+getSpecialDefault = function(id,toPath){
+	return getSpecial(id,toPath,_INVALID_HANDLE_VALUE);
+} 
+
+var SHFILEOPSTRUCT = class {
+	int hwnd = 0;
+	INT wFunc;
+	ustring pFrom;
+	ustring pTo;
+	WORD fFlags;
+	int fAnyOperationsAborted;
+	pointer hNameMappings;
+	ustring lpszProgressTitle;
+}
+
+var getOpFiles = function(path,flag){
+	if(type(path)==type.table){
+    	for(k,v in path){ 
+    		path[k] = ..string.trimright(fullpath(v),"\/")
+    	} 
+    	..table.push(path,'\0');
+    	path = ..string.join(path,'\0');
+    	flag = flag | 0x1/*_FOF_MULTIDESTFILES*/
+    }
+    else {
+    	path = ..string.trimright( fullpath(path),"\/" ) + '\0'; 
+    }
+    return path,flag;	
+}
+
+operation = function( op,from,to,flag,title,hwnd ) { 
+	if( flag === null ) flag = 0x614/*_FOF_NO_UI*/;
+	
+    var fo = SHFILEOPSTRUCT(); 
+    if( ! (#from)  ) error("请指定源文件路径",3); 
+    from = getOpFiles(from,0); //MSDN:This string must be double-null terminated. 
+    if(#to){
+    	to,flag = getOpFiles(to,flag);
+    } 
+    fo.wFunc = op;
+    fo.pFrom = from ;
+    fo.pTo = to; 
+    if(title){
+    	fo.lpszProgressTitle = title + '\0\0';
+    	flag |= 0x100/*_FOF_SIMPLEPROGRESS*/ 
+    	flag &= ~0x4/*_FOF_SILENT*/;
+    }
+    
+    fo.fFlags = flag;
+    fo.hwnd = hwnd; 
+	
+    fo = ..raw.buffer(fo)
+    for(i=21;#fo;1){
+    	fo[i-2] = fo[i] 
+    } 
+    
+    return SHFileOperation(fo) == 0; 
+} 
+
+delete = function(path,flag,title,hwnd){
+	return operation(3,path, ,flag,title,hwnd);
+}
+
+deleteEx = function(from,flag,title,hwnd){
+	return operation(3,from, ,flag,title,hwnd) 
+		or ::Kernel32.MoveFileExB(from,null,0x4/*_MOVEFILE_DELAY_UNTIL_REBOOT*/)
+}
+
+rename = function(from,to,flag,title,hwnd){ 
+	return operation(4/*_FO_RENAME*/,from,to,flag,title,hwnd); 
+}
+
+move = function(from,to,flag,title,hwnd){ 
+	return operation(1/*_FO_MOVE*/,from,to,flag,title,hwnd); 
+}
+
+copy = function(from,to,flag,title,hwnd){ 
+	return operation(2/*_FO_COPY*/,from,to,flag,title,hwnd); 
+}
+
+WIN32_FIND_DATA := class{
+    INT dwFileAttributes;
+    struct ftCreationTime = ::FILETIME();
+    struct ftLastAccessTime = ::FILETIME();
+    struct ftLastWriteTime = ::FILETIME();
+    INT nFileSizeHigh ;
+    INT nFileSizeLow; 
+    INT dwReserved0;
+    INT dwReserved1;
+    WORD cFileName[ 260 ];
+    WORD cAlternateFileName[ 14 ];
+}
+
+FileTimeToSystemTime = ::Kernel32.api("FileTimeToSystemTime","int(struct filetime,struct& time)")
+fromFileTime = function(filetime){
+	var ok,tm = FileTimeToSystemTime(filetime,..time() )
+	if(ok)
+		return tm;
+} 
+
+var function  enum_aux(dir,wildcard="*.*",proc ,enumSubdir){
+	if( !..string.indexAny(dir,"\/",#dir) ) dir = dir + "\";
+	if( !..io.exist(dir) ) return; 
+	
+	var data = WIN32_FIND_DATA()
+	var filename;
+	var fullpath;
+	 
+	var scache = {};
+	if( type(wildcard) != "table")
+		wildcard = {wildcard};
+		
+	for(i=1;#wildcard;1){
+		var p = wildcard[i]; 
+		var hf,data =  FindFirstFile(dir ++ p,data); //搜索文件,按指定的通配符
+		if(hf != -1/*_INVALID_HANDLE_NUM*/){
+			do{ 
+				filename = data.cFileName; 
+				if( (#filename) && (filename!=".") &&  ( filename!=".." ) && (!scache[filename]) ){
+					fullpath =  joinpath(dir,filename)
+					scache[filename] = true;
+					
+					if( ( data.dwFileAttributes & 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/ ) == 0 ){  
+						if( proc ? proc( dir,filename,fullpath,data ) === false ) {
+							FindClose(hf);
+							return false; 
+						}
+					}
+					else {
+						if( proc ? proc( filename,,fullpath,data) === false ) {
+							FindClose(hf);
+							return false; 
+						};
+					}
+				}
+				
+			} while( FindNextFile(hf,data) )
+			FindClose(hf);
+		}
+	};
+	
+	var hf,data =  FindFirstFile(dir + "*.*",data); //搜索所有目录
+	if(hf != -1/*_INVALID_HANDLE_NUM*/){
+		do{
+			if( data.dwFileAttributes & 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/ ) { 
+				filename = data.cFileName;
+				if( (filename!=".") &&  ( filename!=".." ) ) {
+					if(enumSubdir){ 
+						fullpath = joinpath(dir,filename);
+						
+						//enumSubdir只能是布尔值或函数
+						if( (enumSubdir===true) || enumSubdir( fullpath,filename )!==false  ) 
+							if( enum_aux( fullpath,wildcard,proc,enumSubdir ) === false ){
+								FindClose(hf);
+								return false;
+							}
+					}
+				}
+			}
+		}while(FindNextFile(hf,data) )
+		FindClose(hf);
+	}
+}
+
+//@wildcard 参数可以是一个数组
+function enum(dir,wildcard="*.*",proc,enumSubdir=true/*是否搜索子目录*/){
+	dir = fullpath(dir+"\"); //避免自动移除尾部的点号 
+	if( ! ..io.exist(dir) ) {
+		error("目录不存在" + (dir:"") ,2);
+	}
+
+ 	if( type(enumSubdir)!=type.function){
+ 		enumSubdir = !!enumSubdir; //必须转为布尔值 
+ 		if(!proc) proc = true;
+ 	}
+ 	
+	if( proc ? type(proc)!=type.function ) error("参数@3必须指定回调函数",2);  
+	enum_aux( dir,wildcard,proc,enumSubdir);
+}
+
+list = function(dir,pattern,wildcard){ 
+	dir = ..io.exist(dir) 
+	if(! dir ) error("目录不存在" + (dir:"") ,2);
+	
+	var files,folders,alldirs = {},{},{};
+	var push = ..table.push;
+	
+	enum_aux(dir,wildcard ,
+		function(dir,filename,fullpath,findData){ 
+			if( pattern ?  ( ! ..string.match(filename : dir ,pattern) ) ) return; 
+			if(!filename){
+				push(folders ,dir);folders [dir] = fullpath;
+			}
+			else{
+				push(files,filename);files[filename] = fullpath; 
+			};
+		} ,function(fullpath,dir){
+			if( pattern ?  ( ! ..string.match(dir ,pattern) ) ) return false; 
+			push(alldirs,dir);alldirs[dir] = fullpath;
+			return false;
+		}
+	); 
+	return files,folders,alldirs ;
+}
+ 
+getAttributes = ::Kernel32.api("GetFileAttributes","int(ustring path)")
+setAttributes = ::Kernel32.api("SetFileAttributes","int(ustring path,int attr)")
+attrib  = function(f,remove,add){
+	if(!f || f==="") return -1;
+	
+	f = fullpath(f)
+	
+	var a = getAttributes(f);
+	if(!remove && ! add)
+		return a;
+		
+	remove := 0;
+	add := 0;
+	a = ( a  & ~remove ) | add ; 
+	if( setAttributes( f,a) )
+		return a;
+}
+ 
+isHidden = function(f){ 
+	var s = attrib(f)
+	return (s!=-1) && ( s & 2/*_FILE_ATTRIBUTE_HIDDEN*/);
+}
+
+isSystem = function(f){
+	var s = attrib(f)
+	return (s!=-1) && ( s & 4/*_FILE_ATTRIBUTE_SYSTEM*/);
+}
+
+isDir = function(f){
+	var s = attrib(f)
+	return (s!=-1) && ( s & 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/);
+}
+
+isReadonly = function(f){
+	var s = attrib(f)
+	return (s!=-1) && ( s & 1/*_FILE_ATTRIBUTE_READONLY*/);
+}
+
+formatSize = function (...){  
+	return ..math.size64(...).format();
+}
+
+replace =function(path,p,s,c){
+	var d = ..string.load(path);
+	if(d) return ..string.save(path, ( ..string.replace(d,p,s,c) ) )	
+}
+
+gmatch = function(path,p){
+	return ..string.gmatch(..string.loadBuffer(path):"",p)
+}
+
+getSize =  ..io.getSize; // @Deprecated
+appdata = ..io.appData; // @Deprecated
+
+/**intellisense(fsys)
+formatSize( = 该函数参数支持math.size64支持的所有参数类型
+formatSize(.(字节长度) = 转换字节长度到适合的最大单位表示的文本,\n单位使用 bytes,KB,MB,GB等
+formatSize(.(字节长度低位,字节长度高位) = 转换字节长度到适合的最大单位( bytes,KB,MB,GB等 )\n低位用于表示4GB以下的长度,高位以4GB为最小单位表示长度
+shortpath(__/*路径*/) = 转换为短路径,\n如果文件不存在,返回空值,\n短文件名指向会因实际文件数变更,所以不能把短路径存入数据库\n\n存在特定文件目录无法获取短路径且返回包含空格的长路径的可能性\n如无必要，不建议使用或依赖此函数，正确使用 process 等可以自动\n转义路径参数中的空格
+longpath(__/*路径*/) = 转换为完整路径,并将短文件名转换为长文件名
+joinpath(.("根目录",不定个数子路径) = 注意根目录不可以圆点字符开始\n可追加任意个子路径参数,如果子路径是绝对路径则返回子路径\n拼接时可以使用空参数,但不可全部参数为空
+getCurDir() = 获取当前目录
+setCurDir(__/*目录*/) = 设置当前目录
+getSysDir() = 返回系统目录\n可选在参数中指定子路径并返回完整路径
+getWinDir() = 返回windows目录\n可选在参数中指定子路径并返回完整路径
+getTempDir() = 返回临时目录,\n注意拼接目录与子路径应当使用 io.joinpath 函数\n获取临时文件路径应当改用 io.tmpname 函数
+getDrive() = 返回应用程序所在分区,以冒号结束
+createDir(.("目录路径",是否清空重建) = 创建目录并返回创建成功的完整文件路径\n可创建多层目录,参数二可选
+createParentDir("__") = 创建指定路径的父目录.
+getExtensionName("__") = 返回文件后缀名,转换为小写.\n无后缀名则返回null空值
+getFileName(.(文件路径) = 返回路径的所指向的文件名(或目录名称)
+getParentDir("__") = 返回指定路径的父目录
+searchFile("__/*文件名*/") = 检查程序根目录、当前工作目录、系统目录\n如果包含指定文件,则返回文件完整路径
+searchFile("__/*文件名*/",目录) = 检查指定目录下是否包含指定文件\n如果存在返回完整路径,否则返回null
+setAttributes("",_FILE_ATTRIBUTE__) = 设置文件属性
+attrib("__/*文件路径*/") = 返回文件属性,\n以_FILE_ATTRIBUTE_前缀的常量标志各属性\n注意:WIN10 新版存在设为隐藏文件后变只读的问题\n参数为空字符串、null、不存在的路径都会 返回 -1
+attrib("",_FILE_ATTRIBUTE__/*多个属性用 | 链接*/) = 移除件属性\n参数一为文件路径\n参数二可以用 | 操作符连接多个属性\n成功返回新属性,失败返回null
+attrib("",/*移除*/,_FILE_ATTRIBUTE__/*多个属性用 | 链接*/) = 添加文件属性\n参数一为文件路径\n参数三可以用 | 操作符连接多个属性\n成功返回新属性,失败返回null
+isDir("__/*路径*/")  = 路径是否目录\n调用attrib检查目标路径是否具有_FILE_ATTRIBUTE_DIRECTORY属性\n参数为空字符串或 null 返回 false
+isReadonly("__/*文件路径*/")  = 文件是否只读\n调用attrib检查文件是否具有_FILE_ATTRIBUTE_READONLY属性
+isSystem("__/*文件路径*/")  = 是否系统文件\n调用attrib检查文件是否具有_FILE_ATTRIBUTE_SYSTEM属性
+isHidden("__/*文件路径*/")  = 是否隐藏文件\n调用attrib检查文件是否具有_FILE_ATTRIBUTE_HIDDEN属性\n注意:WIN10 新版存在设为隐藏文件后变只读的问题 
+list(.("目录路径","模式匹配","通配符") = 搜索当前目录下的文件，不搜索子目录下的文件,\n返回符合条件的文件名数组,子目录数组，以及全部子目录数组。\n注意有三个返回值,数组中使用文件名为键存放对应完整路径的值。\n除参数@1以外其他参数可选，\n参数@2使用模式匹配语法匹配文件名，模式匹配会成为第三个返回值的匹配条件,\n通配符默认值是"*.*",也可以传入包含多个通配符的数组,通配符对第三个返回值无效
+enum(目录路径,通配符,回调函数,是否处理子目录)  =  @.enum( "/遍历目录路径", "*.*",\n	function(dirname,filename,fullpath,findData){ \n		if(filename){ \n           	io.print("发现文件："+filename,"完整路径："+fullpath)__/*可使用 return false退出枚举文件过程*/\n		}\n		else{\n			io.print( "发现目录：" + dirname )\n		}\n	} \n	,/*如果此参数为false则忽略子目录*/\n);
+enum(目录路径,通配符,回调函数,目录筛选函数) = @.enum( "/遍历目录路径", "*.*",\n	function(dirname,filename,fullpath,findData){ \n		if(filename){ \n           	io.print("发现文件："+filename,"完整路径："+fullpath)/*可使用 return false退出枚举文件过程*/\n		}\n		else{\n			io.print( "发现目录：" + dirname )\n		}\n	},\n	function(dirpath,dirname){\n		__/*处理每个子目录前首先调用此函数,返回false跳过该目录*/\n		return true;\n	} \n);
+enum(目录路径,通配符,,目录回调函数) = @.enum( "/遍历目录路径", "*.*",,\n	function(dirpath,dirname){\n		__/*处理每个子目录前首先调用此函数,返回false跳过该目录*/\n		return false;\n	} \n);
+idListFromPath(__/*路径*/) = 路径转换为名称ID(PIDL)\路径必须存在
+pathFromIdList(.(PIDL名称ID,是否释放PIDL) = 名称ID(PIDL)转换为路径
+getSpecial(_CSIDL__) = 获取特殊文件夹,\n也可以使用 io.getSpecial 函数实现类似功能,\n参数@1使用_CSIDL开头的常量指定特殊文件夹的 CSIDL 标识,\n省略参数@1则默认值获取桌面目录,\n可选参数2指定是否将PIDL转换为路径返回,也可以是一个用于拼接的相对路径\n参数@2指定为false,则返回原始PIDL句柄\n可选使用参数@3指定访问令牌,用于修改用户目录
+getSpecialDefault(_CSIDL__) = 获取默认用户的特殊文件夹,\n参数@1使用_CSIDL开头的常量指定特殊文件夹的 CSIDL 标识,\n参数用法同getSpecial,不同的是访问令牌默认指定为 default 用户,\n注意 VISTA 以后的系统在此目录下创建文件或目录需要管理权限
+delete( = 删除文件或目录,成功返回 true,\n删除含畸形路径的目录请改用 fsys.remove 函数
+delete(.("路径",FOF选项,进度标题,父窗口句柄) = 删除文件或目录,成功返回 true,\n路径参数可以是多个路径组成的数组,其他参数可选\n支持非空目录,文件名支持通配符 
+deleteEx(.("路径",FOF选项,进度标题,父窗口句柄) = 删除文件或目录,成功返回true,\n路径参数只能是字符串,其他参数可选\n如果删除失败,则在下次系统重启时删除文件,\n重启删除目录之前必须先清空目录,\n重启删除文件的顺序与调用时的顺序相同
+move( = 移动文件或目录
+move(.(源路径,目标路径,FOF选项,进度标题,父窗口句柄) = 移动文件或目录,\n源路径参数可以是多个路径组成的数组,其他参数可选。\n如果目标路径已存在或源路径含通配符则移动到目标目录下面,\n否则复制文件或目录到参数@2指定的目标路径。\n\n如果目标路径的父目录可能不存在，请先用 io.createDir 创建该目录
+copy( = 复制文件或目录
+copy(.(源路径,目标路径,FOF选项,进度标题,父窗口句柄) = 复制文件或目录,\n源路径参数可以是多个路径组成的数组,其他参数可选。\n如果目标路径已存在或源路径含通配符则复制到目标目录下面,\n否则复制文件或目录到参数@2指定的目标路径。\n\n如果目标路径的父目录可能不存在，请先用 io.createDir 创建该目录
+rename(.(源路径,目标路径,FOF选项) = 重命名文件或目录,其他参数可选 
+fromFileTime(__/*FILETIME结构体*/) = 将::FILETIME结构体转换为time对象
+replace(.(文件路径,查找串,替换串,替换次数) = 替换文件内容,\n查找串支持模式匹配,\支持所有string.replace函数支持的替换串格式,\n不指定替换次数则替换所有匹配串
+gmatch(文件路径,查找串)  = @for m in fsys.gmatch( ,".__/*指定模式表达式,\n用于在参数@1指定的文件中循环全局搜索符合条件的字符串,\n有几个匹配分组迭代器返回几个值,\n注意表达式不能以^开始*/") { \n    \n}
+fromFileTime = !time.
+WIN32_FIND_DATA = !findData.
+end intellisense**/
+
+/**intellisense(!findData)
+dwFileAttributes = 0;//文件属性
+ftCreationTime = 文件创建时间\n请调用fsys.fromFileTime()转换为time对象
+ftLastAccessTime = 文件最后一次访问时间\n请调用fsys.fromFileTime()转换为time对象
+ftLastWriteTime =  文件最后一次修改时间\n请调用fsys.fromFileTime()转换为time对象 
+nFileSizeHigh = 文件长度高32位 
+nFileSizeLow = 件长度低32位 
+cFileName = 长文件名\nUTF16编码,请调用string.fromUnicode转换
+cAlternateFileName = 8.3格式文件名\nUTF16编码,请调用string.fromUnicode转换
+end intellisense**/
+
+/**intellisense() 
+_FOF_ALLOWUNDO=@0x40/*_FOF_ALLOWUNDO*/ 
+_FOF_FILESONLY=@0x80/*_FOF_FILESONLY*/ 
+_FOF_NOCONFIRMATION=@0x10/*_FOF_NOCONFIRMATION*/ 
+_FOF_NOCONFIRMMKDIR=@0x200/*_FOF_NOCONFIRMMKDIR*/ 
+_FOF_RENAMEONCOLLISION=@0x8/*_FOF_RENAMEONCOLLISION*/ 
+_FOF_SILENT=@0x4/*_FOF_SILENT*/ 
+_FOF_NOERRORUI=@0x0400/*_FOF_NOERRORUI*/ 
+_FOF_SIMPLEPROGRESS=@0x100/*_FOF_SIMPLEPROGRESS*/ 
+_FOF_NORECURSION =@0x1000/*_FOF_NORECURSION*/ 
+_FOF_NOCOPYSECURITYATTRIBS =@0x0800/*_FOF_NOCOPYSECURITYATTRIBS */ 
+_FOF_WANTMAPPINGHANDLE=@0x20/*_FOF_WANTMAPPINGHANDLE*/
+_FOF_CONFIRMMOUSE=@0x2/*_FOF_CONFIRMMOUSE*/ 
+_FOF_NO_UI=@0x614/*_FOF_NO_UI*/
+_CSIDL_DESKTOP=@0/*_CSIDL_DESKTOP*/ 
+_CSIDL_INTERNET=@1/*_CSIDL_INTERNET*/ 
+_CSIDL_PROGRAMS=@2/*_CSIDL_PROGRAMS*/ 
+_CSIDL_CONTROLS=@3/*_CSIDL_CONTROLS*/ 
+_CSIDL_PRINTERS=@4/*_CSIDL_PRINTERS*/ 
+_CSIDL_PERSONAL=@5/*_CSIDL_PERSONAL*/ 
+_CSIDL_FAVORITES=@6/*_CSIDL_FAVORITES*/ 
+_CSIDL_STARTUP=@7/*_CSIDL_STARTUP*/ 
+_CSIDL_RECENT=@0x8/*_CSIDL_RECENT*/ 
+_CSIDL_SENDTO=@0x9/*_CSIDL_SENDTO*/ 
+_CSIDL_BITBUCKET=@0xa/*_CSIDL_BITBUCKET*/ 
+_CSIDL_STARTMENU=@0xb/*_CSIDL_STARTMENU*/ 
+_CSIDL_MYDOCUMENTS=@0x5/*_CSIDL_MYDOCUMENTS*/ 
+_CSIDL_MYMUSIC=@0xd/*_CSIDL_MYMUSIC*/ 
+_CSIDL_MYVIDEO=@0xe/*_CSIDL_MYVIDEO*/ 
+_CSIDL_DESKTOPDIRECTORY=@0x10/*_CSIDL_DESKTOPDIRECTORY*/ 
+_CSIDL_DRIVES =@0x11/*_CSIDL_DRIVES*/ 
+_CSIDL_NETWORK =@0x12/*_CSIDL_NETWORK*/ 
+_CSIDL_NETHOOD =@0x13/*_CSIDL_NETHOOD*/ 
+_CSIDL_FONTS =@0x14/*_CSIDL_FONTS*/ 
+_CSIDL_TEMPLATES =@0x15
+_CSIDL_COMMON_STARTMENU=@0x16/*_CSIDL_COMMON_STARTMENU*/ 
+_CSIDL_COMMON_PROGRAMS=@0x17/*_CSIDL_COMMON_PROGRAMS*/ 
+_CSIDL_COMMON_STARTUP=@0x18/*_CSIDL_COMMON_STARTUP*/ 
+_CSIDL_COMMON_DESKTOPDIRECTORY=@0x19/*_CSIDL_COMMON_DESKTOPDIRECTORY*/ 
+_CSIDL_APPDATA =@0x1a/*_CSIDL_APPDATA*/ 
+_CSIDL_PRINTHOOD =@0x1b/*_CSIDL_PRINTHOOD*/ 
+_CSIDL_LOCAL_APPDATA=@0x1c/*_CSIDL_LOCAL_APPDATA*/ 
+_CSIDL_ALTSTARTUP=@0x1d/*_CSIDL_ALTSTARTUP*/ 
+_CSIDL_COMMON_ALTSTARTUP=@0x1e/*_CSIDL_COMMON_ALTSTARTUP*/ 
+_CSIDL_COMMON_FAVORITES=@0x1f
+_CSIDL_INTERNET_CACHE=@0x20
+_CSIDL_COOKIES =@0x21
+_CSIDL_HISTORY =@0x22
+_CSIDL_COMMON_APPDATA=@0x23/*_CSIDL_COMMON_APPDATA*/ 
+_CSIDL_WINDOWS =@0x24/*_CSIDL_WINDOWS*/ 
+_CSIDL_SYSTEM =@0x25/*_CSIDL_SYSTEM*/ 
+_CSIDL_PROGRAM_FILES=@0x26/*_CSIDL_PROGRAM_FILES*/ 
+_CSIDL_MYPICTURES=@0x27/*_CSIDL_MYPICTURES*/ 
+_CSIDL_PROFILE=@0x28/*_CSIDL_PROFILE*/ 
+_CSIDL_SYSTEMX86=@0x29/*_CSIDL_SYSTEMX86*/ 
+_CSIDL_PROGRAM_FILESX86=@0x2a/*_CSIDL_PROGRAM_FILESX86*/ 
+_CSIDL_PROGRAM_FILES_COMMON=@0x2b/*_CSIDL_PROGRAM_FILES_COMMON*/ 
+_CSIDL_PROGRAM_FILES_COMMONX86=@0x2c/*_CSIDL_PROGRAM_FILES_COMMONX86*/ 
+_CSIDL_COMMON_TEMPLATES=@0x2d/*_CSIDL_COMMON_TEMPLATES*/ 
+_CSIDL_COMMON_DOCUMENTS=@0x2e/*_CSIDL_COMMON_DOCUMENTS*/ 
+_CSIDL_COMMON_ADMINTOOLS=@0x2f/*_CSIDL_COMMON_ADMINTOOLS*/ 
+_CSIDL_ADMINTOOLS=@0x30/*_CSIDL_ADMINTOOLS*/ 
+_CSIDL_CONNECTIONS=@0x31/*_CSIDL_CONNECTIONS*/ 
+_CSIDL_COMMON_MUSIC=@0x35/*_CSIDL_COMMON_MUSIC*/ 
+_CSIDL_COMMON_PICTURES=@0x36/*_CSIDL_COMMON_PICTURES*/ 
+_CSIDL_COMMON_VIDEO=@0x37/*_CSIDL_COMMON_VIDEO*/ 
+_CSIDL_RESOURCES =@0x38/*_CSIDL_RESOURCES*/ 
+_CSIDL_RESOURCES_LOCALIZED=@0x39/*_CSIDL_RESOURCES_LOCALIZED*/ 
+_CSIDL_COMMON_OEM_LINKS=@0x3a/*_CSIDL_COMMON_OEM_LINKS*/ 
+_CSIDL_CDBURN_AREA=@0x3b/*_CSIDL_CDBURN_AREA*/ 
+_CSIDL_COMPUTERSNEARME=@0x3d/*_CSIDL_COMPUTERSNEARME*/ 
+_CSIDL_FLAG_CREATE=@0x8000/*_CSIDL_FLAG_CREATE*/ 
+_CSIDL_FLAG_DONT_VERIFY=@0x4000/*_CSIDL_FLAG_DONT_VERIFY*/ 
+_CSIDL_FLAG_DONT_UNEXPAND=@0x2000/*_CSIDL_FLAG_DONT_UNEXPAND*/ 
+_CSIDL_FLAG_NO_ALIAS=@0x1000/*_CSIDL_FLAG_NO_ALIAS*/ 
+_CSIDL_FLAG_PER_USER_INIT=@0x800/*_CSIDL_FLAG_PER_USER_INIT*/ 
+_CSIDL_FLAG_MASK =@0xFF00/*_CSIDL_FLAG_MASK*/ 
+_MAX_WPATH_BYTES=@0x208/*_MAX_WPATH_BYTES*/
+end intellisense**/

@@ -1,0 +1,55 @@
+﻿namespace hge;
+import string.xml;
+class tiled{
+	ctor( game , xmlData , zip ){
+		this = game.base();	
+		this.type = "tiled";
+		xmlData = ..string.fromto(xmlData, 65001, 936);
+		var data = ..string.xml(xmlData);
+		var textureLoad = zip?game.textureLoadByZip : game.textureLoad;
+		data.enumNodes( 
+			function(parentElement,index,tagName,childCount,xNode){ 
+				var x = ..math.round( parentElement.x?tonumber(parentElement.x)  : 0 );
+				var y = ..math.round( parentElement.y?tonumber(parentElement.y) : 0 );
+				select(tagName) {
+					case "image"{
+						var tex = textureLoad(xNode.source);
+						var spr = game.sprite(tex);
+						spr.var = xNode.var;
+						if(parentElement.name){
+							this[parentElement.name] = spr;
+						}
+						this.addChild(spr)
+					}
+					case "polygon"{
+						var points = ..string.split(xNode.points," ");
+						var nw,nwl = {};
+						for(i=1;#points;1) {
+							var lst = ..string.split(points[i],",");
+							..table.push(nw,{( tonumber(lst[1]) );( tonumber(lst[2]) )  })
+						}
+						
+						..table.push(nw,{0;0})
+						var collision = game.base();
+						collision.collisionLine = nw;
+						collision.x = x;
+						collision.y = y;
+						this.addChild(collision);
+						collision.calCollisionRect();
+						if(parentElement.id){
+							this[parentElement.id] = collision;
+						}
+
+					}
+					
+					
+					
+					
+				}
+			},
+		)
+	};
+}
+namespace tiled{
+	
+}

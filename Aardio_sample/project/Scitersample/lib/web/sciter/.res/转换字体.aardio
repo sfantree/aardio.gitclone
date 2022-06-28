@@ -1,0 +1,38 @@
+﻿global.import("console")
+global.import("win.clip")
+formatStyle = function(path){
+	global.import("inet.http")
+	var css = ..inet.http().get(path); 
+	var hex = 0x5000;
+	var map ={};
+	var mapname={};
+	var lastfahex =-1;;
+	var first =0;
+	var count=0;
+	css = ..string.replace(css,"\.(fa[^\s,.\:]+)[^{]+\{[^}]+content\:\s*""\\f(\x+)""", function(faname,fahex){  
+		faname = ..string.upper( ..string.replace(faname,"-","_") );
+		..table.push(mapname,..string.format("_%s=@'\u5%s'/*_%s*/",faname ,fahex,faname))
+		count++;
+		if(tonumber(fahex,16) !=lastfahex+1){ 
+			..table.push(map,..string.format("$5%03x-$5%03x",first ,lastfahex))
+			first=tonumber(fahex,16);
+		}
+		lastfahex = tonumber(fahex,16);
+		  
+		return 'content: "' +..string.unescape( "\u5" + fahex) +  '"';
+	})
+	
+	..console.log("字体数：",count);//必须删除PUA字符范围内的空白字体
+	css = ..string.replace(css,"\:before","");
+	//..string.save("\fontAwesome.css", css)//font-style: normal;要手动加入.fa
+	
+	..table.push(map,"$52e0");
+	var strmap = string.join(map,",");
+	//..win.clip.write(strmap)//列出字体编码连续、中断的区间,用于在TTF编辑器中插入空白字符然后粘贴移动字体
+	
+	var strmapname = string.join(mapname,'\n');
+	//..win.clip.write(strmapname) //生成自定义提示
+}
+
+//formatStyle("https://");
+..console.pause(true); 

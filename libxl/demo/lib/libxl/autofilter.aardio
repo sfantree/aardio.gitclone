@@ -1,0 +1,108 @@
+﻿import util.metaProperty;
+
+namespace libxl;
+
+var libxl32 = _dll;
+
+class AutoFilter{
+	ctor( hwnd,ow_hwnd){
+		if !hwnd return null,"请指定自动筛选句柄"; 
+		this.hwnd	= hwnd; 
+		this.owner = ow_hwnd;
+	};
+	@_metaProperty;
+}
+
+namespace AutoFilter{
+	
+	_metaProperty = ..util.metaProperty(
+		ref = {
+			_get = function(){
+				return owner.getRef(); 
+			}
+			_set = function(v){
+				owner.setRef(v);
+			}
+		}
+		columnNum = {
+			_get = function(){
+				return owner.columnSize(); 
+			}
+		}
+		sortRange = {
+			_get = function(){
+				return getSortRange();
+			}
+		}
+		columnSize = function(){
+			return ColumnSize(owner.hwnd); 
+		}
+		getColumn = function(index,isIndex){
+			var func = Column;
+			if isIndex func = ColumnByIndex;
+			index -= 1;
+			var hwnd = func(owner.hwnd,index); 
+			if !hwnd return null; 
+			return ..libxl.FilterColumn(hwnd); 
+		}
+		setRef = function(v){
+			var cellRange = v;
+			if type(cellRange) = type.string{
+				cellRange = ..libxl.Sheet.Range.reCalcuCellRange(owner.owner,cellRange);
+			}
+			SetRef(owner.hwnd,cellRange.iniRow - 1,cellRange.lastRow - 1,cellRange.iniCol - 1,cellRange.lastCol - 1);
+		}
+		getRef = function(addr){
+			var result,rowFirst,rowLast,colFirst,colLast = GetRef(owner.hwnd,0,0,0,0);
+			if !result return null; 
+			if addr{
+				var addrStart 	= ..libxl.Sheet.rowColToAddr(rowFirst + 1,colFirst + 1)
+				var addrEnd		= ..libxl.Sheet.rowColToAddr(rowLast + 1,colLast + 1)
+				return ..string.concat(addrStart,":",addrEnd); 
+			}
+			return ..libxl.cellRange(rowFirst + 1, rowLast + 1, colFirst + 1,colLast + 1);
+		}
+		getSortRange = function(addr){
+			var result,rowFirst,rowLast,colFirst,colLast = GetSortRange(owner.hwnd,0,0,0,0);
+			if !result return null; 
+			if addr{
+				var addrStart 	= ..libxl.Sheet.rowColToAddr(rowFirst,colFirst)
+				var addrEnd		= ..libxl.Sheet.rowColToAddr(rowLast,colLast)
+				return ..string.concat(addrStart,":",addrEnd); 
+			}
+			return ..libxl.cellRange(rowFirst, rowLast, colFirst,colLast);
+		}
+		getSort = function(){
+			var result,columnIndex,descending = GetSort(owner.hwnd,0,0);
+			if !result return null;
+			return columnIndex,descending;  
+		}
+		setSort = function(columnIndex,descending){
+			return SetSort(owner.hwnd,columnIndex,descending); 
+		}
+		
+		column = getColumn;
+	)
+	
+	GetRef	= libxl32.api("xlAutoFilterGetRef","int(ptr AutoFilterHandle, int& rowFirst, int& rowLast, int& colFirst, int& colLast)");
+	SetRef	= libxl32.api("xlAutoFilterSetRef","void(ptr AutoFilterHandle, int rowFirst, int rowLast, int colFirst, int colLast)");
+
+	ColumnSize	= libxl32.api("xlAutoFilterColumnSize","int(ptr AutoFilterHandle)");
+	
+	Column	= libxl32.api("xlAutoFilterColumn","ptr(ptr AutoFilterHandle, int colId)");//FilterColumnHandle
+	ColumnByIndex	= libxl32.api("xlAutoFilterColumnByIndex","ptr(ptr AutoFilterHandle, int index)");//FilterColumnHandle
+
+	GetSortRange	= libxl32.api("xlAutoFilterGetSortRange","int(ptr AutoFilterHandle, int& rowFirst, int& rowLast, int& colFirst, int& colLast)");
+	GetSort	= libxl32.api("xlAutoFilterGetSort","int(ptr AutoFilterHandle, int& columnIndex, int& descending)");
+	SetSort	= libxl32.api("xlAutoFilterSetSort","int(ptr AutoFilterHandle, int columnIndex, int descending)");
+	
+}
+
+
+/**intellisense()
+!xlSheet.autoFilter() = !xlAutoFilter.
+!xlAutoFilter.ref = 设置或返回筛选区域
+!xlAutoFilter.columnNum = 筛选区域列数
+!xlAutoFilter.sortRange = 获取排序区域
+!xlAutoFilter.getColumn(.(列数,[是否相对位置]) = 返回筛选列对象
+end intellisense**/

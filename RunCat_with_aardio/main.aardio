@@ -1,0 +1,204 @@
+import win.ui;
+import win.ui.menu;
+import win.util.tray;
+import win.ui.atom;
+import sys;
+import sys.cpu;
+import win.timer;
+import config;
+import process;
+/*DSG{{*/
+mainForm = win.form(text="RunCat_with_aardio";right=296;bottom=263)
+mainForm.add(
+autoCat={cls="radiobutton";text="自动";left=200;top=43;right=262;bottom=65;dl=1;dt=1;z=5};
+blackcat={cls="radiobutton";text="黑猫";left=114;top=43;right=176;bottom=65;dl=1;dt=1;z=4};
+checkbox={cls="checkbox";text="加入windows启动项";left=9;top=226;right=158;bottom=252;db=1;dl=1;z=6};
+cpuCheckFrequency={cls="edit";left=112;top=188;right=194;bottom=211;dl=1;dt=1;edge=1;num=1;tabstop=1;z=1};
+static={cls="static";text="CPU检测频率(秒)";left=9;top=191;right=106;bottom=214;dl=1;dt=1;transparent=1;z=2};
+whitecat={cls="radiobutton";text="白猫";left=24;top=43;right=86;bottom=65;checked=1;dl=1;dt=1;group=1;z=3}
+)
+/*}}*/
+
+/*只运行一个实例{{*/
+var atom,hwnd = mainForm.atom("domisoft.aardio.runcat");
+if(!atom){ 
+	win.showForeground(hwnd);
+	win.setActive(hwnd);
+	win.quitMessage();	
+	return;
+}
+/*}}*/
+
+/*配置{{*/
+mainForm.bindConfig( config.system,{
+	edit = "text";
+	radiobutton = "checked";
+} );
+/*}}*/
+
+/*图标文件{{*/
+_iconLib = {
+		[1]= {
+			[1] = "\res\cat\dark_cat_0.ico";
+			[2] = "\res\cat\dark_cat_1.ico";
+			[3] = "\res\cat\dark_cat_2.ico";
+			[4] = "\res\cat\dark_cat_3.ico";
+			[5] = "\res\cat\dark_cat_4.ico";
+		};
+		[2]= {
+			[1] = "\res\cat\light_cat_0.ico";
+			[2] = "\res\cat\light_cat_1.ico";
+			[3] = "\res\cat\light_cat_2.ico";
+			[4] = "\res\cat\light_cat_3.ico";
+			[5] = "\res\cat\light_cat_4.ico";
+		}
+}
+/*}}*/
+var isLightTheme = function(){
+    import win.reg;
+    var v = win.reg.query("HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", "SystemUsesLightTheme");
+    if v===null return true; 
+    else return v==0 ? false : true;
+}
+
+var getIconIndex = function(){
+	if config.system.autoCat return isLightTheme() ? 2:1 ;
+	else return config.system.blackcat ? 2:1 ;	
+}
+
+var iconTab = _iconLib[getIconIndex()];
+
+
+/*创建托盘图标{{*/
+var tray = win.util.tray(mainForm);
+tray.tip = "Run Cat" //设置鼠标提示 
+mainForm.onMinimize = function(lParam){
+	mainForm.show(false); //隐藏窗口
+	return true;//阻击默认消息传递,取消最小化过程
+}
+mainForm.onClose = mainForm.onMinimize;
+/*}}*/
+
+/*
+import console
+console.open();
+*/
+
+_ANIMATE_DEFAULT_INTERVAL = 200;
+
+
+var iconBlink_timer = win.timer( mainForm, _ANIMATE_DEFAULT_INTERVAL);
+var icon_index = 1;
+iconBlink_timer.onTimer = function(hwnd,msg,id,tick){
+	if icon_index > #iconTab icon_index = 1;
+	tray.icon = iconTab[icon_index];
+	icon_index++;
+}
+
+var cpuCheck_timer = win.timer( mainForm, config.system.cpuCheckFrequency * 1000 /* 检测频率秒 */);
+
+_coreNum := sys.info().dwNumberOfProcessors; //CPU 核心数
+_Frequency := math.round(sys.cpu.getFrequence()); //CPU 最大频率
+
+var GetSystemTimes = ::Kernel32.api("GetSystemTimes","bool(LONG& lpIdleTime, LONG& lpKernelTime, LONG& lpUserTime)" );
+var cpuTms = {};
+cpuCheck_timer.onTimer = function(hwnd,msg,id,tick){
+	var ret, idleTime, kernelTime, userTime = GetSystemTimes(0, 0, 0);
+	var usage = 0;
+	if ret {
+		var t =  (idleTime + userTime - idleTime)/10000/_coreNum;
+		table.push(cpuTms, t);
+		if #cpuTms > 2 table.shift(cpuTms);	
+		if #cpuTms == 2 {
+			var per = math.abs(cpuTms[2] - cpuTms[1]) / owner.getInterval() * 100;
+			usage = per * 100 * 100 /* _% */ / _Frequency /* cpu 使用率 是这么计算的吗? */;
+		}
+		
+	}
+	if usage > 0 {
+		tray.tip = "CPU: " ++ math.round(usage, 1) ++ "%";
+		var ANIMATE_INTERVAL = math.round(_ANIMATE_DEFAULT_INTERVAL / math.max(1, math.min(20, usage / 5)));
+		iconBlink_timer.setInterval(ANIMATE_INTERVAL);
+	}
+}
+
+
+/*托盘菜单{{*/
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+mainForm.popmenu.add('&open',function(id){
+	win.setForeground(mainForm.hwnd);
+	mainForm.show();
+	
+});
+mainForm.popmenu.add();//分隔线
+mainForm.popmenu.add('&exit',function(id){
+	if mainForm.tray mainForm.tray.delete();
+	win.quitMessage();
+});
+
+mainForm.wndproc =  function(hwnd,message,wParam,lParam){
+ 		select(message) {
+ 			case 0xACCF/*_WM_TRAYMESSAGE*/ {
+				select(lParam) {
+					case 0x205/*_WM_RBUTTONUP*/ {
+						win.setForeground(mainForm.hwnd)	//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+	    				var pt = ::POINT();
+						::User32.GetCursorPos(pt);   		
+	    				mainForm.popmenu.popup(pt.x,pt.y, true);
+					}
+					case 0x202/*_WM_LBUTTONUP*/ {
+						win.setForeground(mainForm.hwnd); //弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失							
+						mainForm.show(!win.isVisible(mainForm.hwnd));					
+					}
+					case 0x203/*_WM_LBUTTONDBLCLK*/ {
+						process.execute("taskmgr.exe");
+					}
+				}
+			}
+/*
+			case _WM_TASKBARBUTTONCREATED { 
+            	mainForm.taskbar = com.interface.ITaskbarList3.Create() ;
+            } 
+*/
+	}
+}
+/*}}*/
+mainForm.whitecat.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ; 
+	config.system.save();
+	iconTab = _iconLib[1];
+}
+
+mainForm.blackcat.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ; 
+	config.system.save();
+	iconTab = _iconLib[2];	
+}
+mainForm.autoCat.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ; 
+	config.system.save();
+	iconTab = _iconLib[(isLightTheme() ? 2:1)];	
+}
+mainForm.cpuCheckFrequency.onModified = function(modified){ 
+	config.system.save();
+	cpuCheck_timer.setInterval(owner.text * 1000);
+}
+var setStartup = function(add = true){
+	if _STUDIO_INVOKED return ; 
+    import win.reg;
+	var reg = win.reg("HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run");
+    if add reg.setSzValue(config.__appName, '"' + io._exepath + '"' );
+    else reg.delKey(config.__appName);
+    reg.close();
+}
+mainForm.checkbox.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ;
+	setStartup(owner.checked);
+}
+
+//mainForm.show();
+
+iconBlink_timer.enable();
+cpuCheck_timer.enable();
+
+return win.loopMessage();

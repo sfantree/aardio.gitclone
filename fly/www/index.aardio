@@ -1,0 +1,38 @@
+
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+// [web网站访问入口文件]
+
+var tdir = {};
+var t = string.split(io.joinpath(request.documentRoot,request.path),"\");
+for(i=1;#t-2;1) table.push(tdir,t[i]);
+table.push(tdir,"");
+MVC_ROOT_DIR = string.join(tdir,"\");//定义系统应用(工程)目录
+
+var f = ..fiber.create(
+	function(...){
+		var r;
+		var func,err = loadcode(MVC_ROOT_DIR ++ "carlmvc\start.aardio");// 加载mvc框架引导文件
+		if(func) r,err = callex(,func );
+		if(r){
+			var method = ... : request.get["_method"];
+			if(type.string == type(method) || method === null){
+				method = #method ? method : "default.index";
+				mvcapp.loadControllerAction(method);
+			}
+		}
+		else {
+			response.error('<!doctype html><html><head><meta charset="utf-8"></head><body><pre>',err,'</pre></body></html>');
+		}
+	},MVC_ROOT_DIR
+)
+
+..fiber.resume (f,...);

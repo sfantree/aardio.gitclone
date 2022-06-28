@@ -1,0 +1,58 @@
+﻿//MatExpr 矩阵表达式
+import util.metaProperty
+namespace cv2
+
+class MatExpr{
+	ctor( ptr ){
+		if(!ptr){
+			err,ret = dll.core_MatExpr_new1({pointer value})
+			this.ptr = ret.value
+		}else {
+			this.ptr = ptr
+		}
+		..table.gc(this,"release")
+	};
+	
+	toMat = function(){
+		var dst = ..cv2.Mat()
+		var err,ret  = dll.core_MatExpr_toMat(this.ptr,dst.handle)
+		return dst;
+	}
+	
+	release = function(){
+		if this[["ptr"]] {
+			dll.core_MatExpr_delete(this.ptr)
+		}
+		this[["ptr"]] = null
+	}
+	
+	@_meta;
+}
+
+namespace MatExpr{
+    //import cv2.mat
+    dll = ..raw.loadDll("~/lib/cv2/.res/OpenCvSharpExtern.dll","opencv2","cdecl")
+    _meta = ..util.metaProperty(
+		_type = "MatExpr";
+		// *
+    	_mul = function(scale){
+    		var err,ref = dll.core_operatorMultiply_MatExprDouble(owner.ptr,..raw.double(scale),{pointer value})
+    		return ..cv2.MatExpr(ref.value); 
+    	}
+    	// +
+    	_add = function(rt){
+    		var err,ret = dll.core_operatorAdd_MatExprMat(owner.ptr,rt.handle,{pointer value})
+    		return ..cv2.MatExpr(ret.value); 
+    	}
+    	// -
+    	_sub = function(rt){
+    		var err,ret = dll.core_operatorSubtract_MatExprMat(owner.ptr,rt.handle,{pointer value})
+    		return ..cv2.MatExpr(ret.value); 
+    	}
+    	// /
+    	_div = function(rt){
+			var err,ret = dll.core_operatorDivide_MatExprMat(owner.ptr,rt.handle,{pointer value})
+    		return ..cv2.MatExpr(ret.value); 	
+    	}    	
+    )
+}

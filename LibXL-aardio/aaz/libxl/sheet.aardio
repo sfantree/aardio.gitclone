@@ -1,0 +1,892 @@
+﻿//sheet 页面
+var _dll = aaz.libxl._dll;
+var xlSheetWriteNum = _dll.api( "xlSheetWriteNum", "int(ptr,int,int,double,ptr)" ); 
+var xlSheetWriteFormulaNum = _dll.api( "xlSheetWriteFormulaNum", "int(ptr, int, int, ustring, double, ptr)" )
+var xlSheetSetCol = _dll.api( "xlSheetSetCol", "int(ptr,int,int,double,ptr,int)" ); 
+var xlSheetSetRow = _dll.api( "xlSheetSetRow", "int(ptr,int,double,ptr,int)" ); 
+var xlSheetSetPicture = _dll.api( "xlSheetSetPicture", "void(ptr, int, int, int, double, int, int, int)" )	
+var xlSheetSetHeader = _dll.api( "xlSheetSetHeader", "int(ptr, ustring, double)" );
+var xlSheetSetFooter = _dll.api( "xlSheetSetFooter", "int(ptr, ustring, double)" );
+var xlSheetSetMarginLeft = _dll.api( "xlSheetSetMarginLeft", "void(ptr, double)" ); 
+var xlSheetSetMarginRight = _dll.api( "xlSheetSetMarginRight", "void(ptr, double)" ); 
+var xlSheetSetMarginTop = _dll.api( "xlSheetSetMarginTop", "void(ptr, double)" ); 
+var xlSheetSetMarginBottom = _dll.api( "xlSheetSetMarginBottom", "void(ptr, double)" ); 
+var xlSheetAddDataValidationDouble = _dll.api( "xlSheetAddDataValidationDouble", "void(ptr, int, int, int, int, int, int, double, double)" ); 
+var xlSheetAddDataValidationDoubleEx = _dll.api( "xlSheetAddDataValidationDoubleEx", "void(ptr, int, int, int, int, int, int, double, double, int, int, int, int, ustring, ustring,ustring, ustring, int)" ); 
+
+namespace aaz.libxl;
+class sheet{
+	ctor(handle){
+		if(!handle) return ; 
+		this.handle = handle;
+	}
+	
+	cellType = function(row, col){
+		return _dll.xlSheetCellType(this.handle, row-1, col-1); 
+	}
+	
+	isFormula = function(row, col){
+		return _dll.xlSheetIsFormula(this.handle, row-1, col-1); 
+	}
+	
+	cellFormat = function(row, col){
+		return ..aaz.libxl.format(_dll.xlSheetCellFormatP(this.handle, row-1, col-1)); 
+	}
+	
+	setCellFormat = function(row, col, format){
+		return _dll.xlSheetSetCellFormat(this.handle, row-1, col-1, format); 
+	}
+	
+	readStr = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			..raw.str(_dll.xlSheetReadStrP(this.handle, row-1, col-1, formatHandle), true),
+			..aaz.libxl.format(formatHandle.value);
+	}
+	
+	writeStr = function(row, col, value, format){
+		return _dll.xlSheetWriteStr(this.handle, row-1, col-1, value, format);
+	}
+	
+	writeStrAsNum = function(row, col, value, format){
+		return _dll.xlSheetWriteStrAsNum(this.handle, row-1, col-1, value, format);
+	}
+	
+	readRichStr = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			..aaz.libxl.richString( _dll.xlSheetReadRichStrP(this.handle, row-1, col-1, formatHandle)),
+			..aaz.libxl.format(formatHandle.value);
+	}	
+	
+	writeRichStr = function(row, col, richString, format){
+		return _dll.xlSheetWriteRichStr(this.handle, row-1, col-1, richString, format);
+	}
+	
+	readNum = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			_dll.xlSheetReadNumD(this.handle, row-1, col-1, formatHandle),
+			..aaz.libxl.format(formatHandle.value);
+	}
+	
+	writeNum = function(row, col, value, format){
+		return xlSheetWriteNum(this.handle, row-1, col-1, value, format);
+	}
+	
+	readBool = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			_dll.xlSheetReadBool(this.handle, row-1, col-1, formatHandle),
+			..aaz.libxl.format(formatHandle.value);
+	}
+	
+	writeBool = function(row, col, value, format){
+		return _dll.xlSheetWriteBool(this.handle, row-1, col-1, value, format)
+	}
+	
+	readBlank = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			_dll.xlSheetReadBlank(this.handle, row-1, col-1, formatHandle),
+			..aaz.libxl.format(formatHandle.value);
+	}
+	
+	writeBlank = function(row, col, format){
+		return _dll.xlSheetWriteBlank(this.handle, row-1, col-1, format);
+	}
+	
+	readFormula = function(row, col){
+		var formatHandle = {ptr value};
+		
+		return 
+			_dll.xlSheetReadFormula(this.handle, row-1, col-1, formatHandle),
+			..aaz.libxl.format(formatHandle.value);
+	}
+	
+	writeFormula = function(row, col, value, format){
+		return  _dll.xlSheetWriteFormula(this.handle, row-1, col-1, value, format) 
+	}
+
+    writeFormulaNum = function(row, col, expr,  value, format){
+    	return xlSheetWriteFormulaNum(this.handle, row-1, col-1, expr,  value, format); 
+    }
+    
+    writeFormulaStr = function(row, col, expr,  value, format){
+    	return _dll.xlSheetWriteFormulaStr(this.handle, row-1, col-1, expr,  value, format); 
+    }
+    
+    writeFormulaBool = function(row, col, expr,  value, format){
+    	return _dll.xlSheetWriteFormulaBool(this.handle, row-1, col-1, expr,  value, format);
+    }
+
+    readComment = function(row, col){
+    	return ..raw.str( _dll.xlSheetReadCommentP(this.handle, row-1, col-1), true); 
+    }
+    
+    writeComment = function(row, col, value, author, width, height){
+    	_dll.xlSheetWriteComment(this.handle, row-1, col-1, value, author, width, height);
+    }
+    
+    removeComment = function(row, col){
+    	_dll.xlSheetRemoveComment(this.handle, row-1, col-1);
+    }
+    
+    isDate = function(row, col){
+    	return _dll.xlSheetIsDate(this.handle, row-1, col-1); 
+    }
+    
+    isRichStr = function(row, col){
+    	return _dll.xlSheetIsRichStr(this.handle, row-1, col-1); 
+    }
+    
+    readError = function(row, col){
+    	return _dll.xlSheetReadError(this.handle, row-1, col-1); 
+    }
+    
+    writeError = function(row, col, err, format){
+    	return _dll.xlSheetWriteError(this.handle, row-1, col-1, err, format); 
+    }
+    
+    colWidth = function(col){
+    	return _dll.xlSheetColWidthD(this.handle, col-1); 
+    }
+    
+    rowHeight = function(row){
+    	return _dll.xlSheetRowHeightD(this.handle, row-1); 
+    }
+    
+    colWidthPx = function(col){
+    	return _dll.xlSheetColWidthPx(this.handle, col-1); 
+    }
+    
+    rowHeightPx = function(row){
+    	return _dll.xlSheetRowHeightPx(this.handle, row-1); 
+    }
+    		
+	setCol = function(colFirst, colLast, width, format, hidden=0){
+		return xlSheetSetCol(this.handle, colFirst-1, colLast-1, width, format, hidden);
+	}
+	
+	setRow = function(row, height, format, hidden=0){
+		return xlSheetSetRow(this.handle, row-1, height, format, hidden);
+	}
+	
+	rowHidde = function(row){
+		return _dll.xlSheetRowHidden(this.handle, row-1);
+	}
+	
+	setRowHidden = function(row, hidden){
+		return _dll.xlSheetSetRowHidden(this.handle, row-1, hidden);
+	}
+	
+	colHidden = function(col){
+		return _dll.xlSheetColHidden(this.handle, col-1);
+	}
+	
+	setColHidden = function(col, hidden){
+		return _dll.xlSheetSetColHidden(this.handle, col-1, hidden);
+	}
+	
+	getMerge = function(row, col){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		if(_dll.xlSheetGetMerge(this.handle, row-1, col-1, rowFirst, rowLast, colFirst, colLast)){
+			return true, rowFirst.value, rowLast.value, colFirst.value, colLast.value;
+		}
+		return false;
+	}
+	
+    setMerge = function(rowFirst, rowLast, colFirst, colLast){
+    	return _dll.xlSheetSetMerge(this.handle, rowFirst-1, rowLast-1, colFirst-1, colLast-1);
+    }
+    
+    delMerge = function(row, col){
+    	return _dll.xlSheetDelMerge(this.handle, row-1, col-1);
+    }
+
+    mergeSize = function(){
+    	return _dll.xlSheetMergeSize(this.handle); 	
+    }
+    
+    merge = function(index){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		return 
+			_dll.xlSheetMerge(this.handle, index-1, rowFirst, rowLast, colFirst, colLast),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value;
+    }
+    
+    delMergeByIndex = function(index){
+    	return _dll.xlSheetDelMergeByIndex(this.handle, index-1); 	
+    }
+    
+    getPicture = function(index){
+		var rowTop = {int value};
+		var colLeft = {int value};
+		var rowBottom = {int value};
+		var colRight = {int value};
+		var width = {int value};
+		var height = {int value};
+		var offset_x = {int value};
+		var offset_y = {int value};
+		
+		return 
+			_dll.xlSheetGetPicture(this.handle, index-1, rowTop, colLeft, rowBottom, colRight, width, height, offset_x, offset_y),
+			rowTop.value,
+			colLeft.value,
+			rowBottom.value,
+			colRight.value,
+			width.value,
+			height.value,
+			offset_x.value,
+			offset_y.value;
+    }
+    
+    removePictureByIndex = function(index){
+    	return _dll.xlSheetRemovePictureByIndex(this.handle, index-1); 
+    }
+
+    setPicture = function(row, col, pictureId, scale, offsetX, offsetY, pos){
+    	xlSheetSetPicture(this.handle, row-1, col-1, pictureId, scale, offsetX, offsetY, pos);
+    }
+    
+    setPicture2 = function(row, col, pictureId, width, height, offsetX, offsetY, pos){
+    	_dll.xlSheetSetPicture2W(this.handle, row-1, col-1, pictureId, width, height, offsetX, offsetY, pos);
+    }
+    
+    removePicture = function(row, col){
+    	return _dll.xlSheetRemovePicture(this.handle, row-1, col-1); 
+    }
+    
+    getHorPageBreak = function(index){
+    	return _dll.xlSheetGetHorPageBreak(this.handle, index-1); 
+    }
+
+  	getVerPageBreak = function(index){
+    	return _dll.xlSheetGetVerPageBreak(this.handle, index-1); 
+    } 
+
+    setHorPageBreak = function(row, pageBreak){
+    	return _dll.xlSheetSetHorPageBreak(this.handle, row-1, pageBreak); 
+    }
+    
+    setVerPageBreak = function(col, pageBreak){
+    	return _dll.xlSheetSetVerPageBreak(this.handle, col-1, pageBreak); 
+    }
+
+    clear = function(rowFirst, rowLast, colFirst, colLast){
+    	return _dll.xlSheetClear( this.handle, rowFirst-1, rowLast-1, colFirst-1, colLast-1 ); 
+    }
+    
+    insertCol = function(colFirst, colLast){
+    	return _dll.xlSheetInsertCol(this.handle, colFirst-1, colLast-1); 
+    }
+    
+    insertRow = function(rowFirst, rowLast){
+    	return _dll.xlSheetInsertRow(this.handle, rowFirst-1, rowLast-1); 
+    }
+    
+    removeCol = function(colFirst, colLast ){
+    	return _dll.xlSheetRemoveCol(this.handle, colFirst-1, colLast-1); 
+    }
+    
+    removeRow = function(rowFirst, rowLast ){
+    	return _dll.xlSheetRemoveRow(this.handle, rowFirst-1, rowLast-1); 
+    }
+    
+    
+    split = function(row, col){
+    	_dll.xlSheetSplit(this.handle, row-1, col-1);
+    }
+    
+    splitInfo = function(){
+		var row = {int value};
+		var col = {int value};
+		
+		if(_dll.xlSheetSplitInfo(this.handle, row, col)){
+			return true, row.value+1, col.value+1; 
+		}
+		return false;
+    }
+    
+    groupRows = function(rowFirst, rowLast, collapsed){
+    	return _dll.xlSheetGroupRows(this.handle, rowFirst-1, rowLast-1, collapsed); 
+    }
+    
+    groupCols = function(colFirst, colLast, collapsed){
+    	return _dll.xlSheetGroupCols(this.handle, colFirst-1, colLast-1, collapsed); 
+    }
+	
+    insertColAndKeepRanges = function(colFirst, colLast){
+    	return _dll.xlSheetInsertColAndKeepRanges(this.handle, colFirst-1, colLast-1);
+    }
+    
+    insertRowAndKeepRanges = function(rowFirst, rowLast){
+    	return _dll.xlSheetInsertRowAndKeepRanges(this.handle, rowFirst-1, rowLast-1);
+    }
+    
+	removeColAndKeepRanges = function(colFirst, colLast){
+		return _dll.xlSheetRemoveColAndKeepRanges(this.handle, colFirst-1, colLast-1);
+	}
+	
+ 	removeRowAndKeepRanges = function( rowFirst, rowLast){
+ 		return _dll.xlSheetRemoveRowAndKeepRanges(this.handle, rowFirst-1, rowLast-1);
+ 	}
+ 	
+ 	copyCell = function(rowSrc, colSrc, rowDst, colDst){
+ 		return _dll.xlSheetCopyCell(this.handle, rowSrc-1, colSrc-1, rowDst-1, colDst-1);
+ 	}
+ 	
+   	getPrintFit = function(){
+   		var wPages = {int value};
+   		var hPages = {int value};
+   		
+   		return 
+   			_dll.xlSheetGetPrintFitW(this.handle, wPages, hPages),
+   			wPages.value,
+   			hPages.value;
+   	}
+   	
+   	setPrintFit = function(wPages, hPages){
+   		return _dll.xlSheetSetPrintFit(this.handle, wPages, hPages);
+   	}
+	
+	setHeader = function(header, margin){
+		return xlSheetSetHeader(this.handle, header, margin); 
+	}
+			
+	setFooter = function(footer, margin){
+		return xlSheetSetFooter(this.handle, footer, margin);
+	}
+				
+	printRepeatRows = function(){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		
+		if( _dll.xlSheetPrintRepeatRows(this.handle, rowFirst, rowLast) ){
+			return true, rowFirst.value + 1, rowLast.value + 1;
+		}
+		return false; 
+	}
+	
+	setPrintRepeatRows = function( rowFirst, rowLast ){
+		_dll.xlSheetSetPrintRepeatRows( this.handle, rowFirst-1, rowLast-1 );
+	}
+	
+	printRepeatCols = function(){
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		if( _dll.xlSheetPrintRepeatCols(this.handle, colFirst, colLast) ){
+			return true, colFirst.value, colLast.value;
+		}
+		return false;
+	}
+	
+	setPrintRepeatCols = function( colFirst, colLast ){
+		_dll.xlSheetSetPrintRepeatCols( this.handle, colFirst-1, colLast-1 );
+	}
+	
+	printArea = function(){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		if( _dll.xlSheetPrintArea(this.handle, rowFirst, rowLast, colFirst, colLast) ){
+			return true, rowFirst.value, rowLast.value, colFirst.value, colLast.value;
+		}
+		return false; 
+	}
+	
+	setPrintArea = function( rowFirst, rowLast, colFirst, colLast ){
+		_dll.xlSheetSetPrintArea( this.handle, rowFirst-1, rowLast-1, colFirst-1, colLast-1 );
+	}
+	
+	clearPrintRepeats = function(){
+		_dll.xlSheetClearPrintRepeats( this.handle );
+	}
+	
+	clearPrintArea = function(){
+		_dll.xlSheetClearPrintArea( this.handle );
+	}
+	
+	getNamedRange = function(name, scopeId){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		var hidden = {int value};
+		
+		return 
+			_dll.xlSheetGetNamedRange(this.handle,, rowFirst, rowLast, colFirst, colLast, scopeId, hidden),
+			rowFirst.value,
+			colFirst.value,
+			colLast.value,
+			hidden.value;
+	}
+	
+	setNamedRange = function(name, rowFirst, rowLast, colFirst, colLast, scopeId){
+		return _dll.xlSheetSetNamedRange(this.handle, name, rowFirst, rowLast, colFirst, colLast, scopeId);
+	}
+
+   	delNamedRange = function(name, scopeId){
+   		return _dll.xlSheetDelNamedRange(this.handle, name, scopeId);
+   	}
+   	
+    namedRangeSize = function(){
+    	return _dll.xlSheetNamedRangeSize(this.handle);
+    }
+    
+	namedRange = function(index){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		var scopeId = {int value};
+		var hidden = {int value};
+		
+		return 
+			..raw.str( _dll.xlSheetNamedRangeP(this.handle, index, rowFirst, rowLast, colFirst, colLast, scopeId, hidden), true ),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value,
+			scopeId.value,
+			hidden.value;
+	}
+
+	tableSize = function(){
+		return _dll.xlSheetTableSize(this.handle);
+	}
+	
+    table = function(index){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		var headerRowCount = {int value};
+		var totalsRowCount = {int value};
+		
+    	return 
+    		..raw.str( _dll.xlSheetTableP(this.handle, index, rowFirst, rowLast, colFirst, colLast, headerRowCount, totalsRowCount), true),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value,
+			headerRowCount.value,
+			totalsRowCount.value;
+    }
+    
+    hyperlinkSize = function(){
+    	return _dll.xlSheetHyperlinkSize(this.handle);
+    }
+    
+	hyperlink = function(index){
+		var rowFirst = {int value}
+		var rowLast = {int value}
+		var colFirst = {int value}
+		var colLast = {int value}
+		
+    	return 
+    		..raw.str( _dll.xlSheetHyperlinkP(this.handle, index, rowFirst, rowLast, colFirst, colLast), true ),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value;
+	}
+	
+	delHyperlink = function(index){
+		return _dll.xlSheetDelHyperlink( this.handle, index );
+	}
+	
+	addHyperlink = function(hyperlink, rowFirst, rowLast, colFirst, colLast){
+		_dll.xlSheetAddHyperlink(this.handle, hyperlink, rowFirst, rowLast, colFirst, colLast);
+	}
+	
+	autoFilter = function(){
+		return _dll.xlSheetAutoFilterP(this.handle);
+	}
+	
+	applyFilter = function(){
+		_dll.xlSheetApplyFilter(this.handle);
+	}
+	
+	removeFilter = function(){
+		_dll.xlSheetRemoveFilter(this.handle);
+	}
+	
+	setProtectEx = function(protect, password, enhancedProtection){
+		_dll.xlSheetSetProtectEx(this.handle, protect, password, enhancedProtection);
+	}
+
+	hidden = function(){
+		return _dll.xlSheetHidden(this.handle);
+	}
+	
+	setHidden = function(hidden){
+		return _dll.xlSheetSetHidden(this.handle, hidden);
+	}
+
+    getTopLeftView = function(){
+		var row = {int value};
+		var col = {int value};
+    	_dll.xlSheetGetTopLeftView(this.handle, row, col);
+    	
+    	return 
+    		row.value,
+    		col.value; 
+    }
+    
+    setTopLeftView = function(row, col){
+    	_dll.xlSheetSetTopLeftView(this.handle, row, col);
+    }
+    
+    setAutoFitArea = function(rowFirst, colFirst, rowLast, colLast){
+    	_dll.xlSheetSetAutoFitAreaW(this.handle, rowFirst, colFirst, rowLast, colLast);
+    }
+    
+    addrToRowCol = function(addr){
+		var row = {int value}
+		var col = {int value}
+		var rowRelative = {int value}
+		var colRelative = {int value}
+    	_dll.xlSheetAddrToRowColW(this.handle, addr, row, col, rowRelative, colRelative);
+    	
+    	return 
+    		row.value,
+    		col.value,
+    		rowRelative.value,
+    		colRelative.value; 
+    }
+
+    rowColToAddr = function(row, col, rowRelative, colRelative){ 
+    	return ..raw.str( _dll.xlSheetRowColToAddrP(this.handle, row, col, rowRelative, colRelative), true );
+    }
+
+ 	setTabRgbColor = function(red, green, blue){
+ 		_dll.xlSheetSetTabRgbColor(this.handle, red, green, blue);
+ 	}
+ 	
+ 	addIgnoredError = function(rowFirst, colFirst, rowLast, colLast, iError){
+ 		return _dll.xlSheetAddIgnoredError(this.handle, rowFirst, colFirst, rowLast, colLast, iError);
+ 	}
+
+	addDataValidation = function(t, op, rowFirst, rowLast, colFirst, colLast, value1, value2 ){
+		_dll.xlSheetAddDataValidation(this.handle, t, op, rowFirst, rowLast, colFirst, colLast, value1, value2);
+	}
+	
+	addDataValidationEx = function(t, op, rowFirst, rowLast, colFirst, colLast, value1, value2, allowBlank,  hideDropDown, showInputMessage, showErrorMessage, promptTitle,  prompt, errorTitle, err, errorStyle){
+		_dll.xlSheetAddDataValidationExW(this.handle, t, op, rowFirst, rowLast, colFirst, colLast, value1, value2, allowBlank,  hideDropDown, showInputMessage, showErrorMessage, promptTitle,  prompt, errorTitle, err, errorStyle);
+	}
+                                                   
+ 	addDataValidationDouble = function(t, op, rowFirst, rowLast, colFirst, colLast, value1, value2 ){
+ 		xlSheetAddDataValidationDouble(this.handle, t, op, rowFirst, rowLast, colFirst, colLast, value1, value2);
+ 	}
+ 	
+ 	addDataValidationDoubleEx = function(t, op, rowFirst, rowLast, colFirst, colLast, value1, value2, allowBlank,  hideDropDown, showInputMessage, showErrorMessage,  promptTitle, prompt, errorTitle, err,  errorStyle){
+ 		xlSheetAddDataValidationDoubleEx( this.handle, t, op, rowFirst, rowLast, colFirst, colLast, value1, value2, allowBlank,  hideDropDown, showInputMessage, showErrorMessage,  promptTitle, prompt, errorTitle, err,  errorStyle )
+ 	}
+
+    removeDataValidations = function(){
+    	_dll.xlSheetRemoveDataValidations(this.handle);
+    }
+    
+    @_metaProperty;	
+}
+namespace sheet{
+    _properties = {
+   		pictureSize = {
+   			_get = function(){
+   				return _dll.xlSheetPictureSize(owner.handle); 
+   			}
+   		}
+   		
+   		horPageBreakSize = {
+   			_get = function(){
+   				return _dll.xlSheetGetHorPageBreakSize(owner.handle); 
+   			}
+   		}
+   		
+   		verPageBreakSize = {
+   			_get = function(){
+   				return _dll.xlSheetGetVerPageBreakSize(owner.handle); 
+   			}
+   		}
+		
+   		groupSummaryBelow = {
+   			_get = function(){
+   				return _dll.xlSheetGroupSummaryBelow(owner.handle); 
+   			}
+   			
+   			_set = function(v){
+   				_dll.xlSheetSetGroupSummaryBelow(owner.handle, v);
+   			}
+   		}
+    
+   		groupSummaryRight = {
+   			_get = function(){
+   				return _dll.xlSheetGroupSummaryRight(owner.handle); 
+   			}
+   			
+   			_set = function(v){
+   				_dll.xlSheetSetGroupSummaryRight(owner.handle, v);
+   			}
+   		}
+   		
+ 		firstRow = {
+ 			_get = function(){
+ 				return _dll.xlSheetFirstRow(owner.handle) + 1; 
+ 			}
+ 		}
+ 		
+		lastRow = { 
+			_get = function(){
+				return _dll.xlSheetLastRow(owner.handle) + 1; 
+			}
+		}
+		
+		firstCol = {
+			_get = function(){
+				return _dll.xlSheetFirstCol(owner.handle) + 1;
+			}
+		}
+		
+    	lastCol = {
+    		_get = function(){
+    			return _dll.xlSheetLastCol(owner.handle) + 1;
+			}
+		}
+    	
+    	firstFilledRow = {
+    		_get = function(){
+    			return _dll.xlSheetFirstFilledRow(owner.handle);
+			}
+		}
+    	
+    	lastFilledRow = {
+    		_get = function(){
+    			return _dll.xlSheetLastFilledRow(owner.handle);
+			}
+		}
+    	
+    	firstFilledCol = {
+    		 _get = function(){
+    			return _dll.xlSheetFirstFilledCol(owner.handle);
+			}
+		}
+    	
+		lastFilledCol = {
+			_get = function(){
+				return _dll.xlSheetLastFilledCol(owner.handle);
+			}
+		}
+
+    	displayGridlines = {
+    		_get = function(){
+   				return _dll.xlSheetDisplayGridlines(owner.handle);
+   			}
+    		
+    		_set = function(v){
+    			_dll.xlSheetSetDisplayGridlines(owner.handle, v);
+    		}
+    	}
+    	
+    	printGridlines = {
+    		_get = function(){
+    			return _dll.xlSheetPrintGridlines(owner.handle);
+    		} 
+    		
+    		_set = function(v){
+    			_dll.xlSheetSetPrintGridlines(owner.handle, v);
+    		}
+    	}
+
+   		zoom = {
+   			_get = function(){
+				return _dll.xlSheetZoom(owner.handle);
+			} 
+   			
+   			_set = function(v){
+   				 _dll.xlSheetSetZoomW(owner.handle, v);
+   			} 
+   		}
+
+   		printZoom = {
+   			_get = function(){
+				return _dll.xlSheetPrintZoom(owner.handle);
+			} 
+   			
+   			_set = function(v){
+   				_dll.xlSheetSetPrintZoom(owner.handle, v);
+   			} 
+   		}
+
+   		landscape = {
+   			_get = function(){
+				return _dll.xlSheetLandscape(owner.handle);
+			} 
+   			
+   			_set = function(v){
+   				_dll.xlSheetSetLandscape(owner.handle, v);
+   			} 
+   		}
+
+   		paper = {
+   			_get = function(){
+				return _dll.xlSheetPaper(owner.handle);
+			} 
+   			
+   			_set = function(v){
+   				_dll.xlSheetSetPaper(owner.handle, v);
+   			} 
+   		}
+   		
+   		header = {
+   			_get = function(){
+				return ..raw.str( _dll.xlSheetHeaderP(owner.handle), true )
+			}
+   		}
+   		
+		headerMargin = {
+			_get = function(){
+				return _dll.xlSheetHeaderMarginD(owner.handle); 
+			}
+		} 
+		
+		footer = {
+			_get = function(){
+				return ..raw.str( _dll.xlSheetFooterP(owner.handle), true ); 
+			}
+		}
+		
+		footerMargin = {
+			_get = function(){
+				return _dll.xlSheetFooterMarginD(owner.handle); 
+			}	
+		}
+
+    	hCenter = {
+    		_get = function(){ 
+    			return _dll.xlSheetHCenter(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			_dll.xlSheetSetHCenter(owner.handle, v);
+    		} 	
+    	}
+    	
+    	vCenter = {
+    		_get = function(){ 
+    			return _dll.xlSheetVCenter(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			_dll.xlSheetSetVCenter(owner.handle, v);
+    		} 	
+    	}
+    	
+    	marginLeft = {
+    		_get = function(){ 
+    			return _dll.xlSheetMarginLeftD(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			xlSheetSetMarginLeft(owner.handle, v);
+    		} 	
+    	}
+    	
+    	marginRight = {
+    		_get = function(){ 
+    			return _dll.xlSheetMarginRightD(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			xlSheetSetMarginRight(owner.handle, v);
+    		} 	
+    	}
+    	
+    	marginTop = {
+    		_get = function(){ 
+    			return _dll.xlSheetMarginTopD(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			xlSheetSetMarginTop(owner.handle, v);
+    		} 	
+    	}
+    	
+    	marginBottom = {
+    		_get = function(){ 
+    			return _dll.xlSheetMarginBottomD(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			xlSheetSetMarginBottom(owner.handle, v);
+    		} 	
+    	}
+    	
+    	printRowCol = {
+    		_get = function(){ 
+    			return _dll.xlSheetPrintRowCol(owner.handle);
+    		}
+    		
+    		_set = function(v){
+    			 _dll.xlSheetSetPrintRowCol(owner.handle, v);
+    		} 	
+    	}
+    	
+    	name = {
+    		_get = function(){ 
+    			return ..raw.str( _dll.xlSheetNameP(this.handle), true); 
+    		}
+    		
+    		_set = function(v){
+    			 _dll.xlSheetSetName(owner.handle, v);
+    		} 	
+    	}
+    	
+    	protect = {
+    		_get = function(){ 
+    			return  _dll.xlSheetProtect(this.handle); 
+    		}
+    		
+    		_set = function(v){
+    			 _dll.xlSheetSetProtect(owner.handle, v);
+    		} 	
+    	}
+    	
+    	rightToLeft = {
+    		_get = function(){ 
+    			return  _dll.xlSheetRightToLeft(this.handle); 
+    		}
+    		
+    		_set = function(v){
+    			 _dll.xlSheetSetRightToLeft(owner.handle, v);
+    		} 	
+    	}
+
+    	tabColor = {
+    		_set = function(v){
+    			 _dll.xlSheetSetTabColor(owner.handle, v);
+    		} 	
+    	}
+    }
+    
+    _metaProperty = ..aaz.libxl.metaProperty( _properties )
+}

@@ -1,0 +1,1157 @@
+assert(web.sciter);
+import util.registry;
+namespace web.sciter;
+
+class element{
+	ctor (he,addref = true ) {
+		if(!he)return null; 
+		if( _cache_elements[he] ) {
+			var this = _cache_elements[he];
+			this[["(referenceCount)"]] = this[["(referenceCount)"]] + 1;
+			if(!addref) ::Sciter.UnuseElement(he);
+			return _cache_elements[he];
+		}
+		
+		this.handle = he;
+		this.state = state(this);
+		this.style = style(this);
+		if( he && addref ){
+			::Sciter.UseElement(he);
+		}
+		this[["(referenceCount)"]] = 1;
+		_cache_elements[he] = this;
+		..table.gc(this,"__gcReleaseAll");
+	}
+	@_metaProperty;
+}
+
+import web.sciter.element.state;
+import web.sciter.element.style;
+
+var element_t =  element;
+var valueObject_t = valueObject;
+var push = ..table.push;
+  	
+namespace element{
+	_cache_elements = { @{_weak="kv"} }
+	var _cache_elements = _cache_elements;
+	..subscribe("beforeUnload",function(){
+		for(k,ele in _cache_elements){
+			ele.__gcReleaseAll();
+			_cache_elements[k] = null;
+		} 
+	} );
+	
+	
+  	var fromUnicode = ..string.fromUnicode;
+  	var toUnicode = ..string.toUnicode
+ 
+	_metaProperty = ..util.metaProperty(
+		_topointer = function(){
+			return owner[["handle"]];
+		};
+		_eq = function(ele){
+			return owner[["handle"]] == ele[["handle"]];
+		};
+		clone = function(ins){
+			var re,he = ::Sciter.CloneElement(owner[["handle"]]);
+			if( re == 0/*_HLDOM_OK*/ ){
+				var ele = element_t(he,false);
+				if( ins !== null ){
+					var ret,phe = ::Sciter.GetParentElement(owner[["handle"]] );
+					if(ret==0){
+						::Sciter.InsertElement(he,phe,( ins < 0 ) ?0x7FFFFFFF:( ins && ins-1 ));
+					};
+				}
+				return ele; 
+			}
+		};
+		detach = function(ele){
+			return ::Sciter.DetachElement(owner[["handle"]]) = 0/*_HLDOM_OK*/;
+		};
+		set = function (n, v) {
+			if( !owner[["handle"]] ) error("无效的节点对象",2);
+			
+			var t = type(v); 
+			if( ( t == "string" ) ||  ( v === null ) ){
+				::Sciter.SetAttributeByName(owner[["handle"]], n,toUnicode(v) );
+			}
+			else{
+				owner[[n]] = v;
+			}
+		};
+		get = function (n,ownerCall) {
+			if( !owner[["handle"]]  ) return null;
+			if(ownerCall && (type(n) == "string") && (n[1]!='_'#) ) return function(...){
+				return owner.callMethod(n,...)
+			}
+			 
+			var re,v = ::Sciter.GetAttributeByName(owner[["handle"]], n );
+			if ( re==0 && v) return fromUnicode(v,,true) : "";  
+		}
+		getCustomAttribute = function(n){
+			var v = owner.getAttribute(n)
+			if(!v) v = owner.style["-" + n];
+			return v;
+		};
+		eachAttribute = function(){ 
+			var re,count = ::Sciter.GetAttributeCount(owner[["handle"]],0);
+			if( re != 0/*_HLDOM_OK*/)return function(){};
+			return function(i){
+				if( i < count ){
+					var re,n,v = ::Sciter.GetNthAttribute(owner,i)
+					if( re == 0/*_HLDOM_OK*/)  
+						return i+1, ..raw.str( n ),fromUnicode(v,,true);
+				}
+			},owner[["handle"]],0
+		};
+		clearAttributes = function(){
+			if( owner[["handle"]] ) return 0 == ::Sciter.ClearAttributes(owner[["handle"]]);	
+		};
+		getDataTable = function(){
+			var dt = owner["data-table"]; 
+			return dt ? eval(dt);
+		}
+		setDataTable = function(dt){
+			if( type(dt) != "table" )
+				error("参数必须是table对象",2);
+				
+			owner["data-table"] = ..table.tostring(dt);  
+		};
+		tagName = { 
+			_get = function () {
+				var re, p = ::Sciter.GetElementType(owner[["handle"]]);
+				if ( re==0/*_HLDOM_OK*/ ) 
+					return ..raw.str(p);
+			}
+		};
+		innerText = {
+			_set = function (v) {
+				v = toUnicode(v);
+				::Sciter.SetElementText(owner[["handle"]], v, #v/2);
+			}
+			_get = function () {
+				var re, p = ::Sciter.GetElementText(owner[["handle"]]); 
+				return p;
+			}
+		}; 
+		innerHTML = {
+			_set = function (html) {
+				if( html == "" ) html = " ";
+				::Sciter.SetElementHtml(owner[["handle"]], html, #html, 0/*_SIH_REPLACE_CONTENT*/);
+			}
+			_get = function () {
+				var re, p = ::Sciter.GetElementHtml(owner[["handle"]],false); 
+				return p;
+			}
+		};
+		write = function(html,...){
+			html = ..string.concat(html,...);
+			if(!#html) html = " ";
+			::Sciter.SetElementHtml(owner[["handle"]], html, #html, 0/*_SIH_REPLACE_CONTENT*/);
+		};
+		printf = function(s,...){
+			var html = ..string.format(s,... );
+			if(html) return ::Sciter.SetElementHtml(owner[["handle"]], html, #html,2/*_SIH_APPEND_AFTER_LAST*/) == 0/*_HLDOM_OK*/;
+		}
+		insertAdjacentHTML = function(opt,html,...){
+			opt = _insertAdjacentOption[opt];
+			if(!opt)error("指定了无效的位置参数",2);
+			::Sciter.SetElementHtml(owner[["handle"]], html, #html, opt);
+			if(!...)return;
+			var args = {...};
+			for(i=1;#args;1){
+				html = args[i];
+				::Sciter.SetElementHtml(owner[["handle"]], html, #html, opt);
+			}
+			owner.updateHTML();
+		};
+		updateHTML = function(){
+			var re, html = ::Sciter.GetElementHtml(owner[["handle"]], , true); 
+			if(#html){
+				owner.outerHTML = html;
+			}
+		};
+		outerHTML = {
+			_set = function (html) {
+				if( owner.root() == owner ) owner.getSciter().write(html)
+				else ::Sciter.SetElementHtml(owner[["handle"]], html:"", #html,3/*_SOH_REPLACE*/);
+			}
+			_get = function () {
+				var re, p = ::Sciter.GetElementHtml(owner[["handle"]],true);
+				return p;
+			}
+		};
+		index = function(){ 
+        	var ret,index = ::Sciter.GetElementIndex(owner[["handle"]],0);
+        	return index + 1;
+      	};
+      	uid = {
+      		_get = function(){
+      			var ret,uid = ::Sciter.GetElementUID(owner[["handle"]],0);
+        		return uid;
+      		} 
+      	};
+      	getElementByUid = function (uid=0) {
+      		var re,hwnd = ::Sciter.GetElementHwnd(owner[["handle"]],0,true);
+      		if( re == 0 && hwnd ){
+				var re,he = ::Sciter.GetElementByUID(hwnd,uid) ;//declare at: web.sciter
+				if( re == 0/*_HLDOM_OK*/ && he )
+					return element_t(he)
+			}
+		}; 
+		getForm = function(top=true){
+			var re,hwnd = ::Sciter.GetElementHwnd(owner[["handle"]],0,top)
+			var form =  ..win._form.getForm( hwnd );
+			if(!form) return;
+			
+			if( !top && ..win.isChild(form.hwnd,hwnd) ){
+				return form.getCtrl( hwnd );
+			}
+			return form;
+		};
+		getSciter = function(){
+			return owner.getForm(true)._sciter;
+		};
+		getCtrl = function(){
+			var re,hwnd = ::Sciter.GetElementHwnd(owner[["handle"]],0,false)
+			var form =  ..win._form.getForm( hwnd );
+			if(!form) return;
+			
+			if( ..win.isChild(form.hwnd,hwnd) ){
+				return form.getCtrl( hwnd );
+			}
+		};
+      	getHwnd = function(root){
+      		var re,hwnd = ::Sciter.GetElementHwnd(owner[["handle"]],0,root)
+      		return hwnd;
+      	};
+      	updateWindow = function(root){
+      		var re,hwnd = ::Sciter.GetElementHwnd(owner[["handle"]],0,root)
+      		if( re == 0 && hwnd )
+      			return ::Sciter.UpdateWindow(hwnd);
+      	};
+      	isVisible = function(){
+      		var re,v = ::Sciter.IsElementVisible( owner[["handle"]] );
+      		return v;
+      	}  
+      	isEnabled = function(){ 
+      		var re,v = ::Sciter.IsElementEnabled ( owner[["handle"]] );
+      		return v; 
+      	};
+      	getValueObject = function(){ 
+      		var re, val = ::Sciter.GetValue( owner[["handle"]],valueObject_t() ); 
+      		if( re = 0/*_HL_HV_OK*/ ){ 
+      			return val;
+      		}
+      	};
+      	setValueObject = function(v,units,dataType){ 
+      		var val = owner.getValueObject();
+      		if( !val ){
+      			val = valueObject_t(v,units,dataType)
+      		}
+      		else {
+      			val.setValue(v,units,dataType);
+      		} 
+      		::Sciter.SetValue(owner[["handle"]], val); 
+      		val.clear();
+      	};
+		value = {
+			_set = function (v) { 
+				owner.setValueObject(v);
+			}
+			_get = function () { 
+				var val = owner.getValueObject() 
+				if( val ){
+					var ret = val.value;
+					val.clear();
+					return ret;
+				};
+			}
+		};
+		insert = function (he, ins = 1 ) { 
+			if(!he) error("插入节点参数不能为空",2);
+			return ::Sciter.InsertElement(he[["handle"]] : he,owner[["handle"]], ( ins < 0 ) ?0x7FFFFFFF:( ins && ins-1 ) ) == 0/*_HLDOM_OK*/;
+		};
+		createElement = function(tag,text,ins = -1){ 
+			var re, he = ::Sciter.CreateElement(tag, text);
+			if( re == 0/*_HLDOM_OK*/) {
+				re = ::Sciter.InsertElement(  he,owner[["handle"]], ( ins < 0 ) ?0x7FFFFFFF:( ins && ins-1 ) );
+				if( re == 0/*_HLDOM_OK*/ ){
+					return element_t(he,false); 
+				}
+				else {
+					::Sciter.UnuseElement(he) 
+				} 
+			}
+			return null,re;
+		};
+		append = function (he){ 
+			if(!he) error("追加节点参数不能为空",2)
+			return ::Sciter.InsertElement(he[["handle"]] : he,owner[["handle"]], 0x7FFFFFFF) == 0/*_HLDOM_OK*/; 
+		}; 
+		modifyState = function (state = 0, clear = 0, update = true) { 
+			return ::Sciter.SetElementState(owner[["handle"]], state, clear, update);
+		};
+		getState = function (state=~0) { 
+			var re, st = ::Sciter.GetElementState(owner[["handle"]], 0);
+			return st & state;
+		}; 
+		queryParent = function(cssSel,depth=0){ 
+			var ret,heFound =  ::Sciter.SelectParentW(owner[["handle"]],cssSel,depth) 
+			if(ret==0 && heFound ) return element_t(heFound);  
+		};
+		queryParents = function(cssSel){  
+			var ele;
+			var tParent={}; 
+			var ret,heFound = ::Sciter.SelectParentW(owner[["handle"]],cssSel,0) 
+			while(ret==0 && heFound){
+				ele = element_t(heFound);
+				push(  tParent,ele);
+				
+				ret,heFound =  ::Sciter.GetParentElement( heFound );
+				if(ret==0 && heFound)
+					ret,heFound =  ::Sciter.SelectParentW(heFound,cssSel,0) ;  
+			}
+			
+			if(#tParent)return tParent;
+		};
+		testParent = function(cssSel,depth=0){
+			var ret,heFound =  ::Sciter.SelectParentW(owner[["handle"]],cssSel,depth)  
+			return (ret==0 && heFound);
+		}
+		test = function(cssSelector,p){ 
+			return owner.testParent(cssSelector,1) || ( p ? owner.testParent(cssSelector,0) )
+		}; 
+		getElementById = function (id) { 
+			return owner.querySelector(`[id="%s"]`,id) or  owner.querySelector(`[name="%s"]`,id);;
+		}
+		getElementsByName = function (name) { 
+			return owner.querySelector(`[name="%s"]`,name);
+		}; 
+		getElementsByTagName = function (tag) {
+			return owner.querySelector(tag);
+		}; 
+		update = function( remeasure ){
+          	::Sciter.UpdateElement(owner[["handle"]], remeasure ); 
+      	};
+       	documentElement = {
+       		_get = function(){
+       			 return owner.queryParent("html")
+       		} 
+       	};
+      	root = function(){
+			var p = owner.parent();
+			if(p)return p.root();
+			return owner;
+		};
+		parent = function(){
+			var ret,parent =  ::Sciter.GetParentElement(owner[["handle"]] );
+			if(ret==0) return element_t(parent);
+		}; 
+		nextSibling = function(offset=1){
+			var ret,parent =  ::Sciter.GetParentElement(owner[["handle"]] );
+			if( ret==0 && parent ){
+				var ret,index = ::Sciter.GetElementIndex(owner[["handle"]],0);
+				if( ret==0 ){
+					var ret,child = ::Sciter.GetNthChild(parent, index + offset );
+					if( ret==0 ) return element_t(child);
+				} 
+			}
+		}; 
+		previousSibling = function(offset=1){
+			return owner.nextSibling(-offset); 
+		};
+		firstSibling  = function(offset=1){
+			var ret,parent =  ::Sciter.GetParentElement(owner[["handle"]] );
+			if( ret==0 && parent ){
+				var ret,child = ::Sciter.GetNthChild(parent,0 );
+				if( ret==0 ) return element_t(child);
+			}
+		}; 
+		lastSibling = function(){
+			var ret,parent =  ::Sciter.GetParentElement(owner[["handle"]] );
+			if( ret==0 && parent ){
+				var ret,count = ::Sciter.GetChildrenCount(parent,0 );
+				if( ret==0 ){
+					var ret,child = ::Sciter.GetNthChild(parent,count-1 );
+					if( ret==0 ) return element_t(child);
+				} 
+			}
+		}; 
+		isChild = function(c){
+			if( !c ) return;
+			if( owner == c ) return true;
+			return owner.isChild( c.parent() )
+		};
+		isParent = function(p){
+			if(!p)return;
+			return p.isChild(owner);
+		};
+		child = function( index = 1 ){
+        	var ret,child = ::Sciter.GetNthChild(owner[["handle"]], index-1 );
+        	if(!ret) return element_t(child);
+      	};
+      	childCount = function( ){
+        	var ret,count = ::Sciter.GetChildrenCount(owner[["handle"]],0 );
+        	return count;
+      	};
+      	eachChild = function(first=1,last,step=1){
+      		if(!last)
+      			_,last = ::Sciter.GetChildrenCount(owner[["handle"]],0 ); 
+      			
+      		if( first <= last && step > 0 ){
+      			return function(idx){ 
+      				idx += step;
+      				var ret,child = ::Sciter.GetNthChild(owner[["handle"]], idx-1 );
+      				if( idx <= last ) { 
+      					if( !ret ) return idx,element_t(child);
+      				}
+      			},owner,first-step;
+      		}
+      		else {
+      			if(step>0) step = -step;
+      			
+      			return function(idx){ 
+      				idx += step;
+      				if( idx >= last ) {
+      					var ret,child = ::Sciter.GetNthChild(owner[["handle"]], idx-1 );
+      					if( !ret ) return idx,element_t(child);
+      				}
+      			},owner,first-step;
+      		}
+      	};
+      	swap = function(ele){
+      		if( !ele[["handle"]] ) error("参数无效",2)
+      		::Sciter.SwapElements( owner[["handle"]],ele[["handle"]]);
+      	};
+		postEvent = function( event_code, reason = 0, he){
+			if( type(event_code) == "string" )
+				event_code = __event.findEventCodeByName(event_code);
+				
+			return 0 == ::Sciter.PostEvent(owner[["handle"]], event_code, he? ( he[["handle"]]: he) : owner[["handle"]], reason);
+		};
+		sendEvent = function(event_code, reason=0, he){
+			if( type(event_code) == "string" )
+				event_code = __event.findEventCodeByName(event_code);
+				
+        	var ret,handled = ::Sciter.SendEvent(owner[["handle"]], event_code,  he? ( he[["handle"]]: he) : owner[["handle"]], reason, false); 
+        	return ret && handled;
+		};
+		scrollToView = function(toTopOfView,smooth){
+			 var flags = 0;
+        	if(toTopOfView) flags |= 0x01 /* _SCITER_SCROLL_FLAGS_SCROLL_TO_TOP */;
+        	if(smooth) flags |= 0x10 /* _SCITER_SCROLL_FLAGS_SCROLL_SMOOTH */;
+        	::Sciter.ScrollToView(owner[["handle"]],flags);
+		}; 
+		getScrollInfo = function(){
+			var ret,pos,rect,size = ::Sciter.GetScrollInfo(owner[["handle"]],::POINT(),::RECT(),::SIZE() )
+			if(ret==0/*_HLDOM_OK*/){
+				return { 
+					pos = pos; 
+					rect = rect; 
+					size = size; 
+					page = {
+						int cy =  ..math.ceil( size.cy / rect.height() ); 
+						int cx = ..math.ceil( size.cx / rect.width() );
+					};
+				}
+			}
+		};
+		setScrollPos = function(x=0,y=0,smooth){ 
+			var pt = ::POINT(x,y);
+			::Sciter.SetScrollPos(owner[["handle"]],x,y,smooth );
+		};
+		getRect = function( areas = 1/*_HL_ROOT_RELATIVE*/ ){
+			var rc = ::RECT();
+			var re = ::Sciter.GetElementLocation(owner[["handle"]],rc,areas);
+			if( re == 0/*_HLDOM_OK*/ )
+				return rc;
+		};
+		getIntrinsicWidth = function(){
+			var re,min,max = ::Sciter.GetElementIntrinsicWidths(owner[["handle"]],0,0);
+			if( re == 0/*_HLDOM_OK*/ ) return min,max;
+		};
+		getIntrinsicHeight = function(w){
+			var re,min = ::Sciter.GetElementIntrinsicHeight(owner[["handle"]],w : owner.getIntrinsicWidth() ,0);
+			if( re == 0/*_HLDOM_OK*/ ) return min;
+		};
+		getPos = function(areas= 4/*_HL_VIEW_RELATIVE*/){
+			var rc = owner.getRect(areas)
+			return rc.left,rc.top,rc.right-rc.left,rc.bottom-rc.top; 
+		};
+		popupAnchor = function(anchor,place=2){
+			return 0/*_HLDOM_OK*/ == ::Sciter.ShowPopup(owner[["handle"]],anchor[["handle"]] : anchor, place)
+		}
+		popupHide = function(){
+			return 0/*_HLDOM_OK*/ == ::Sciter.HidePopup(owner[["handle"]])
+		}
+		popup = function(x=0,y=0,ani=0,point=1){
+			return 0/*_HLDOM_OK*/ == ::Sciter.ShowPopupAt(owner[["handle"]],x,y, ( point << 16 ) | ( ani?1:0 ) ) 
+		}
+		combineUrl = function(url){
+			var buffer = ..raw.buffer(0x800, ( toUnicode(url) ) );
+			var re = ::Sciter.CombineURL(owner[["handle"]],buffer,0x800);
+			if( re == 0/*_HLDOM_OK*/)
+				..string.fromUnicode(buffer,,true); 
+		}
+		capture = { 
+			_set = function( v ){ 
+				if(v)
+					::Sciter.SetCapture(owner[["handle"]])
+				else 
+					..win.releaseCapture(); 
+			} 	
+		}; 	
+		setEventRoot = function(){
+			var re,hpre = ::Sciter.SetEventRoot(owner[["handle"]]);
+			if( re == 0/*_HLDOM_OK*/ )
+				return element_t(hpre); 
+		};
+		setTimer = function(ms=100,id=0){
+			return  0/*_HLDOM_OK*/ == ::Sciter.SetTimer(owner[["handle"]],ms,id);
+		}
+		callMethod = function(methodName,...){
+			var args;
+			args = {...};
+			var _,len = ..table.range(args);
+			if( len ) {
+				for( i=1;len;1 ) args[i] = valueObject_t(args[i]);
+				args = {struct array[]=args}
+			}
+			else args = {}
+			
+			var retval = valueObject_t();
+			if( 0 == ::Sciter.CallScriptingMethod(owner,methodName,args,len,retval) ){
+				if( retval.isErrorString() ) error(retval.getString(),2);
+				return retval.getValue();
+			}
+		}; 
+		callFunction = function(funcName,...){
+			var args;
+			args = {...};
+			var _,len = ..table.range(args);
+			if( len ) {
+				for( i=1;len;1 ) args[i] = valueObject_t(args[i]);
+				args = {struct array[]=args}
+			}
+			else args = {}
+			
+			var retval = valueObject_t();
+			if( 0 == ::Sciter.CallScriptingFunction(owner,funcName,args,len,retval) ){
+				if( retval.isErrorString() ) error(retval.getString(),2);
+				return retval.getValue();
+			}
+		}; 
+		eval = function(script){	
+			retval = valueObject_t();
+			script = ..string.toUnicode(script);
+			if( 0 == ::Sciter.EvalElementScript(owner,script,#script/2,retval) ){
+				if( retval.isErrorString() ) error(retval.getString(),2);
+				return retval.getValue();
+			}
+		};
+		_xcallMethod = function(params){
+			if( !( params._struct && ( params.methodID !== null) ) )
+				error("参数错误",2)
+			return 0/*_HLDOM_OK*/ == ::Sciter.CallBehaviorMethod(owner[["handle"]],params);
+		}
+		xcall = function(methodName,...){
+			var args,args_s;
+			args = {...};
+			var _,len = ..table.range(args);
+			if( len ) {
+				for( i=1;len;1 ){
+					args[i] = valueObject_t(args[i]); 
+				}
+				args_s = ..raw.buffer( {struct args[]=args} ) ;
+			}
+			
+			var callParams = __event.XCALL_PARAMS();
+			with callParams{
+				argv = args_s;
+				method_name = methodName;
+				argc = #args;
+				retval = valueObject_t();
+			}
+			
+			if( owner._xcallMethod(callParams) ){
+				return callParams.retval.getValue();
+			}
+		}; 
+		click = function(){
+			return owner._xcallMethod({INT methodID=0/*_HL_DO_CLICK*/});
+		};  
+		getCaretPos  = function(){
+			var caretParam =  { INT methodID = 8/*_HL_TEXT_EDIT_GET_CARET_POSITION*/;
+				 int left;int top; int width;int height };
+			if( owner._xcallMethod(caretParam) ){
+				return caretParam.left,caretParam.top,caretParam.width,caretParam.height;
+			}
+		}; 
+		getsel = function(){
+			var param =  { INT methodID = 3/*_HL_TEXT_EDIT_GET_SELECTION*/;
+				 INT selStart;INT selEnd;};
+			if( owner._xcallMethod(param) ){
+				return param.selStart,param.selEnd;
+			}
+		}; 
+		setsel = function(a=0,b=-1){ 
+			return owner._xcallMethod({ INT methodID = 4/*_HL_TEXT_EDIT_SET_SELECTION*/;
+				 INT selStart=a;INT selEnd=b;} ) 
+		}; 
+		isEmpty = function(){
+			var emptyParams = {INT methodID=0xFC/*_HL_IS_EMPTY*/;bool empty;}
+			owner._xcallMethod(emptyParams);
+			return emptyParams.empty;
+		};
+		getCharFromPos  = function(x,y){ 
+			var charParam =  { INT methodID = 0xB/*_HL_TEXT_EDIT_CHAR_POS_AT_XY*/;
+				 int x=x;int y=y; int char_pos;pointer he;int he_pos };
+				 
+			if( owner._xcallMethod(charParam) ){
+				if( charParam.he ) return  charParam.char_pos,element_t(charParam.he),charParam.he_pos;
+				return charParam.char_pos;
+			}
+		};
+		request = function(uri,param,rt,dt){
+			var param_c,len;
+			dt = dt : 0/*_HLRT_DATA_HTML*/;
+			if( param ) {
+				var postData = {};
+				if( type(param) == type.table ){
+					for(k,v in param){
+						push( postData,{ pointer name = toUnicode(k); pointer value = toUnicode(v); } )
+					} 
+				}
+				else {
+					for k,v in ..string.gmatch( param,"([^&]+)=([^&=]*)") { 
+						push( postData,{ pointer name = toUnicode(k); pointer value = toUnicode(v); } )
+					}
+				}
+				param_c = {struct array[] = postData }
+				len = #postData;
+				if(!len) { param_c = {} };
+			}
+			else {
+				param_c = {};
+				if(rt===null) rt = "GET";
+				len = 0;
+			};
+			return 0 == ::Sciter.HttpRequest( owner[["handle"]],toUnicode(uri),dt,rt!="GET"?1:0,param_c,len);
+		};
+		attachEventHandler = function( handler ){
+			var hOwner;
+			if(!handler){
+				if( owner[["attachEventHandlerId"]] )
+					return null,"节点对象禁止重复绑定事件";
+					
+				handler = owner;
+				hOwner = true; 
+			} 
+			
+		
+			var tagId = __event._handlerByTagRegistry.reg(handler);
+			var ret = ::Sciter.AttachEventHandler(owner[["handle"]], __event._handlerByTagId_c,tagId ); 
+			 
+			if( ret == 0/*_HLDOM_OK*/){
+				if( hOwner ){
+					owner[["attachEventHandlerId"]] = tagId;
+				}
+				return tagId;
+			}
+			else {
+				__event._handlerByTagRegistry.unReg(tagId);
+			}
+		};
+		detachEventHandler = function(tagId){
+			if(!tagId){
+				tagId = owner[["attachEventHandlerId"]]; 
+			}
+			if(tagId){
+				if( tagId == owner[["attachEventHandlerId"]] )
+					owner[["attachEventHandlerId"]] = null;
+					
+				var ret = ( 0/*_HLDOM_OK*/ == ::Sciter.DetachEventHandler(owner[["handle"]], __event._handlerByTagId_c,tagId ) )
+				return ret;
+			}
+		};
+		traverseMouse = function(cmd,x,y,btnState,altSate){ 
+			if( type(cmd) == "string" ){
+				cmd = __event.findMouseCodeByName(cmd);
+				if( cmd===null ) error("参数@1指定了无效的事件",2);
+			}
+			var vx,vy = owner.getPos();
+			if( x ) vx = vx + x;
+			if( y ) vy = vy + y;
+			var evtParam = {
+				INT cmd = cmd;
+				ptr target = owner[["handle"]];
+				struct pos = ::POINT();
+				struct pos_document = ::POINT( vx,vy);
+				int button_state = btnState : 1/*_HL_MAIN_MOUSE_BUTTON*/;
+				INT alt_state = altSate;
+				INT cursor_type; bool is_on_icon; ptr dragging; INT dragging_mode;
+			}
+			var r,p = ::Sciter.TraverseUIEvent(1/*_HL_HANDLE_MOUSE*/,evtParam); 
+			if(  0 == r ) return p;
+		}; 
+		traverseKey = function(cmd,vk,altSate){
+			if( type(cmd) == "string" ){
+				cmd = __event.findKeyCodeByName(cmd);
+				if( cmd===null ) error("参数@1指定了无效的事件",2);
+			}
+			var evtParam = {
+				INT cmd = cmd;
+				ptr target = owner[["handle"]]; 
+				int key_code = vk;
+				INT alt_state = altSate; 
+			}
+			var r,p = ::Sciter.TraverseUIEvent(2/*_HL_HANDLE_KEY*/,evtParam);
+			if(  0 == r ) return p;
+		}; 
+		__gcReleaseAll = function(){
+		
+			var he = owner[["handle"]];
+			if( he && owner[["(referenceCount)"]] > 0 ){
+			
+				owner[["(referenceCount)"]] = 0;
+				_cache_elements[ he ] = null;
+				if(owner[["attachEventHandlerId"]]) owner.detachEventHandler();
+				::Sciter.UnuseElement(owner[["handle"]]);
+				//owner[["handle"]] = null;
+			}
+		};
+		addCtrl = function(tParam){
+			var ctrl = owner.getCtrl();
+			if(ctrl) ctrl.close();
+			tParam = ..table.mixin({ bottom=1;right=1;left=0;top=0;cls="static";text="";autoResize=false},tParam); 
+			var ctrl = owner.getForm(true).addCtrl( { tParam } )[1];
+			::Sciter.AttachHwndToElement(owner,ctrl.hwnd);
+			owner.postEvent("onElementControlCreated"); 
+			return ctrl;
+		};
+		delCtrl = function(){
+			var ctrl = owner.getCtrl();
+			if(ctrl) ctrl.close();
+		};
+		adjustCtrl = function(cx,cy,wParam){
+			var ctrl = owner.getCtrl();
+			if(ctrl) ctrl.adjust(cx,cy,wParam); 
+		};
+		release = function(){
+			var he = owner[["handle"]];
+			if( he && owner[["(referenceCount)"]] > 0 ){
+				owner[["(referenceCount)"]] = owner[["(referenceCount)"]] - 1; 
+				if( owner[["(referenceCount)"]] == 0 ){
+				
+					_cache_elements[ he ] = null;
+					if(owner[["attachEventHandlerId"]]) owner.detachEventHandler();
+					::Sciter.UnuseElement(owner[["handle"]]) 
+					owner[["handle"]] = null; //detachEventHandler需要用到
+					
+					return owner[["(referenceCount)"]]; 
+				}
+				return owner[["(referenceCount)"]]; 
+			}
+		};
+		delete = function(){
+			var he = owner[["handle"]];
+			if( he ){
+			
+				owner[["(referenceCount)"]] = 0;
+				_cache_elements[ he ] = null;
+				if(owner[["attachEventHandlerId"]]) owner.detachEventHandler();
+				var ret = ::Sciter.DeleteElement(he); 
+				owner[["handle"]] = null; //detachEventHandler需要用到
+				
+				return  ret == 0/*_HLDOM_OK*/; 
+			}
+		};
+	); 
+	 
+	namespace _metaProperty {
+		getAttribute = get;
+		setAttribute = set; 
+		children = childCount; 
+		previous = previousSibling;
+		
+      	next = nextSibling;
+		var _querySelectorAll_callback_result; 
+		var _querySelectorAll_callback_c = ..raw.tostdcall( 
+			function(he, param){
+				push( _querySelectorAll_callback_result,element_t(he) );
+			} , "bool(pointer he, INT)"
+		); 
+		querySelectorAll = function(cssSelectors,...){ 
+			if( ... !== null )  cssSelectors = ..string.format(cssSelectors,... );
+			_querySelectorAll_callback_result = {};
+			if( 0/*_HLDOM_OK*/ = ::Sciter.SelectElementsW(owner[["handle"]],cssSelectors,_querySelectorAll_callback_c,0) ){
+				var ret = _querySelectorAll_callback_result;
+				_querySelectorAll_callback_result = null;//gc;
+				return ret;
+			} 
+		};
+		
+		var _querySelector_callback_result; 
+		var _querySelector_callback_c = ..raw.tostdcall( 
+			function(he, param){ 
+				_querySelector_callback_result = element_t(he); return true; 
+			}, "bool(pointer he, INT)"
+		); 
+		querySelector = function(cssSelectors,...){
+			if( ... !== null )  cssSelectors = ..string.format(cssSelectors,... ); 
+			_querySelector_callback_result = null;
+			::Sciter.SelectElementsW(owner[["handle"]],cssSelectors,_querySelector_callback_c,0)
+			var ret = _querySelector_callback_result;
+			_querySelector_callback_result = null;//gc;
+			return ret;
+		}
+		
+		queryElements = querySelectorAll; 
+		queryElement = querySelector;
+		$ = querySelectorAll;
+		$1 = querySelector;
+		$1p = queryParent; 
+		$p = queryParents;
+		
+		_callBackRegistry = ..util.registry();
+		var _enumQuery_callback_c = ..raw.tostdcall( 
+			function(he,tagParam){
+				return  _callBackRegistry[tagParam]( element_t(he) ); //true stop;
+			} , "bool(pointer he, INT tagParam)"
+		);
+		enumQuery = function(proc,cssSelectors,...){ 
+			if( type(proc) != "function" ) 
+				error("参数@1 必须是函数对象!",2);
+				
+			if( ... !== null ) cssSelectors = ..string.format(cssSelectors,... );  
+			var tag = _callBackRegistry.reg(proc); 
+			var ret = ( 0 == ::Sciter.SelectElementsW(owner[["handle"]],cssSelectors,_enumQuery_callback_c,tag ) );
+			_callBackRegistry.unReg(tag);
+			return ret;
+		};
+		
+		var _sort_callback_c = ..raw.tostdcall(  
+			function(he1,he2,tagParam){
+				return _callBackRegistry[tagParam]( element_t(he1),element_t(he2) ) 
+			},"int(pointer he1,pointer he2,INT tagParam)" 
+		);  
+		sort = function(cmpFunc,first=1,last=-1){
+			if( type(cmpFunc) != "function" ) 
+				error("参数@1 必须是函数对象!",2);
+			
+			var tag = _callBackRegistry.reg(cmpFunc); 
+			var ret = ( 0 == ::Sciter.SortElements( owner[["handle"]],first-1,last,_sort_callback_c,tag ) );  
+			_callBackRegistry.unReg(tag);
+			return ret;
+		};
+		 
+		var _enumStyle_ruleType = {"css";"inline";"script"};
+		var _enumStyle_callback_c  = ..raw.tostdcall( 
+				function(pdef,tagParam){
+					var s = ..raw.convert(pdef,SciterCSSRuleDef() );
+					_callBackRegistry[tagParam]( fromUnicode(s.selector,,true),_enumStyle_ruleType[s.rule_type],s.file_url,s.file_line_no )
+				},"void( pointer pdef,INT tagParam)"
+		);
+		
+		var selBuffer;
+		var _selHtml_callback_c  = ..raw.tostdcall( 
+				function(prms,data){
+					push(selBuffer,data)
+					return true;
+				},"void( pointer prms, INT data)"
+		); 
+		selHTML = {
+			_get = function(){
+				selBuffer = {};
+				owner._xcallMethod( { INT methodID = 0xA/*_HL_TEXT_EDIT_GET_SELECTION_HTML*/; 
+					pointer outProc = _selHtml_callback_c } );
+				return ( ..string.pack(selBuffer)  ); 
+			}; 
+		}
+		var _selText_callback_c  = ..raw.tostdcall( 
+				function(prms,data){
+					push( selBuffer,data & 0xFF ,(data >> 8) & 0xFF)
+					return true;
+				},"void( pointer prms, INT data)"
+		); 
+		replaceSel = function(s){
+			s =  toUnicode(s,,false);  
+			if(s) return owner._xcallMethod( { INT methodID = 5/*_HL_TEXT_EDIT_REPLACE_SELECTION*/; 
+				pointer text = s; INT text_length = #s / 2; } );
+		};  
+		selText = {
+			_get = function(){
+				selBuffer = {};
+				owner._xcallMethod( { INT methodID = 9/*_HL_TEXT_EDIT_GET_SELECTION_TEXT*/; 
+					pointer outProc = _selText_callback_c } );
+				return  fromUnicode(  ..string.pack(selBuffer) ) ; 
+			};
+			_set  = replaceSel;
+		} 
+		
+		class SciterCSSRuleDef{
+  			int rule_type; 
+  			string file_url;   
+  			int file_line_no;  
+  			pointer selector;  
+		} 
+	}; 
+	 
+  	_insertAdjacentOption = {
+		beforeBegin = 4/*_SOH_INSERT_BEFORE*/;
+		afterBegin = 1/*_SIH_INSERT_AT_START*/;
+		beforeEnd = 2/*_SIH_APPEND_AFTER_LAST*/;
+		afterEnd = 5/*_SOH_INSERT_AFTER*/
+	} 
+}
+ 
+/**intellisense()
+web.sciter.element(.(句柄,是否添加引用) = 将节点句柄转换为节点对象
+sciterEle = Sciter节点对象保留变量名,\n请勿用于表示其他类型对象\n!sciterEle.
+scTarget = Sciter节点对象,\n在事件函数中,scTarget一般表示触发事件的目标节点,\nlt前缀变量为Sciter保留,请勿用于表示其他类型对象\n!sciterEle.
+scEle = Sciter节点对象,\nlt前缀变量为Sciter保留,请勿用于表示其他类型对象\n!sciterEle. 
+scOwner = Sciter节点对象,\n在事件函数中,scOwner一般表示捕获事件的节点,\nlt前缀变量为Sciter保留,请勿用于表示其他类型对象\n!sciterEle.
+scPopupOwner = Sciter节点对象,\nsc前缀变量为Sciter保留,请勿用于表示其他类型对象\n!sciterEle.
+scOption = Sciter节点对象,\nsc前缀变量为Sciter保留,请勿用于表示其他类型对象\n!sciterEle.
+sciterEle2 = !sciterEle. 
+scEle2 = !sciterEle.
+end intellisense**/
+
+/**intellisense(!sciterEle)
+selHTML = HTML剪帖格式返回选区内容,\n该属性只读
+selText = 获取或设置选区文本
+createElement() = 
+getElementById() = 
+getElementByUid() = 
+queryParent() = 
+$1() = 
+$() = 
+$p() = 
+$1p() = 
+querySelectorAll() = 
+querySelector() = 
+queryElements() = 
+queryElement() = 
+getElementsByName() = 
+getElementsByTagName() = 
+web.sciter.element() = 
+getDataTable() = 返回节点data-table属性中的值,并序列化为table对象
+setDataTable(.(tab对象) = 序列化table对象并设置为节点data-table属性
+getCaretPos() = 返回光标相对于当前节点的客户区位置,\n返回值分别为:左坐标,顶坐标,宽度,高度
+getsel() = 返回文本框控件文本选区,返回值:起始位置,结束位置
+setsel(.(起始位置,结束位置) = 设置文本框控件文本选区 
+outerHTML = 节点HTML源码
+innerHTML = 节点内部HTML源码
+write(.(html,->->->) = 写入HTML并替换节点内部HTML,\n参数可以是数值,字符串
+printf(.("格式化串",其他参数) = 格式化并写入HTML代码到节点尾部
+insertAdjacentHTML("beforeBegin",__/*HTML代码*/) = 在节点之前插入HTML\n可添加多个HTML参数,
+insertAdjacentHTML("afterBegin",__/*HTML代码*/) = 在节点内部最前面插入HTML\n可添加多个HTML参数
+insertAdjacentHTML("beforeEnd",__/*HTML代码*/) = 在节点内部最后面插入HTML\n可添加多个HTML参数
+insertAdjacentHTML("afterEnd",__/*HTML代码*/) = 在节点之后插入HTML\n可添加多个HTML参数
+tagName = 返回表示节点类型的字符串\n例如层节点返回"div"
+getIntrinsicWidth() = 返回宽度的 min-intrinsic,max-intrinsic 值
+getIntrinsicHeight() = 返回高度的 min-intrinsic 值
+type = 返回控件类型(type属性) 
+cls = 自定义控件类名
+capture = 设为true开始捕获鼠标消息,设为false取消捕获
+innerText = 设置或者获取文本
+modifyState(.(要增加的状态,要取消的状态,是否更新) = 设置状态,以 _HL_STATE_ 开头的常量表示指定状态\n所有参数可省略,参数三默认为true
+getState(htmsciter.ELEMENT_STATE_BITS.__) = 是否有某个状态,以 _HL_STATE_ 开头的常量表示指定状态 
+querySelectorAll( = 使用CSS选择器语法查找节点,返回数组
+querySelector( = 使用CSS选择器语法查找节点,返回节点对象
+querySelectorAll(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n在当前节点的子节点中查找所有符合条件节点,\n如果有多个参数则首先调用string.format格式化为CSS文本,\n该函数名可使用'$'代替,等价于CSS!中的$函数
+querySelector(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n在当前节点的子节点中查找第一个符合条件节点,\n如果有多个参数则首先调用string.format格式化为CSS文本,\n该函数名可使用'$1'代替,等价于CSS!中的$1函数
+queryParent(.("标签名[属性名='属性值']") = 该函数类似于CSSS!脚本中的$1p函数,不同的是会测试自身是否匹配,\n使用CSS选择器语法,在父节点中查找匹配最近的一个父节点,\n可选使用参数二指定向上搜索深度,\n如果搜索级别省略或设为0,则不限制搜索深度,\n如果该值为1,仅匹配自身
+queryParents(.("标签名[属性名='属性值']")  = 该函数类似于CSSS!脚本中的$p函数,不同的是会测试自身是否匹配,\n使用CSS选择器语法,在父节点中查找所有匹配的节点,\n成功返回非空数组 
+testParent(.("标签名[属性名='属性值']") = 测试父节点中是否存在符合匹配的节点,\n可使用参数2指定向上搜索深度,默认为0表示不作限制,
+test(.("标签名[属性名='属性值']",是否测试所有父节点) = 测试节点自身是否符合匹配,\n该函数等价于 testParent(CSS选择器,1)
+$1(.("标签名[属性名='属性值']") = 使用CSS选择器语法,查找符合条件的第一个子节点
+$(.("标签名[属性名='属性值']") = 使用CSS选择器语法,查找符合条件的所有子节点
+$p(.("标签名[属性名='属性值']") = 使用CSS选择器语法,查找符合条件的所有父节点,\n注意与CSS脚本不同,该函数测试自身
+$1p(.("标签名[属性名='属性值']") =  使用CSS选择器语法,查找符合条件最近的父节点,\n注意与CSS脚本不同,该函数测试自身
+getElementsByName ("__") = 根据 name 查找节点集合
+getElementById("__") = 根据ID查找节点\n如果未找到,尝试使用name查找 
+getElementsByTagName("__") = 根据HTML标签名查找节点集合
+getElementByUid(.(UID) = 根据唯一ID在该节点所属窗口范围内查找节点
+clearAttributes() = 清空所有属性
+setAttribute("hide","true")  = 修改属性,属性值只能是字符串或null\n也可以直接写 ele.属性名字 = "值"
+getAttribute("hide")  = 获取属性,返回值为字符串或null\n也可以直接写 var 返回值=ele.属性名字
+getCustomAttribute("__") = 获取HTML属性,\n如果失败,则在名字前添加横线查找style自定义属性
+eachAttribute() = @for( i,name,value in ??.eachAttribute() ){
+			 
+}
+enumQuery(枚举函数,CSS选择器,格式化参数) = @.enumQuery(\n	function(scEle){\n		 __/*返回true停止枚举*/\n	},"div"\n)
+sort(cmpFunc,firstInddex,lastIndex) = @.sort(\n	function(scEle,scEle2){\n		\n		return __/*比较条件,可返回-1,0,1等值表示比较结果*/ ? -1 : 1;\n	}\n)
+swap(.(节点对象) = 交换节点对象位置
+enumStyle(枚举函数) =  @.enumStyle( \n	function(selector,ruleType,file,lineNo){\n		__	\n	}\n)
+id = 节点ID
+uid = 节点唯一标志符(数值)
+value = 读写控件值,\n可选值类型:字符串值,数值,时间值等,\n可选使用web.sciter.value 对象赋值
+getValueObject() = 返回控件值对象( web.sciter.valueObject 对象 )\n!web_sciter_value.
+setValueObject(.(值,单位,类型) = 值可选使用字符串,数值,时间值,或 web.sciter.valueObject 对象,\n单位为可选参数,值类型(使用 _HL_T_ 前缀常量表示)为可选参数
+name = 节点name属性
+createElement(.(标签名,节点内容,插入位置) = 创建节点,\n节点内容可省略,\n插入位置可省回,默认为-1表示追到子节点尾部
+insert(.(节点,插入位置) = 插入子节点,参数2可省略,默认插入子节点队列最前面\n插入位置为-1表示插入到子节点队列尾部 
+append(__/*节点*/) = 追加到最后一个子节点  
+isEnabled() = 节点是否可用
+isVisible() = 节点是否可见
+index() = 节点在父节点child子节点集合中的索引位置
+updateHTML() = 重新解析节点HTML代码
+update() = 更新;
+update(true) = 更新,\n重新计算元素的尺寸
+updateEx( _HL_UPDATE_ELEMENT_FLAGS__ ) = 更新;\n并调用::UpdateWindow 刷新窗口
+callFunction(.("函数名",其他参数) = 调用节点的脚本函数,实际上是指该对象名字空间中的函数,\nTIS对象返回为 web.sciter.valueObject对象,其他基础对象转换为aardio类型\n使用 web.sciter.isValueObject 函数可以判断返回值是否TIS对象
+callMethod(.("方法名",其他参数) = 调用节点的方法，实际上就是对象的成员函数,\nTIS对象返回为 web.sciter.valueObject对象,其他基础对象转换为aardio类型\n使用 web.sciter.isValueObject 函数可以判断返回值是否TIS对象
+eval(__) = 计算节点的TIS脚本表达式的值\nTIS对象返回为 web.sciter.valueObject对象,其他基础对象转换为aardio类型\n使用 web.sciter.isValueObject 函数可以判断返回值是否TIS对象
+callMethod() = !web_sciter_value.
+eval() = !web_sciter_value.
+callFunction() = !web_sciter_value.
+root() = 根文档的根节点\n获取框架内部当前文档根节点应请使用documentElement属性\n
+documentElement = 当前当前文档HTML根节点\n
+parent() = 获取父节点\n
+nextSibling() = 获取下一个兄弟节点,可选在参数中指定偏移值\n
+previousSibling() = 获取上一个兄弟节点,可选在参数中指定偏移值\n
+firstSibling() = 获取第一个兄弟节点\n
+lastSibling() = 获取最后一个兄弟节点\n
+previous() = 上一个兄弟节点\n	
+next() = 下一个兄弟节点\n
+child(1__/*索引*/) = 获取子节点\n第一个子节点的索引为1
+child() = 
+isParent(.(父节点) = 判断参数中的节点是否父节点或自身\n参数为空值返回空
+isChild(.(子节点) = 判断参数中的节点是否子节点或自身\n参数为空值返回空
+childCount() = 获取子节点数目\n
+eachChild(开始索引,结束索引,步进) = @for(i,eleChild in ??.eachChild(__/*可选指定开始与结束索引*/) ){
+	io.print( i,eleChild.innerHTML );
+} 
+traverseKey(.("onKeyDown",_VK_->->->,altSate) = 参数@1指定事件,可直接使用  _HL_KEY_ 前缀常量作为参数\n参数@2指定虚拟键码,参数altState可省略,可选值:\n_HL_CONTROL_KEY_PRESSED:0x1,\n_HL_SHIFT_KEY_PRESSED:0x2,\n_HL_ALT_KEY_PRESSED:0x4
+traverseMouse(.("onMouseClick",x,y,btnState,altSate) = 除参数@1以外,其他都是可选参数\n参数@1指定事件,可直接使用  _HL_MOUSE_ 前缀常量作为参数\nx,y用于指定节点内部相对坐标\nbtnState默认为 _HL_MAIN_MOUSE_BUTTON,即鼠标左键
+click() = 触发 onButtonClick 事件,\n支持按钮节点、或者样式中指定behavior:~clickable的节点\n触发非clickable的onMouseClick事件请使用traverseMouse函数
+eachChild() = 
+clone(.(索引) = 复制节点,必须添加为其他节点的子节点才能使用.\n可选指定一个位置参数以添加到复制源节点的父节点,\n-1表示追加到兄弟节点尾部\n
+clone() = 
+detach() = 自DOM树中分离该节点\n当引用计数清零时自动删除
+postEvent(.(事件ID,选项,scTarget) = 触发事件,不等待返回,参数二,参数三为可选参数\n参数一也可以是事件函数名,例如"onButtonClick",\n支持web.sciter.event.BEHAVIOR 名字空间的事件,或其他on前缀的自定义事件\n不应使用此函数触发其他例如onMuse,onKey前缀的事件
+sendEvent(.(事件ID,选项,scTarget) = 触发事件,并等待返回,参数二,参数三为可选参数\n参数一也可以是事件函数名,例如"onButtonClick",\n支持web.sciter.event.BEHAVIOR 名字空间的事件,或其他on前缀的自定义事件\n不应使用此函数触发其他例如onMuse,onKey前缀的事件
+scrollToView(.(滚动到顶部,平滑效果) = 滚动上层视图节点滚动条
+release() = 确认节点对象不再使用可使用此函数释放引用,\n调用此函数后不可再使用该对象,\n节点会自动释放,不建议手动调用此函数
+delete() = 删除节点对象\n成功返回true
+state = 节点状态,\n类似于CSSS! 脚本中使用一个冒号表示状态,\n例如 ele:hover = false,\n!htmsciter_state.
+style = 样式\n类似于CSSS! 脚本中使用一对冒号表示状态,\n例如 ele::width = 56px,\n!htmsciter_style.
+getScrollInfo() = 获取滚动条信息,\n即使CSS样式中使用overflow:hidden;隐藏滚动条,仍然可以正常取到滚动分页等参数,\n!scEleScrollInfo.
+getRect(_HL__) = 返回节点区块坐标\n参数可省略,默认值为 _HL_ROOT_RELATIVE | _HL_CONTENT_BOX 
+getRect() = !rect.
+getPos() = 返回文档相对x坐标,y坐标,cx宽度,cy高度
+popup( = 在指定坐标弹出菜单
+popup(.(x坐标,y坐标,是否显示动画,相应坐标) = 参数三,四可省略,\n参数四可选值为1到9,表示相对指定坐标的偏移位置如下:\n3 2 1\n6 5 4\n9 8 7
+popupTrack(.(x坐标,y坐标,是否显示动画,相应坐标) = 参数三,四可省略,\n参数四可选值为1到9,表示相对指定坐标的偏移位置如下:\n3 2 1\n6 5 4\n9 8 7
+popupAnchor(.(锚节点,选项) = 弹出菜单节点\n参数2指定弹出方向,可省略,默认为2\n可选值(2:下,4:左;6:右 8:上)\n\n  8  \n4 5 6\n  2 
+popupHide() = 隐藏菜单节点
+combineUrl(.(URL) = 将相对路径转换为绝对路径
+setTimer(.(延时毫秒值,ID) = 如果延时值为0,取消定时器,ID可省略\n在CSSS!脚本中可触发 timer! 事件
+getHwnd(.(是否返回顶层窗口) = 返回窗口句柄,参数可省略,默认为false
+updateWindow(.(是否顶层窗口) = 更新窗口\n参数可省略,默认为false
+getForm() = 返回该节点所在窗体对象\n!winform.
+getForm(false) = 返回节点所在窗口或控件对象\n!static.
+getSciter() = 返回Sciter窗体对象\n!websciter.
+getCtrl() = 返回自定义控件对象\n!static.
+addCtrl() = 创建并返回自定义控件\n参数用法与winform.addCtrl相同,\n可省略参数,默认创建static控件\n可以使用节点的getCtrl函数返回控件对象
+delCtrl() = 安全的删除自定义控件
+adjustCtrl(.(cx,cy,wParam) = 调整控件使适合指定大小,参数可以省略
+attachEventHandler(.(eventHandler) = 添加事件监听对象,\n参数一指定响应事件的对象,如果不指定则为当前节点对象,\n仅监听调用此函数前定义的事件,\n也可以使用对象的 onSubscriptionRequest 事件的返回值设置可监听的事件,\n该函数返回事件ID,用于注销监听.
+detachEventHandler(.(事件ID) = 注销事件监听对象,省略参数则停止节点自身事件监听
+request(.(网址,参数,提交方法) =  参数可以是字符串或键值对组成的表对象\n提交方法可省略,默认为"POST"\n该函数可触发onDataArrived事件
+request(.(网址) = 用于框架节点打开网页\n该函数会触发onDataArrived事件
+onMouseEnter = @.onMouseEnter = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseLeave = @.onMouseLeave = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseMove = @.onMouseMove = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseUp = @.onMouseUp = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseDown = @.onMouseDown = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseDblClick = @.onMouseDblClick = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseWheel = @.onMouseWheel = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseTick = @.onMouseTick = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseIdle = @.onMouseIdle = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onDrop = @.onDrop = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onDragEnter = @.onDragEnter = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onDragLeave = @.onDragLeave = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onDragRequest = @.onDragRequest = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onMouseClick = @.onMouseClick = function( scTarget,scOwner,x,y,scMouseParams ) {\n	__\n}
+onKeyDown = @.onKeyDown = function( scTarget,scOwner,keyCode, altState, scKeyParams ) {\n	__\n}
+onKeyUp = @.onKeyUp = function( scTarget,scOwner,keyCode, altState, scKeyParams ) {\n	__\n}
+onKeyChar = @.onKeyChar = function( scTarget,scOwner,keyCode, altState, scKeyParams ) {\n	__\n}
+onFocusLost = @.onFocusLost = function( scTarget,scOwner,focusParams ) {\n	__\n}
+onFocusGot = @.onFocusGot = function( scTarget,scOwner,focusParams ) {\n	__\n}
+xcall(.("自定义函数名",其他参数->->->) = 调用节点自定义的函数,并获取返回值
+getCharFromPos(.(x,y) = 返回文本控件指定坐标文本索引\n如果存在子节点,返回文本索引,子节点对象,子节点文本索引
+setScrollPos(.(x,y,平滑效果) = x,y皆可省略,默认值为0
+
+onGestureRequest = @.onGestureRequest = function (scTarget,scOwner,scGestureParams) {\n	scGestureParams.flags = 0xFFFF/*_HL_GESTURE_FLAGS_ALL*/\n	return true;__\n}
+onGestureZoom = @.onGestureZoom = function (scTarget,scOwner,scGestureParams) {\n	__/*缩放*/\n}
+onGesturePan = @.onGesturePan = function (scTarget,scOwner,scGestureParams) {\n	__/*平移*/\n}
+onGestureRotate = @.onGestureRotate = function (scTarget,scOwner,scGestureParams) {\n	__/*旋转*/\n}
+onGestureTap1 = @.onGestureTap1 = function (scTarget,scOwner,scGestureParams) {\n	__/*单击*/\n}
+onGestureTap2 = @.onGestureTap2 = function (scTarget,scOwner,scGestureParams) {\n	__/*双击*/\n}
+onFrameDocumentComplete = @.onFrameDocumentComplete = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onApplicationEvent = @.onApplicationEvent = function (scTarget,scOwner,reason,behaviorParams) {\n	__/*postEvent或sendEvent发出一大于0x100的消息*/\n}
+onButtonClick = @.onButtonClick = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onButtonPress = @.onButtonPress = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onButtonStateChanged = @.onButtonStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onEditValueChanging = @.onEditValueChanging = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onEditValueChanged = @.onEditValueChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onSelectSelectionChanged = @.onSelectSelectionChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	var scOption = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onSelectStateChanged = @.onSelectStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onPopupRequest = @.onPopupRequest = function (scTarget,scOwner,reason,behaviorParams) {\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onPopupReady = @.onPopupReady = function (scTarget,scOwner,reason,behaviorParams) {\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onPopupDismissed = @.onPopupDismissed = function (scTarget,scOwner,reason,behaviorParams) {\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onMenuItemActive = @.onMenuItemActive = function (scTarget,scOwner,reason,behaviorParams) {\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onMenuItemClick = @.onMenuItemClick = function (scTarget,scOwner,reason,behaviorParams) {\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onContextMenuSetup = @.onContextMenuSetup = function (scTarget,scOwner,reason,behaviorParams){\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onContextMenuRequest = @.onContextMenuRequest = function (scTarget,scOwner,reason,behaviorParams){\n	var scPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+onVisualStateChanged = @.onVisualStateChanged = function (scTarget,scOwner,shown,behaviorParams) {\n	__\n}
+onDisabledStateChanged = @.onDisabledStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onPopupDismissing = @.onPopupDismissing = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onHyperlinkClick = @.onHyperlinkClick = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onTableHeaderClick = @.onTableHeaderClick = function (scTarget,scOwner,cellIndex,behaviorParams) {\n	__\n}
+onTableRowClick = @.onTableRowClick = function (scTarget,scOwner,rowIndex,behaviorParams) {\n	__\n}
+onTableRowDblClick = @.onTableRowDblClick = function (scTarget,scOwner,rowIndex,behaviorParams) {\n	__\n}
+onElementCollapsed = @.onElementCollapsed = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onElementExpanded = @.onElementExpanded = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onActiveChild = @.onActiveChild = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onInitDataView = @.onInitDataView = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onRowsDataRequest = @.onRowsDataRequest = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onUiStateChanged = @.onUiStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onFormSubmit = @.onFormSubmit = function (scTarget,scOwner,reason,behaviorParams) {\n	var formData = behaviorParams.data.getValue();__\n}
+onFormReset = @.onFormReset = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n} 
+onClosePopup = @.onClosePopup = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onRequestTooltip = @.onRequestTooltip = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onAnimation = @.onAnimation = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+onElementControlCreated = @.onElementControlCreated = function (scTarget,scOwner,reason,behaviorParams) {\n	var scCtrl = scOwner.getCtrl();__/*自定义控件已创建*/\n}
+onCustomEvent = @.onCustomEvent = function (scTarget,scOwner,reason,behaviorParams) {\n	__/*自定义事件触发此回调*/\n} 
+onSize = @.onSize = function (scOwner) {\n	__\n}
+onTimer = @.onTimer = function (scOwner,timerId) {\n	__\n}
+onClick = @.onClick = function( scOwner ){\n	__/*click函数触发此事件*/\n	return true;\n} 
+onIsEmpty = @.onIsEmpty = function( scOwner ){\n	__\n	return true,false__/*分别为:是否中止事件传递,是否为空值*/;\n}
+onGetValue = @.onGetValue = function( scOwner ){\n	\n	return true,__/*返回控件值*/;\n}
+onSetValue = @.onSetValue = function(  scOwner,value ){\n	__\n	return true\n}
+onReplaceSel = @.onSetValue = function(  scOwner,value ){\n	__\n	return true\n}
+onGetCaretPos = @.onSetValue = function(  scOwner,value ){\n	__\n	return true,__/*光标位置:left,top,width,height*/\n}
+onIsEmpty = @.onSetValue = function(  scOwner,value ){\n	__\n	return true\n}
+onExchangeDrag = @.onExchangeDrag = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) {  \n	return true;__/*这里返回true才会显示可拖放鼠标指针*/ \n}
+onExchangeDragEnter = @.onExchangeDragEnter = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) {  \n	return true;__/*拖入时触发此事件*/\n}
+onExchangeDragLeave = @.onExchangeDragLeave = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) {  \n	return true;__/*拖离时触发此事件*/\n}
+onExchangeDrop = @.onExchangeDrop = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) { \n    var data,dataType = fetchData( _HL_EXF__/*可选指定支持的拖放数据类型*/ );\n    if( data ) {\n        return true;\n    }\n}
+onExchangeAcceptDrop = @.onExchangeAcceptDrop = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) {  \n	return true;__/*这里返回true表示可接受拖放*/ \n}
+onExchangeCancel = @.onExchangeCancel = function( scTarget,scOwner,x,y,mode,scValueObject,exParams ) {  \n	return true;__/*取消拖放时触发*/ \n}
+onDataArrived = @.onDataArrived = function(scTarget,scOwner,data,dataType,status,url){\n    return true;__/*返回true撤消数据不显示内容*/\n}
+onDrawForeground = @.onDrawForeground  = function(scOwner,hdc,rc){ \n	__/*自绘前景*/\n	return true;\n}
+onDrawContent = @.onDrawContent = function(scOwner,hdc,rc){ \n	__/*自绘内容*/\n	return true;\n}
+onDrawBackground = @.onDrawBackground = function(scOwner,hdc,rc){ \n	__/*自绘背景*/\n	return true;\n}
+end intellisense**/
+
+/**intellisense(!scEleScrollInfo)
+pos = 滚动条位置\n!point.
+rect = 视图区块\n!rect.
+size = 内容大小\n!size.
+page = 分页大小\n!size.
+end intellisense**/

@@ -1,0 +1,69 @@
+//dragable 拖动
+namespace web.sciter.behavior { 
+	class dragable{
+		ctor(scOwner,wbSciter){ {
+			scOwner.style.position = "absolute"; 
+			var dragMargin = scOwner.getCustomAttribute("drag-margin");
+			if( dragMargin ){
+				var t = {} 
+				for n in ..string.gmatch( dragMargin,"\S+") { 
+					..table.push( t, (tonumber(n)) ) 
+				} 
+				if(t[1]){
+					this.dragMarginTop = t[1];
+					this.dragMarginRight = t[2] : t[1];
+					this.dragMarginBottom = t[3] : this.dragMarginTop;
+					this.dragMarginLeft = t[4] : this.dragMarginRight ;
+				}
+			}
+			var ltView = scOwner.parent();
+			var position;
+			while(ltView){
+				position = ltView.style.position; 
+				if( position == "relative" || position == "absolute" ){
+					this.view = ltView;
+					break;
+				}
+				ltView = ltView.parent();
+			} 
+			if(!this.view) this.view = scOwner.documentElement;
+		} };
+		onMouseDown = function(scTarget, scOwner, x, y, scMouseParams) {
+        	if (scMouseParams.button_state == 1/*_HL_MAIN_MOUSE_BUTTON*/){
+        		var ltProp = scTarget.queryParent("[dragable]") ;
+        		if( scOwner.isChild(ltProp) && ltProp.dragable == "false") return;
+        		
+        		scOwner.capture = true;
+            	this.dx = x;
+            	this.dy = y;
+            	scOwner.dragging  = "true";//for css;
+        		scOwner.update(true); 
+       		}
+    	};
+    	onMouseMove = function(scTarget, scOwner, x, y, scMouseParams) { 
+        	if (scMouseParams.button_state === 1/*_HL_MAIN_MOUSE_BUTTON*/ && scOwner.dragging){ 
+        	
+        		with this{
+        			var x,y = scMouseParams.pos_document.x-dx,scMouseParams.pos_document.y-dy; 
+        			if( dragMarginTop  ){
+        				if(!this.view) return;
+        				var rcWnd = this.view.getRect(4/*_HL_VIEW_RELATIVE*/);
+        				var rc = scOwner.getRect(4/*_HL_VIEW_RELATIVE*/ | 0x20/*_HL_BORDER_BOX*/);
+            			if( x <= rcWnd.left + dragMarginLeft ) x = rcWnd.left + dragMarginLeft;
+            			elseif( x + rc.width() >  rcWnd.right - dragMarginRight ) x = rcWnd.right - dragMarginRight - rc.width();
+            			if( y < rcWnd.top + dragMarginTop ) y = rcWnd.top + dragMarginTop;
+            			elseif( y + rc.height() >  rcWnd.bottom - dragMarginBottom  ) y = rcWnd.bottom - dragMarginBottom - rc.height();
+            		} 
+            		scOwner.setPos(x,y)
+            	}
+        	}
+    	};
+    	onMouseUp = function (scTarget, scOwner, x, y, scMouseParams) {
+        	if (scMouseParams.button_state === 1/*_HL_MAIN_MOUSE_BUTTON*/ && scOwner.dragging ) {
+            	scOwner.capture = false; 
+            	scOwner.dragging = null;
+            	scOwner.update(true);
+        	}
+    	}
+	}
+}

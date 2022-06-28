@@ -1,0 +1,10 @@
+﻿//stop 停止播放
+import web.sciter.behavior;
+import web.sciter.behavior.player;
+var mpv = web.sciter.behavior.player.mpv;
+
+namespace web.sciter.behavior.stop{
+	onMouseClick = function( scTarget,scOwner,x,y,ltMouseParams ) {
+		mpv.stop()
+	}
+}

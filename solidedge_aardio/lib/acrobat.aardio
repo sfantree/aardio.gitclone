@@ -1,0 +1,509 @@
+﻿// acrobat
+    class acrobat{
+	ctor( ... ){
+		this.aReader = ..com.GetOrCreateObject("AcroPDF.PDF");
+		if( ! this.aReader ) return null;
+	};
+	@_metaProperty;
+}
+namespace acrobat{
+  import util.metaProperty; 
+  _metaProperty = util.metaProperty( 
+	get = function(k){
+		return owner.aReader[k];
+	};
+	set = function(k,v){
+		owner.aReader[k] = v;
+	}
+  )
+}
+namespace acrobat{
+	
+}
+/**intellisense()
+acrobat = Acrobat支持库
+acrobat() = !acrobat.
+!acrobat.QueryInterface(pointer, pointer&) = 
+!acrobat.AddRef() = 
+!acrobat.Release() = 
+!acrobat.GetTypeInfoCount(pointer&) = 
+!acrobat.GetTypeInfo(INT, INT, pointer&) = 
+!acrobat.GetIDsOfNames(pointer, pointer, INT, INT, pointer&) = 
+!acrobat.Invoke(int, pointer, INT, WROD, pointer, pointer&, pointer&, pointer&) = 
+!acrobat.src = _get  
+!acrobat.src(string) = 
+!acrobat.LoadFile(string) = 
+!acrobat.setShowToolbar(bool) = 
+!acrobat.gotoFirstPage() = 
+!acrobat.gotoLastPage() = 
+!acrobat.gotoNextPage() = 
+!acrobat.gotoPreviousPage() = 
+!acrobat.setCurrentPage(int) = 
+!acrobat.goForwardStack() = 
+!acrobat.goBackwardStack() = 
+!acrobat.setPageMode(string) = 
+!acrobat.setLayoutMode(string) = 
+!acrobat.setNamedDest(string) = 
+!acrobat.Print() = 
+!acrobat.printWithDialog() = 
+!acrobat.setZoom(float) = 
+!acrobat.setZoomScroll(float, float, float) = 
+!acrobat.setView(string) = 
+!acrobat.setViewScroll(string, float) = 
+!acrobat.setViewRect(float, float, float, float) = 
+!acrobat.printPages(int, int) = 
+!acrobat.printPagesFit(int, int, bool) = 
+!acrobat.printAll() = 
+!acrobat.printAllFit(bool) = 
+!acrobat.setShowScrollbars(bool) = 
+!acrobat.GetVersions() = 
+!acrobat.setCurrentHightlight(int, int, int, int) = 
+!acrobat.setCurrentHighlight(int, int, int, int) = 
+!acrobat.postMessage(pointer/*VARIANT*/) = 
+!acrobat.messageHandler _get = 
+!acrobat.messageHandler(pointer/*VARIANT*/) = 
+!acrobat.execCommand(pointer/*VARIANT*/) = 
+end intellisense**/
+
+/**
+Name: IAcroAXDocShim
+HelpString: IAcroAXDocShim Interface
+Interface:  {3B813CE7-7C10-4F84-AD06-9DF76D97A9AA}
+
+
+
+函数：OnError()
+描述：event OnError: Fired when an error occurs.
+	返回值类型：pointer
+
+函数：OnMessage()
+描述：event OnMessage: Fired when a message is sent.
+	返回值类型：pointer
+
+函数：QueryInterface(riid,ppvObj)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:ppvObj 参数类型:pointer& 输出参数
+
+函数：AddRef()
+	返回值类型：INT
+
+函数：Release()
+	返回值类型：INT
+
+函数：GetTypeInfoCount(pctinfo)
+	返回值类型：pointer
+	参数名:pctinfo 参数类型:INT& 输出参数
+
+函数：GetTypeInfo(itinfo,lcid,pptinfo)
+	返回值类型：pointer
+	参数名:itinfo 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:pptinfo 参数类型:pointer& 输出参数
+
+函数：GetIDsOfNames(riid,rgszNames,cNames,lcid,rgdispid)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:rgszNames 参数类型:byte& 输入参数
+	参数名:cNames 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:rgdispid 参数类型:int& 输出参数
+
+函数：Invoke(dispidMember,riid,lcid,wFlags,pdispparams,pvarResult,pexcepinfo,puArgErr)
+	返回值类型：pointer
+	参数名:dispidMember 参数类型:int 输入参数
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:wFlags 参数类型:WROD 输入参数
+	参数名:pdispparams 参数类型:unknow 输入参数
+	参数名:pvarResult 参数类型:pointer/*VARIANT*/& 输出参数
+	参数名:pexcepinfo 参数类型:unknow 输出参数
+	参数名:puArgErr 参数类型:INT& 输出参数
+
+函数：QueryInterface(riid,ppvObj)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:ppvObj 参数类型:pointer& 输出参数
+
+函数：AddRef()
+	返回值类型：INT
+
+函数：Release()
+	返回值类型：INT
+
+函数：GetTypeInfoCount(pctinfo)
+	返回值类型：pointer
+	参数名:pctinfo 参数类型:INT& 输出参数
+
+函数：GetTypeInfo(itinfo,lcid,pptinfo)
+	返回值类型：pointer
+	参数名:itinfo 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:pptinfo 参数类型:pointer& 输出参数
+
+函数：GetIDsOfNames(riid,rgszNames,cNames,lcid,rgdispid)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:rgszNames 参数类型:byte& 输入参数
+	参数名:cNames 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:rgdispid 参数类型:int& 输出参数
+
+函数：Invoke(dispidMember,riid,lcid,wFlags,pdispparams,pvarResult,pexcepinfo,puArgErr)
+	返回值类型：pointer
+	参数名:dispidMember 参数类型:int 输入参数
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:wFlags 参数类型:WROD 输入参数
+	参数名:pdispparams 参数类型:unknow 输入参数
+	参数名:pvarResult 参数类型:pointer/*VARIANT*/& 输出参数
+	参数名:pexcepinfo 参数类型:unknow 输出参数
+	参数名:puArgErr 参数类型:INT& 输出参数
+
+读属性名：src 返回类型:string
+描述：property src
+
+写属性函数：setsrc(p1)
+描述：property src
+	返回值类型：pointer
+	参数名:p1 参数类型:string 输入参数
+
+函数：LoadFile(fileName)
+描述：method LoadFile
+	返回值类型：bool
+	参数名:fileName 参数类型:string 输入参数
+
+函数：setShowToolbar(On)
+描述：method setShowToolbar
+	返回值类型：pointer
+	参数名:On 参数类型:bool 输入参数
+
+函数：gotoFirstPage()
+描述：method gotoFirstPage
+	返回值类型：pointer
+
+函数：gotoLastPage()
+描述：method gotoLastPage
+	返回值类型：pointer
+
+函数：gotoNextPage()
+描述：method gotoNextPage
+	返回值类型：pointer
+
+函数：gotoPreviousPage()
+描述：method gotoPreviousPage
+	返回值类型：pointer
+
+函数：setCurrentPage(n)
+描述：method setCurrentPage
+	返回值类型：pointer
+	参数名:n 参数类型:int 输入参数
+
+函数：goForwardStack()
+描述：method goForwardStack
+	返回值类型：pointer
+
+函数：goBackwardStack()
+描述：method goBackwardStack
+	返回值类型：pointer
+
+函数：setPageMode(pageMode)
+描述：method setPageMode
+	返回值类型：pointer
+	参数名:pageMode 参数类型:string 输入参数
+
+函数：setLayoutMode(layoutMode)
+描述：method setLayoutMode
+	返回值类型：pointer
+	参数名:layoutMode 参数类型:string 输入参数
+
+函数：setNamedDest(namedDest)
+描述：method setNamedDest
+	返回值类型：pointer
+	参数名:namedDest 参数类型:string 输入参数
+
+函数：Print()
+描述：method Print
+	返回值类型：pointer
+
+函数：printWithDialog()
+描述：method printWithDialog
+	返回值类型：pointer
+
+函数：setZoom(percent)
+描述：method setZoom
+	返回值类型：pointer
+	参数名:percent 参数类型:float 输入参数
+
+函数：setZoomScroll(percent,left,top)
+描述：method setZoomScroll
+	返回值类型：pointer
+	参数名:percent 参数类型:float 输入参数
+	参数名:left 参数类型:float 输入参数
+	参数名:top 参数类型:float 输入参数
+
+函数：setView(viewMode)
+描述：method setView
+	返回值类型：pointer
+	参数名:viewMode 参数类型:string 输入参数
+
+函数：setViewScroll(viewMode,offset)
+描述：method setViewScroll
+	返回值类型：pointer
+	参数名:viewMode 参数类型:string 输入参数
+	参数名:offset 参数类型:float 输入参数
+
+函数：setViewRect(left,top,width,height)
+描述：method setViewRect
+	返回值类型：pointer
+	参数名:left 参数类型:float 输入参数
+	参数名:top 参数类型:float 输入参数
+	参数名:width 参数类型:float 输入参数
+	参数名:height 参数类型:float 输入参数
+
+函数：printPages(from,to)
+描述：method printPages
+	返回值类型：pointer
+	参数名:from 参数类型:int 输入参数
+	参数名:to 参数类型:int 输入参数
+
+函数：printPagesFit(from,to,shrinkToFit)
+描述：method printPagesFit
+	返回值类型：pointer
+	参数名:from 参数类型:int 输入参数
+	参数名:to 参数类型:int 输入参数
+	参数名:shrinkToFit 参数类型:bool 输入参数
+
+函数：printAll()
+描述：method printAll
+	返回值类型：pointer
+
+函数：printAllFit(shrinkToFit)
+描述：method printAllFit
+	返回值类型：pointer
+	参数名:shrinkToFit 参数类型:bool 输入参数
+
+函数：setShowScrollbars(On)
+描述：method setShowScrollbars
+	返回值类型：pointer
+	参数名:On 参数类型:bool 输入参数
+
+函数：GetVersions()
+描述：method GetVersions
+	返回值类型：pointer/*VARIANT*/
+
+函数：setCurrentHightlight(a,b,c,d)
+描述：method setCurrentHightlight
+	返回值类型：pointer
+	参数名:a 参数类型:int 输入参数
+	参数名:b 参数类型:int 输入参数
+	参数名:c 参数类型:int 输入参数
+	参数名:d 参数类型:int 输入参数
+
+函数：setCurrentHighlight(a,b,c,d)
+描述：method setCurrentHighlight
+	返回值类型：pointer
+	参数名:a 参数类型:int 输入参数
+	参数名:b 参数类型:int 输入参数
+	参数名:c 参数类型:int 输入参数
+	参数名:d 参数类型:int 输入参数
+
+函数：postMessage(strArray)
+描述：method postMesage
+	返回值类型：pointer
+	参数名:strArray 参数类型:pointer/*VARIANT*/ 输入参数
+
+读属性名：messageHandler 返回类型:pointer/*VARIANT*/
+描述：property messageHandler
+
+写属性函数：setmessageHandler(p1)
+描述：property messageHandler
+	返回值类型：pointer
+	参数名:p1 参数类型:pointer/*VARIANT*/ 输入参数
+
+函数：execCommand(strArray)
+描述：method execCommand
+	返回值类型：pointer
+	参数名:strArray 参数类型:pointer/*VARIANT*/ 输入参数
+
+函数：QueryInterface(riid,ppvObj)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:ppvObj 参数类型:pointer& 输出参数
+
+函数：AddRef()
+	返回值类型：INT
+
+函数：Release()
+	返回值类型：INT
+
+函数：GetTypeInfoCount(pctinfo)
+	返回值类型：pointer
+	参数名:pctinfo 参数类型:INT& 输出参数
+
+函数：GetTypeInfo(itinfo,lcid,pptinfo)
+	返回值类型：pointer
+	参数名:itinfo 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:pptinfo 参数类型:pointer& 输出参数
+
+函数：GetIDsOfNames(riid,rgszNames,cNames,lcid,rgdispid)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:rgszNames 参数类型:byte& 输入参数
+	参数名:cNames 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:rgdispid 参数类型:int& 输出参数
+
+函数：Invoke(dispidMember,riid,lcid,wFlags,pdispparams,pvarResult,pexcepinfo,puArgErr)
+	返回值类型：pointer
+	参数名:dispidMember 参数类型:int 输入参数
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:wFlags 参数类型:WROD 输入参数
+	参数名:pdispparams 参数类型:unknow 输入参数
+	参数名:pvarResult 参数类型:pointer/*VARIANT*/& 输出参数
+	参数名:pexcepinfo 参数类型:unknow 输出参数
+	参数名:puArgErr 参数类型:INT& 输出参数
+
+函数：ViewDocument(bstrDocumentLocation,varProgID)
+描述：method ViewDocument
+	返回值类型：bool
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：ViewDocument2(pDisp,bstrDocumentLocation,varProgID)
+描述：method ViewDocument2
+	返回值类型：bool
+	参数名:pDisp 参数类型:struct/*IDispatch*/ 输入参数
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：ViewDocument3(pDisp,bstrDocumentLocation,OpenType,varProgID)
+描述：method ViewDocument3
+	返回值类型：bool
+	参数名:pDisp 参数类型:struct/*IDispatch*/ 输入参数
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:OpenType 参数类型:int 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：CheckinDocument(bstrDocumentLocation,CheckinType,CheckinComment,bKeepCheckout)
+描述：method CheckinDocument
+	返回值类型：bool
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:CheckinType 参数类型:int 输入参数
+	参数名:CheckinComment 参数类型:string 输入参数
+	参数名:bKeepCheckout 参数类型:bool 输入参数 可选参数
+
+函数：CheckoutDocumentPrompt(bstrDocumentLocationRaw,fEditAfterCheckout,varProgID)
+描述：method CheckoutDocumentPrompt
+	返回值类型：bool
+	参数名:bstrDocumentLocationRaw 参数类型:string 输入参数
+	参数名:fEditAfterCheckout 参数类型:bool 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：CreateNewDocument(bstrTemplateLocation,bstrDefaultSaveLocation)
+描述：method CreateNewDocument
+	返回值类型：bool
+	参数名:bstrTemplateLocation 参数类型:string 输入参数
+	参数名:bstrDefaultSaveLocation 参数类型:string 输入参数
+
+函数：CreateNewDocument2(pDisp,bstrTemplateLocation,bstrDefaultSaveLocation)
+描述：method CreateNewDocument2
+	返回值类型：bool
+	参数名:pDisp 参数类型:struct/*IDispatch*/ 输入参数
+	参数名:bstrTemplateLocation 参数类型:string 输入参数
+	参数名:bstrDefaultSaveLocation 参数类型:string 输入参数
+
+函数：DiscardLocalCheckout(bstrDocumentLocationRaw)
+描述：method DiscardLocalCheckout
+	返回值类型：bool
+	参数名:bstrDocumentLocationRaw 参数类型:string 输入参数
+
+函数：EditDocument(bstrDocumentLocation,varProgID)
+描述：method EditDocument
+	返回值类型：bool
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：EditDocument2(pDisp,bstrDocumentLocation,varProgID)
+描述：method EditDocument2
+	返回值类型：bool
+	参数名:pDisp 参数类型:struct/*IDispatch*/ 输入参数
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：EditDocument3(pDisp,bstrDocumentLocation,fUseLocalCopy,varProgID)
+描述：method EditDocument3
+	返回值类型：bool
+	参数名:pDisp 参数类型:struct/*IDispatch*/ 输入参数
+	参数名:bstrDocumentLocation 参数类型:string 输入参数
+	参数名:fUseLocalCopy 参数类型:bool 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：NewBlogPost(bstrProviderId,bstrBlogUrl,bstrBlogName)
+描述：method NewBlogPost
+	返回值类型：pointer
+	参数名:bstrProviderId 参数类型:string 输入参数
+	参数名:bstrBlogUrl 参数类型:string 输入参数
+	参数名:bstrBlogName 参数类型:string 输入参数
+
+函数：PromptedOnLastOpen()
+描述：method PromptedOnLastOpen
+	返回值类型：bool
+
+函数：ViewInExcel(SiteUrl,fileName,SessionId,Cmd,Sheet,Row,Column,varProgID)
+描述：method ViewInExcel
+	返回值类型：pointer
+	参数名:SiteUrl 参数类型:string 输入参数
+	参数名:fileName 参数类型:string 输入参数
+	参数名:SessionId 参数类型:string 输入参数
+	参数名:Cmd 参数类型:string 输入参数
+	参数名:Sheet 参数类型:string 输入参数
+	参数名:Row 参数类型:int 输入参数
+	参数名:Column 参数类型:int 输入参数
+	参数名:varProgID 参数类型:pointer/*VARIANT*/ 输入参数 可选参数
+
+函数：QueryInterface(riid,ppvObj)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:ppvObj 参数类型:pointer& 输出参数
+
+函数：AddRef()
+	返回值类型：INT
+
+函数：Release()
+	返回值类型：INT
+
+函数：GetTypeInfoCount(pctinfo)
+	返回值类型：pointer
+	参数名:pctinfo 参数类型:INT& 输出参数
+
+函数：GetTypeInfo(itinfo,lcid,pptinfo)
+	返回值类型：pointer
+	参数名:itinfo 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:pptinfo 参数类型:pointer& 输出参数
+
+函数：GetIDsOfNames(riid,rgszNames,cNames,lcid,rgdispid)
+	返回值类型：pointer
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:rgszNames 参数类型:byte& 输入参数
+	参数名:cNames 参数类型:INT 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:rgdispid 参数类型:int& 输出参数
+
+函数：Invoke(dispidMember,riid,lcid,wFlags,pdispparams,pvarResult,pexcepinfo,puArgErr)
+	返回值类型：pointer
+	参数名:dispidMember 参数类型:int 输入参数
+	参数名:riid 参数类型:unknow 输入参数
+	参数名:lcid 参数类型:INT 输入参数
+	参数名:wFlags 参数类型:WROD 输入参数
+	参数名:pdispparams 参数类型:unknow 输入参数
+	参数名:pvarResult 参数类型:pointer/*VARIANT*/& 输出参数
+	参数名:pexcepinfo 参数类型:unknow 输出参数
+	参数名:puArgErr 参数类型:INT& 输出参数
+
+
+
+**/

@@ -1,0 +1,175 @@
+﻿//gdiFont 动态gdi文字
+
+namespace hge.interFace;
+
+gdiFont = class {
+	ctor( game,w,h,fps = -1 ){
+		var canvas = game.gdiCanvas(w,h);
+		this =  game.sprite(canvas.texture);
+		this.type = "font";
+		this.canvas = canvas;
+		this.font = {};
+		var oRender = this.onRender;
+		this.font.layoutWidth = w;
+		this.font.layoutHeight = h;
+		this.text = "";
+		this.font.align = 0;
+		this.font.lineAlign = 0;
+		this.fps = fps;
+		this.enbaleMouseEvent = false;
+		this.canvas.onCanvas = function(hdc){
+			var graphics = gdip.graphics(  hdc )  
+			var brush = gdip.solidBrush(..gdi.ARGB(255,255,255,254));
+			var family = gdip.family(this.font.fontName : "宋体");
+			var strformat = gdip.stringformat ( ); 
+			strformat.align = this.font.align;
+			strformat.lineAlign = this.font.lineAlign;
+			var fontStyle = function(){
+				var style = 0;
+				if this.font.bold style |= 1/*_GdipFontStyleBold*/;
+				if this.font.italic style |= 2/*_GdipFontStyleItalic*/;
+				if this.font.underline style |= 4/*_GdipFontStyleUnderline*/;
+				if this.font.strikeout style |= 8/*_GdipFontStyleStrikeout*/;
+				return style; 
+			}
+			
+			var curFont = family.createFont(  this.font.size : 12 ,fontStyle() , 2/*_GdipUnitPixel*/)
+			graphics.smoothingMode =  this.font.smoothingMode : 4/*_GdipSmoothingModeAntiAlias*/ ;
+			graphics.textRenderingHint = this.font.textRenderingHint : 3/*_GdipTextRenderingHintAntiAliasGridFit*/;
+			//设置文字区域
+			rclayout = gdip.RECTF(); 
+			rclayout.width = this.font.layoutWidth; 
+			rclayout.height = this.font.layoutHeight
+			graphics.clear(0xFFFFFFFF)
+			
+			var txt = tostring(this.text) 
+			if(this.outLineColor !== null ){	
+				var r,g,b = ..gdi.getRgba(this.outLineColor)
+				var outLineBrush = gdip.solidBrush(..gdi.ARGB(r,g,b,254));	
+				rclayout.x,rclayout.y = 1,0;
+				graphics.drawString( txt , curFont, rclayout, strformat,outLineBrush);
+				rclayout.x,rclayout.y = 0,1;
+				graphics.drawString( txt , curFont, rclayout, strformat,outLineBrush);
+			}
+			rclayout.x = 0;	rclayout.y = 0;
+			graphics.drawString( this.text , curFont, rclayout, strformat,brush);
+			brush.delete()
+			curFont.delete()
+			strformat.delete();
+			family.delete(); 
+		} 
+		
+	};
+	genTextrue = function(text,color = -1,outLineColor = false){//生成静态文字
+			var bitmap = gdip.bitmap(w,h) 
+			var graphics = bitmap.graphics;
+			var brush = gdip.solidBrush(color);
+			var family = gdip.family(this.font.fontName : "宋体");
+			var strformat = gdip.stringformat ( );
+			strformat.align = this.font.align;
+			strformat.lineAlign = this.font.lineAlign;
+			var fontStyle = function(){
+				var style = 0;
+				if this.font.bold style |= 1/*_GdipFontStyleBold*/;
+				if this.font.italic style |= 2/*_GdipFontStyleItalic*/;
+				if this.font.underline style |= 4/*_GdipFontStyleUnderline*/;
+				if this.font.strikeout style |= 8/*_GdipFontStyleStrikeout*/;
+				return style; 
+			}
+			var curFont = family.createFont(  this.font.size : 12 ,fontStyle() , 2/*_GdipUnitPixel*/)	
+			graphics.smoothingMode =  this.font.smoothingMode : 4/*_GdipSmoothingModeAntiAlias*/ ;
+			graphics.textRenderingHint = this.font.textRenderingHint : 3/*_GdipTextRenderingHintAntiAliasGridFit*/;
+			rclayout = gdip.RECTF(); 
+			rclayout.x = 0;
+			rclayout.y = 0;
+			rclayout.width = this.font.layoutWidth; 
+			rclayout.height = this.font.layoutHeight	
+			if(outLineColor !==null ){
+				var outLineBrush = gdip.solidBrush(outLineColor)				
+				rclayout.x,rclayout.y = 1,0;
+				graphics.drawString( text , curFont, rclayout, strformat,outLineBrush);
+				rclayout.x,rclayout.y = 0,1;
+				graphics.drawString( text , curFont, rclayout, strformat,outLineBrush);
+						
+			}
+			rclayout.x = 0;rclayout.y = 0;
+			graphics.drawString( text , curFont, rclayout, strformat,brush);
+			brush.delete()
+			curFont.delete()
+			strformat.delete();
+			family.delete();
+			return game.textureLoadByString(bitmap.saveToStream(..fsys.stream(),"*.png",100).readAll()); 
+	}
+	flush = function(){
+		this.canvas.draw()
+	}
+
+	onRender = function(...){
+		this.canvas.drawCanvas(this.fps)
+		oRender(...)
+	}
+
+
+}
+
+namespace gdiFont{
+	import gdip;
+}
+
+
+/**intellisense()
+
+!hgeGdiFont.render(.(x,y) = 渲染
+!hgeGdiFont.render(.(x,y) = 将精灵渲染到屏幕上
+!hgeGdiFont.renderEx(.(x,y,旋转弧度,水平缩放因子,垂直缩放因子) = 将缩放并旋转后的精灵渲染到屏幕上
+!hgeGdiFont.renderStretch(.(x1,y1,x2,y2) = 将精灵进行伸展后渲染到屏幕上
+!hgeGdiFont.render4V(.(x0,y0,x1,y1,x2,y2,x3,y3) = 将精灵渲染到屏幕上的任意quad中
+!hgeGdiFont.setTexture(__/*纹理*/) = 改变精灵的纹理
+!hgeGdiFont.setTextureRect(.(x,y,w,h) = 设置供精灵使用的纹理区域
+!hgeGdiFont.setColor(__/*颜色*/) = 为指定的顶点或整个精灵设置色彩和透明度
+!hgeGdiFont.setZ(__/*Z序*/) = 	为指定的顶点或整个精灵设置Z序
+!hgeGdiFont.setBlendMode = @.setBlendMode(_BLEND__)
+!hgeGdiFont.setHotSpot(.(x,y) = 设置精灵的锚点
+!hgeGdiFont.setFlip(.(是否水平翻转,是否垂直翻转) = 水平和/或垂直翻转精灵
+
+!hgeGdiFont.getTexture() = 返回当前精灵的纹理
+!hgeGdiFont.getTextureRect() = 返回精灵使用的当前纹理区域(x,y,w,h四个返回值)
+!hgeGdiFont.getColor() = 返回指定的精灵顶点颜色
+!hgeGdiFont.getZ() = 返回指定的精灵顶点Z序(Z-order)
+!hgeGdiFont.getBlendMode() = 返回当前字体的混合模式
+!hgeGdiFont.getHotSpot() = 返回精灵的锚点(hotX,hotY两个返回值)
+!hgeGdiFont.getFlip() = 返回当前精灵的翻转(flipX,flipY两个返回值)
+
+!hgeGdiFont.getWidth() = 返回精灵的宽度
+!hgeGdiFont.getHeight() = 返回精灵的高度
+
+!hgeGdiFont.rect = 返回精灵的边界\ n!hgeRect.
+!hgeGdiFont.update() = 更新文字绘制
+!hgeGdiFont.fps = 绘制间隔时间
+!hgeGdiFont.flush() = 手动更新并绘图到纹理中。
+!hgeGdiFont.text = 文本内容
+
+
+
+!hgeGdiFont.font.bold = 是否加粗
+!hgeGdiFont.font.italic = 是否斜线
+!hgeGdiFont.font.underline = 是否下划线
+!hgeGdiFont.font.strikeout = 是否删除线
+!hgeGdiFont.font.smoothingMode = @.smoothingMode = _GdipSmoothingMode__ ;
+!hgeGdiFont.font.textRenderingHint = @.textRenderingHint = _GdipTextRendering__ ;
+!hgeGdiFont.font.align = @.align = _GdipStringAlign__ ;
+!hgeGdiFont.font.lineAlign = @.lineAlign = _GdipStringAlign__ ;
+
+!hgeGdiFont.font.align = 横向对齐
+!hgeGdiFont.font.lineAlign = 纵向对齐
+
+!hgeGdiFont.font.fontName = 字体名
+!hgeGdiFont.font.layoutWidth = 文字限制宽度
+!hgeGdiFont.font.layoutWidth = 文字限制高度
+!hgeGdiFont.font.size = 文字大小
+!hgeGdiFont.outLineColor = 描边颜色,为空为不填写
+!hgeGdiFont.genTextrue(.(文字内容,颜色,描边颜色) = 生成一张文字纹理,默认白色。不填写描边颜色即不描边
+
+
+
+end intellisense**/

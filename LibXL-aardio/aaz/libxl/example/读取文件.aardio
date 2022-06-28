@@ -1,0 +1,31 @@
+io.open()
+
+import aaz.libxl;
+
+var book = aaz.libxl.createBook();
+book.setKey();
+book.load("\example.xls");
+
+var sheet = book.getSheet(1);   
+
+for(i=sheet.firstRow; sheet.lastRow; 1){
+	for(j=sheet.firstCol; sheet.lastCol; 1){
+		var ret;
+		select(sheet.cellType(i, j) ) {
+			case 0/*CELLTYPE_EMPTY*/ {
+				io.print(i, j , "空")
+			}
+			case 1/*CELLTYPE_NUMBER*/ {
+				ret = sheet.readNum(i, j)
+				io.print(i, j ,"数字", ret)
+			}
+			case 2/*CELLTYPE_STRING*/ {
+				ret = sheet.readStr( i, j )
+				io.print(i, j ,"字符串", ret)
+			}
+		}
+	}
+}
+
+book.release()
+execute("pause")

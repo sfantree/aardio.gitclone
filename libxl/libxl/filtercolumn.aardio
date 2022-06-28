@@ -1,0 +1,123 @@
+﻿import util.metaProperty;
+
+namespace libxl;
+
+var libxl32 = _dll;
+
+class FilterColumn{
+	ctor( hwnd ){
+		if !hwnd return null,"请指定自动筛选句柄"; 
+		this.hwnd	= hwnd; 
+	};
+	@_metaProperty;
+}
+
+
+namespace FilterColumn{
+	_metaProperty = ..util.metaProperty(
+		index = {
+			_get = function(){
+				return Index(owner.hwnd) + 1; 
+			}
+		}
+		filterType = {
+			_get = function(){
+				return FilterType(owner.hwnd); 
+			}
+		}
+		filterSize = {
+			_get = function(){
+				return FilterSize(owner.hwnd); 
+			}
+		}
+		filterText = {
+			_set = function(v){
+				owner.setFilter(v);
+			}
+		}
+		value = function(index){//按作者的习惯，不应该只有str类型的
+			return Filter(owner.hwnd,index -1); 
+		}
+		setFilter = function(v){
+			//if type(v) != type.string v = tostring(v);
+			AddFilter(owner.hwnd,v); 
+		}
+		getTop10 = function(){
+			var result,value,top,percent = GetTop10(owner.hwnd,0,false,false);
+			if !result return null;
+			return value,top,percent;  //不知道是什么鬼，不处理了
+		}
+		setTop10 = function(value,top = true,percent = false){
+			SetTop10(owner.hwnd,value,top,percent);
+		}
+		getCustomFilter = function(){
+			var str = /*{ustring text[1024]}*/
+			var result,v1_type,v1_ptr,v2_type,v2_ptr,option = GetCustomFilter(owner.hwnd,0,,0,,false)
+			if !result return null;
+			var v1,v2 = ..raw.convert(v1_ptr,str),..raw.convert(v2_ptr,str);
+			return v1_type,v1,v2_type,v2,option; 
+		}
+		setCustomFilter = function(v1_type,v1,v2_type,v2,option = false){ //默认为‘或’
+			if v2 == null{
+				return SetCustomFilter(owner.hwnd,v1_type,v1); 
+			}
+			SetCustomFilterEx(owner.hwnd,v1_type,v1,v2_type,v2,option);
+		}
+		clear = function(){
+			Clear(owner.hwnd);
+		}
+		
+		//增加关键字
+		Type = filterType;//由于是关键字，只能大写了
+		count = filterSize;
+		filter = filterText;
+	)
+
+	
+	Index		= libxl32.api("xlFilterColumnIndex","int(ptr FilterColumnHandle)");
+
+	FilterType	= libxl32.api("xlFilterColumnFilterType","int(ptr FilterColumnHandle)");
+
+	FilterSize	= libxl32.api("xlFilterColumnFilterSize","int(ptr FilterColumnHandle)");
+	Filter		= libxl32.api("xlFilterColumnFilter","ustring(ptr FilterColumnHandle, int index)");
+
+	AddFilter	= libxl32.api("xlFilterColumnAddFilter","void(ptr FilterColumnHandle,ustring value)");
+
+	GetTop10	= libxl32.api("xlFilterColumnGetTop10","int(ptr FilterColumnHandle, double& value, bool& top, bool& percent)");
+	SetTop10	= libxl32.api("xlFilterColumnSetTop10","void(ptr FilterColumnHandle, double value, bool top, bool percent)");
+
+	GetCustomFilter		= libxl32.api("xlFilterColumnGetCustomFilter","int(ptr FilterColumnHandle, int& op1, ptr& v1, int& op2, ptr& v2, bool& andOp)");
+	SetCustomFilter		= libxl32.api("xlFilterColumnSetCustomFilter","void(ptr FilterColumnHandle, int op, ustring val)");
+	SetCustomFilterEx	= libxl32.api("xlFilterColumnSetCustomFilterEx","void(ptr FilterColumnHandle, int op1, ustring v1, int op2, ustring v2, bool andOp)");
+
+	Clear		= libxl32.api("xlFilterColumnClear","void(ptr FilterColumnHandle)");
+}
+
+/**intellisense()
+libxl.FilterColumn() = !xlFilterColumn.
+!xlAutoFilter.getColumn() = !xlFilterColumn.
+!xlFilterColumn.index = 返回当前筛选所在列
+!xlFilterColumn.filterType = 返回当前筛选类型
+!xlFilterColumn.filterSize = 返回当前筛选行数
+!xlFilterColumn.filterText = 设置筛选值(文本)
+!xlFilterColumn.value(.(行数N) = 筛选中第N行的值
+!xlFilterColumn.setFilter(.(文本) = 设置筛选值
+!xlFilterColumn.GetTop10(.() = 前十值，有三个参数返回
+!xlFilterColumn.getCustomFilter(.() = 返回自定义筛选值，分别为 条件1类型，条件1,条件2类型,条件2,与或关系
+!xlFilterColumn.setCustomFilter(.(条件1类型，条件1,[条件2类型],[条件2],[与或关系]) = 设置自定义筛选
+!xlFilterColumn.clear() = 清除筛选
+_FILTER_VALUE=@0/*_FILTER_VALUE*/
+_FILTER_TOP10=@1/*_FILTER_TOP10*/
+_FILTER_CUSTOM=@2/*_FILTER_CUSTOM*/
+_FILTER_DYNAMIC=@3/*_FILTER_DYNAMIC*/
+_FILTER_COLOR=@4/*_FILTER_COLOR*/
+_FILTER_ICON=@5/*_FILTER_ICON*/
+_FILTER_EXT=@6/*_FILTER_EXT*/
+_FILTER_NOT_SET=@7/*_FILTER_NOT_SET*/
+_OPERATOR_EQUAL=@0/*_OPERATOR_EQUAL*/
+_OPERATOR_GREATER_THAN=@1/*_OPERATOR_GREATER_THAN*/
+_OPERATOR_GREATER_THAN_OR_EQUAL=@2/*_OPERATOR_GREATER_THAN_OR_EQUAL*/
+_OPERATOR_LESS_THAN=@3/*_OPERATOR_LESS_THAN*/
+_OPERATOR_LESS_THAN_OR_EQUAL=@4/*_OPERATOR_LESS_THAN_OR_EQUAL*/
+_OPERATOR_NOT_EQUAL=@5/*_OPERATOR_NOT_EQUAL*/
+end intellisense**/

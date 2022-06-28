@@ -1,0 +1,1956 @@
+﻿
+/************************************/
+/*  2017-04 daheian daheian@qq.com  */
+/************************************/
+//github仓库:https://github.com/drunkenOstrich/reportRl
+//gitee仓库：https://gitee.com/daheian/reportRl
+
+import fsys;
+import com;
+import com.activeX;
+
+class reportRl{
+	ctor(){
+		var rpt,err = ..com.TryCreateObject("gregn.GridppReport.6") or ..com.TryCreateObject("grpro.GridppReport.6");
+		if(!rpt){
+			..com.activeX.regsvr32("\gregn6.dll");
+			rpt,err = ..com.TryCreateObject("gregn.GridppReport.6") or ..com.TryCreateObject("grpro.GridppReport.6");
+		}
+		if(!rpt){
+			return null,"报表组件加载失败！"++'\r\n'++tostring(err); 
+		}
+		else {
+			this = rpt;
+			
+			//关联事件接口
+			this.eventTab = {};
+			..com.Connect(this, this.eventTab);
+			
+			this.eventTab.BeforePostRecord = function(){
+				if(this.BeforePostRecord){
+					return this.BeforePostRecord();
+				}
+			}
+			this.eventTab.BeforeSort = function(SortFields){
+				if(this.BeforeSort){
+					return this.BeforeSort(SortFields);
+				}
+			}
+			this.eventTab.ChartRequestData = function(Sender){
+				if(this.ChartRequestData){
+					return this.ChartRequestData(Sender);
+				}
+			}
+			this.eventTab.ControlCustomDraw = function(Sender,Graphics){
+				if(this.ControlCustomDraw){
+					return this.ControlCustomDraw(Sender,Graphics);
+				}
+			}
+			this.eventTab.ExportBegin = function(pOptionObject){
+				if(this.ExportBegin){
+					return this.ExportBegin(pOptionObject);
+				}
+			}
+			this.eventTab.ExportEnd = function(pOptionObject){
+				if(this.ExportEnd){
+					return this.ExportEnd(pOptionObject);
+				}
+			}
+			this.eventTab.FetchRecord = function(){
+				if(this.FetchRecord){
+					return this.FetchRecord();
+				}
+			}
+			this.eventTab.FieldGetDisplayText = function(Sender){
+				if(this.FieldGetDisplayText){
+					return this.FieldGetDisplayText(Sender);
+				}
+			}
+			this.eventTab.GeneratePagesBegin = function(){
+				if(this.GeneratePagesBegin){
+					return this.GeneratePagesBegin();
+				}
+			}
+			this.eventTab.GeneratePagesEnd = function(){
+				if(this.GeneratePagesEnd){
+					return this.GeneratePagesEnd();
+				}
+			}
+			this.eventTab.GroupBegin = function(pSender){
+				if(this.GroupBegin){
+					return this.GroupBegin(pSender);
+				}
+			}
+			this.eventTab.GroupEnd = function(pSender){
+				if(this.GroupEnd){
+					return this.GroupEnd(pSender);
+				}
+			}
+			this.eventTab.Initialize = function(){
+				if(this.Initialize){
+					return this.Initialize();
+				}
+			}
+			this.eventTab.PageEnd = function(){
+				if(this.PageEnd){
+					return this.PageEnd();
+				}
+			}
+			this.eventTab.PageProcessRecord = function(){
+				if(this.PageProcessRecord){
+					return this.PageProcessRecord();
+				}
+			}
+			this.eventTab.PageStart = function(){
+				if(this.PageStart){
+					return this.PageStart();
+				}
+			}
+			this.eventTab.PrintAborted = function(){
+				if(this.PrintAborted){
+					return this.PrintAborted();
+				}
+			}
+			this.eventTab.PrintBegin = function(){
+				if(this.PrintBegin){
+					return this.PrintBegin();
+				}
+			}
+			this.eventTab.PrintEnd = function(){
+				if(this.PrintEnd){
+					return this.PrintEnd();
+				}
+			}
+			this.eventTab.PrintPage = function(PageNo){
+				if(this.PrintPage){
+					return this.PrintPage(PageNo);
+				}
+			}
+			this.eventTab.ProcessBegin = function(){
+				if(this.ProcessBegin){
+					return this.ProcessBegin();
+				}
+			}
+			this.eventTab.ProcessEnd = function(){
+				if(this.ProcessEnd){
+					return this.ProcessEnd();
+				}
+			}
+			this.eventTab.ProcessRecord = function(){
+				if(this.ProcessRecord){
+					return this.ProcessRecord();
+				}
+			}
+			this.eventTab.SectionFormat = function(pSender){
+				if(this.SectionFormat){
+					return this.SectionFormat(pSender);
+				}
+			}
+			this.eventTab.ShowPreviewWnd = function(PrintViewer){
+				if(this.ShowPreviewWnd){
+					return this.ShowPreviewWnd(PrintViewer);
+				}
+			}
+			this.eventTab.TextBoxGetDisplayText = function(Sender){
+				if(this.TextBoxGetDisplayText){
+					return this.TextBoxGetDisplayText(Sender);
+				}
+			}
+		}
+	};	
+}
+
+namespace reportRl{
+    
+    if(_STUDIO_INVOKED){//IDE
+    	try{
+			..com.CreateObject("grpro.GridppReport.6")
+		}
+		catch(e){
+			..com.activeX.regsvr32("~\lib\reportRl\.dll\grdes6.dll");
+			..com.activeX.regsvr32("~\lib\reportRl\.dll\gregn6.dll");
+		}	
+    }else {//Publish
+		if(!..io.exist("\gregn6.dll")){
+			..string.save("\gregn6.dll",$"~\lib\reportRl\.dll\gregn6.dll");
+			..fsys.attrib("\gregn6.dll",,2/*_FILE_ATTRIBUTE_HIDDEN*/)
+		}
+		if(!..io.exist("\grdes6.dll")){
+			..string.save("\grdes6.dll",$"~\lib\reportRl\.dll\grdes6.dll");
+			..fsys.attrib("\grdes6.dll",,2/*_FILE_ATTRIBUTE_HIDDEN*/)
+		}
+    }
+}
+
+
+/**intellisense()
+reportRl = 锐浪报表组件
+reportRl() = 创建锐浪报表主对象\n!report.
+!report.LoadFromFile("__") = 从报表模板文件中载入报表模板定义。\n参数：报表模版文件名
+!report.Print(true) = 执行打印报表。\n调用此方法后，首先生成报表数据，过程中会触发一系列事件；然后生成打印页面数据，过程中也会触发一系列事件；最后将生成的打印数据送至打印机进行打印。\n参数：指示在打印前是否显示打印对话框
+!report.PrintPreview(true) = 在Grid++Report提供的缺省打印预览窗口中预览报表。\n调用此方法后，首先生成报表数据，过程中会触发一系列事件；然后生成打印页面，过程中也会触发一系列事件；最后打开缺省预览窗口并将生成的打页面显示在窗口中。\n参数：指定是否以有模的方式显示窗口
+!report.SaveToFile(__) = 将报表模板数据保存到文件中，以模板设置的存储格式保存模板数据。\n返回值：bool指示保存报表模板数据是否成功。\n参数：指定模板文件的完全路径名称。
+!report.AbortExport() = 中断数据导出任务的执行。\n此方法只能在 ExportBegin 事件中执行，用于中止数据导出。
+!report.AbortPrint() = 中断打印任务的执行。\n此方法只能在 PrintBegin 与 PrintPage 事件中执行。
+!report.About() = 显示Grid++Report关于对话框。\n
+!report.AddParameter(__,) = 增加一个参数定义。\n参数:\nstring Name 指定参数的名称标识\nGRParameterDataType Type 指定参数的类型\n返回值：返回新增参数对象的接口引用
+!report.BeginLoopPrint(__,) = 准备开始循环打印。\n参数:\nGRPrintGenerateStyle GenerateStyle 指定打印数据的生成方式\nbool ShowPrintDlg 指定是否显示打印对话框\nBeginLoopPrint,LoopPrint,EndLoopPrint三个方法必须在一起调用，在要进行循环打印开始时调用BeginLoopPrint，在循环打印完成时调用EndLoopPrint，在中间根据需要多次调用LoopPrint
+!report.CalcTextOut(Width,Height,Text,Font,WordWrap) = 准备开始循环打印。\n参数:\ndouble Width 指定输出区域的宽度，以报表计量单位表示\ndouble Height 指定输出区域的高度，以报表计量单位表示\nstring Text 指定要输出的文字 \nIGRFont *Font 指定用来输出文字的字体\nbool WordWrap 指定输出文字是否自动绕行\n本方法用于将文字分成多段，以便在不同的区域中完整显示出来
+!report.CancelLoadData() = 取消向报表载入数据所进行的准备任务。\n
+!report.Clear() = 清除所有的报表模板定义数据，使报表主对象成为一张空白报表。\n如果要用完全编程的方式定义报表模板数据，在定义数据之前，有必要调用此方法将已存在的旧数据全部清除掉。
+!report.ColumnByName(__) = 根据名称找到对应列对象的接口引用。\n参数:\nstring Name 指定要查找列的名称。\n返回值\nIGRColumn *如果找到名称匹配的列，则返回该列对象的接口引用，否则返回NULL。\n注意：匹配名称时不区分字母的大小写。
+!report.ControlByName("__") = 从报表主对象包括的所有部件框中根据部件框名称找到对应部件框对象的接口引用。\n参数:\nstring Name 指定部件框的名称标识。\n返回值:如果找到名称匹配的部件框，则返回该部件框对象的接口引用，否则返回NULL。\n注意：匹配名称时不区分字母的大小写
+!report.ControlByName() = !controlObj.
+!report.DeleteDetailGrid() = 删除整个明细网格的定义，报表主对象将不具有明细网格。\n
+!report.DeletePageFooter() = 删除页脚的定义，报表主对象将不具有页脚。\n
+!report.DeletePageHeader() = 删除页眉的定义，报表主对象将不具有页眉。\n
+!report.EndLoopPrint() = 结束循环打印。\n
+!report.ExportDirect(__,,,) = 直接进行数据导出。\n参数:\nGRExportType ExportType 指定导出的文件类型。\nstring FileName 指定导出的完整文件路径与文件名称。\nbool ShowOptionDlg 指定是否在导出之前显示选项设置对话框。\nbool DoneOpen 指示是否在导出数据之后用关联程序打开导出文件。\n返回值bool 指示是否成功进行了数据导出
+!report.ExtractXMLFromURL(__,) =从指定的 URL 获取XML数据包。\n参数:\nstring URL 获取数据的 URL\n返回值:获得的 XML 数据文本
+!report.ExtractXMLFromURLEx(__,) =仅适用于WEB报表插件\n从指定的 URL 获取XML数据包。\n参数:\nstring DataURL 获取数据的 URL。 \nstring DataParam 向服务器提供的参数。\n返回值：获得的 XML 数据文本
+!report.FieldByDBName() = 根据字段的字段名称得到匹配字段对象的接口引用。\n如果找到匹配的字段，则返回该字段对象的接口引用，否则返回NULL
+!report.FieldByName("__") = 根据字段名称得到匹配字段对象的接口引用。\n参数:\nstring Name 指定字段的名称\n返回值：如果找到名称匹配的字段，则返回该字段对象的接口引用，否则返回NULL。 
+!report.FieldByName() = !fieldObj.
+!report.FindFirstControl() = 找出报表中的第一个部件框。\n如果报表中不存在部件框，则返回值为空值引用
+!report.FindNextControl() = 找出报表中的下一个部件框的引用。\n如果报表中不存在后续的部件框，则返回值为空值引用。在调用 FindNextControl 之前必须调用 FindFirstControl 
+!report.ForceNewPage() = 在报表生成过程中，结束当前页，开始一个新页面。\n在报表生成过程中，可以调用此方法强制进行分页。只能在PageProcessRecord 与 SectionFormat 事件中调用，在 SectionFormat 中调用时必须保证是在打印生成状态中
+!report.GenerateDocumentFile(__) = 生成报表的 Grid++Report 文档文件到指定的文件。\n参数:\nstring PathFile 保存数据的文件的路径与名称。
+!report.InsertDetailGrid() =向报表主对象插入明细网格，使报表主对象具有明细网格。\n返回值：明细网格接口引用。\n只有当报表主对象不存在明细网格对象时，才能成功插入明细网格，报表主对象只能拥有一个明细网格。此方法一般在以编程方式定义报表模板时使用
+!report.InsertPageFooter() =增加页脚定义。\n返回值：页脚接口引用。\n增加页脚定义，使报表主对象具有一个页脚。如果报表主对象已经定义了页脚，此方法直接返回页脚的接口引用
+!report.InsertPageHeader() =增加页眉定义。\n返回值：页眉接口引用。\n增加页眉定义，使报表主对象具有一个页眉。如果报表主对象已经定义了页眉，此方法直接返回页眉的接口引用。
+!report.LoadBackImageFromFile(__) = 从指定的图像文件中载入报表设计页面背景图。\n参数:\nstring PathFile 指定图像文件的路径与名称。
+!report.LoadBackImageFromMemory(__,) =仅适用于WEB报表插件\n从内存数据中载入报表设计页面背景图。\n参数:\nbyte *pBuffer 指定图像数据的内存地址。\nint BytesCount 指定图像数据的内存字节数。
+!report.LoadDataFromAjaxRequest(__,) =仅适用于WEB报表插件\n将WEB报表展现网页中用 Ajax XMLHttpRequest 对象请求到的数据加载到报表中。\n参数:\nstring ResponseText HTTP响应数据体文本。\nstring ResponseHeaders HTTP响应数据头文本。
+!report.LoadDataFromURL(__) = 从指定的 URL 地址载入报表明细记录集数据，数据必须为 XML 或 JSON 格式并符合约定的形式。\n参数:\nstring URL 载入数据的URL。\n返回值：bool 指定载入是否成功。
+!report.LoadDataFromURLEx(__,) =仅适用于WEB报表插件\n从指定的 URL 地址载入报表数据，返回数据必须为 XML 或 JSON 格式并符合约定的形式。\n参数:\nstring DataURL 载入数据的URL。 \nstring DataParam 向服务器提供的额外参数。\n返回值：bool指定载入是否成功。
+!report.LoadDataFromXML(__) = 从 XML 或 JSON 文字串中载入报表明细记录集数据，数据应符合约定的形式。\n参数:\nstring XMLData XML数据文本。\n返回值：指示载入是否成功
+!report.LoadFromMemory(__,) =从内存中载入报表模板数据。\n参数:\nbyte *pData 数据地址指针\nint ByteCount 数据字节大小\n返回值：指示载入报表模板数据是否成功
+!report.LoadFromStr(__) = 从字符串中载入报表模板数据。\n参数:\nstring Data 指定报表模板数据。\n返回值：指示载入报表模板数据是否成功
+!report.LoadFromURL(__) = 从指定的 URL 地址载入报表模板数据。\n参数:\nstring URL 载入的URL地址。\n返回值：指示载入是否成功
+!report.LoadFromVariant(__) = 从一个包含报表模板数据的 Variant 变量中载入报表。\n参数:\nvariant Buf 数据包\n返回值：指示载入是否成功
+!report.LoadWatermarkFromFile(__) = 从指定的图像文件中载入水印背景图。\n参数：\nstring PathFile 指定图像文件的路径与文件名。
+!report.LoadWatermarkFromMemory(__,) = 从内存数据中载入报表水印背景图。\n参数：\nbyte *pBuffer 指定图像数据的内存地址。\nint BytesCount 指定图像数据的内存字节数。
+!report.LoopPrint() = 在循环打印过程中，执行一次打印生成过程。\n每调用一次LoopPrint方法，就会首先生成报表数据，然后生成打印页面数据，最后将打印页面数据送至打印机进行打印输出
+!report.ParameterByName(__) = 根据名称找到对应参数对象的接口引用。\n参数：\nstring Name 指定要查找参数的名称。\n返回值:如果找到名称匹配的参数，则返回该参数对象的接口引用，否则返回NULL\n注意：匹配名称时不区分字母的大小写。
+!report.ParameterByName() = !parameterObj.
+!report.PixelsToUnit(__) = 将屏幕像素值转换为报表当前使用的计量单位值。\n参数：\nint Pixels 指定要转换的屏幕像素值。\n返回值：double转换得到的计量单位值。
+!report.PrepareExport(__) = 将屏幕像素值转换为报表当前使用的计量单位值。\n参数：\nGRExportType ExportType 指定导出的文件类型。\n返回值：IGRExportOption *返回导出选项对象的接口引用\n在调用Export方法之前一定要调用本方法，在其后一定要调用UnprepareExport方法。本方法返回的选项对象的接口引用可以用来设定选项值
+!report.PrepareLoadData() = 准备向报表中载入数据，调用此方法后，就可以向报表的记录集推送(加入)数据。\n返回值：指示调用是否成功\n当采用推模式提供报表数据时，通常是在报表主对象的 FetchRecord 事件中填入记录集数据。如果要在此事件之外的地方填入记录集数据，在进行填入数据之前应该首先本方法。\n一般是在报表模板载入之后调用本方法
+!report.PrintEx(__,true) = 打印报表,按指定方式生成生成打印数据。\n参数：\nGRPrintGenerateStyle GenerateStyle 指定打印数据的生成类型。\nbool ShowPrintDialog 指示在打印前是否显示打印对话框。\n类同 Print 方法。当生成方式为 grpgsAll 时，与 Print 方法完全一样；\n当成方式为 grpgsOnlyContent 时，生成打印页面时将忽略掉属于表单类型的数据；\n当成方式为 grpgsOnlyForm 时,不会触发 FetchData 事件，生成打印页面时仅生成属于表单类型的数据。
+!report.PrintPreviewEx(__,true,true) = 在Grid++Report提供的缺省打印预览窗口中预览报表，可以指定打印数据的生成方式。\n参数：\nGRPrintGenerateStyle GenerateStyle 指定打印数据的生成方式。\nbool ShowModal 指定是否以有模的方式显示打印预览窗口。\nbool MaximizeWindow 指定是否最大化显示打印预览窗口。\n类同　PrintPreview　方法。\n当生成方式为 grpgsAll 时，与 PrintPreview 方法完全一样。\n当成方式为 grpgsOnlyContent 时，生成打印页面时将忽略掉属于表单类型的数据。\n当成方式为 grpgsOnlyForm 时,不会触发FetchRecord事件，生成打印页面时仅生成属于表单类型的数据。\n当成方式为 grpgsPreviewAll 时,预览报表全部内容，但只打印出内容数据。
+!report.Register(__) = 用Grid++Report的产品序列号进行注册。\n参数：\nstring SerialNo 产品序列号\n返回值：指示注册是否成功。
+!report.SaveToMemory(__,) =保存报表模板数据保存至内存缓冲区，以模板设置的存储格式保存模板数据。\n参数:\nchar **ppData 保存数据地址的参数指针。\nint *pByteCount 保存数据直接大小的参数指针。\n返回值：指示保存报表模板数据是否成功\n方法调用者在成功调用本方法之后，应调用 Windows API 函数 CoTaskMemFree 释放内存空间
+!report.SaveToStr() = 保存报表模板数据保存至字符串，以文本格式保存保存模板数据。\n返回值：保存的报表模板数据
+!report.SaveToURL(__) =仅适用于WEB报表插件\n将报表模板数据提交给指定的 URL 地址，由此 URL 网页服务完成报表模板的保存。\n参数:\nstring URL 要保存的 URL 地址。\n返回值：指示保存是否成功
+!report.SaveToVariant() = 保存报表模板数据保存至内存缓冲区，以模板设置的存储格式保存模板数据。\n返回值：variant 保存数据的内存缓冲区
+!report.SharePrintSetupDisableAllOptions() = 指定禁用全部的共享打印设置参数。\n
+!report.SharePrintSetupEnableAllOptions() = 指定应用全部的共享打印设置参数。\n
+!report.SharePrintSetupGetOptionEnabled(__) = 获取是否应用某个共享全局打印参数项的使能状态。\n参数：\nGRSharePrintSetupOption Option 指定一个共享全局打印参数项目。\n返回值：指定共享全局打印参数项的使能状态
+!report.SharePrintSetupSetOptionEnabled(__,) = 设定是否应用某个共享全局打印参数项的标志。\n参数：\nGRSharePrintSetupOption Option 指定进行设置的共享全局打印参数项。\nbool Enabled 指定共享全局打印参数项的使能状态。
+!report.SystemVarValue(__) = 在报表运行时，取得本报表某个指定系统参数的当前值。\n参数：\nGRSystemVarType SystemVar 指定某个系统参数。\n返回值： int 指定系统参数的当前值
+!report.SystemVarValue2(__,) = 在报表运行时，取得本报表某个指定分组系统参数的值。\n参数：\nGRSystemVarType SystemVar 指定系统变量\nint GroupIndex 指定分组序号，从1开始\n返回值：double获取到的分组系统变量的当前值
+!report.UnitToPixels(__) = 将报表当前使用的计量单位值转换为屏幕像素值。\n参数：\ndouble UnitValue 指定要转换的报表计量单位值\n返回值：int转换得到的屏幕像素值
+
+
+!report.ConnectionString = 指定连接到数据源的连接串。\n如果报表主对象的“数据库连接”属性不指定，报表主对象的查询SQL将自动应用明细记录集上的数据库连接设置。如果报表是子报表，还将自动应用其父报表的数据库连接设置。\n可读写
+!report.Description = 指定报表的描述性文字，也可以记录其它信息，此属性设置不影响报表运行。\n仅用于设计 - 可读写
+!report.AlignToGrid = 当在设计器中设计报表模板时，是否将部件框的边框对齐到设计栅格点。\n仅用于设计 - 可读写\n默认值true
+!report.Author = 指定报表的制作者，也可以记录其它信息，此属性设置不影响报表运行。\n可读写
+!report.BackColor = 报表对象的缺省背景色。\n默认值：grclWindow
+!report.BackImageFile = 指定报表在设计器中进入页面视图时显示的背景图文件的路径与名称。\n可读写\n背景图仅在报表设计时使用，只有当报表进入页面视图中才会显示背景图。\n如果同时设定了 BackImage 与 BackImageFile 属性，此时只有 BackImage 属性指定的图像被显示。\n使用背景图可以根据背景图精确定位报表布局，快速实现套打定位
+!report.BackImagePreview = 指示在报表预览时，是否显示设计背景图。\n默认值：false\n可读写
+!report.BackImagePrint = 指定在打印输出、导出PDF、导出图像时是否输出背景图。\n默认值：false\n可读写\n指定在打印输出、导出PDF、导出图像时是否输出背景图
+!report.BeforeSortScript = 表示报表 BeforeSort 事件对应的脚本语言代码。\n可读写
+!report.CodePage = 指定报表内部进行文字编码转换的内码表。\n默认值：0\n可读写\n当此属性为0时，将采用 Windows 系统默认的内码表进行文字砖换\n在报表运行过程中，有时需要将 UNICODE 文字转换为多字节文字，或进行逆向转换，此时就需要内码表对文字进行编码转换。如某些条形码就需要将数据中的 UNICODE 文字转换为多字节文字
+!report.ContinuePrint = 指定是否采用连续打印，即打即停的方式打印输出报表。\n默认值：false\n可读写
+!report.DataLoaded = 在报表运行过程中，指示报表数据是否已经载入。\n只读
+!report.DisplayMode = 指示报表的输出显示状态。\n只读\n指示报表的输出显示状态。在SectionFormat事件处理函数中，获取本属性的值以知道当前的显示输出过程，可以对查询显示器中报表的子画显示输出和打印页面生成显示输出采取不同的处理
+!report.DocType = 指定报表模板内容文本的文档类型。\n默认值：grdtObject\n可读写
+!report.ExportBeginScript = 表示报表 ExportBegin 事件对应的脚本代码。\n可读写可以在本脚本中改写导出选项，改变报表的默认导出行为。本脚本对应的 Sender 对象为 IGRExportOption 接口引用，根据导出数据类型，可以把 Sender 对象转换为具体的导出类型对象，具体请参考 IGRExportOption 接口的编程参考帮助。
+!report.FiringReport = 指定正在触发报表事件的报表对象。\n只读\n此属性只能在报表事件响应函数中获取才能得到有效值，用于指定是哪个报表对象触发调用了本事件函数。\n当一个事件函数被多个报表对象关联时，获取本属性可以知道是哪个报表对象触发了当前事件。\n从任意一个报表对象获取本属性值都可以，在同一时刻，从不同报表对象获取的本属性值都是相同的
+!report.FirstPass = 指示报表是否在第一遍报表运行过程中。\n只读\nGrid++Report 在生成打印页面数据时，需要两次遍历处理报表数据，通过此属性可以侦测报表是处于第一遍生成过程中，还是处于第二遍生成过程中\n此属性必须用在于打印相关的报表事件中
+!report.GridColsPerUnit = 在设计器中，水平方向上每个计量单位显示的设计栅格点个数。\n默认值：5\n可读写\n有效值范围：1-50
+!report.GridRowsPerUnit = 在设计器中，垂直方向上每个计量单位显示的设计栅格点个数。\n默认值：5\n可读写\n有效值范围：1-50
+!report.HasFloatControl = 指定报表中是否包含有浮动部件框。\n只读
+!report.InitializeScript = 表示报表 Initialize 事件对应的脚本语言代码。\n可读写\n可以在本脚本中修改定义报表模板、为报表参数赋值及其它任务等。本脚本对应的 Sender 对象为 IGridppReport 接口引用
+!report.IsBlank = 指示报表模板是否为空白未定义状态。\n只读
+!report.Language = 指定当前应用的界面语言。\n可读写\n简体中文: 2052(0x0804)
+!report.LatestLoadedFile = 本报表模板最近载入的路径文件。\n可读写\n
+!report.MirrorMargins = 指定是否镜像左右页边距打印输出报表。\n默认值：false\n可读写\n当双面打印报表时，设定本属性为“是”，让左右页边距按镜像方式产生，这样方便报表的装订
+!report.MonoPrint = 指定是否按黑白色打印输出。\n默认值：false\n可读写\n如果本属性值为真，报表在打印输出时将把其中的彩色转换为黑白灰度色
+!report.PageBlankHeight = 报表在生成打印页面数据的过程中，当前页面剩余的空白区域高度。\n只读
+!report.PageDivideCount = 打印输出时，纸张在垂直方向上的均分个数。\n默认值：1\n可读写
+!report.PageDivideLine = 打印输出时，是否显示纸张在垂直方向均分的分隔线。\n默认值：false\n可读写
+!report.PageDivideSpacing = 打印输出时，纸张在垂直方向均分时的分隔间距。\n默认值：0\n可读写\n以报表使用的计量单位表示属性值
+!report.PageEndScript = 表示报表 PageEnd 事件对应的脚本语言代码。\n可读写\n
+!report.PageStartScript = 表示报表 PageStart 事件对应的脚本语言代码。\n可读写\n
+!report.ParentReport = 指定子报表对象的主报表引用。\n只读\n!report.
+!report.PrintAsDesignPaper = 指定是否按设计时的页面设置生成打印页面。\n默认值：false\n可读写\n如果此属性为真，则打印页面按设计时的页面设置进行生成，反之则按系统中打印机的当前页面设置进行生成
+!report.PrintToStretch = 在按设计页面打印报表，且打印机的当前页面设置与报表设计页面不匹配，指定打印输出是否进行缩放适应。\n默认值：false\n可读写
+!report.ProcessBeginScript = 表示报表 ProcessBegin 事件对应的脚本语言代码。\n可读写\n
+!report.ProcessEndScript = 表示报表 ProcessEnd 事件对应的脚本语言代码。\n可读写\n
+!report.QuerySQL = 从数据源中取数的SQL语句。\n可读写\n报表参数查询SQL通常只返回一条记录，即使返回多条记录，Grid++Report也只应用第一条记录，将各个子段值自动传递给同名的参数与部件框
+!report.Running = 指示报表是否处于运行状态中。\n只读\n处于运行状态中的报表不允许重新栽入或重新定义模板数据
+!report.ScriptType = 指定在本报表中使用的脚本语言类型。\n默认值：grstJScript\n可读写
+!report.SharePrintSetupOptions = 指定共享全局打印设置参数的选项。\n默认值：0\n可读写\n用二进制Bit位表示相应的共享全局打印设置参数是否被当前报表使用。\n如果使用某个或某类全局打印设置参数，这对当前报表应用或设置打印设置参数都是对共享全局打印设置参数进行操作
+!report.ShowGrid = 获取或设置是否在设计器中显示设计栅格点的标志。\n默认值：true\n可读写
+!report.ShowMoneyDigit = 指定在报表中显示金额线或金额位标签时显示的位数。\n默认值：9\n可读写\n位数不包括角与分位
+!report.ShowMoneyLineColor = 指定金额位分隔线的颜色。\n默认值：grclTeal\n可读写
+!report.ShowMoneySepLineColor = 指定元与角位之间的分隔线的颜色。\n默认值：grclPurple\n可读写
+!report.ShowMoneyWidth = 指定在报表中显示金额线或金额位标签时显示全部位的宽度。\n默认值：0\n可读写\n以报表的计量单位表示属性值。当属性值为零时，报表在运行时将自动确定金额显示宽度
+!report.ShowPreviewWndScript = 表示报表 ShowPreviewWnd 事件对应的脚本代码。\n可读写\n参考文档里的例子
+!report.ShowProgressUI = 指定报表在运行时是否显示进度指示。\n默认值：false\n可读写
+!report.SkipQuery = 指指示在生成报表时，是否忽略从数据源取数的属性设置。\n默认值：false\n可读写\n如果本属性为TRUE，报表生成时将不会应用查询SQL取数
+!report.StorageFormat = 指定报表模板数据的保存格式。\n默认值：grsfText\n可读写
+!report.TextEncode = 指定报表模板保存时所用的文字编码方式。\n默认值：grtemUTF8\n可读写
+!report.Title = 指定报表文档的标题文字。\n可读写\n当打印输出报表时，打印文档的标题是此属性的值。报表数据导出时，此属性将作为导出文件的默认文件名称
+!report.Unit = 用来表示报表元素位置与大小的计量单位。\n默认值：drmuCm\n可读写
+!report.Version = 指示Grid++Report的当前运行版本。\n只读\n
+!report.WatermarkAlignment = 指定水印图在页面中显示时的位置对齐方式。\n默认值：grpaCenter\n可读写
+!report.WatermarkSizeMode = 指定水印图在页面中显示时使用的缩放方式。\n默认值：grpsmClip\n可读写
+!report.XmlTableName = 指定报表主对象对应的 XML 或 JSON 格式数据包中的记录集名称。\n可读写\n通常情况下不需要设置此属性，只有当需要通过 XML 或 JSON 数据包加载数据，且数据包中包含有多个记录集，此时设置此属性才会生效。\nGrid++Report 会自动匹配多记录集数据包中的各个记录集到报表中的对应对象中，通过设置此属性让报表参数或部件框与数据包中的记录集产生固定的关联，而不会采用自动匹配方式
+
+!report.DetailGrid = 获取明细网格对象的接口引用。\n!detailGridObj.
+!report.BackImage = 指定报表在设计器中进入页面视图时显示的背景图。\n可读写\n!pictureObj.
+!report.FloatControls = 指定报表中的浮动部件框集合。\n只读\n!controlObj.
+!report.Font = 获取报表对象的缺省字体对象的引用。\n只读\n!fontObj.
+!report.Graphics = 自绘部件框的自绘对象引用。\n可读写\n!graphicsObj.
+!report.ImageList = 获取报表对象中图像集合对象的接口引用。\n只读\n!imageListObj.
+!report.PageFooter = 获取页脚对象的接口引用。\n只读\n!pageFooterObj.
+!report.PageHeader = 获取页眉对象的接口引用。\n只读\n!pageHeaderObj.
+!report.Parameters = 获取参数集合对象的接口引用。\n只读\n!parametersObj.
+!report.Printer = 获取打印机对象的接口引用。\n只读\n!printerObj.
+!report.ReportFooters = 报表尾集合对象。\n可读写\n!reportFooterObj.
+!report.ReportHeaders = 报表头集合对象。\n只读\n!reportHeaderObj.
+!report.RunningDetailGrid = 获取报表运行时展现出来的明细网格对象接口。\n只读\n除了交叉表，其它类型的报表本属性与DetailGrid是一样的。交叉表在运行时，会重新创建一个明细网格对象用来展现报表交叉运行的结果；通过本属性可以获得此明细网格的引用，从而可以进一步获取交叉表在运行时的信息\n!detailGridObj.
+!report.SharePrintSetupObject = 获取当前应用程序的共享全局打印设置对象的接口引用。\n只读\n通过此属性取得当前应用程序的共享全局打印设置对象的接口引用，从而可以对共享全局打印设置参数进行操作\n!sharePrintSetupObj.
+!report.Utility = 获取报表辅助工具对象。\n只读\n!utilityObj.
+!report.Watermark = 指定报表在生成打印页面时在每页中显示的水印背景图像。\n可读写\n!pictureObj.
+
+
+!report.BeforePostRecord() = @.BeforePostRecord = function(){
+	/*在向报表中填入记录数据的过程中，每当提交一条记录之前触发本事件。*/
+	__
+}
+!report.BeforeSort() = @.BeforeSort = function(SortFields){
+	/*当要对记录集中的记录进行重新排序之前触发本事件。*/
+	__
+}
+!report.ChartRequestData() = @.ChartRequestData = function(Sender){
+	/*当报表中的图表运行时，会触发本事件来请求加载图表数据。*/
+	__
+}
+!report.ControlCustomDraw() = @.ControlCustomDraw = function(Sender,Graphics ){
+	/*报表部件框自绘事件。*/
+	__
+}
+!report.ExportBegin() = @.ExportBegin = function(pOptionObject){
+	/*在报表导出任务执行之前触发本事件。*/
+	__
+}
+!report.ExportEnd() = @.ExportEnd = function(pOptionObject){
+	/*在报表导出任务完成时触发本事件。*/
+	__
+}
+!report.FetchRecord() = @.FetchRecord = function(){
+	/*在报表生成时且以推模式向报表提供数据，报表主对象请求数据时触发。*/
+	__
+}
+!report.FieldGetDisplayText() = @.FieldGetDisplayText = function(Sender){
+	/*当字段对象准备生成其显示文本时触发。*/
+	__
+}
+!report.GeneratePagesBegin() = @.GeneratePagesBegin = function(){
+	/*在产生打印页面数据之前触发本事件。*/
+	__
+}
+!report.GeneratePagesEnd() = @.GeneratePagesEnd = function(){
+	/*在产生打印页面数据完成后触发本事件。*/
+	__
+}
+!report.GroupBegin() = @.GroupBegin = function(pSender){
+	/*在生成报表数据时，开始一个分组触发。*/
+	__
+}
+!report.GroupEnd() = @.GroupEnd = function(pSender){
+	/*在生成报表数据时，结束一个分组触发。*/
+	__
+}
+!report.Initialize() = @.Initialize = function(){
+	/*在报表生成开始时触发。*/
+	__
+}
+!report.PageEnd() = @.PageEnd = function(){
+	/*在完成一个打印页面生成时触发本事件。*/
+	__
+}
+!report.PageProcessRecord() = @.PageProcessRecord = function(){
+	/*当报表在生成打印数据时，会再次按顺序遍历每一条记录，每当遍历一条记录时触发本事件。*/
+	__
+}
+!report.PageStart() = @.PageStart = function(){
+	/*在开始生成一个打印页面时触发本事件。*/
+	__
+}
+!report.PrintAborted() = @.PrintAborted = function(){
+	/*当打印任务中途取消时触发本事件。*/
+	__
+}
+!report.PrintBegin() = @.PrintBegin = function(){
+	/*在开始打印报表之前，触发本事件。*/
+	__
+}
+!report.PrintEnd() = @.PrintEnd = function(){
+	/*在结束打印报表之后，触发本事件。*/
+	__
+}
+!report.PrintPage() = @.PrintPage = function(PageNo){
+	/*在打印每一页报表页面时触发本事件。*/
+	__
+}
+!report.ProcessBegin() = @.ProcessBegin = function(){
+	/*当报表准备对填入的数据进行分析处理之前触发本事件。*/
+	__
+}
+!report.ProcessEnd() = @.ProcessEnd = function(){
+	/*当报表对填入的数据进行分析处理完成之后触发本事件。*/
+	__
+}
+!report.ProcessRecord() = @.ProcessRecord = function(){
+	/*当报表生成时，会按顺序遍历每一条记录，每当遍历一条记录时触发本事件。*/
+	__
+}
+!report.SectionFormat() = @.SectionFormat = function(pSender){
+	/*当报表节在输出之前触发。包括查询显示与打印生成显示。*/
+	__
+}
+!report.ShowPreviewWnd() = @.ShowPreviewWnd = function(PrintViewer){
+	/*在显示默认打印预览窗口时触发本事件。*/
+	__
+}
+!report.TextBoxGetDisplayText() = @.TextBoxGetDisplayText = function(Sender){
+	/*当文字类型的部件框准备生成其显示文本时触发。*/
+	__
+}
+
+
+!detailGridObj.AddColumn(__,,,) = 增加一个新列。\n参数：\nstring Name 列的名称标识。\nstring Title 列的标题文本。\nstring DataField 列关联的字段名称。\ndouble Width 列的宽度。\n返回值：新增列对象的接口引用\n!columnObj.
+!detailGridObj.AddGroupTitle(__,) = 增加一个新组标题格。\n参数：\nstring Name 指定新增组标题格的名称。\nstring Title 指定新增组标题格的显示文本。\n返回值：返回新增组标题格对象的接口引用\n!columnTitleCellObj.
+!detailGridObj.ClearColumns() = 删除所有的列。\n
+!detailGridObj.ClearGroupTitles() = 删除全部组标题格。\n
+!detailGridObj.ColumnByShowOrder(__) = 根据列的显示顺序号获取对应列，序号从0开始。\n参数：\nint OrderNo 列显示顺序号。\n返回值：获取到的对应列的接口引用\n!columnObj.
+!detailGridObj.ColumnMoveTo(__,,) = 移动指定列到新的显示位置。\n参数：\nstring ColumnName 指定要移动列的名称。\nstring NewGroupTitleCellName 指定新位置所在的组标题格名称，如果不是多层表头或不在上层表头之下，参数应为空串。\nint NewShowOrderNo 指定新的显示顺序号，顺序号从0开始。
+!detailGridObj.ColumnMoveToEnd(__) = 将列的显示顺序移动到最后。\n参数：\nvariant Index 指定列的标识，可以是列的名称，也可以是列的顺序号。
+!detailGridObj.FindGroupTitleCell(__) = 根据名称找到组标题格对象的接口引用。\n参数：\nstring Name 指定要查找组标题格的名称。\n返回值：名称匹配的组标题格对象的接口引用\n如果存在与输入名称参数匹配的组标题格对象，则返回组标题格对象的接口引用，否则返回NULL。例如使用此方法取得组标题格的接口引用，然后向其中添加包含的列\n!columnTitleCellObj.
+!detailGridObj.StartNewGroup(__) = 在报表生成时，开始生成一个新的分组项。\n参数：\nvariant Index 指定分组对象的标识，可以是分组对象的名称，也可以是分组对象的顺序号。\n只能在报表生成时的 ProcessRecord 事件中调用本方法，目的是为了生成自定义的分组
+
+!detailGridObj.AppendBlankCol = 打印输出时，是否补充空白列把纸张右边的空白填满。\n可读写\n默认值：false
+!detailGridObj.AppendBlankColWidth = 当补充空白列打印时，指定空白列的宽度，为0则与最后列同宽。\n可读写\n默认值：0
+!detailGridObj.AppendBlankRow = 打印输出时，是否在页的剩余区域补充显示空白内容行的标志。\n可读写\n默认值：false
+!detailGridObj.AppendBlankRowAtLast = 打印输出时如果追加空白行,是否在分组尾之后输出空白行。\n可读写\n默认值：false
+!detailGridObj.BackColor = 指定明细网格的标题行、内容行、分组头与分组尾的默认背景色。\n可读写\n此属性作为明细网格拥有的各种子对象的缺省背景色
+!detailGridObj.BorderPrintType = 指定明细网格的边框的打印类别。\n可读写\n默认值：grptForm
+!detailGridObj.CenterView = 当明细网格的列总宽度小于显示区域宽度时，指定是否水平居中显示明细网格。\n可读写\n默认值：true\n当列的总宽度小于显示区域的宽度时，当本属性值为真时，在水平方向上将明细网格居中显示，反之则靠左边显示\n此属性设置只对打印与打印预览有效。如果要设置报表表格在查询显示时是否居中显示，应该设置 IGRDisplayViewer.GridCenterView 属性
+!detailGridObj.FixCols = 查询显示时，指定锁定的列数，左边被锁定的列始终不进行水平滚动。\n只读\n默认值：0\n指定固定列的个数，默认时0。当属性值大于0时，前 FixCols 个列不跟随水平滚动条的滚动而滚动，而是始终显示在明细网格的左端。\n注意：本属性只应用于查询显示器中。
+!detailGridObj.GridLinePrintType = 指定明细网格的行列线的打印输出方式。\n可读写\n默认值：grptForm
+!detailGridObj.GrowToBottom = 指示是否将明细网格的下边框延伸到页的底部。\n可读写\n默认值：false
+!detailGridObj.IsCrossTab = 指定明细网格是否按交叉表方式去生成。\n可读写\n默认值：false
+!detailGridObj.NewPage = 打印生成时，指定强制换新页的方式。\n可读写\n默认值：None
+!detailGridObj.PageColumnCount = 在水平方向上均分打印输出区域的个数，也就是报表栏数。\n可读写\n默认值：1\n值范围：1-50
+!detailGridObj.PageColumnDirection = 在输出多栏报表时，数据行生成到输出位置的方向。\n可读写\n默认值：drpcdDownAcross
+!detailGridObj.PageColumnGroupNA = 指示多栏报表的分组头与分组尾是否禁止分栏。\n可读写\n默认值：false\n当本属性为“真”时，如果报表定义了分组，且报表为多栏报表时，则所有的分组头与分组尾将不进行分栏，而是整行显示
+!detailGridObj.PageColumnSpacing = 指定多栏报表的栏间距，以报表的计量单位表示。\n可读写\n默认值：0
+!detailGridObj.PrintAdaptFitText = 指定是否在打印输出时自动调整列的宽度，以便列中的显示文字都能完整的显示出来。\n可读写\n默认值：false
+!detailGridObj.PrintAdaptMethod = 打印输出时，根据输出页面的情况，指定列的输出策略。\n可读写\n默认值：grpamShrinkToFit
+!detailGridObj.PrintAdaptRepeat = 当打印策略为‘另起新页’或‘另起新页并重复固定列’时，报表头与报表尾是否在新页中再次输出。\n可读写\n默认值：true
+!detailGridObj.PrintAdaptRFCStep = 打当横向分页打印时，锁定列重复打印的间隔页数。\n可读写\n默认值：1
+!detailGridObj.PrintAdaptTryToOnePage = 报表横向分页输出时，尽量将横向产生的页面组合在一页中。\n可读写\n默认值：true
+!detailGridObj.ShowColLine = 指定是否显示网格列线。\n可读写\n默认值：true
+!detailGridObj.ShowRowLine = 指定是否显示网格行线。\n可读写\n默认值：true
+
+!detailGridObj.Recordset = 获取网格拥有的记录集对象的接口引用。\n!recordSetObj.
+!detailGridObj.Border = 绘制明细网格的边框定义对象。\n!borderObj.
+!detailGridObj.ColLinePen = 绘制明细网格列线的画笔。\n!penObj.
+!detailGridObj.ColumnContent = 明细网格拥有的内容行的接口引用。\n在输出时，每条明细记录将根据内容行定义输出一次\n!columnContentObj.
+!detailGridObj.Columns = 获取网格拥有的列集合对象的接口引用。\n!columnObj.
+!detailGridObj.ColumnTitle = 获取明细网格拥有的标题行对象的接口引用。\n!columnTitleObj.
+!detailGridObj.CrossTab = 获取交叉表定义对象的接口引用。\n只有当 IsCrossTab 属性为真时，明细网格才会拥有交叉表定义对象，本属性才会取到不为空的值\n!crossTabObj.
+!detailGridObj.Font = 获取明细网格拥有的子对象的缺省字体对象的接口引用。\n!fontObj.
+!detailGridObj.Groups = 获取网格拥有的分组集合对象的接口引用。\n!groupObj.
+!detailGridObj.RowLinePen = 绘制明细网网格行线的画笔。\n!penObj.
+
+
+!recordSetObj.BeforePostRecordScript = 表示报表 BeforePostRecord 事件对应的脚本语言代码。\n可读写
+!recordSetObj.ConnectionString = 与数据源连接的参数文字串。\n可读写\n如果明细记录集的“数据库连接”属性不指定，明细记录集的查询SQL将自动应用报表主对象上的数据库连接设置。\n如果本报表是子报表，还将自动应用其父报表的数据库连接设置
+!recordSetObj.Editable = 指定记录集在报表运行时是否为可编辑。\n可读写\n默认值：true
+!recordSetObj.FetchRecordScript = 表示报表 FetchRecord 事件对应的脚本语言代码。\n可读写
+!recordSetObj.Fields = 拥有的字段集合对象的接口引用。\n可读写\nIGRFields *Fields
+!recordSetObj.PageProcessRecordScript = 表示报表 PageProcessRecord 事件对应的脚本语言代码。\n可读写
+!recordSetObj.ProcessRecordScript = 表示报表 ProcessRecord 事件对应的脚本语言代码。\n可读写
+!recordSetObj.QuerySQL = 从数据源中取数的SQL语句。\n可读写
+!recordSetObj.RecordCount = 指示记录集中的记录条数\n只读,仅运行时可用
+!recordSetObj.RecordNo = 指示当前记录的记录号，记录号从0开始\n只读,仅运行时可用
+!recordSetObj.SkipQuery = 指示在生成报表时，是否忽略从数据源取数的属性设置。\n可读写\n默认值：false
+!recordSetObj.SortAsc = 指定是否按升序排列记录。\n可读写\n默认值：true
+!recordSetObj.SortCaseSensitive = 当排序字段为字符型时，指定排序比较是否为大小写字符敏感。\n可读写\n默认值：false
+!recordSetObj.SortFields = 指定在报表生成时对记录进行排序的依据字段。\n可读写\n如果设置了本属性，在记录集记录填充完成之后和对记录进行处理之前，报表引擎会根据排序字段对记录进行排序\n如果要按多个字段进行排序，字段名称之间用‘;’隔开。也可以在字段后面加上激昂叙标志，指示对应字段按降序排序。
+!recordSetObj.XmlTableName = 指定本记录集对应的 XML 或 JSON 格式数据包中相对应的记录集的名称\n可读写\n通常情况下不需要设置此属性，只有当需要通过 XML 或 JSON 数据包加载数据，且数据包中包含有多个记录集，此时设置此属性才会生效。\nGrid++Report 会自动匹配多记录集数据包中的各个记录集到报表中的对应对象中，通过设置此属性让本记录集与数据包中的记录集产生固定的关联，而不会采用自动匹配方式
+
+!recordSetObj.AddField() = 增加一个字段\n返回值:IGRField *返回新增字段对象的接口引用。\n参数:\nstring Name 指定字段的名称标识。\nGRFieldType Type 指定字段的类型\n!fieldObj.
+!recordSetObj.Append() = 添加一条形记录。\n在调用Append方法之后，然后向各个字段赋值，最后调用Post方法将新记录提交。\n新记录只有提交之后才会存储打记录集中。此方法只能在 FetchData 事件响应函数中使用。
+!recordSetObj.Bof() = 判断记录集的游标是否位于第一条记录之前\n返回值:游标位于第一条记录之前，返回真，否则返回假\n当游标位于第一条记录之前，各个字段的值为第一条记录的数据。当记录集中不存在记录时，Bof始终返回真
+!recordSetObj.Cancel() = 取消当前记录的可编辑状态，并还原记录的原来数据\n
+!recordSetObj.Edit() = 使当前记录进入可编辑状态，从而可以改变字段的值\n只有当报表处于运行时且记录集是可以编辑的，才能成功使当前记录进入可编辑状态。\n在记录进入可编辑状态之后，可以给各个字段赋值，最后调用 Post 方法将编辑后的记录保存到记录集中；\n也可以调用 Cancel方法取消编辑改变，将当前记录还原为原来的数据。
+!recordSetObj.Empty() = 请空记录集中的全部记录\n
+!recordSetObj.Eof() = 判断记录集的游标是否位于最后一条记录之后\n返回值:游标位于最后一条记录之后，返回真，否则返回假。\n当游标位于最后一条记录之后，各个字段的值为最后一条记录的数据。\n当记录集中不存在记录时，Eof始终返回真。
+!recordSetObj.First() = 使第一条记录成为当前记录\n
+!recordSetObj.Last() = 使最后一条记录成为当前记录\n
+!recordSetObj.LoadData() = 从本地磁盘文件或网络URL处载入记录集数据，数据格式必须是满足格式要求的XML文本数据\n返回值:指定数据载入是否成功\n参数:\nstring File 指定要载入数据的本地磁盘文件或网络URL
+!recordSetObj.LoadDataFromXML() = 从XML文本中载入记录集数据\n返回值:指定数据载入是否成功\n参数:\nstring XMLText XML文本形式的记录集数据
+!recordSetObj.MoveBy() = 将游标向前或向后移动指定个数的记录\n参数:\nint Delta 当前记录移动偏移量，为正向前移动，为负向后移动。\n如果移动偏移量超出记录集的范围，将使记录集位置处于Bof或Eof的位置。
+!recordSetObj.MoveTo() = 将记录集的当前记录设为指定记录号的记录\n参数:\nint RecordNo 指定移动到目标记录的记录号\n记录好的编号从零开始，依次递增。
+!recordSetObj.Next() = 使当前记录的下一条记录成为当前记录\n如果当前记录已经是最后一条记录，调用Next方法将使记录集游标位于Eof。
+!recordSetObj.Post() = 提交新增记录\n在调用Append方法之后，然后向各个字段赋值，最后调用Post方法将新记录提交。\n新记录只有提交之后才会存储打记录集中。\n此方法只能在 FetchData 事件响应函数中使用
+!recordSetObj.Prior() = 使当前记录的上一条记录成为当前记录\n如果当前记录已经是第一条记录，调用Prior方法将使记录集游标位于Bof。
+!recordSetObj.RemoveAllFields() = 删除所有的字段定义\n
+!recordSetObj.Resort() = 对记录集中的记录进行重新排序\n参数:\nstring Fields 指定排序字段，如果要按多个字段进行排序，字段名称之间用‘;’隔开。\nbool Ascending 指定是否按升序进行排序。 \nbool CaseSensitive 指定字符进行排序比较时是否大小写敏感。 
+!recordSetObj.SaveDataToXML() = 将记录集中的数据保存为XML文本\n返回值:XML文本数据
+
+!fieldObj.AsBoolean = 获取或设置字段的用布尔类型表示的值\n可读写\n仅运行时可用
+!fieldObj.AsCurrency = 获取或设置字段的用货币类型表示的值\n可读写\n仅运行时可用
+!fieldObj.AsDateTime = 获取或设置字段的用日期时间类型表示的值\n可读写\n仅运行时可用
+!fieldObj.AsFloat = 获取或设置字段的用浮点数类型表示的值\n可读写\n仅运行时可用
+!fieldObj.AsInteger = 获取或设置字段的用整数类型表示的值\n可读写\n仅运行时可用
+!fieldObj.AsString = 获取或设置字段的用字符串类型表示的值\n可读写\n仅运行时可用
+!fieldObj.DataBuffer = 获取存储二进制字段值的数据缓冲区内存地址指针\n只读\n仅运行时可用\n本属性只对二进制类型的字段有效，存储字段值的数据缓冲区内存地址指针。用 DataSize 属性可以得到数据缓冲区的大小
+!fieldObj.DataSize = 获取存储二进制字段值的数据缓冲区的大小，以字节为计量单位\n只读\n仅运行时可用\n本属性只对二进制类型的字段有效，存储字段值的数据缓冲区的字节大小。用 DataBuffer 属性可以得到数据缓冲区的内存指针
+!fieldObj.DBFieldName = 指定字段对应的数据源字段名称\n可读写\n仅运行时可用\n当以拉模式从数据源提取报表数据时，将按此属性值进行报表字段与数据源字段进行匹配。如果此属性没有定义，则默认与名称保持一致
+!fieldObj.DisplayText = 获取或设置部件框的输出显示文本\n可读写\n仅运行时可用
+!fieldObj.FieldType = 获取或设置字段的数据类型\n可读写\n设计器中可见\ntagGRFieldType枚举，默认值：grftString
+!fieldObj.Format = 获取或设置将字段值转换为显示文本时所应用的格式文字串\n可读写\n设计器中可见\n本属性只对布尔、整数、浮点数、货币及日期时间类型的字段有效
+!fieldObj.GetDisplayTextScript = 表示报表 FieldGetDisplayText 事件对应的脚本语言代码\n可读写\n设计器中可见\n在此脚本中可以改写子段的显示文字，通过设置子段的 DisplayText 属性改变其显示文字
+!fieldObj.IsNull = 获取字段值是否为空的标志\n只读\n仅运行时可用
+!fieldObj.Length = 获取或设置字符类型字段的字符长度，为 0 表示不定长类型字符类型字段\n可读写\n设计器中可见\n默认值：0\n不定长字符类型字段可以保存任意长度的字符数据，但在编辑记录时，不定长字符类型字段的值不允许改变
+!fieldObj.Name = 获取或设置字段的名称标识\n可读写\n设计器中可见
+!fieldObj.RTrimBlankChars = 指定是否自动截除字符型字段右边的空格字符\n可读写\n设计器中可见\n默认值：false\n此属性仅对字符型字段有效。\n数据库中定长类型的字符字段会用空格补足字符位数，这样的文字在进行水平居中显示时就得不到想要的居中效果，如果将此属性置为真，就可以自动截除右边的空格文字，也就可以得到很好的居中效果
+!fieldObj.RunningDBField = 获取在报表运行时与数据源字段进行匹配的字段名称\n只读\n当定义了 DBFieldName 的属性值，这取得值为 DBFieldName 属性的值，否则为 Name 属性的值
+!fieldObj.Value = 获取或设置字段在运行时的值\n可读写\n仅运行时可用
+!fieldObj.Clear() = 将字段的值设为空\n应只在报表主对象的 FetchRecord 与 BeforePostRecord 事件响应函数中调用此方法
+!fieldObj.LoadFromBinary(__) = 运行时从内二进制对象中载入二进制字段的值\n参数:IGRBinaryObject *BinaryObject 二进制数据对象\n注意：本方法只对二进制类型的字段有效。
+!fieldObj.LoadFromFile(__) = 运行时从文件中载入二进制字段的值\n参数:string PathFile  指定载入文件的完整路径名称\n注意：本方法只对二进制类型的字段有效
+!fieldObj.LoadFromMemory(__,) = 运行时从内存数据缓冲区中载入二进制字段的值\n参数:\nbyte *pBuffer 指定内存数据缓冲区的地址指针\nint ByteCount 指定内存数据缓冲区的字节大小\n注意：本方法只对二进制类型的字段有效
+
+!controlObj.AlignColumn = 指定部件框水平位置对齐到明细网格列的名称\n可读写\n如果本属性值不为空时，配合 AlignColumnSide 属性一起指定部件框与列的对齐方式，部件框的水平位置将跟随列位置的改变而改变。\nControl.AlignColumn = "(GridLeft)";\nControl.AlignColumnEx = "(GridRight)";
+!controlObj.AlignColumnEx = 指定部件框水平位置对齐到明细网格另一个列的名称\n可读写\n如果本属性值不为空时，配合 AlignColumnSide 属性一起指定部件框与列的对齐方式，部件框的水平位置将跟随列位置的改变而改变。\n其分别对应的属性值为“(GridLeft)”与“(GridRight)”，大小写不能错。
+!controlObj.AlignColumnSide = 部件框对齐到明细网格列的方式\n默认值：gracsBoth\n注意：只有当部件框在分组头与分组尾中时才能使用本属性
+!controlObj.Anchor = 指定部件框的哪些边缘锚定到其容器边缘\n默认值：grasLeft|grasTop\n本属性值是 GRAnchorStyles 值的按位组合。默认值是 grasTop 和 grasLeft。
+!controlObj.AsBarcode = 将本部件框转换为条形码部件框的接口引用\n只读\n只有当本部件框确实是条形码(Barcode)时，才能成功读取本属性值
+!controlObj.AsChart = 将本部件框转换为图表部件框的接口引用\n只读\n只有当本部件框确实是图表(Chart)时，才能成功读取本属性值
+!controlObj.AsFieldBox = 将本部件框转换为字段框的接口引用\n只读\n只有当本部件框确实是字段框(FieldBox)时，才能成功读取本属性值
+!controlObj.AsFreeGrid = 将本部件框转换为自由表格的接口引用\n只读\n只有当本部件框确实是自由表格(FreeGrid)时，才能成功读取本属性值。
+!controlObj.AsLine = 将本部件框转换为线段的接口引用\n只读\n只有当本部件框确实是线段(Line)时，才能成功读取本属性值
+!controlObj.AsMemoBox = 转换本部件框为综合文本框的接口引用\n只读\n只有当本部件框确实是综合文本框(MemoBox)时，才能成功读取本属性值
+!controlObj.AsPictureBox = 将本部件框转换为图像框的接口引用\n只读\n只有当本部件框确实是图像框(PictureBox)时，才能成功读取本属性值\n!pictureBoxObj.
+!controlObj.AsRichTextBox = 将本部件框转换为RTF文本框的接口引用\n只读\n只有当本部件框确实是RTF文本框(RichTextBox)时，才能成功读取本属性值
+!controlObj.AsShapeBox = 将本部件框转换为图形框的接口引用\n只读\n只有当本部件框确实是图形框(ShapeBox)时，才能成功读取本属性值
+!controlObj.AsStaticBox = 将本部件框转换为静态框的接口引用\n只读\n只有当本部件框确实是静态框(StaticBox)时，才能成功读取本属性值。
+!controlObj.AsSubReport = 转换本部件框为子报表的接口引用\n只读\n只有当本部件框确实是子报表(MemoBox)时，才能成功读取本属性值。
+!controlObj.AsSummaryBox = 将本部件框转换为统计框的接口引用\n只读\n只有当本部件框确实是统计框(SummaryBox)时，才能成功读取本属性值。
+!controlObj.AsSystemVarBox = 将本部件框转换为系统变量框的接口引用\n只读\n只有当本部件框确实是系统变量框(SystemVarBox)时，才能成功读取本属性值。
+!controlObj.AsTextBox = 转换本部件框为文字框基类的接口引用\n只读\n只有当本部件框确实是文字基类框(TextBox)派生类的对象时，才能成功读取本属性值。文字基类派生的类包括：静态文本框、综合文本框、字段框、统计框、系统变量框
+!controlObj.BackColor = 部件框的背景色\n默认值：Inherit from parent\n如果 BackStyle 属性为 grbsTranparent 时，部件框生成时不填充背景，本属性此时被忽略掉。
+!controlObj.BackStyle = 部件框显示时背景的填充方式\n默认值：grbsTransparent\n可读写
+!controlObj.Border = 绘制部件框的边框定义对象\n只读
+!controlObj.Center = 指定水平与垂直方向的居中对齐方式\n默认值：None\n指定部件框在容器中水平与垂直方向上的居中对齐方式
+!controlObj.ControlType = 获取本部件框的具体类型\n只读
+!controlObj.Cursor = 指定在查询显示报表时，当鼠标光标位于该部件框上时要显示的鼠标光标类型\n默认值：grdcDefault\n可读写
+!controlObj.CustomDraw = 指定部件框是否为自绘部件框\n默认值：false\n指定部件框是否为自绘部件框，自绘部件框不会自动输出显示内容，而是会触发 ControlCustomDraw 报表事件；如本部件框果存在自绘脚本(CustomDrawScript)，则会执行该脚本。\n由报表开发者在事件中或事件脚本中实现部件框显示输出。
+!controlObj.CustomDrawScript = 指定部件框的自绘脚本代码，只有当部件框为自绘部件框时，此属性定义的脚本代码才会执行到\n参考例子模板“5j.部件框自定义绘制.grf”中部件框“sbScriptDraw”与“sbScriptDefaultDraw”中自绘脚本属性的定义
+!controlObj.Dock = 指定部件框停靠到父容器的哪一个边缘\n默认值：None\n可读写
+!controlObj.Font = 输出文字时使用的字体\n默认值：Inherit from parent\n只读\n当本属性值为空时，代表本部件使用父容器的字体。将本属性设置为NULL，使其使用缺省字体
+!controlObj.ForeColor = 部件框输出内容的前景色\n默认值：Inherit from parent\n可读写\n一般表示输出文字的显示颜色
+!controlObj.Height = 部件框的显示高度\n可读写\n以报表使用的计量单位表示的显示高度值
+!controlObj.Left = 部件框的左端显示位置\n可读写\n以报表使用的计量单位表示的左端显示位置值，相对于父容器
+!controlObj.Locked = 在设计器中设计报表时，是否锁定部件框的大小与位置。\n可读写\n此属性仅对报表在设计器中设计时有效。当本属性为是时，不能通过鼠标拖放操作改变部件框的大小与位置
+!controlObj.Name = 部件框的名称标识\n可读写
+!controlObj.PaddingBottom = 指定部件框输出内容的下边距，以屏幕像素为单位\n默认值：1\n可读写
+!controlObj.PaddingLeft = 指定部件框输出内容的左边距，以屏幕像素为单位\n默认值：2\n可读写
+!controlObj.PaddingRight = 指定部件框输出内容的右边距，以屏幕像素为单位\n默认值：1\n可读写
+!controlObj.PaddingTop = 指定部件框输出内容的上边距，以屏幕像素为单位\n默认值：1\n可读写
+!controlObj.Parent = 父容器对象的 IUnknown 接口引用\n只读
+!controlObj.PrintType = 部件框的打印输出方式\n可读写
+!controlObj.ShiftMode = 指定部件框在其上层部件框发生高度自动伸展时，其垂直位置进行平移的方式\n默认值：grsmAlways\n可读写
+!controlObj.Tag = 部件框的标识值。\n默认值：0\n可读写\n可以按自己意愿任意使用本属性，如可以将此属性作为对象的身份标识
+!controlObj.Top = 部件框的顶端显示位置\n可读写\n以报表使用的计量单位表示的顶端显示位置值，相对于父容器。
+!controlObj.Visible = 是否显示部件框的标志\n默认值：true\n可读写\n当此属性为假时，部件框在输出时将被忽略掉。
+!controlObj.Width = 部件框的显示宽度。\n可读写\n以报表使用的计量单位表示的显示宽度值
+!controlObj.BringToFront() = 将部件框带到 Z 顺序的前面。\n此部件框将在同一容器中的其它部件框之后输出显示，如果前面输出的部件框与其在位置上有重叠，则此部件框将覆盖前面输出的部件框。
+!controlObj.DrawDefault() = 按部件框本身行为输出显示内容\n按部件框本身行为输出显示内容，此方法只能在报表的 ControlCustomDraw 事件或部件框本身的自绘脚本(CustomDrawScript)中调用。\n例如：首先调用本方法输出部件框固有的显示内容，然后再输出一些额外的自定义内容。
+!controlObj.LoadCursor(__) = 从光标文件中载入光标作为该部件框要显示的鼠标光标\n参数:\nstring PathFile 指定光标文件的文件路径名
+!controlObj.SendToBack() = 将部件框发送到 Z 顺序的后面\n此部件框将在同一容器中的其它部件框之前输出显示，如果后输出的部件框与其在位置上有重叠，则后输出的部件框将覆盖此部件框
+!controlObj.SetBounds(__,,,) = 设置部件框在其父容器中的边界位置\n参数:\ndouble left 左端位置。\ndouble Top 上端位置。\ndouble Right 右端位置。\ndouble Bottom 下端位置。
+
+!pictureBoxObj.AlignColumn = 指定部件框水平位置对齐到明细网格列的名称\n可读写\n如果本属性值不为空时，配合 AlignColumnSide 属性一起指定部件框与列的对齐方式，部件框的水平位置将跟随列位置的改变而改变。\n值为“(GridLeft)”与“(GridRight)”，大小写不能错。
+!pictureBoxObj.AlignColumnEx = 指定部件框水平位置对齐到明细网格另一个列的名称\n可读写\n如果本属性值不为空时，配合 AlignColumnSide 属性一起指定部件框与列的对齐方式，部件框的水平位置将跟随列位置的改变而改变。\n属性值为“(GridLeft)”与“(GridRight)”，大小写不能错。
+!pictureBoxObj.AlignColumnSide = 部件框对齐到明细网格列的方式。\n默认值:dracsBoth\n注意：只有当部件框在分组头与分组尾中时才能使用本属性
+!pictureBoxObj.Alignment = 指定图像在图像框中的显示对齐方式。\n默认值:grpaCenter\n可读写
+!pictureBoxObj.Anchor = 指定部件框的哪些边缘锚定到其容器边缘。\n默认值:Left|Top\n本属性值是 GRAnchorStyles 值的按位组合。默认值是 grasTop 和 grasLeft。
+!pictureBoxObj.AsBarcode = 将本部件框转换为条形码部件框的接口引用\n只读\n只有当本部件框确实是条形码(Barcode)时，才能成功读取本属性值。
+!pictureBoxObj.AsChart = 将本部件框转换为图表部件框的接口引用\n只读\n只有当本部件框确实是图表(Chart)时，才能成功读取本属性值
+!pictureBoxObj.AsFieldBox = 将本部件框转换为字段框的接口引用\n只读\n只有当本部件框确实是字段框(FieldBox)时，才能成功读取本属性值
+!pictureBoxObj.AsFreeGrid = 将本部件框转换为自由表格的接口引用\n只读\n只有当本部件框确实是自由表格(FreeGrid)时，才能成功读取本属性值。
+!pictureBoxObj.AsLine = 将本部件框转换为线段的接口引用\n只读\n只有当本部件框确实是线段(Line)时，才能成功读取本属性值
+!pictureBoxObj.AsMemoBox = 转换本部件框为综合文本框的接口引用\n只读\n只有当本部件框确实是综合文本框(MemoBox)时，才能成功读取本属性值
+!pictureBoxObj.AsPictureBox = 将本部件框转换为图像框的接口引用\n只读\n只有当本部件框确实是图像框(PictureBox)时，才能成功读取本属性值\n!pictureBoxObj.
+!pictureBoxObj.AsRichTextBox = 将本部件框转换为RTF文本框的接口引用\n只读\n只有当本部件框确实是RTF文本框(RichTextBox)时，才能成功读取本属性值
+!pictureBoxObj.AsShapeBox = 将本部件框转换为图形框的接口引用\n只读\n只有当本部件框确实是图形框(ShapeBox)时，才能成功读取本属性值
+!pictureBoxObj.AsStaticBox = 将本部件框转换为静态框的接口引用\n只读\n只有当本部件框确实是静态框(StaticBox)时，才能成功读取本属性值。
+!pictureBoxObj.AsSubReport = 转换本部件框为子报表的接口引用\n只读\n只有当本部件框确实是子报表(MemoBox)时，才能成功读取本属性值。
+!pictureBoxObj.AsSummaryBox = 将本部件框转换为统计框的接口引用\n只读\n只有当本部件框确实是统计框(SummaryBox)时，才能成功读取本属性值。
+!pictureBoxObj.AsSystemVarBox = 将本部件框转换为系统变量框的接口引用\n只读\n只有当本部件框确实是系统变量框(SystemVarBox)时，才能成功读取本属性值。
+!pictureBoxObj.AsTextBox = 转换本部件框为文字框基类的接口引用\n只读\n只有当本部件框确实是文字基类框(TextBox)派生类的对象时，才能成功读取本属性值。文字基类派生的类包括：静态文本框、综合文本框、字段框、统计框、系统变量框
+!pictureBoxObj.BackColor = 部件框的背景色\n默认值：Inherit from parent\n如果 BackStyle 属性为 grbsTranparent 时，部件框生成时不填充背景，本属性此时被忽略掉。
+!pictureBoxObj.BackStyle = 部件框显示时背景的填充方式\n默认值：grbsTransparent\n可读写
+!pictureBoxObj.Border = 绘制部件框的边框定义对象\n只读
+!pictureBoxObj.Center = 指定水平与垂直方向的居中对齐方式\n默认值：None\n指定部件框在容器中水平与垂直方向上的居中对齐方式
+!pictureBoxObj.ControlType = 获取本部件框的具体类型\n只读
+!pictureBoxObj.Cursor = 指定在查询显示报表时，当鼠标光标位于该部件框上时要显示的鼠标光标类型\n默认值：grdcDefault\n可读写
+!pictureBoxObj.CustomDraw = 指定部件框是否为自绘部件框\n默认值：false\n指定部件框是否为自绘部件框，自绘部件框不会自动输出显示内容，而是会触发 ControlCustomDraw 报表事件；如本部件框果存在自绘脚本(CustomDrawScript)，则会执行该脚本。\n由报表开发者在事件中或事件脚本中实现部件框显示输出。
+!pictureBoxObj.CustomDrawScript = 指定部件框的自绘脚本代码，只有当部件框为自绘部件框时，此属性定义的脚本代码才会执行到\n参考例子模板“5j.部件框自定义绘制.grf”中部件框“sbScriptDraw”与“sbScriptDefaultDraw”中自绘脚本属性的定义
+!pictureBoxObj.DataField = 关联字段对象的名称\n可读写\n如果字段值存储的是二进制数据，图像框将把字段值作为图像数据进行加载。\n如果字段值存储的是整数值，图像框将把字段值解析为图像序号，将从系统图像或图像集合中加载图像。\n如果字段值存储的是字符串，图像框将把字段值解析为图像文件名称，将从对应文件中加载图像，文件既可以是本地文件路径名，也可以是网络URL。
+!pictureBoxObj.Dock = 指定部件框停靠到父容器的哪一个边缘\n默认值：None\n可读写
+!pictureBoxObj.Font = 输出文字时使用的字体\n默认值：Inherit from parent\n只读\n当本属性值为空时，代表本部件使用父容器的字体。将本属性设置为NULL，使其使用缺省字体
+!pictureBoxObj.ForeColor = 部件框输出内容的前景色\n默认值：Inherit from parent\n可读写\n一般表示输出文字的显示颜色
+!pictureBoxObj.Height = 部件框的显示高度\n可读写\n以报表使用的计量单位表示的显示高度值
+!pictureBoxObj.ImageFile = 指定图像框关联的图像路径文件名，既可以使本地文件名，也可以WEB服务器上的URL。\n可读写\n
+!pictureBoxObj.ImageIndex = 指定图像框关联图像集合中某个图像的序号。\n可读写\n默认值:0\n图像的序号从1开始，0表示不关联。\nGrid++Report在报表引擎中定义了一些系统内建图像，其图像序号通过枚举GRSystemImage的枚举项来指定，也可以通过设定本属性为某个枚举项的值来关联一个系统图像。
+!pictureBoxObj.Left = 部件框的左端显示位置\n可读写\n以报表使用的计量单位表示的左端显示位置值，相对于父容器
+!pictureBoxObj.Locked = 在设计器中设计报表时，是否锁定部件框的大小与位置。\n可读写\n此属性仅对报表在设计器中设计时有效。当本属性为是时，不能通过鼠标拖放操作改变部件框的大小与位置
+!pictureBoxObj.Name = 部件框的名称标识\n可读写
+!pictureBoxObj.PaddingBottom = 指定部件框输出内容的下边距，以屏幕像素为单位\n默认值：1\n可读写
+!pictureBoxObj.PaddingLeft = 指定部件框输出内容的左边距，以屏幕像素为单位\n默认值：2\n可读写
+!pictureBoxObj.PaddingRight = 指定部件框输出内容的右边距，以屏幕像素为单位\n默认值：1\n可读写
+!pictureBoxObj.PaddingTop = 指定部件框输出内容的上边距，以屏幕像素为单位\n默认值：1\n可读写
+!pictureBoxObj.Parent = 父容器对象的 IUnknown 接口引用\n只读
+!pictureBoxObj.Picture = 获取或设置图像对象。\n可读写\n仅运行时可用
+!pictureBoxObj.PrintType = 部件框的打印输出方式\n可读写
+!pictureBoxObj.RotateMode = 指定图像显示时的旋转模式\n可读写\n设计器中可见
+!pictureBoxObj.ShiftMode = 指定部件框在其上层部件框发生高度自动伸展时，其垂直位置进行平移的方式\n默认值：grsmAlways\n可读写
+!pictureBoxObj.SizeMode = 指定图像在图像框中显示时的伸缩方式。\n默认值：grpsmZoom\n设计器中可见
+!pictureBoxObj.Tag = 部件框的标识值。\n默认值：0\n可读写\n可以按自己意愿任意使用本属性，如可以将此属性作为对象的身份标识
+!pictureBoxObj.Top = 部件框的顶端显示位置\n可读写\n以报表使用的计量单位表示的顶端显示位置值，相对于父容器。
+!pictureBoxObj.TransparentMode = 指定图像的透明显示方式。\n默认值：grptmNone\n可读写\n设计器中可见
+!pictureBoxObj.Visible = 是否显示部件框的标志\n默认值：true\n可读写\n当此属性为假时，部件框在输出时将被忽略掉。
+!pictureBoxObj.Width = 部件框的显示宽度。\n可读写\n以报表使用的计量单位表示的显示宽度值
+!pictureBoxObj.AttachSystemImage(__) = 关联一个系统图像到本图像框,从而在本图像框中显示一个系统图像。\n参数:GRSystemImage SystemImage 指定系统图像。
+!pictureBoxObj.BringToFront() = 将部件框带到 Z 顺序的前面。\n此部件框将在同一容器中的其它部件框之后输出显示，如果前面输出的部件框与其在位置上有重叠，则此部件框将覆盖前面输出的部件框。
+!pictureBoxObj.DrawDefault() = 按部件框本身行为输出显示内容\n按部件框本身行为输出显示内容，此方法只能在报表的 ControlCustomDraw 事件或部件框本身的自绘脚本(CustomDrawScript)中调用。\n例如：首先调用本方法输出部件框固有的显示内容，然后再输出一些额外的自定义内容。
+!pictureBoxObj.LoadBmpPicture(__) = 从BMP格式图像对象中载入图像数据\n参数:IPicture bmp  图像对象。\nVC资源中的BMP图像应该调用本方法载入到报表中。
+!pictureBoxObj.LoadCursor(__) = 从光标文件中载入光标作为该部件框要显示的鼠标光标\n参数:\nstring PathFile 指定光标文件的文件路径名
+!pictureBoxObj.LoadFromBinary(__) = 从二进制对象中载入图像数据。\n参数:IGRBinaryObject *BinaryObject 拥有图像数据的二进制对象。
+!pictureBoxObj.LoadFromFile(__) = 运行时从磁盘文件或网络URL地址中载入图像文件\n参数:string PathFile 载入图像文件的路径与文件名，或URL。\n载入图像文件的时机:\n1. 如果图像框位于报表头、报表尾、页眉与页脚中，应在报表主对象的 Initialize 事件响应函数中执行载入文件。\n2. 如果图像框位于明细网格的内容格中，应在报表主对象的 ProcessRecord 事件响应函数中执行载入文件。\n3. 如果图像框位于明细网格的分组头或分组尾中，应在报表主对象的 GroupBegin 或 GroupEnd 事件响应函数中执行载入文件。
+!pictureBoxObj.LoadFromMemory(__,) = 运行时从内存中载入图像数据。\n参数:\nbyte *pBuffer 图像数据缓冲区内存地址。\nint BytesCount 图像数据缓冲区的字节数。
+!pictureBoxObj.SendToBack() = 将部件框发送到 Z 顺序的后面\n此部件框将在同一容器中的其它部件框之前输出显示，如果后输出的部件框与其在位置上有重叠，则后输出的部件框将覆盖此部件框
+!pictureBoxObj.SetBounds(__,,,) = 设置部件框在其父容器中的边界位置\n参数:\ndouble left 左端位置。\ndouble Top 上端位置。\ndouble Right 右端位置。\ndouble Bottom 下端位置。
+
+!parameterObj.AsBoolean = 获取或设置布尔值，只有当为布尔类型参数时才能成功使用此属性。\n可读写,仅运行时可用
+!parameterObj.AsDateTime = 获取或设置日期时间值，只有当为日期时间类型参数时才能成功使用此属性。\n可读写,仅运行时可用
+!parameterObj.AsFloat = 获取或设置浮点数值，只有当为浮点数类型参数时才能成功使用此属性。\n可读写
+!parameterObj.AsInteger = 获取或设置整数值，只有当为整数类型参数时才能成功使用此属性。\n可读写,仅运行时可用
+!parameterObj.AsString = 获取或设置文本值，只有当为文本类型参数时才能成功使用此属性。\n可读写,仅运行时可用
+!parameterObj.DataType = 指示参数的数据类型。\n可读写,设计器中可见\n默认值：grptString
+!parameterObj.DisplayText = 参数的输出显示文本。\n只读,仅运行时可用
+!parameterObj.Format = 整数、浮点数、日期时间类型的参数生成输出显示文本的格式串。\n可读写,仅运行时可用
+!parameterObj.IsNull = 参数的值是否为空标志。\n只读,仅运行时可用
+!parameterObj.Name = 参数的名称标识。\n可读写,设计器中可见
+!parameterObj.Value = 参数的值。\n可读写,仅运行时可用
+!parameterObj.Clear() = 将参数的值清理掉，调用本方法后，参数状态为空。
+
+_gretXLS = @1/*_gretXLS*/
+_gretTXT = @2/*_gretTXT*/
+_gretHTM = @3/*_gretHTM*/
+_gretRTF = @4/*_gretRTF*/
+_gretPDF = @5/*_gretPDF*/
+_gretCSV = @6/*_gretCSV*/
+_gretIMG = @7/*_gretIMG*/
+
+end intellisense**/
+
+/*intellisense()*/
+//常量定义开始 grpro.GridppReport.6;
+grdsRight=3;
+grdtmxmsAuto=2;
+grcpamToNewPageRFCEx=8;
+grstReportFooter=3;
+grncsNone=1;
+grdtmxms36x36=14;
+grprmFlip=3;
+grtctExportPDFBtn=61;
+grptICON=5;
+grtctMailSaveDocument=72;
+grpskLargeFormat=10;
+grspsoSelectedPrinter=16;
+grpskAutomaticFeed=7;
+grctXYCurveLineChart=8;
+grsfVarA=20;
+grpkEnvelopeB6=35;
+grpsmEnsureFullView=4;
+grbsDrawLeft=1;
+grssCtrl=4;
+grsvGroup2PageNumber=11;
+grtoDefault=0;
+grtaMiddleJustiy=160;
+grbcpAbove=2;
+grtctPrint=2;
+grftCurrency=4;
+grdtctExportIMG=56;
+grdtctCurPageNo=18;
+grsmWhenOverLapped=2;
+grdtmxms40x40=15;
+grpsDashDotDot=4;
+grpmsCircle=3;
+grptmOverlying=1;
+grdtctPrint=2;
+grtctExportPDF=54;
+grsp4Pages=4;
+grbtCodeUPC_A=16;
+grbdRightToLeft=2;
+grtaMiddleCenter=34;
+grpskUpper=1;
+grpskEnvelope=5;
+grbtCode25Ind=2;
+grdsTop=2;
+grsvGroup1RowNo=5;
+grsfStdDev=8;
+grdtctMailHTM=67;
+grpptOddSelectionPages=2;
+grsfSumAbs=26;
+grpgsPreviewAll=4;
+grprmLeft=1;
+grsfVar=6;
+grmbMiddle=3;
+grdtctFindTextBox=30;
+grpkA4=9;
+grbtCode128B=7;
+grsiArrowUp=-8;
+grpmsNone=-1;
+grpkEnvelopeC65=32;
+grdtctExport=5;
+grbtCode25Intlv=1;
+grssAlt=2;
+grdtctPrinterSetup=4;
+grssShift=1;
+greitPNG=2;
+grrsOnPage=2;
+grdtmxms72x72=20;
+grdtmxeBase256=8;
+grspsoPaperOrientation=4;
+grdtmxms8x32=29;
+grrsOnGroupHeader=8;
+grsp2Pages=2;
+grpmsSquareCross=2;
+grtctMailIMG=71;
+grdtmxms132x132=26;
+grsmAlways=1;
+grtctMailXLS=65;
+grdkSimplex=1;
+grrdmIdle=3;
+grpmsStar4=10;
+grctSystemVarBox=3;
+grtctMailCSV=70;
+grtctFirstPage=16;
+grsp8Pages=8;
+grpk11X17=17;
+grckNotCollate=2;
+grnpsBeforeAfter=4;
+grpmsSquare=0;
+grsfMax=5;
+grcpamDiscard=1;
+grpkEnvelope12=22;
+grpskCassette=14;
+grsvGroup2PageCount=14;
+grbtCode93X=10;
+grpsmStretch=2;
+grpcdDownAcross=1;
+grncsAfter=3;
+grptBoolean=5;
+grpkB4=12;
+grdtObject=1;
+grpkEnvelope11=21;
+grbtCode39X=5;
+grptInteger=2;
+grncsBefore=2;
+grpskFormSource=15;
+grbtCode39=4;
+grtoU2DL2R0=5;
+grdtctExportHTM=52;
+grsvGroupPageCount=25;
+grbtQRCode=51;
+grdtctMailRTF=68;
+grctBarChart=1;
+grsvGroup1PageNumber=10;
+grctShapeBox=2;
+grtctPrinterSetup=4;
+grsvCurrentDateTime=1;
+grltTopCenterToBottomCenter=6;
+grsfDevSqA=25;
+gracsLeft=1;
+grtctLastPage=17;
+grtaBottomJustiy=192;
+grdtmxms16x16=7;
+grpkQuarto=15;
+grcpamResizeToFit=3;
+grptMonth=5;
+grdtctLastPage=17;
+grprmRight=2;
+grpgsOnlyForm=1;
+grsfDistinct=14;
+grrsOnPageColumn=4;
+grpkCustom=256;
+grbdTopToBottom=3;
+grdtctPrintPreview=40;
+grsfAvgA=15;
+grdtmxms144x144=27;
+grbtPDF417=50;
+grsvGroupRowNo=22;
+grtctExportTXT=51;
+grdtctPostLayout=41;
+grdtmxeX12=6;
+grptBMP=1;
+grpvoDblClickSwitchViewMode=2;
+grctSubReport=9;
+grptDay=1;
+grpgsAll=3;
+grdcMagnify=2;
+grdtctFindAgain=32;
+grptPNG=4;
+grctBarcode=12;
+grtctZoomPercent=13;
+grssDouble=64;
+grdtmxms16x48=33;
+grltBottomLeftToBottomRight=4;
+grsfMaxN=17;
+grdtmxeEdifact=7;
+grsfSumAcc=27;
+grdtctExportRTF=53;
+grpemDisable=1;
+grsfCount=3;
+grsfDevSq=11;
+grtoL2RD2U1=54;
+grprtCurrentPage=2;
+grptContent=2;
+grtctExportXLS=50;
+grasTop=2;
+grsfCountBlank=12;
+grpkCSheet=24;
+grtemAnsi=1;
+grpkEnvelopePersonal=38;
+grpkEnvelope14=23;
+grtctSaveDocument=7;
+grptmNone=0;
+grsbtLine=7;
+grdtctMailXLS=65;
+grbtCode128C=8;
+grdtmxms26x26=12;
+grdtmxeAscii=3;
+grpmsStar5=11;
+grpvoShowContentMenu=1;
+gretRTF=4;
+grtctMailHTM=67;
+grptHalfYear=7;
+grdtctExportPDFBtn=61;
+grpkEnvelope9=19;
+grdtctMailTXT=66;
+grstGroupFooter=8;
+grdtctExportCSV=55;
+grrdmScreenView=1;
+grpskMiddle=3;
+grsfStdDevPA=23;
+grdtctPriorPage=14;
+grpmsCross=8;
+grtctExport=5;
+grprmMirror=4;
+grsfBinBase64=3;
+grprtSelectionPages=3;
+grdtmxms96x96=23;
+grstColumnTitle=5;
+grptNone=0;
+grtctExportRTF=53;
+greitGIF=4;
+grdtmxms44x44=16;
+grncsBeforeAfter=4;
+grcpamShrinkToFit=4;
+grsfAvg=2;
+grtaBottomCenter=66;
+grnpsNone=1;
+grsp16Pages=16;
+grcpamWrapExcludeGroup=9;
+grsvGroup1PageCount=13;
+grptThirdMonth=3;
+grptQuarter=6;
+grstReportHeader=2;
+grtctMultiPage=10;
+grdsNone=0;
+grbtCode93=9;
+grdtctMailCSV=70;
+grbsDrawBottom=8;
+grgktsAll=3;
+grptYear=8;
+grsfVarPA=21;
+grpskLargeCapacity=11;
+grtctContinuousPage=8;
+grmbLeft=1;
+grsfVarP=7;
+grdtctExportXLS=50;
+grsvGroupNo=20;
+grnpsAfter=3;
+grpkFolio=14;
+grptUnknown=0;
+grpkNote=18;
+grpk10X14=16;
+grsiChecked=-1;
+grtctNextPage=15;
+grspsoPaperKind=2;
+grptEMF=-1;
+grltBottomLeftToTopRight=1;
+grbkNormal=1;
+grdtmxms80x80=21;
+grasRight=4;
+grdtmxms32x32=13;
+grftBinary=7;
+grsbtRoundRect=4;
+grdtctClose=19;
+gretXLS=1;
+grsfText=1;
+grdtctRefresh=21;
+grsaCenter=2;
+grckCollate=1;
+grbtCodeEAN128A=21;
+grpaCenter=3;
+grdtmxms24x24=11;
+grtctRefresh=21;
+grsp6Pages=6;
+grpkLetter=1;
+grdtmxms52x52=18;
+grsfMin=4;
+grpoDefault=0;
+grpkLegal=5;
+grdsFill=5;
+grtaTopCenter=18;
+gretHTM=3;
+grtctFindTextBox=30;
+grpkDSheet=25;
+grbsDrawRight=4;
+grsi3DUnchecked=-4;
+grptWMF=10;
+grckDefault=0;
+grpgsOnlyContent=2;
+grptTIFF=6;
+grtctSep=1;
+grtctMail=6;
+grpkStatement=6;
+grtctClip=20;
+grdtmxms88x88=22;
+gracsRight=2;
+grpkA4Small=10;
+grtaTopLeft=17;
+grltTopLeftToBottomRight=0;
+grpsSolid=0;
+grpsmZoom=3;
+grptDateTime=6;
+grdtctClip=20;
+grpsDashDot=3;
+grssLeft=8;
+grtemUTF8=2;
+grpkP16K=93;
+grtctZoomIn=11;
+grsfBinary=2;
+grpmsCircleCross=5;
+grpkExecutive=7;
+grsfGroupSumAcc=28;
+grbtCodePostNet=12;
+grcsHorizontal=1;
+grbaTop=1;
+grdcDefault=0;
+grpkA5=11;
+grmbRight=2;
+grtaMiddleLeft=33;
+grbtCodeUPC_E0=17;
+grpskManual=4;
+grtctMailPDF=69;
+grbdLeftToRight=1;
+grsiAffirm=-5;
+grdtctSep=1;
+grctLineChart=3;
+grpkEnvelopeDL=27;
+grbtCode128Auto=24;
+grsiArrowDown=-7;
+grdcAffirm=4;
+grctStackedBar100Chart=10;
+grdtctColumnVisible=80;
+grbtDataMatrix=52;
+grpskTractorFeed=8;
+greitBMP=1;
+grsfStdDevA=22;
+grdtctMail=6;
+grctPieChart=2;
+grdkHorizontal=3;
+grsvRecordCount=19;
+grpkFanfold=39;
+grpkB6=88;
+grpkDefault=255;
+grsmNever=0;
+grcpamWrap=2;
+grtctFind=31;
+grtctMailRTF=68;
+grsbtEllipse=2;
+grdkVertical=2;
+grtoU2DR2L1=25;
+grstPageHeader=1;
+grltTopLeftToTopRight=2;
+grstColumnContent=6;
+grasLeft=1;
+grspsoPaperSource=8;
+grdvoShowContentMenu=1;
+grtaMiddleRight=36;
+grctFieldBox=4;
+grpsmClip=1;
+grctSummaryBox=5;
+grtoInvert=58;
+grtctExportXLSBtn=60;
+grdtctShowPreviewLine=42;
+grctRichTextBox=6;
+grdtmxeAuto=2;
+grctPictureBox=7;
+grctMemoBox=8;
+grsvGroupCount=21;
+grptForm=1;
+gretCSV=6;
+grdtctExportTXT=51;
+grpkEnvelopeC5=28;
+grctFreeGrid=13;
+grctChart=11;
+grctBubble=9;
+grdtctSaveDocument=7;
+grpsDot=2;
+grpaTopRight=2;
+grbsDrawTop=2;
+grbcpBelow=3;
+grpk12X11=90;
+grasBottom=8;
+grstGroupHeader=7;
+grcpamToNewPageEx=6;
+grdtmxms12x26=30;
+grdsBottom=4;
+grcsNone=0;
+grpvmSinglePage=2;
+grcsBoth=3;
+gracsBoth=3;
+grctLine=10;
+grpkEnvelopeItaly=36;
+grbtCodeEAN128C=23;
+grpkEnvelopeC3=29;
+grdcArrow=1;
+grpemDblClickToEdit=3;
+grdcNegative=5;
+grdtmxms14x14=6;
+grtaTopJustiy=144;
+grdcFinger=3;
+grbcpNone=1;
+grpskSmallFormat=9;
+grsvGroup3PageNumber=12;
+grtctFindAgain=32;
+grbaBottom=2;
+grdtmxms8x18=28;
+grsiUnchecked=-2;
+grpmsStar6=12;
+greitTIFF=5;
+grtaTopRight=20;
+grsfStdDevP=9;
+grdtctFind=31;
+grtaBottomLeft=65;
+grtoL2RD2U0=38;
+grtctClose=19;
+grvbsNone=3;
+grpvmContinuousPage=1;
+grdtJSON=2;
+grdtmxms12x36=31;
+grtaBottomRight=68;
+grsfAveDev=10;
+grpkEnvelopeB4=33;
+grtctMailTXT=66;
+grstJScript=1;
+grstVBScript=2;
+grbtCodeEAN8=14;
+grdtmxms20x20=9;
+grrsNone=1;
+grdtctExportPDF=54;
+grvbsFixed3D=1;
+grpskDefault=0;
+grsfSum=1;
+grtoD2UL2R1=22;
+grftDateTime=6;
+grcpamToNewPage=5;
+grtoU2DR2L0=9;
+grgktsFirstDetail=2;
+grnpsBefore=2;
+grsaFar=3;
+grbtCodeMSI=11;
+grbtCodeUPC_E1=18;
+grbtCodeUPC_Supp2=19;
+gretPDF=5;
+grstPageFooter=4;
+grsfMinN=16;
+grpkP32K=94;
+grltTopLeftToBottomLeft=5;
+grftInteger=2;
+grsaNear=1;
+greitJPEG=3;
+grftBoolean=5;
+grdtmxeText=5;
+grdkDefault=0;
+grctStackedBarChart=4;
+grsfXML=4;
+grpkLetterSmall=2;
+grtctSinglePage=9;
+grbtCodeEAN128B=22;
+grpvmMultiPage=3;
+grssRight=16;
+grpcdAcrossDown=2;
+grpemClickToEdit=2;
+grpskManualFeed=6;
+grctXYLineChart=6;
+grtctExportHTM=52;
+grctCurveLineChart=7;
+grdtctFirstPage=16;
+grpsDash=1;
+grsfAveDevA=24;
+grctStackedColumnChart=12;
+grctStackedColumn100Chart=13;
+grspsoPaperMargin=1;
+grpptAllSelectionPages=1;
+grssMiddle=32;
+grvbsFixedSingle=2;
+grsvRowNo=8;
+grctStepBarChart=4;
+grpmsSquareCheck=1;
+grbtCodeCodabar=13;
+grpmsCirclePoint=4;
+grpmsDimond=6;
+grpmsTriangle=7;
+grpmsCross4=9;
+grftString=1;
+grdtmxms12x12=5;
+grpkEnvelopeMonarch=37;
+grpmsStar10=13;
+grpoPortrait=1;
+grsbtCircle=1;
+grbtCode25Matrix=3;
+grpsmTile=5;
+grsbtRoundSquare=5;
+grsbtSquare=6;
+grdtctDividePage=25;
+grdtmxeC40=4;
+grpkEnvelopeC6=31;
+grpkA6=70;
+grdtmxms104x104=24;
+grltMiddleLeftToMiddleRight=3;
+grpkA3=8;
+grltTopRightToBottomRight=7;
+grbtCodeEAN13=15;
+grdtmxms16x36=32;
+grpskLower=2;
+grsvPageCount=2;
+grtctExportCSV=55;
+grsvPageNumber=3;
+grsvRecordNo=4;
+grdtctMailPDF=69;
+grpkEnvelopeB5=34;
+grtctPriorPage=14;
+grpaBottomLeft=4;
+grpaBottomRight=5;
+grctXYScatterChart=5;
+gretIMG=7;
+grsvGroupRowCount=23;
+grmuCm=1;
+grtctZoomOut=12;
+grbtCode128A=6;
+grsvGroup3OrderNo=18;
+grbdBottomToTop=4;
+grsvGroup3RowNo=7;
+grdtmxms10x10=4;
+grsvGroup2OrderNo=17;
+grftFloat=3;
+grtemUnicode=3;
+grtctCurPageNo=18;
+grsvGroup3PageCount=15;
+grsvGroup2RowNo=6;
+grsvGroup1OrderNo=16;
+grsfCountA=13;
+grsvGroupOrderNo=9;
+grsvGroupPageNo=24;
+grbkTransparent=2;
+grcsVertical=2;
+grbtCodeUPC_Supp5=20;
+grprmNone=0;
+grdtmxms48x48=17;
+grpkLedger=4;
+grsfStrMax=19;
+grctColumnChart=11;
+grdtctExportXLSBtn=60;
+grmuInch=2;
+grsbtRectangle=3;
+grdtmxms120x120=25;
+grdtctNextPage=15;
+grpkTabloid=3;
+grpaTopLeft=1;
+grprtAllPages=1;
+grptGIF=2;
+grpcdDownAcrossEqual=3;
+grptJPEG=3;
+gretTXT=2;
+grsi3DChecked=-3;
+grsiNegative=-6;
+grptString=1;
+grpkB5=13;
+grptFloat=3;
+grptCalendar=9;
+grptWeek=2;
+grdtctPageSetup=3;
+grdtctFindDlg=33;
+grtctBookmark=22;
+grpoLandscape=2;
+grpptEvenSelectionPages=3;
+grsp1Pages=1;
+grcpamToNewPageRFC=7;
+grtctPageSetup=3;
+grtctExportIMG=56;
+grpkEnvelopeC4=30;
+grsfStrMin=18;
+grptHalfMonth=4;
+grctStaticBox=1;
+grbaMiddle=3;
+grpkESheet=26;
+grptmBackground=2;
+grpskCustom=256;
+grgktsNone=1;
+grrdmPrintGenerate=2;
+grdtmxms64x64=19;
+grrsOnGroupHeaderPage=10;
+grdtmxms18x18=8;
+grdsLeft=1;
+grtctFindDlg=33;
+grpkEnvelope10=20;
+grdtmxms22x22=10;
+grdtctMailIMG=71
+//常量定义结束 grpro.GridppReport.6;
+/*end intellisense*/
+
+/*intellisense()*/
+//枚举定义开始 grpro.GridppReport.6;
+tagGROCGroupHeaderVAlign={
+grbaTop=1;
+grbaMiddle=3;
+grbaBottom=2
+};
+tagGRPictureType={
+grptGIF=2;
+grptICON=5;
+grptTIFF=6;
+grptPNG=4;
+grptWMF=10;
+grptJPEG=3;
+grptUnknown=0;
+grptBMP=1;
+grptEMF=-1
+};
+tagGRPaperOrientation={
+grpoPortrait=1;
+grpoLandscape=2;
+grpoDefault=0
+};
+tagGRReportDisplayMode={
+grrdmScreenView=1;
+grrdmPrintGenerate=2;
+grrdmIdle=3
+};
+tagGRSummaryFun={
+grsfSumAbs=26;
+grsfSum=1;
+grsfVar=6;
+grsfCountA=13;
+grsfAvg=2;
+grsfCount=3;
+grsfMin=4;
+grsfDistinct=14;
+grsfMax=5;
+grsfSumAcc=27;
+grsfStdDevA=22;
+grsfStrMin=18;
+grsfAveDevA=24;
+grsfMinN=16;
+grsfStdDev=8;
+grsfMaxN=17;
+grsfStdDevP=9;
+grsfGroupSumAcc=28;
+grsfAvgA=15;
+grsfVarPA=21;
+grsfAveDev=10;
+grsfStrMax=19;
+grsfDevSqA=25;
+grsfCountBlank=12;
+grsfDevSq=11;
+grsfVarP=7;
+grsfVarA=20;
+grsfStdDevPA=23
+};
+tagGRPaperKind={
+grpkEnvelope14=23;
+grpkTabloid=3;
+grpkQuarto=15;
+grpkFolio=14;
+grpkB4=12;
+grpkStatement=6;
+grpkEnvelopeC4=30;
+grpkEnvelope11=21;
+grpkLedger=4;
+grpk10X14=16;
+grpkA4Small=10;
+grpkEnvelopeDL=27;
+grpkEnvelopeB4=33;
+grpkDefault=255;
+grpkCustom=256;
+grpkB5=13;
+grpkEnvelopeB6=35;
+grpkLetter=1;
+grpkEnvelopeC6=31;
+grpkA6=70;
+grpkEnvelope9=19;
+grpkEnvelopeMonarch=37;
+grpkEnvelopeC5=28;
+grpkP16K=93;
+grpkA4=9;
+grpkESheet=26;
+grpkA3=8;
+grpkLegal=5;
+grpk11X17=17;
+grpkA5=11;
+grpkEnvelopeC65=32;
+grpk12X11=90;
+grpkEnvelopeB5=34;
+grpkP32K=94;
+grpkExecutive=7;
+grpkCSheet=24;
+grpkNote=18;
+grpkDSheet=25;
+grpkFanfold=39;
+grpkEnvelope12=22;
+grpkB6=88;
+grpkEnvelopeItaly=36;
+grpkLetterSmall=2;
+grpkEnvelope10=20;
+grpkEnvelopeC3=29;
+grpkEnvelopePersonal=38
+};
+tagGRShapeBoxType={
+grsbtRoundRect=4;
+grsbtCircle=1;
+grsbtEllipse=2;
+grsbtRoundSquare=5;
+grsbtLine=7;
+grsbtSquare=6;
+grsbtRectangle=3
+};
+tagGRNewPageStyle={
+grnpsBefore=2;
+grnpsNone=1;
+grnpsAfter=3;
+grnpsBeforeAfter=4
+};
+tagGRDuplexKind={
+grdkHorizontal=3;
+grdkVertical=2;
+grdkDefault=0;
+grdkSimplex=1
+};
+tagGRCenterStyle={
+grcsNone=0;
+grcsBoth=3;
+grcsHorizontal=1;
+grcsVertical=2
+};
+tagGRDisplayViewerOption={
+grdvoShowContentMenu=1
+};
+tagGRBarcodeCaptionPosition={
+grbcpBelow=3;
+grbcpNone=1;
+grbcpAbove=2
+};
+tagGRPictureTransparentMode={
+grptmBackground=2;
+grptmNone=0;
+grptmOverlying=1
+};
+tagGRSheetPages={
+grsp2Pages=2;
+grsp1Pages=1;
+grsp4Pages=4;
+grsp16Pages=16;
+grsp8Pages=8;
+grsp6Pages=6
+};
+tagGRDocType={
+grdtJSON=2;
+grdtObject=1
+};
+tagGRPictureAlignment={
+grpaTopLeft=1;
+grpaCenter=3;
+grpaBottomLeft=4;
+grpaTopRight=2;
+grpaBottomRight=5
+};
+tagGRPrintViewerOption={
+grpvoDblClickSwitchViewMode=2;
+grpvoShowContentMenu=1
+};
+tagGRSystemImage={
+grsi3DChecked=-3;
+grsiArrowDown=-7;
+grsiUnchecked=-2;
+grsiChecked=-1;
+grsiNegative=-6;
+grsiArrowUp=-8;
+grsiAffirm=-5;
+grsi3DUnchecked=-4
+};
+tagGRPictureSizeMode={
+grpsmStretch=2;
+grpsmZoom=3;
+grpsmEnsureFullView=4;
+grpsmTile=5;
+grpsmClip=1
+};
+tagGRShiftState={
+grssRight=16;
+grssAlt=2;
+grssDouble=64;
+grssCtrl=4;
+grssLeft=8;
+grssMiddle=32;
+grssShift=1
+};
+tagGRColumnPrintAdaptMethod={
+grcpamShrinkToFit=4;
+grcpamToNewPageEx=6;
+grcpamWrapExcludeGroup=9;
+grcpamDiscard=1;
+grcpamToNewPageRFCEx=8;
+grcpamToNewPage=5;
+grcpamToNewPageRFC=7;
+grcpamWrap=2;
+grcpamResizeToFit=3
+};
+tagGRSystemVarType={
+grsvGroupNo=20;
+grsvGroup3PageNumber=12;
+grsvPageNumber=3;
+grsvGroupCount=21;
+grsvGroup2RowNo=6;
+grsvGroupOrderNo=9;
+grsvGroupPageNo=24;
+grsvGroup2PageNumber=11;
+grsvGroup1PageNumber=10;
+grsvGroup2OrderNo=17;
+grsvRowNo=8;
+grsvGroupRowNo=22;
+grsvPageCount=2;
+grsvRecordNo=4;
+grsvRecordCount=19;
+grsvCurrentDateTime=1;
+grsvGroup1OrderNo=16;
+grsvGroup3RowNo=7;
+grsvGroup1PageCount=13;
+grsvGroupRowCount=23;
+grsvGroup3PageCount=15;
+grsvGroup3OrderNo=18;
+grsvGroup1RowNo=5;
+grsvGroupPageCount=25;
+grsvGroup2PageCount=14
+};
+tagGRPreviewEditMode={
+grpemDblClickToEdit=3;
+grpemDisable=1;
+grpemClickToEdit=2
+};
+tagGRTextEncodeMode={
+grtemAnsi=1;
+grtemUnicode=3;
+grtemUTF8=2
+};
+tagGRChartType={
+grctBubble=9;
+grctCurveLineChart=7;
+grctStackedBar100Chart=10;
+grctStackedColumn100Chart=13;
+grctStepBarChart=4;
+grctStackedColumnChart=12;
+grctLineChart=3;
+grctPieChart=2;
+grctBarChart=1;
+grctXYScatterChart=5;
+grctColumnChart=11;
+grctXYCurveLineChart=8;
+grctXYLineChart=6;
+grctStackedBarChart=4
+};
+tagGRPeriodType={
+grptCalendar=9;
+grptWeek=2;
+grptYear=8;
+grptNone=0;
+grptDay=1;
+grptHalfYear=7;
+grptThirdMonth=3;
+grptQuarter=6;
+grptMonth=5;
+grptHalfMonth=4
+};
+tagGRParameterDataType={
+grptBoolean=5;
+grptFloat=3;
+grptInteger=2;
+grptDateTime=6;
+grptString=1
+};
+tagGRStorageFormat={
+grsfText=1;
+grsfBinBase64=3;
+grsfBinary=2;
+grsfXML=4
+};
+tagGRToolControlType={
+grtctMailRTF=68;
+grtctExportCSV=55;
+grtctCurPageNo=18;
+grtctExportHTM=52;
+grtctExportRTF=53;
+grtctFindAgain=32;
+grtctMail=6;
+grtctClip=20;
+grtctExportPDF=54;
+grtctExportPDFBtn=61;
+grtctClose=19;
+grtctRefresh=21;
+grtctMailIMG=71;
+grtctMailTXT=66;
+grtctExportXLSBtn=60;
+grtctMailHTM=67;
+grtctSep=1;
+grtctExportTXT=51;
+grtctBookmark=22;
+grtctZoomPercent=13;
+grtctMultiPage=10;
+grtctZoomIn=11;
+grtctMailCSV=70;
+grtctFirstPage=16;
+grtctMailPDF=69;
+grtctMailXLS=65;
+grtctSaveDocument=7;
+grtctContinuousPage=8;
+grtctSinglePage=9;
+grtctPageSetup=3;
+grtctPrinterSetup=4;
+grtctExportIMG=56;
+grtctFindTextBox=30;
+grtctPrint=2;
+grtctPriorPage=14;
+grtctNextPage=15;
+grtctExportXLS=50;
+grtctZoomOut=12;
+grtctExport=5;
+grtctFindDlg=33;
+grtctLastPage=17;
+grtctMailSaveDocument=72;
+grtctFind=31
+};
+tagGRPrintViewMode={
+grpvmSinglePage=2;
+grpvmContinuousPage=1;
+grpvmMultiPage=3
+};
+tagGRPrintPageType={
+grpptOddSelectionPages=2;
+grpptEvenSelectionPages=3;
+grpptAllSelectionPages=1
+};
+tagGRBarcodeType={
+grbtCode128Auto=24;
+grbtCodeCodabar=13;
+grbtCodeEAN128C=23;
+grbtCodeUPC_E1=18;
+grbtQRCode=51;
+grbtCodeUPC_E0=17;
+grbtCode25Intlv=1;
+grbtCodeUPC_Supp5=20;
+grbtCode25Ind=2;
+grbtCodeUPC_Supp2=19;
+grbtCode25Matrix=3;
+grbtCode128C=8;
+grbtCode39=4;
+grbtCode39X=5;
+grbtCodeUPC_A=16;
+grbtCode128A=6;
+grbtCode128B=7;
+grbtCode93=9;
+grbtDataMatrix=52;
+grbtCodeEAN8=14;
+grbtCodePostNet=12;
+grbtCodeMSI=11;
+grbtCodeEAN128B=22;
+grbtCodeEAN128A=21;
+grbtCodeEAN13=15;
+grbtPDF417=50;
+grbtCode93X=10
+};
+tagGRUnit={
+grmuInch=2;
+grmuCm=1
+};
+tagGRPrintGenerateStyle={
+grpgsAll=3;
+grpgsOnlyForm=1;
+grpgsPreviewAll=4;
+grpgsOnlyContent=2
+};
+tagGRFieldType={
+grftString=1;
+grftFloat=3;
+grftCurrency=4;
+grftInteger=2;
+grftBoolean=5;
+grftDateTime=6;
+grftBinary=7
+};
+tagGRViewerBorderStyle={
+grvbsFixed3D=1;
+grvbsNone=3;
+grvbsFixedSingle=2
+};
+tagGRPrintType={
+grptContent=2;
+grptForm=1
+};
+tagGRLineType={
+grltBottomLeftToBottomRight=4;
+grltTopCenterToBottomCenter=6;
+grltTopLeftToTopRight=2;
+grltTopLeftToBottomLeft=5;
+grltBottomLeftToTopRight=1;
+grltTopLeftToBottomRight=0;
+grltTopRightToBottomRight=7;
+grltMiddleLeftToMiddleRight=3
+};
+tagGRExportType={
+gretHTM=3;
+gretRTF=4;
+gretXLS=1;
+gretPDF=5;
+gretTXT=2;
+gretCSV=6;
+gretIMG=7
+};
+tagGRDtmxEncoding={
+grdtmxeText=5;
+grdtmxeAuto=2;
+grdtmxeBase256=8;
+grdtmxeX12=6;
+grdtmxeEdifact=7;
+grdtmxeAscii=3;
+grdtmxeC40=4
+};
+tagGRTextOrientation={
+grtoU2DR2L0=9;
+grtoL2RD2U1=54;
+grtoL2RD2U0=38;
+grtoD2UL2R1=22;
+grtoU2DL2R0=5;
+grtoInvert=58;
+grtoDefault=0;
+grtoU2DR2L1=25
+};
+tagGRSharePrintSetupOption={
+grspsoPaperKind=2;
+grspsoPaperSource=8;
+grspsoPaperOrientation=4;
+grspsoPaperMargin=1;
+grspsoSelectedPrinter=16
+};
+tagGRNewPageColumnStyle={
+grncsAfter=3;
+grncsBefore=2;
+grncsBeforeAfter=4;
+grncsNone=1
+};
+tagGRShiftMode={
+grsmNever=0;
+grsmAlways=1;
+grsmWhenOverLapped=2
+};
+tagGRPrintRangeType={
+grprtAllPages=1;
+grprtCurrentPage=2;
+grprtSelectionPages=3
+};
+tagGRStringAlignment={
+grsaCenter=2;
+grsaFar=3;
+grsaNear=1
+};
+tagGRTextAlign={
+grtaBottomJustiy=192;
+grtaBottomRight=68;
+grtaBottomCenter=66;
+grtaTopJustiy=144;
+grtaMiddleLeft=33;
+grtaMiddleCenter=34;
+grtaTopRight=20;
+grtaMiddleRight=36;
+grtaTopLeft=17;
+grtaBottomLeft=65;
+grtaTopCenter=18;
+grtaMiddleJustiy=160
+};
+tagGRDtmxMatrixSize={
+grdtmxms16x16=7;
+grdtmxms96x96=23;
+grdtmxms18x18=8;
+grdtmxmsAuto=2;
+grdtmxms80x80=21;
+grdtmxms72x72=20;
+grdtmxms14x14=6;
+grdtmxms120x120=25;
+grdtmxms104x104=24;
+grdtmxms10x10=4;
+grdtmxms16x36=32;
+grdtmxms40x40=15;
+grdtmxms32x32=13;
+grdtmxms48x48=17;
+grdtmxms16x48=33;
+grdtmxms8x32=29;
+grdtmxms26x26=12;
+grdtmxms88x88=22;
+grdtmxms64x64=19;
+grdtmxms8x18=28;
+grdtmxms12x26=30;
+grdtmxms24x24=11;
+grdtmxms12x36=31;
+grdtmxms36x36=14;
+grdtmxms12x12=5;
+grdtmxms44x44=16;
+grdtmxms52x52=18;
+grdtmxms144x144=27;
+grdtmxms132x132=26;
+grdtmxms22x22=10;
+grdtmxms20x20=9
+};
+tagGRGrpKpTogetherStyle={
+grgktsAll=3;
+grgktsFirstDetail=2;
+grgktsNone=1
+};
+tagGRSectionType={
+grstGroupFooter=8;
+grstReportFooter=3;
+grstPageHeader=1;
+grstGroupHeader=7;
+grstColumnTitle=5;
+grstReportHeader=2;
+grstColumnContent=6;
+grstPageFooter=4
+};
+tagGRControlType={
+grctPictureBox=7;
+grctSummaryBox=5;
+grctShapeBox=2;
+grctSubReport=9;
+grctFieldBox=4;
+grctBarcode=12;
+grctSystemVarBox=3;
+grctChart=11;
+grctLine=10;
+grctMemoBox=8;
+grctStaticBox=1;
+grctRichTextBox=6;
+grctFreeGrid=13
+};
+tagGRBackStyle={
+grbkTransparent=2;
+grbkNormal=1
+};
+tagGRPenStyle={
+grpsDash=1;
+grpsDashDotDot=4;
+grpsDashDot=3;
+grpsDot=2;
+grpsSolid=0
+};
+tagGRBorderStyle={
+grbsDrawRight=4;
+grbsDrawBottom=8;
+grbsDrawTop=2;
+grbsDrawLeft=1
+};
+tagGRDockStyle={
+grdsRight=3;
+grdsBottom=4;
+grdsTop=2;
+grdsFill=5;
+grdsLeft=1;
+grdsNone=0
+};
+tagGRAnchorStyle={
+grasRight=4;
+grasBottom=8;
+grasLeft=1;
+grasTop=2
+};
+tagGRToolControlType2={
+grdtctCurPageNo=18;
+grdtctFindAgain=32;
+grdtctLastPage=17;
+grdtctMailPDF=69;
+grdtctMailXLS=65;
+grdtctFind=31;
+grdtctPrintPreview=40;
+grdtctNextPage=15;
+grdtctExportRTF=53;
+grdtctExportXLSBtn=60;
+grdtctFindDlg=33;
+grdtctPageSetup=3;
+grdtctExportPDFBtn=61;
+grdtctDividePage=25;
+grdtctSep=1;
+grdtctMailTXT=66;
+grdtctColumnVisible=80;
+grdtctMailRTF=68;
+grdtctPrint=2;
+grdtctExportCSV=55;
+grdtctSaveDocument=7;
+grdtctFirstPage=16;
+grdtctClip=20;
+grdtctMail=6;
+grdtctPostLayout=41;
+grdtctClose=19;
+grdtctShowPreviewLine=42;
+grdtctFindTextBox=30;
+grdtctExportPDF=54;
+grdtctMailHTM=67;
+grdtctExport=5;
+grdtctRefresh=21;
+grdtctExportHTM=52;
+grdtctPriorPage=14;
+grdtctMailCSV=70;
+grdtctPrinterSetup=4;
+grdtctExportXLS=50;
+grdtctExportTXT=51;
+grdtctExportIMG=56;
+grdtctMailIMG=71
+};
+tagGRAlignColumnSideStyle={
+gracsLeft=1;
+gracsBoth=3;
+gracsRight=2
+};
+tagGRExportImageType={
+greitGIF=4;
+greitPNG=2;
+greitBMP=1;
+greitTIFF=5;
+greitJPEG=3
+};
+tagGRDisplayCursor={
+grdcNegative=5;
+grdcAffirm=4;
+grdcArrow=1;
+grdcDefault=0;
+grdcMagnify=2;
+grdcFinger=3
+};
+tagGRRepeatStyle={
+grrsNone=1;
+grrsOnGroupHeaderPage=10;
+grrsOnGroupHeader=8;
+grrsOnPageColumn=4;
+grrsOnPage=2
+};
+tagGRPaperSourceKind={
+grpskCustom=256;
+grpskDefault=0;
+grpskManualFeed=6;
+grpskLargeFormat=10;
+grpskMiddle=3;
+grpskUpper=1;
+grpskAutomaticFeed=7;
+grpskLargeCapacity=11;
+grpskCassette=14;
+grpskSmallFormat=9;
+grpskEnvelope=5;
+grpskManual=4;
+grpskLower=2;
+grpskFormSource=15;
+grpskTractorFeed=8
+};
+tagGRCollateKind={
+grckCollate=1;
+grckDefault=0;
+grckNotCollate=2
+};
+tagGRPictureRotateMode={
+grprmNone=0;
+grprmMirror=4;
+grprmLeft=1;
+grprmRight=2;
+grprmFlip=3
+};
+tagGRPageColumnDirection={
+grpcdAcrossDown=2;
+grpcdDownAcross=1;
+grpcdDownAcrossEqual=3
+};
+tagGRPointMarkerStyle={
+grpmsStar6=12;
+grpmsStar10=13;
+grpmsTriangle=7;
+grpmsDimond=6;
+grpmsCircleCross=5;
+grpmsSquare=0;
+grpmsSquareCheck=1;
+grpmsStar4=10;
+grpmsSquareCross=2;
+grpmsCross=8;
+grpmsCircle=3;
+grpmsCross4=9;
+grpmsCirclePoint=4;
+grpmsNone=-1;
+grpmsStar5=11
+};
+tagGRScriptType={
+grstJScript=1;
+grstVBScript=2
+};
+tagGRBarcodeDirection={
+grbdRightToLeft=2;
+grbdBottomToTop=4;
+grbdLeftToRight=1;
+grbdTopToBottom=3
+};
+tagGRMouseButton={
+grmbLeft=1;
+grmbRight=2;
+grmbMiddle=3
+}
+//枚举定义结束 grpro.GridppReport.6;
+/*end intellisense*/
+

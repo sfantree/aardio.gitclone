@@ -1,0 +1,95 @@
+//metaProperty 属性元表
+
+namespace util;
+
+class metaProperty{
+	ctor( properties,... ){
+		this._get = function(k,ownerCall){
+			var t = this[ k];
+	
+			if( type(t) == "table"  ){
+				if( t._get ){
+					var ok,v = call( t._get,owner,ownerCall  ); 
+					if(!ok)error(v,2) 
+					return v;
+				}
+				
+				if(t._set) error("只写属性["+k+"],禁止读取!" ,2)  
+			}
+			
+			if(t)return t;
+			
+			var get = this.__get : this.get;
+			if( get ){ 
+				if( k=="_struct") return;
+				
+				var ok,ret = call( get,owner,k,ownerCall );
+				if(!ok)error(v,2) 
+				return  ret;
+			}		
+		};
+		this._set = function(k,v){
+			var t = this[ k];
+			if( type(t) == "table"  ){
+				if( t._set ) { 
+					var ok,v = call( t._set,owner ,v)  
+					if(!ok)error(v,2) 
+					return;
+				} 
+				
+				if(t._get) error("只读属性["+k+"],禁止修改!" ,2) 	
+			}
+			
+			var set = this.__set : this.set;
+			if(set){ 
+				var ok,v = call( set,owner,k,v);
+				if(!ok)error(v,2) 
+				return;
+			}
+			owner[[k]] = v;
+		}
+		
+		..table.assign(this,properties,...);
+		if(!this[["_isUtilMetaProperty"]] ) this[["_isUtilMetaProperty"]] = true;
+	};
+
+}
+
+namespace metaProperty{
+
+	extend = function(cls,...){
+		var m =  ( type(cls) == "class" )  && cls._metaProperty[["_get"]];
+		if( !m ) error("不是有效类,或未找到属性表( 类._metaProperty ) ",2);
+		return ..table.assign(cls._metaProperty,...);  
+	} 
+	isKindOf = function(obj,cls){
+		return obj@ ==  cls[["_metaProperty"]]
+	}
+	is = function(obj){
+		return obj@[["_isUtilMetaProperty"]]
+	}
+	each = function(obj){
+		var t,k = obj@[["_isUtilMetaProperty"]] ? obj@ : null;
+		return function(){
+			while(t){
+				k = ..table.next(t,k);
+				while(k && ( type(k)!= type.string || k[1] == '_'#) ) { k = ..table.next(t,k) }
+				if(k) return k,t[k];
+				
+				if(t@ && type(t@._get) == type.table ) t = t@._get;
+				else t =  null;
+			}
+		} 
+	}	
+}
+
+/**intellisense()
+util.metaProperty = 用于创建属性元表,\n可在构造函数中指定一个或多个初始化参数表,\n按参数顺序混入到新创建的属性表并返回,\n\n用返回的属性表作为对象元表,\n读写对象中不存在的属性会触发属性元表。\n如果在属性元表中对应属性是一个表,\n则读属性会触发属性的get成员函数,写属性会触发该属性的set成员函数。\n否则直接返回属性元表中对应属性的值
+util.metaProperty(properties,->->->) = @.metaProperty(\n\n	属性 = {\n		_get = function(){ \n			/*读取属性代码写在这里*/\n			return null;\n		}\n		_set = function( value ){\n			/*写入属性代码写在这里*/\n			..io.print( owner,value)\n		} 	\n	};\n)
+util.metaProperty.extend(.(类对象,一个或多个混入表) = 使用混入表扩展类的属性情\n类名字空间必须定义了_metaProperty静态成员\n并且是一个有效的属性表
+util.metaProperty.isKindOf(.(对象,类对象) = 判断对象是否由指定的类创建\n类必须是使用属性表定义的类,并符合标准规范
+util.metaProperty.is(__/*对象*/) = 对象是否支持metaProperty
+util.metaProperty.each() = @for(k,v in util.metaProperty.each(__/*对象*/) ){
+	
+}
+end intellisense**/

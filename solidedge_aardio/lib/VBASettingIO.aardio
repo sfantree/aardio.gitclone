@@ -1,0 +1,41 @@
+//VBASettingIO 操作VBA工程保存过的参数
+namespace VBASettingIO { 
+	import win.reg;
+	_vbaLoc="HKEY_CURRENT_USER\Software\VB and VBA Program Settings\"
+	_app="Domisoft"
+	_section={"Config";"TBM_SE"}
+	GetSetting = function(app, section, key, default){
+		var reg = win.reg(..string.join({_vbaLoc;app;section} ,"\")) 
+		var value=reg.queryValue(key)
+		reg.close();
+		return (value ? value : default)	
+	}
+	SaveSetting = function(app, section, key, value){
+		var reg = win.reg(..string.join({_vbaLoc;app;section} ,"\")) 
+		reg.setSzValue(key,value)
+		reg.close();	
+	}
+	DeleteSetting = function(app, section, key){
+		var reg = win.reg(..string.join({_vbaLoc;app;section} ,"\")) 
+		reg.delKey(key)
+		reg.close()
+	}
+	namespace confignames{
+	    SE_Output="SE_Output"
+	    pdfNameRule="pdfNameRule"
+	    SE_Working="SE_Working"
+	    PDF_Store="PDF_Store"
+	    Allow_PDF_Search_Sub="Allow_PDF_Search_Sub"
+	    Spec_db_path="Spec_db_path"
+	    Default_Designer="Default_Designer"
+	    Default_Reviewer="Default_Reviewer"
+	    Default_Approver="Default_Approver"		
+	}
+	
+	
+}
+/**intellisense(VBASettingIO)
+GetSetting("Domisoft", "Config", configname, default) = 获取参数
+SaveSetting("Domisoft", "Config", configname, value)  = 修改参数
+DeleteSetting("Domisoft", "Config", configname) = 删除参数
+end intellisense**/

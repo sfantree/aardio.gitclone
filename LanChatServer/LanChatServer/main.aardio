@@ -1,0 +1,8 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=973;bottom=619)
+mainForm.add()
+/*}}*/
+
+mainForm.show();
+return win.loopMessage(); 

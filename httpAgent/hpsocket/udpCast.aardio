@@ -1,0 +1,92 @@
+﻿import hpsocket;
+import hpsocket.socket.udpCast;
+import hpsocket.listen.client;
+namespace hpsocket
+
+class udpCast{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_UdpCastListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_UdpCast(pListener) );
+			this = ..hpsocket.listen.client(pListener,"udpCast"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.udpCast(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_UdpCast(this.pSocket);
+			::HPSocket.Destroy_HP_UdpCastListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+
+/**intellisense()
+hpsocket.udpCast() = 创建 TCP Pack 客户端\n!hpUdpCast.
+end intellisense**/
+
+/**intellisense(!hpUdpCast)
+pSocket = 组件句柄
+start(.("ip",端口,是否异步连接) = 启动连接\n省略参数@3时默认为使用异步连接
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+stop() = 关闭服务端通信组件\n成功返回true
+send(.(buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+getConnectionId() = 获取所有连接ID
+getLocalAddress() = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress() = 获取某个连接的远程地址,端口号\n注意有2个返回值
+getRemoteHost() = 获取某个连接的远程主机名
+getPendingDataLength() = 获取连接中未发出数据的长度
+freeBufferPoolSize = 内存块缓存池大小\n通常设置为 -> PUSH 模型：5 - 10；PULL 模型：10 - 20
+freeBufferPoolHold = 内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+getMaxDatagramSize() = 获取数据报文最大长度
+setMaxDatagramSize(__) = 设置数据报文最大长度
+getRemoteAddress() = 获取某个连接的远程地址,端口号\n注意有2个返回值
+setReuseAddress(__) = 设置是否启用地址重用机制[默认：不启用]
+getReuseAddress() = 是否启用地址重用机制
+setCastMode(__) = 设置传播模式[组播或广播]
+getCastMode() = 传播模式[组播或广播]
+setMultiCastTtl(__) = 设置组播报文的 TTL[0 - 255]
+getMultiCastTtl() = 组播报文的 TTL
+setMultiCastLoop(__) = 设置是否启用组播环路
+getMultiCastLoop() = 是否启用组播环路
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareConnect = @.onPrepareConnect = function(hpUdpCast,connId,soListen){
+	__/*准备建立连接前触发*/
+}
+onHandShake = @.onHandShake = function(hpUdpCast,connId){
+	__/*握手完成触发*/
+}
+onConnect = @.onConnect = function(hpUdpCast,connId){
+	__/*建立连接后触发*/
+}
+onSend = @.onSend = function(hpUdpCast,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpUdpCast,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*接收到数据时触发*/
+}
+onClose = @.onClose = function(hpUdpCast,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpUdpCast){
+	__/*关闭通信组件触发*/
+}
+end intellisense**/

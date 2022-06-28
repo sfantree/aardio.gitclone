@@ -1,0 +1,255 @@
+///主程序
+
+import config;
+import pojie; 
+import key;
+import win;
+import win.dlg;
+import win.dlg.message;
+import fsys;
+import fsys.dlg;
+import console;
+import process;
+import win.ui;
+import crypt;
+/*DSG{{*/
+mainForm = win.form(text="ra2ol_map";right=384;bottom=239;border="dialog frame";max=false)
+mainForm.add(
+button={cls="button";text="浏览..";left=328;top=56;right=384;bottom=80;z=4};
+button2={cls="button";text="浏览..";left=328;top=128;right=384;bottom=152;z=7};
+button3={cls="button";text="设置地图获取热键";left=280;top=200;right=384;bottom=224;z=9};
+["button4战网运行"]={cls="button";text="运行..";left=280;top=80;right=328;bottom=104;z=14};
+["button5FinalAlert2Y运行"]={cls="button";text="运行..";left=280;top=152;right=328;bottom=176;z=15};
+["editFinalAlert2YR路径"]={cls="edit";text="...";left=8;top=128;right=328;bottom=152;bgcolor=16777215;edge=1;readonly=1;z=6};
+["edit战网路径"]={cls="edit";text="...";left=8;top=56;right=328;bottom=80;bgcolor=16777215;edge=1;readonly=1;z=3};
+hotkey={cls="hotkey";left=8;top=200;right=280;bottom=220;edge=1;font=LOGFONT(h=-13);z=11};
+static={cls="static";text="战网路径";left=16;top=32;right=88;bottom=56;center=1;color=16711680;font=LOGFONT(h=-17);transparent=1;z=5};
+static2={cls="static";text="FinalAlert2YR路径";left=16;top=104;right=152;bottom=128;center=1;color=16711680;font=LOGFONT(h=-17);transparent=1;z=8};
+static3={cls="static";text="设置地图获取热键";left=16;top=176;right=160;bottom=200;center=1;color=16711680;font=LOGFONT(h=-17);transparent=1;z=10};
+["static4FinalAlert2YR路径"]={cls="static";left=8;top=152;right=280;bottom=168;color=16711935;font=LOGFONT(h=-13);transparent=1;z=17};
+["static4战网路径"]={cls="static";left=8;top=80;right=280;bottom=96;color=16711935;font=LOGFONT(h=-13);transparent=1;z=16};
+游戏未运行={cls="static";text="游戏未运行";left=8;top=8;right=112;bottom=32;color=16776960;font=LOGFONT(h=-13);transparent=1;z=1};
+游戏运行中={cls="static";text="游戏运行中";left=8;top=8;right=112;bottom=32;color=255;font=LOGFONT(h=-13);hide=1;transparent=1;z=2};
+热键已注册={cls="static";text="热键已注册";left=208;top=8;right=376;bottom=32;align="right";color=255;font=LOGFONT(h=-13);hide=1;transparent=1;z=13};
+热键未注册={cls="static";text="热键未注册";left=272;top=8;right=376;bottom=32;align="right";color=16776960;font=LOGFONT(h=-13);transparent=1;z=12}
+)
+/*}}*/
+
+var hkId_hotkey=null;
+var config_file_name="config";
+get_config=function(name){ return config[config_file_name][name]||''  }
+set_config=function(name,val){config[config_file_name][name]=val; }
+
+import win.ui.atom;
+var atom,hwnd = mainForm.atom("F47011CFB-B4ED-4637-8F19-C76B3B8DC7F9.ra2ol_map");
+if(!atom){ 
+	win.quitMessage();	return;
+}  
+
+var 获取临时地图路径=function(){
+	var 战网客户端_路径=thread.get("战网客户端_路径");
+	var 临时地图_名称_默认=thread.get("临时地图_名称_默认");
+	var splitpath=io.splitpath(战网客户端_路径);
+	var 临时地图路径=io.joinpath(splitpath.dir,临时地图_名称_默认);
+	//console.varDump("临时地图路径",临时地图路径);
+	if(io.exist(临时地图路径)){ return 临时地图路径 ;}
+	else{ return null;}
+}
+ 
+///开始处理地图
+subscribe("开始处理地图",function(...){
+    thread.set("正在处理地图","正在处理地图");
+	var 临时地图路径=获取临时地图路径();
+	if(!#临时地图路径){ mainForm.msgErr("没有找到临时地图,请确认已进入游戏")  }
+	if( !!thread.get("处理地图ING" ) ) { mainForm.msgGreat("处理中:"++ 临时地图路径,2000);  return ;}
+	//console.varDump(临时地图路径);
+	if(临时地图路径 && io.exist(临时地图路径) ){
+		thread.set("处理地图ING", "处理地图ING");
+		mainForm.msgGreat("开始处理地图:"++ 临时地图路径,1000);
+		//console.varDump("开始处理地图",
+		//	thread.get("战网客户端_路径")
+		//	, thread.get("FinalAlert2YR_路径")
+		///	, thread.get("临时地图_名称_默认")
+		//	, 临时地图路径
+		//);
+		
+		//var opt={
+		//	"战网客户端_路径"=  thread.get("战网客户端_路径");
+		//	"FinalAlert2YR_路径"=  thread.get("FinalAlert2YR_路径");
+		//	"临时地图路径"=临时地图路径
+		//} ;
+		 
+		var 战网客户端_路径= thread.get("战网客户端_路径");
+		var FinalAlert2YR_路径= thread.get("FinalAlert2YR_路径");	
+		if(#战网客户端_路径 && #FinalAlert2YR_路径 && 临时地图路径 ){
+			var splitpath临时地图路径=..io.splitpath(临时地图路径);
+			var txt临时地图路径=..string.load(临时地图路径);
+			var md5=crypt.md5(txt临时地图路径); /// md5=..string.left(md5,20);
+			var ok地图路径=..io.joinpath(splitpath临时地图路径.dir ,md5++"."++splitpath临时地图路径.file++".yrm" )
+			if(!io.exist( ok地图路径 )) {
+				fsys.copy(临时地图路径, ok地图路径 );
+				try{
+					var ok,msg = pojie.执行破解3( 战网客户端_路径 , FinalAlert2YR_路径 , ok地图路径 );
+					if( !ok ) { fsys.delete(ok地图路径); mainForm.msgErr(msg++",请重试!",1000); }
+					else { mainForm.msgGreat("成功!"++ok地图路径,2000); }	
+				} catch(e) {
+					mainForm.msgErr(e,5000);
+				}
+			}else{
+				mainForm.msgInfo("已经处理过 "++ok地图路径,1000);
+			}
+		}else{
+			mainForm.msgErr("系统错误,请重试!",1000);
+		}		
+		thread.set("处理地图ING", );
+		
+	}else{
+		mainForm.msgSmile("请进入游戏",1000);
+	}
+	
+	///win.msgbox("正在处理地图");
+	thread.set("正在处理地图",);
+} )
+
+///查看热键
+subscribe("查看热键",function(...){
+    var 设置地图热键=thread.get("设置地图热键");
+    var a, b = mainForm.hotkey.gethotkey() ;
+    var c = (!!b) && (!!设置地图热键)  ; 
+    //console.varDump(a,b,设置地图热键 );
+	mainForm.热键已注册.show(c);
+	mainForm.热键未注册.show(!c);
+/*	if( !mainForm.热键已注册.hide){
+		var str= key.getName(b);
+		if(a){
+			var stra=key.getName((a+12));
+			if(stra) str=stra++"+"++str;
+		}
+		mainForm.热键已注册.text=str;
+	}else {
+		///mainForm.热键已注册.text ="热键已注册" ;
+	}*/
+	
+} )
+
+
+
+///查看进程
+subscribe("查看进程",function(...){
+    var 战网客户端_名称_默认=thread.get("战网客户端_名称_默认");
+	if(!战网客户端_名称_默认) return ;
+	//console.varDump("战网客户端_名称_默认",战网客户端_名称_默认);
+	var pro=process.find(战网客户端_名称_默认);
+	if(pro){
+		var handle=pro.handle;
+		mainForm.游戏未运行.show(!handle);
+		mainForm.游戏运行中.show(!!handle);
+	}else{
+		mainForm.游戏未运行.show(true);
+		mainForm.游戏运行中.show(false);
+	}	
+	var t=!(mainForm.游戏运行中.hide);
+	thread.set("游戏运行中", t ) ; 
+} )
+
+///战网客户端路径设置
+mainForm.button.oncommand = function(id,event){  
+	var str= fsys.dlg.open("战网客户端<ra2ol.exe>|ra2ol.exe;","战网客户端",,mainForm.hwnd) ;	
+	thread.set("战网客户端_路径", str || "" ) ;
+	if(io.exist(str)) {
+		var splitpath=io.splitpath(str); 
+		mainForm.static4战网路径.text=str;
+		mainForm.edit战网路径.text=splitpath.file;
+		thread.set("战网客户端_名称_默认",splitpath.file);		
+		set_config("战网客户端_路径",thread.get("战网客户端_路径") );
+	}else{ mainForm.edit战网路径.text="" ; mainForm.static4战网路径.text=""; set_config("战网客户端_路径",''); }		
+}
+
+///地图编辑器设置
+mainForm.button2.oncommand = function(id,event){
+	var str= fsys.dlg.open("FinalAlert2YR.exe|FinalAlert2YR.exe;","FinalAlert2YR路径",,mainForm.hwnd) ;	
+	thread.set("FinalAlert2YR_路径", str || "" ) ;
+	if(io.exist(str)) {
+		var splitpath=io.splitpath(str);
+		mainForm.static4FinalAlert2YR路径.text=str;
+		mainForm.editFinalAlert2YR路径.text=splitpath.file;
+		set_config("FinalAlert2YR_路径",thread.get("FinalAlert2YR_路径") );
+	}else{ mainForm.editFinalAlert2YR路径.text=""; mainForm.static4FinalAlert2YR路径.text=""; set_config("FinalAlert2YR_路径",''); }		
+}
+
+///热键设置,及触发热键
+mainForm.button3.oncommand = function(id,event){
+	mainForm.unreghotkey(hkId_hotkey);  ///清理热键信息	 
+	hkId_hotkey = mainForm.reghotkey(	 ///设置热键
+		function(id,mod,vk){ ///触发热键			
+			var 正在处理地图=thread.get("正在处理地图")|| false ;
+			//console.varDump("正在处理地图",正在处理地图,!!正在处理地图 );
+			if(!!正在处理地图) { mainForm.msgFrown("正在处理地图",1000) ;  }
+			else { 
+				var 战网客户端_路径=thread.get("战网客户端_路径")||'';
+				var FinalAlert2YR_路径=thread.get("FinalAlert2YR_路径")||'';
+				var 游戏运行中=thread.get("游戏运行中")|| false ; 
+				if(#战网客户端_路径 && #FinalAlert2YR_路径  && 游戏运行中 ){
+					publish("开始处理地图",); 
+				}else{
+					win.msgboxErr("请选择: 战网客户端_路径 , FinalAlert2YR_路径. 再运行游戏!","请选择",mainForm.hwnd);
+				}
+				
+			}
+		}		
+		,mainForm.hotkey.gethotkey()  
+	);
+	var a,b=mainForm.hotkey.gethotkey() ;
+	{thread.set("设置地图热键",!!b);}
+	
+/*  var str= "";
+	var a, b = mainForm.hotkey.gethotkey()  ; 
+   	if(a){ str= key.getName(a,b);} else {str=key.getName(b);}
+	if( ! mainForm.热键已注册.hide ){		
+		mainForm.热键已注册.text="热键已注册" ++"( "++ str ++")" ;
+	}
+*/
+	
+}
+
+
+var 战网客户端_路径=get_config("战网客户端_路径")||'';
+var FinalAlert2YR_路径=get_config("FinalAlert2YR_路径")||'';
+if(io.exist(战网客户端_路径)) {
+	var splitpath=io.splitpath(战网客户端_路径);
+	mainForm.static4战网路径.text=战网客户端_路径;
+	mainForm.edit战网路径.text=splitpath.file;
+	thread.set("战网客户端_路径",战网客户端_路径); 
+	thread.set("战网客户端_名称_默认",splitpath.file);
+}
+if(io.exist(FinalAlert2YR_路径)) {
+	var splitpath=io.splitpath(FinalAlert2YR_路径);
+	mainForm.static4FinalAlert2YR路径.text=FinalAlert2YR_路径;
+	mainForm.editFinalAlert2YR路径.text=splitpath.file;
+	thread.set("FinalAlert2YR_路径",FinalAlert2YR_路径);
+}
+
+
+if( !#get_config("临时地图_名称_默认") ){ set_config("临时地图_名称_默认","yuri.dll") ;}
+thread.set("临时地图_名称_默认", get_config("临时地图_名称_默认") ) ;	
+
+mainForm.setInterval( 1000,function(){ publish("查看进程",); } )
+mainForm.setInterval( 1000,function(){ publish("查看热键",); } )
+
+mainForm.button4战网运行.oncommand = function(id,event){
+    var a战网客户端_路径=thread.get("战网客户端_路径")||"";
+	if(io.exist(a战网客户端_路径)) {
+		process.execute(a战网客户端_路径);
+	}
+}
+
+mainForm.button5FinalAlert2Y运行.oncommand = function(id,event){
+    var aFinalAlert2YR_路径=thread.get("FinalAlert2YR_路径")||"";
+	if(io.exist(aFinalAlert2YR_路径)) {
+		process.execute(aFinalAlert2YR_路径);
+	}
+}
+
+mainForm.enableDpiScaling();
+mainForm.show();
+return win.loopMessage();

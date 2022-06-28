@@ -1,0 +1,19 @@
+﻿namespace string;
+
+class erb {
+	ctor(template){
+		this.template = template;
+	}
+	format = function(args){
+		return ( ..string.replace(this.template, "\<\%= (.+?) \%\>", args) );
+	}
+}
+
+/**intellisense()
+string.erb = 字符串模板
+string.erb(.(模板字符串)
+?string.erb = !string_erb.
+string.erb() = !string_erb.
+!string_erb.format = @.format(\n	参数名 = 值__/*可选指定任意多个参数键值对用于替换模板参数*/;\n)
+!string_erb.erb = @.erb = /***\n	${模板参数}__/*根据预设的格式标明参数*/\n***/
+end intellisense**/

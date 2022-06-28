@@ -1,0 +1,690 @@
+﻿import inet.url;
+namespace v2ray.config;
+
+setOutbound = function(outbound){
+	import config;
+	import web.json;
+	import v2ray.core;
+	
+	var current = ..table.clone(config.core.default);
+	if( ! current.inbounds[1].port ){
+		current.inbounds[1].port = ..v2ray.core.getPort();
+	}
+	else{
+		..v2ray.core.setPort(current.inbounds[1].port);
+	}
+	current.inbounds[1].pacPort = null;
+
+	if(outbound.protocol=="vless"){ 
+		if(!outbound.tls && outbound.port==443) outbound.tls = "tls";
+		if(!outbound.tls) outbound.tls = "tls";
+			
+		var ob = {
+			mux={
+				concurrency=8;
+				enabled=true
+			};
+			protocol="vless";
+			
+			settings={
+				vnext={
+					{
+						address=outbound.address; 
+						port=tonumber(outbound.port);
+						users={
+							{  
+								id=outbound.id;
+								flow=outbound.flow;
+								encryption=( (!#outbound.security) || outbound.security=="auto") ? "none" : outbound.security;  
+								level=outbound.level : 0;
+							}
+						}
+					}
+				};
+			};
+			streamSettings={
+				network=outbound.network : "tcp";
+				security=#outbound.tls ? outbound.tls : null;
+				tlsSettings = (#outbound.tls && outbound.tls != "xtls") ? {
+					allowInsecure = outbound.tlsAllowInsecure;
+					serverName = outbound.tlsServerName : outbound.address;
+					alpn = outbound.alpn;
+					disableSessionResumption = outbound.disableSessionResumption;
+				} : null;
+				xtlsSettings = outbound.tls == "xtls" ? {
+					allowInsecure = outbound.tlsAllowInsecure;
+					serverName = outbound.tlsServerName : outbound.address;
+					alpn = outbound.alpn;
+					disableSessionResumption = outbound.disableSessionResumption;
+				} : null;
+			};
+			tag="proxy"
+		};
+		
+		if( outbound.network == "ws" ){
+			ob.streamSettings.wsSettings = {
+				path = outbound.path;
+				headers = outbound.headers;
+				connectionReuse = true;
+			}
+			
+			if( outbound.host ) {
+				if(!ob.streamSettings.wsSettings.headers){
+					ob.streamSettings.wsSettings.headers = {}
+				}
+				ob.streamSettings.wsSettings.headers.Host = outbound.host;
+			}
+		}
+		elseif( outbound.network == "http" ){
+			ob.streamSettings.httpSettings = {
+				connectionReuse = true;
+				path = outbound.path;
+				host = outbound.host;
+			}
+		}
+		elseif( outbound.network == "tcp" ){
+			if( outbound.type == "http" ){
+				ob.streamSettings.tcpSettings = {
+					connectionReuse = true;
+					header = {
+						request={
+							headers={ 
+								Connection={
+									"keep-alive"
+								};
+								Host=outbound.host;
+								Pragma="no-cache";
+								["Accept-Encoding"]={
+									"gzip, deflate"
+								};
+								["User-Agent"]={
+									"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36";
+									"Mozilla/5.0 (iPhone; CPU iPhone OS 10_0_2 like Mac OS X) AppleWebKit/601.1 (KHTML, like Gecko) CriOS/53.0.2785.109 Mobile/14A456 Safari/601.1.46"
+								}
+							};
+							method="GET";
+							path = outbound.path;
+							version="1.1"
+						};
+						type="http"; 
+					} 
+				} 
+			}
+		}
+		
+		current.outbounds[1] = ob;
+	}
+	elseif(outbound.protocol=="vmess"){
+		if(!#outbound.security) outbound.security = "auto";
+		
+		var ob = {
+			mux={
+				concurrency=8;
+				enabled=true
+			};
+			protocol="vmess";
+			settings={
+				vnext={
+					{
+						address=outbound.address;
+						level=outbound.level : null;
+						port=tonumber(outbound.port);
+						users={
+							{
+								alterId=tonumber(outbound.alterId) : 0;
+								email=outbound.email : "t@t.tt";
+								id=outbound.id;
+								security=outbound.security;
+							}
+						}
+					}
+				};
+			};
+			streamSettings={
+				network=outbound.network : "tcp";
+				security=#outbound.tls ? outbound.tls : null;
+				tlsSettings = #outbound.tls ? {
+					allowInsecure = outbound.tlsAllowInsecure;
+					serverName = outbound.tlsServerName;
+				} : null
+			};
+			tag="proxy"
+		};
+		
+		if( outbound.network == "ws" ){
+			ob.streamSettings.wsSettings = {
+				path = outbound.path;
+				headers = outbound.headers;
+				connectionReuse = true;
+			}
+			
+			if( outbound.host ) {
+				if(!ob.streamSettings.wsSettings.headers){
+					ob.streamSettings.wsSettings.headers = {}
+				}
+				ob.streamSettings.wsSettings.headers.Host = outbound.host;
+			}
+		}
+		elseif( outbound.network == "http" ){
+			ob.streamSettings.httpSettings = {
+				connectionReuse = true;
+				path = outbound.path;
+				host = outbound.host;
+			}
+		}
+		elseif( outbound.network == "tcp" ){
+			if( outbound.type == "http" ){
+				ob.streamSettings.tcpSettings = {
+					connectionReuse = true;
+					header = {
+						request={
+							headers={ 
+								Connection={
+									"keep-alive"
+								};
+								Host=outbound.host;
+								Pragma="no-cache";
+								["Accept-Encoding"]={
+									"gzip, deflate"
+								};
+								["User-Agent"]={
+									"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36";
+									"Mozilla/5.0 (iPhone; CPU iPhone OS 10_0_2 like Mac OS X) AppleWebKit/601.1 (KHTML, like Gecko) CriOS/53.0.2785.109 Mobile/14A456 Safari/601.1.46"
+								}
+							};
+							method="GET";
+							path = outbound.path;
+							version="1.1"
+						};
+						type="http"; 
+					} 
+				} 
+			}
+		}
+		
+		current.outbounds[1] = ob;
+	}
+	elseif(outbound.protocol=="trojan" || outbound.protocol=="trojan-go"){
+		var ob = {
+			mux={
+				concurrency=-1;
+				enabled=false
+			};
+			protocol="trojan";
+			settings={
+				servers={
+					{
+						address=outbound.address;
+						email=outbound.email;
+						password=outbound.id;
+						port=outbound.port; 
+						level=outbound.level : 0; 
+						encryption=outbound.security;  
+						ota=false;
+						
+					}
+				};
+			};
+			streamSettings={
+				network = outbound.network : "tcp";
+				security = #outbound.tls ? outbound.tls : "tls"; 
+				serverName = outbound.tlsServerName : outbound.address;
+			};
+			tag="proxy"
+		};
+		
+		if( outbound.network == "ws" ){
+			ob.streamSettings.wsSettings = {
+				path = outbound.path;
+				headers = outbound.headers;
+				connectionReuse = true;
+			}
+			
+			if( outbound.host ) {
+				if(!ob.streamSettings.wsSettings.headers){
+					ob.streamSettings.wsSettings.headers = {}
+				}
+				ob.streamSettings.wsSettings.headers.Host = outbound.host;
+			}
+		}
+		
+		current.outbounds[1] = ob;
+	} 
+	elseif(outbound.protocol=="shadowsocks"){
+		current.outbounds[1] = {
+			mux={
+				concurrency=-1;
+				enabled=false
+			};
+			protocol="shadowsocks";
+			settings={
+				servers={
+					{
+						address=outbound.address;
+						level=outbound.level : 0;
+						method=outbound.security;
+						ota=false;
+						password=outbound.id;
+						port=outbound.port;
+					}
+				};
+			};
+			streamSettings={
+				network = outbound.network : "tcp";
+			};
+			tag="proxy"
+		};
+	} 
+
+	..thread.set("v2ray.core.config",web.json.stringify(current))
+}
+
+getConfigJson = function(){
+	return ..thread.get("v2ray.core.config");
+}
+
+exportToString = function(outbounds){
+	import web.json;
+	import crypt;
+	
+	var outString = {};
+	for i,outbound in ..table.eachIndex(outbounds){
+		if(outbound.protocol == "vmess"){
+			var json = ..web.json.stringify({
+				v = 2;
+				add = outbound.address;
+				aid = outbound.alterId;
+				id = outbound.id; 
+				port = outbound.port;
+				net = outbound.network;
+				type = outbound.type;
+				path = outbound.path;
+				host = outbound.host;
+				tls = outbound.tls;
+				ps = outbound.ps;
+			})
+			
+			var vmess = "vmess://" + ..crypt.encodeBin(json);
+			..table.push(outString,vmess);
+		}
+		elseif(outbound.protocol == "shadowsocks"){
+			var ss = "ss://" + ..crypt.encodeBin( outbound.security + ":" + outbound.id + "@" + outbound.address + ":" + outbound.port) + "#" + outbound.address + ":" + outbound.port;
+			..table.push(outString,ss);
+		} 
+		elseif(outbound.protocol == "trojan"  || outbound.protocol == "trojan-go"){
+			var trojan = outbound.protocol + "://" + outbound.id + "@" + outbound.address + ":" + outbound.port;
+			 
+			var info = {};
+			if(outbound.network!="tcp") info.type = outbound.network;
+			if(outbound.tlsServerName){ info.sni = outbound.tlsServerName;}
+			info.host = outbound.host;
+			info.path = outbound.path;
+			
+			if(..table.count(info)){
+				trojan = ..inet.url.appendExtraInfo(trojan,info) 
+			}
+				 
+			if(outbound.ps){
+				trojan = trojan + "#" + ..inet.url.encode(outbound.ps);
+			} 
+			..table.push(outString,trojan);
+		} 
+		elseif(outbound.protocol == "vless"){
+			var vless = "vless://" + outbound.id + "@" + outbound.address + ":" + outbound.port;
+			 
+			var info = {};
+			if(outbound.network!="tcp") info.network = outbound.network;
+			if(outbound.security!="none") info.security = outbound.security; 
+			if(outbound.tls!="tls") info.tls = outbound.tls;
+			if(outbound.tlsServerName){ info.sni = outbound.tlsServerName;}
+			info.host = outbound.host;
+			info.path = outbound.path;
+			
+			if(..table.count(info)){
+				vless = ..inet.url.appendExtraInfo(vless,info) 
+			}
+				 
+			if(outbound.ps){
+				vless = vless + "#" + ..inet.url.encode(outbound.ps);
+			} 
+			..table.push(outString,vless);
+		} 
+	}	
+	
+	return ..string.join(outString,'\r\n');
+}
+
+import crypt;
+import inet.http;
+importFromString = function(str){ 
+ 
+    import config;
+	import web.json;
+	import crypt;
+
+	if(!str){ return; }
+	
+	str = ..string.trim(str);
+	
+	if( ..string.match(str,"%\[\]") ){
+		var cfg = web.json.tryParse(str);
+		if(type(cfg)==type.table && #cfg){
+			return cfg;	
+		}
+	}
+	
+	var subscribeUrl;
+	if( ..string.startWith(str,"http://") || ..string.startWith(str,"https://")  ){
+		
+		import win.dlg.message;
+		var msgDlg = win.dlg.message(..mainForm); 
+		var form = msgDlg.create('正在获取订阅源 ... ',,true)
+		form.progress.startProgress(50); 
+		
+		subscribeUrl = str;
+		str = ..win.invoke(
+			function(subscribeUrl){
+				import inet.http; 
+				return inet.http().get(subscribeUrl); 
+			},subscribeUrl 
+		)
+		
+		form.close();
+		if(!str){
+			return;
+		}
+	}
+	
+	if(..string.match(str,"^[\w=+/-_]+$")){
+		str = ..crypt.decodeBin(str);
+		if(!str) return;
+	}
+	
+	var outbounds = ..table.array();
+	for(line in ..string.lines(str) ){
+		
+		if(line[1]=='/'# && line[2]=='/'#){
+			continue;
+		}
+
+		var vmess = ..string.match(line,`vmess\:\/\/([\w=+]+)`);
+		if( vmess ) {  
+			var json = ..crypt.decodeBin(vmess);	
+			var outbound = ..web.json.tryParse(json);	
+			if(outbound){
+				..table.clear(outbound@._defined);
+				outbound.protocol = "vmess";
+				outbound.address = outbound.add;
+				outbound.alterId = tonumber(outbound.aid);
+				outbound.security = "auto";
+				outbound.network = outbound.net : "tcp";
+				outbound.net = null;
+				outbound.add = null;
+				outbound.aid = null;
+				outbound.v = null;
+				outbound.subscribeUrl = subscribeUrl;
+				
+				if(outbound.ps){
+					var u,h,p = ..string.match(outbound.ps,"(.+)\@(.+)\:(\d+)")
+					if(u&&h&&p){
+						outbound.ps = h;
+					}	
+				}
+				..table.push(outbounds,outbound);
+			} 
+			
+			continue;
+		}	
+		
+		var vless = ..string.match(line,`vless\:\/\/[^\@\s]+\@[^\?\#\s\:]+\:\d+\S*`);
+		if( vless ) {
+			var vlessUrl = ..inet.url.split(vless) 
+			if(vlessUrl.user && vlessUrl.host && vlessUrl.port){
+				var outbound = {
+					address = vlessUrl.host;
+					port = tonumber(vlessUrl.port) : 443; 
+					id = vlessUrl.user;
+					network = "tcp";
+					protocol = "vless"
+				};
+				
+				if(vlessUrl.extraInfo){
+					var info = ..inet.url.splitParameters(vlessUrl.extraInfo);
+					outbound.tlsServerName = info.sni;
+					outbound.host = info.host;
+					outbound.path = info.path;
+					outbound.network = info.network
+					outbound.security = info.security; 
+				}
+				
+				if(vlessUrl.location){
+					outbound.ps = ..inet.url.decode(vlessUrl.location);
+				}
+	
+				outbound.subscribeUrl = subscribeUrl;
+				..table.push(outbounds,outbound);
+			} 
+			
+			continue;
+		}
+
+		var ss,comment = ..string.match(line,`ss\:\/\/([\w=+]+)(<#\S+>?)`);
+		if( ss ) {   
+			var ss = ..crypt.decodeBin(ss); 
+			var method,password,address,port = ..string.match(ss,"^(.+)\:(.+)\@(.+)\:(\d+)")	 
+	
+			if(address && password && port){
+				var outbound = {
+					address = address;
+					port = tonumber(port);
+					security = method;
+					id = password;
+					network = "tcp";
+					protocol = "shadowsocks"
+				};
+				
+				if(comment){
+					comment = ..string.right(comment,-2);
+					comment = ..inet.url.decode(comment);
+					var u,h,p = ..string.match(comment,"(.+)\@(.+)\:(\d+)")
+					if(u&&h&&p){
+						comment = h;
+					}
+					
+					outbound.ps = comment;
+				}
+	
+				outbound.subscribeUrl = subscribeUrl;
+				..table.push(outbounds,outbound);
+			} 
+			
+			continue;
+		}
+
+		var trojan = ..string.match(line,`trojan\:\/\/[^\@\s]+\@[^\?\#\s\:]+\:\d+\S*`);
+		if( trojan ) {
+			var trojanUrl = ..inet.url.split(trojan) 
+			if(trojanUrl.user && trojanUrl.host && trojanUrl.port){
+				var outbound = {
+					address = trojanUrl.host;
+					port = tonumber(trojanUrl.port) : 443; 
+					id = trojanUrl.user;
+					network = "tcp";
+					protocol = "trojan"
+				};
+				
+				if(trojanUrl.extraInfo){
+					var info = ..inet.url.splitParameters(trojanUrl.extraInfo);
+					outbound.tlsServerName = info.sni || info.peer;
+					
+					outbound.host = info.host;
+					outbound.path = info.path;
+					
+					if(info.type && info.type!=="original"){
+						outbound.network = info.type;
+						if(outbound.network=="h2"){
+							outbound.network="http"
+						}
+					}
+					
+					outbound.security = info.encryption;
+				}
+				
+				if(trojanUrl.location){
+					outbound.ps = ..inet.url.decode(trojanUrl.location);
+				}
+	
+				outbound.subscribeUrl = subscribeUrl;
+				..table.push(outbounds,outbound);
+			} 
+			
+			continue;
+		}
+
+		var trojan = ..string.match(line,`trojan-go\:\/\/[^\@\s]+\@[^\?\#\s\:]+\:\d+\S*`);
+		if( trojan ) {
+			var trojanUrl = ..inet.url.split(trojan) 
+			if(trojanUrl.user && trojanUrl.host && trojanUrl.port){
+				var outbound = {
+					address = trojanUrl.host;
+					port = tonumber(trojanUrl.port) : 443; 
+					id = trojanUrl.user;
+					network = "tcp";
+					protocol = "trojan-go"
+				};
+				
+				if(trojanUrl.extraInfo){
+					var info = ..inet.url.splitParameters(trojanUrl.extraInfo);
+					outbound.tlsServerName = info.sni || info.peer;
+					outbound.host = info.host;
+					outbound.path = info.path;
+					
+					if(info.type && info.type!=="original"){
+						outbound.network = info.type;
+						if(outbound.network=="h2"){
+							outbound.network="http"
+						}
+					}
+					
+					outbound.security = info.encryption; 
+				}
+				
+				if(trojanUrl.location){
+					outbound.ps = ..inet.url.decode(trojanUrl.location);
+				}
+	
+				outbound.subscribeUrl = subscribeUrl;
+				..table.push(outbounds,outbound);
+			} 
+			
+			continue;
+		}
+		
+		var json = ..string.match(line,`^\s*%\{\}\s*$`);
+		if( json ) {
+			var outbound  = ..web.json.tryParse(json)
+			if(outbound){
+				if(outbound.aid){
+					outbound.alterId = outbound.aid;
+					outbound.aid = null;
+				}
+				
+				if(outbound.add){
+					outbound.address = outbound.add;
+					outbound.add = null;
+					..table.define(outbound);
+				}
+			
+			
+			 	if(outbound.net){
+					outbound.network = outbound.net;
+					outbound.net = null;
+					..table.define(outbound);
+				}
+				
+				if(outbound.peer && #outbound.peer){
+					outbound.tlsServerName = outbound.peer;
+					outbound.peer = null;
+					..table.define(outbound);
+				}
+				
+				if(!outbound.security){
+					if(outbound.method && outbound.method!="none"){
+						outbound.security = outbound.method;
+						outbound.method = null;
+						..table.define(outbound);
+					}
+				}
+				
+				if(!outbound.protocol){
+					outbound.protocol = "vmess";
+					if(outbound.ps && ..string.find(outbound.ps,"@@vless")){
+						outbound.protocol = "vless";
+					}
+				}
+				
+				outbound.v = null;
+				..table.push(outbounds,outbound );
+				continue;
+			}
+		}
+
+		var address,port,id,network,path,tls = ..string.match(line,"(<\w+\.>+\w+)\s+(\d+)\s+([\w-]+)\s+(\a+)\s+(\S+)\s+(\a+)")
+		if(!address) address,port,id,network,path = ..string.match(line,"(<\w+\.>+\w+)\s+(\d+)\s+(\S+)\s+(\a+)\s+(\S+)")
+		if(!address) address,port,id,network = ..string.match(line,"(<\w+\.>+\w+)\s+(\d+)\s+(\S+)\s+(\a+)")
+		if(!address) address,port,id,network,path,tls = ..string.match(line,"(<\w+\.>+\w+)\:(\d+)\s+([\w-]+)\s+(\a+)\s+(\S+)\s+(\a+)")
+		if(!address) address,port,id,network,path = ..string.match(line,"(<\w+\.>+\w+)\:(\d+)\s+(\S+)\s+(\a+)\s+(\S+)")
+		if(!address) address,port,id,network = ..string.match(line,"(<\w+\.>+\w+)\:(\d+)\s+(\S+)\s+(\a+)")
+		
+		if(address && port && id){ 
+			var outbound  = {
+				address = address;
+				port = tonumber(port);
+				id = id;
+				network = network;
+				path = path;
+				tls = tls;
+				security= "auto";
+				protocol = "vmess"
+			}
+			
+			if(network && network[1]=='/'# && !path){
+				outbound.network = "ws";
+				outbound.tls = "tls";
+				path = path;
+			}
+			
+			if(path){
+				var t,h,p = ..string.match(path,"(\w*)\:\/\/([^/]+)(.+)");
+				if(t&&h){
+					if(t!=network) outbound.type = t;
+					outbound.host = h;
+					outbound.path = p;
+				}	
+			}
+			
+			if(outbound.network=="shadowsocks"){
+				outbound.network = "tcp";
+				outbound.protocol = "shadowsocks";
+				outbound.security = outbound.path;
+				outbound.path = null;
+			}
+			
+			outbound.subscribeUrl = subscribeUrl;
+			..table.push(outbounds,outbound)
+		}
+	}
+	
+	if(#outbounds){
+		
+	}
+	return outbounds;
+}
+
+importFromClip  = function(){
+	import win.clip;
+	var str = ..win.clip.read();
+	if(!str){ return; }
+	
+	return importFromString(str);
+}

@@ -1,0 +1,47 @@
+import ide;
+import fsys;
+
+var publisDir = ide.getPublisDir();
+if(!#publisDir)return; 
+
+var portable;
+var dataFile = ::Kernel32.LoadLibraryExW(ide.getPublishPath() , ,2/*_LOAD_LIBRARY_AS_DATAFILE*/)
+if(dataFile){
+	import fsys.res;  
+	fsys.res.enum(
+		function(module,resType,resName){
+			if( ( resName == "WEB.CEFX.PORTABLE")  ){
+				portable = true;
+				return false;
+			} 
+			return true;
+		},"LIB",topointer(dataFile)
+	) 
+	::Kernel32.FreeLibrary(dataFile);
+}
+
+if(portable){
+
+	io.open() 
+	io.print("正在压缩为独立EXE，可能需要几分钟，请耐心等待......")
+	
+	import sevenZip.cmd;   
+	sevenZip.cmd.compress(io.fullpath( "\..\.dll\*"), ide.getPublishPath() , io.print )  
+	
+	io.print("压缩完成")
+	io.close();	
+	return;
+}
+
+//var wkxPubDir =  fsys.joinpath(publisDir,"\lib\web\cefx\.dll\WebKitXCEF3.ocx" ); 
+var wkxPubDir =  fsys.joinpath(publisDir,"\lib\WebKitXCEF3.ocx" ); 
+if( ! io.exist(wkxPubDir) ){ 
+	var libDir = ..io.fullpath("\..\.dll\*");  
+	
+	//var pubDllDir = fsys.joinpath(publisDir,"\lib\web\cefx\.dll\" ); 
+	var pubDllDir = fsys.joinpath(publisDir,"\lib\" ); 
+	..fsys.createDir(pubDllDir);
+	
+	..fsys.copy( libDir,pubDllDir,0x10/*_FOF_NOCONFIRMATION*/  | 0x200/*_FOF_NOCONFIRMMKDIR*/); 
+  
+} 

@@ -1,0 +1,83 @@
+import win.ui;
+import httpAgent;
+import console;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="开始";left=9;top=7;right=168;bottom=52;z=1};
+button2={cls="button";text="进度";left=180;top=7;right=315;bottom=52;z=2};
+edit={cls="edit";left=10;top=61;right=747;bottom=462;edge=1;multiline=1;z=3}
+)
+/*}}*/
+
+/****-------------------------------使用前必看---------------------------
+
+请将默认库中62行改为以下三行再进行测试：
+this.connHelper 		= connIdHelper(this.socket,this.socket_ssl,2000);
+this.socket.maxConnectionCount	= 2000;
+this.socket.workerThreadCount = 100;
+
+
+如果是测试SSL，请将上述代码的socket更改为socket_ssl
+
+****/
+
+
+
+var client = httpAgent();
+if (!client) return win.msgbox("http代理创建失败","关键性错误",0x10/*_MB_ICONSTOP*/); 
+
+client.setHttpHeader({
+	["user-agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36";
+	["accept"] = "text/html,application/xhtml+xml,application/xml";
+	["accept-encoding"] = "gzip,br";
+	["accept-language"] = "zh-CN,zh;q=0.9";
+	["cache-control"] = "max-age=0"
+})
+
+var count = 0;
+var finish = 0;
+var errcount = 0;
+var list = {}
+
+onResponse = function(statue,task,enOperation,errCode){
+	finish ++;
+	if ((finish % 2000) = 0 ) showProcess()
+	list[task.guid] = task
+	if (statue != 1) {
+		errcount ++;
+	}
+}
+
+client.setTaskComplete(
+	function(){
+		winform.edit.print("Finish:",time.tick());
+	}
+)
+
+winform.button.oncommand = function(id,event){
+    winform.edit.print("Start:",time.tick());
+    
+    url = "http://www.baidu.com"
+	for i=1;20000;1{
+		var guid,task = client.getRequest(url,onResponse,,,,,true);//异步添加任务
+		count ++;
+		if ((i % 1000) = 0 ) console.log(i)
+		list[guid] = 0;
+	}
+	
+	winform.edit.print("EndAdd:",time.tick());
+	client.taskHelper.nextStep(100);//开始建立100个请求
+}
+
+showProcess = function(){
+	winform.edit.print("Data-Show  All",count,"Finish",finish,"Error",errcount)
+}
+
+winform.button2.oncommand = function(id,event){
+	showProcess()
+}
+
+winform.show();
+win.loopMessage();
+return winform;

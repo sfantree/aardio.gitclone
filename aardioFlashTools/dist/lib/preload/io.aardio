@@ -1,0 +1,96 @@
+﻿//io 文件相关
+namespace preload;
+self.io = global.io;
+
+namespace io;
+
+::Shell32 = ..raw.loadDll("Shell32.dll")
+
+getSpecial = function(id,...){
+	var r = {WORD v[0x208/*_MAX_PATH_U16*/]}
+	if ( 0 <= ::Shell32.SHGetFolderPath(null,id,null,0,r) ){
+    	return joinpath(r.v,...);
+	} 
+}
+
+getSize = function(path){
+	var f = open(path,"rb");
+	if( f ){ 
+		var r = f.size();
+		f.close();
+		return r;
+	}
+}
+
+appData = function(p,d){
+	if(!d) return getSpecial(0x1c /*_CSIDL_LOCAL_APPDATA*/,p);
+	return specialData(p,d,0x1c/*_CSIDL_LOCAL_APPDATA*/);
+}
+
+specialData = function(p,d,id){
+	p  = getSpecial(id,p);
+	if(d!==null){
+		var e;
+		var f = open(p,"rb");
+		if(f){
+			e = f.size()==#d;
+			if(e && (d[1]+d[2]==0xA7) ){ 
+				var a = ..raw.convert(d,{INT v},60).v + 8;
+				f.seek("set",a);
+				e = f.read({INT v})[["v"]]===..raw.convert(d,{INT v},a).v; 
+			}
+			
+			f.close();
+		}
+
+		if(!e && ! ..string.save(p,d) ) return exist(p);
+	}
+	
+	return p;
+}
+
+var tmpdir =  ..string.expand("%TMP%") : appData("Temp") ;
+..string.setenv("TMP",tmpdir);
+
+tmpname = function(p,e){
+	d = joinpath(tmpdir,"\");
+	
+	var t = ..string.format("%s$%X$%X$",p:"",..thread.getId(),..time.tick());
+	if(!e) e = "";
+	
+	var r;
+	var i = 0;
+	do{
+		r= ..io.joinpath(d, t ++ i ++ e)
+		i++;
+	}while(exist(r))
+	
+	return r;
+}
+
+curDir = lambda(dir) !dir ? ..io.fullpath("./") :  ::Kernel32.SetCurrentDirectoryB( fullpath(dir) );
+
+if(_WIN10_LATER) {
+	if( _WIN_VER_MAJOR > 10 ||  _WIN_VER_MINOR > 0 || _WIN_VER_BUILD >= 16299 ){
+		self.utf8 = true; //if(::Kernel32.GetACP()==65001) io.utf8 = true;
+	} 
+}
+
+/**intellisense(io)
+getSpecial(_CSIDL__) = 获取特殊文件夹,\n参数@1使用 _CSIDL 开头的常量指定特殊文件夹的 CSIDL,\n不指定参数@1则默认值为 _CSIDL_DESKTOP,\n可选增加任意个拼接到目录后的子路径参数\n这个函数与fsys.getSpecial函数用法接近,\n但支持不定个数子路径参数, 不支持返回PIDL
+appData(.(path,data) = 将@path指定的相对路径转换为系统 %LocalAppData% 目录下的绝对路径,\n可选使用@data指定需要存入的数据,,\n存入文件与目标文件长度不同或PE时间戳不同则允许替换旧文件,,\n指定@data参数后如果无法创建文件返回null,\n最后返回转换所得的完整路径
+specialData(.(path,data,csidl) = 将 @path 指定的相对路径转换为特殊文件夹下的绝对路径,\n可选使用@data指定需要存入的数据,,\n存入文件与目标文件长度不同或PE时间戳不同则允许替换旧文件,\n指定@data参数后如果无法创建文件返回null,,\n参数@csidl 使用 _CSIDL 开头的常量指定特殊文件夹的 CSIDL,\n不指定@csidl 则默认值为 _CSIDL_DESKTOP,\n最后返回转换所得的完整路径
+getSize(__) = 获取参数@1指定路径的文件字节长度,\n返回数值
+curDir( = 获取或修改当前目录
+curDir(.() = 无参数获取当前目录
+curDir(.(dir) = 将 @dir 参数指定的目录路径转换为完整路径并设为当前目录\n成功返回 true
+end intellisense**/
+
+/**intellisense(::)
+::Shell32 = 默认已加载的Shell32.dll模块对象（参考标准库：peload.io），\n提供Windows系统外壳 API
+::Shell32.api("__/*输入函数名字*/","void()" ) = 声明Kernel32 API函数
+::Shell32.SHChangeNotify(_SHCNE__,0,0,0) = 通知操作系统外壳刷新,例如刷新桌面图标等\n参数依次为@eventId,@flags,@item1,@item2
+::Shell32.ShellExecute(.(hwnd,operation,path,param,workDir,cmdShow) = 执行 path 指定的程序,\n第一个参数为数值格式的句柄,\n最后一个参数为数值,指定为1即可,其他参数都是字符串,\n详细用法请参考该 API 文档,\n注意省略的参数也要指定 null 值,\n非声明式调用 API 不能减少参数个数,\nprocess.execute 函数功能更多且用法更简洁
+::Shell32.Control_RunDLL(.(hwnd,hinst,cmdLine,cmdShow) = 可用于启动控制面板命令,\nhwnd可指定为0,hinst 可指定为 _HINSTANSE,\ncmdLine 指定启动参数,cmdShow 指定为1即可,\n也可以通过process.rundll 运行此函数,\n或通过 process.control 直接执行控制面板命令
+::Shell32.? = 可不用声明直接在此输入函数名并调用API函数\n\n一、传入参数规则：\n1、null参数不可省略\n2、32位整数类型，小于32位的整数、以及枚举类型都可以直接在API参数中写数值。\n3、对于任何数值类型的指针（输出参数）一律使用结构体表示，例如double * v 表示为{ double v }\n4、数组使用结构体表示\n5、所有结构体传给API的都是指针地址，都是输出参数并增加返回值\n\n二、返回值规则：\n1、返回值默认为int类型\n2、可以使用[API尾标]改变返回值为其他类型\n\n三、所有可用的【API尾标】:\n::Shell32.ApiNameW() 切换到Unicode版本，字符串UTF8-UTF16双向转换\n::Shell32.ApiNameA() 切换到ANSI版本,字符串不作任何转换\n::Shell32.ApiNameL() 返回值为64位LONG类型\n::Shell32.ApiNameP() 返回值为指针类型\n::Shell32.ApiNameD() 返回值为double浮点数\n::Shell32.ApiNameF() 返回值为float浮点数\n::Shell32.ApiNameB() 返回值为C++中的8位bool类型\n注意【尾标】前必须是小写字母
+end intellisense**/

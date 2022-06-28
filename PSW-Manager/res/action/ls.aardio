@@ -1,0 +1,58 @@
+ //列出所有备份文件（服务器当前目录）
+ls=function(c){
+ 
+ 
+ var numbers="10";
+ var whereTitle='';
+ var whereRemark='';
+ var where='';
+ var tm=muchzz('ls.+-n([0-9]+)',c);//匹配列表行数
+ numbers =tm? tm:numbers;
+ 
+
+  
+ tm=muchzz('ls.+-t([\u4e00-\u9fa5a-zA-Z0-9]+)',c);//匹配标题查找
+ whereTitle=tm?tm:whereTitle;
+
+ 
+ tm=muchzz('ls.+-r([\u4e00-\u9fa5a-zA-Z0-9]+)',c);//匹配备注查找
+ whereRemark=tm?tm:whereRemark;
+
+ 
+ where=(whereTitle==''?"":" title like '%"+whereTitle+"%'")
+
+ 
+ if(whereRemark!=''){
+   whereRemark="remark like '%"+whereRemark+"%'";
+ 	if(where!=''){
+ 		where=where+" or "+whereRemark; 	
+ 	}else{
+ 		where=whereRemark; 	
+ 	}
+ 
+ }
+// console.log(crypt.bin.encodeBase64(where),inet.url.encode(where))
+ where=where==''?'':'&where='+..string.replace(inet.url.encodeUri(where),'+',"%2B");
+//op=getlist&where=dGl0bGUgbGlrZSAnJbDZtsglJw==
+numbers=numbers==''?'':'&limit='+numbers;
+var h,e=getWebData('op=getlist'+where+numbers);
+
+	if(e=="" && h!='[]'){
+	
+	
+		var json=web.json.parse(h);//
+		//console.log(json);
+		
+		
+		for adptInfo,hh in json{
+		var remark_=hh['remark'];
+		try{
+				remark_=remark_==null?'':..string.sub(crypt.bin.decodeBase64(remark_),1,#remark_>8?8:#remark_,true);//..string.sub( hh['pswtext'],1,8),
+		}
+		catch(e){
+			remark_='';
+		}
+		 console.log(hh['id']+" "+..string.sub(crypt.bin.decodeBase64(hh['title']),1,10,true),remark_,hh['createdatetime'],hh['modifydatetime']);
+		}
+	}
+ }

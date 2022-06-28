@@ -1,0 +1,187 @@
+﻿//struct 预定义结构体
+namespace preload.struct{}
+
+/*intellisense()*/
+class ::POINT {
+   ctor(x=0,y=0){
+      this.x = x;
+      this.y = y;
+   } 
+   int x ; 
+   int y ;
+}
+
+class ::SIZE {
+	ctor(cx=0,cy=0){
+      this.cx = cx;
+      this.cy = cy;
+	}
+	int cx;
+	int cy;
+} 
+/*end intellisense*/
+
+class ::RECT {
+	ctor(left=0,top=0,right=0,bottom=0){
+  		this.left = left;
+  		this.top = top;
+  		this.right = right;
+  		this.bottom = bottom; 
+	} 
+	int left;
+	int top;
+	int right;
+	int bottom;
+	@_meta;
+}
+
+::RECT._meta = {
+	_get = {
+		inflate = function(dx,dy){ 
+			owner.left = owner.left - dx;
+			owner.top = owner.top - dy;
+			owner.right = owner.right + dx ;
+			owner.bottom = owner.bottom + dy;
+			return owner;
+		};
+		offset = function(dx,dy){
+			owner.left = owner.left + dx;
+			owner.top = owner.top + dy;
+			owner.right = owner.right + dx ;
+			owner.bottom = owner.bottom + dy;
+			return owner;
+		};
+		expand = function(dx,dy){
+			owner.right = owner.right + dx ;
+			owner.bottom = owner.bottom + dy;
+			return owner;
+		};
+		move = function(dx,dy){
+			owner.left = owner.left + dx;
+			owner.top = owner.top + dy;
+			return owner;
+		};
+		width = function(){
+			return owner.right - owner.left; 
+		} 
+		height = function(){
+			return owner.bottom - owner.top; 
+		}
+		intersectsWith = function(rc) { 
+    		return (rc.left < owner.right ) &&  (owner.left < rc.right ) && (rc.top < owner.bottom) &&  (owner.top < rc.bottom);
+		}
+		intersect = function(rc){
+			if(!owner.intersectsWith(rc)) return;
+			owner.right = ..math.min(owner.right,rc.right) ;
+			owner.bottom = ..math.min(owner.bottom,rc.bottom) 
+			owner.left = ..math.max(owner.left,rc.left) 
+			owner.top = ..math.max(owner.top,rc.top) 
+		};
+		float = function(f){
+			if(f) return owner.ltrb(f.x,f.y,f.width,f.height) && null;
+			
+			return { 
+				float x = owner.left ;
+				float y = owner.top;
+				float width = owner.right - owner.left;
+				float height = owner.bottom - owner.top;
+			}
+		}; 
+		copy = function(w,h){
+			var r = { 
+				int left = owner.left ;
+				int top = owner.top;
+				int right = owner.right;
+				int bottom = owner.bottom;
+				@::RECT._meta
+			}
+			if( w!==null ) r.right = r.left + w;
+			if( h!==null ) r.bottom = r.top + h;
+			return r;
+		};
+		setPos = function(x,y,cx,cy){
+			if(cx===null){ cx = owner.right - owner.left }
+			if(cy===null){ cy = owner.bottom - owner.top }
+			
+			if(x!==null) owner.left = x;
+			if(y!==null) owner.top = y;
+			owner.right = owner.left + cx;
+			owner.bottom = owner.top + cy;
+			return owner;
+		};
+		ltrb = function(x,y,cx,cy){
+			if(x!==null){ owner.setPos(x,y,cx,cy) } 
+			return owner.left,owner.top,owner.right,owner.bottom;
+		};
+		xywh = function(l,t,r,b){
+			if(l!==null){
+				owner.left = l;
+				owner.top = t;
+				owner.right = r;
+				owner.bottom = b;
+			}
+			return owner.left,owner.top,owner.right-owner.left,owner.bottom-owner.top; 
+		};
+		contains = function(x,y){
+			return (::User32.PtInRectB(owner,x,y));
+		};
+		
+	}
+}
+
+/**intellisense()
+::RECT(  =  表示矩形区块的结构体\n此结构体通过标准库 preload.struct 默认加载
+::RECT(.(left,top,right,bottom) = 创建矩形区块结构体\n可选在参数中指定左,上,右,下初始值
+::POINT( = 整型坐标结构体\n此结构体通过标准库 preload.struct 默认加载
+::POINT(.(x,y) = 创建整型坐标结构体\n可选在参数中指定 x,y 坐标初始值
+::SIZE( = 整型尺寸结构体\n此结构体通过标准库 preload.struct 默认加载
+::SIZE(.(cx,cy) = 创建整型尺寸结构体\n可选在参数中指定宽高 cx,cy 初始值
+::RECT() = !rect.
+::POINT() = !point.
+::SIZE() = !size.
+?::RECT = !rect.
+?::POINT = !point.
+?::SIZE = !size.
+?.getRect = !rect.
+?.getItemRect = !rect.
+?.getClientRect = !rect.
+!rect.left = 左
+!rect.top = 上
+!rect.right = 右
+!rect.bottom = 下
+!rect.width() = 宽度
+!rect.height() = 高度
+!rect.inflate( = 扩大区块并返回矩形区块自身
+!rect.inflate(.(左右单位,上下单位) = 扩大区块并返回矩形区块自身\n忽略参数请传入0,不可省略\n上,下,左,右分别扩大指定的单位\n负数为缩小
+!rect.offset( = 移动矩形框并返回自身
+!rect.offset(.(横偏移,纵偏移) = 移动矩形框并返回自身,矩形大小不变,\n左上移使用负坐标,右下移使用正坐标\n忽略参数请传入0,不可省略
+!rect.expand( = 扩展或缩小右下角坐标
+!rect.expand(.(dx,dy) = dx指定正数扩展右边,负数缩小右边,\ndy指定正数扩展底边,负数缩小底边\n左上角不变,\n返回自身
+!rect.move( = 移动左上角坐标
+!rect.move(.(dx,dy) = 使用参数指定的x,y坐标偏移量移动左上角坐标,\n正数向右下移动,负数向左上移动,\n右下角位置不变\n返回自身\n如果需要移动坐标且大小不变请改用offset函数\n移动到指定坐标而不是偏移量请改用setPos函数
+!rect.setPos( = 重新调整坐标与大小
+!rect.setPos(.(x,y,cx,cy) = 移动到x,y指定的坐标,\n可选用cx,cy重新指定宽度和高度,\n所有参数可选,不指定则保持旧值
+!rect.intersectsWith( = 检测两个矩形区块是否碰撞相交
+!rect.intersectsWith(.(rc) = 检测两个矩形区块是否碰撞相交
+!rect.intersect( = 检测与参数指定的矩形区块相交
+!rect.intersect(.(rc) = 检测与参数指定的矩形区块相交\n成功修改当前区块并返回自身,失败返回空
+!rect.inflate() = !rect.
+!rect.offset() = !rect.
+!rect.expand() = !rect.
+!rect.move() = !rect.
+!rect.float() = 无参数时转换为 ::RECTF 结构体并返回该结构体\n如果参数中指定::RECTF结构体,则使用参数更新位区块自身,\n指定参数则此函数无返回值\n!rectf.
+!rect.copy( = 复制并返回新的结构体
+!rect.copy(.(width,height) = 可选在参数中指定新的宽度、高度\n所有参数都可以省略
+!rect.copy() = !rect.
+!rect.ltrb( = 用于将x,y,width,height转换为left,top,right.bottom并返回
+!rect.ltrb(.(x,y,width,height) = 使用传入参数修改左、上坐标,以及宽度、高度,\n返回结构体的left,top,right,bottom等4个值
+!rect.ltrb(.() = 返回结构体的left,top,right,bottom等4个值
+!rect.xywh( = 用于将left,top,right.bottom转换为x,y,width,height并返回
+!rect.xywh(.(left,top,right,bottom) = 修改左、上、右、下的值,\n返回结构体的左上角坐标x,y 以及宽度width,高度height等4个值
+!rect.xywh(.() = 返回结构体的左上角坐标x,y 以及宽度width,高度height等4个值
+!rect.contains(.(x,y) = 检测指定的 x,y 坐标是否位于矩形区块内
+!point.x = x坐标
+!point.y = y坐标
+!size.cx = 宽
+!size.cy = 高
+end intellisense**/

@@ -1,0 +1,43 @@
+﻿import hpsocket.socket.server;
+namespace hpsocket.socket;
+
+class tcpServer{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.server(obj);
+	};
+	sendSmallFile = function(connId,filename,head,tail){
+		if( head ) head ={ INT len=#head;ptr head = head }
+		if( tail ) tail ={ INT len=#tail;ptr tail = tail }
+		return 	::HPSocket.HP_TcpServer_SendSmallFile(this.pSocket,connId,..io.fullpath(filename),head, tail);
+	}
+	setSocketBufferSize = function(v){
+		::HPSocket.HP_TcpServer_SetSocketBufferSize(this.pSocket,v);
+	}
+	getSocketBufferSize = function(){
+		return ::HPSocket.HP_TcpServer_GetSocketBufferSize(this.pSocket);
+	}
+	setKeepAliveTime = function(v){
+		::HPSocket.HP_TcpServer_SetKeepAliveTime(this.pSocket,v);
+	}
+	getKeepAliveTime = function(){
+		return ::HPSocket.HP_TcpServer_GetKeepAliveTime(this.pSocket);
+	}
+	setKeepAliveInterval = function(v){
+		::HPSocket.HP_TcpServer_SetKeepAliveInterval(this.pSocket,v);
+	}
+	getKeepAliveInterval = function(){
+		return ::HPSocket.HP_TcpServer_GetKeepAliveInterval(this.pSocket);
+	}
+	setSocketListenQueue = function(v){
+		::HPSocket.HP_TcpServer_SetSocketListenQueue(this.pSocket,v);
+	}
+	getSocketListenQueue = function(){
+		return ::HPSocket.HP_TcpServer_GetSocketListenQueue(this.pSocket);
+	}
+	setAcceptSocketCount = function(v){
+		::HPSocket.HP_TcpServer_SetAcceptSocketCount(this.pSocket,v);
+	}
+	getAcceptSocketCount = function(){
+		return ::HPSocket.HP_TcpServer_GetAcceptSocketCount(this.pSocket);
+	}
+}

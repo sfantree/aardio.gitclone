@@ -1,0 +1,7 @@
+namespace fcgi.app.status;
+
+UnsupportedVersion = -1;
+ProtocolError = 1;
+Skip = 2;
+BeginRecord = 3;
+StreamRecord = 4;

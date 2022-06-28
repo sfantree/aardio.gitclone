@@ -1,0 +1,9 @@
+import win.ui;
+/*DSG{{*/
+var frmTabPage5 = win.form(text="5555";right=759;bottom=469)
+frmTabPage5.add()
+/*}}*/
+
+frmTabPage5.show();
+win.loopMessage();
+return frmTabPage5;

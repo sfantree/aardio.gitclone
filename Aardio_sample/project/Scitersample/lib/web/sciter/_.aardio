@@ -1,0 +1,600 @@
+import fsys;
+import win.ui;
+import win.version;
+import util.metaProperty;
+
+namespace web;
+var raw_convert = ..raw.convert; 
+if(sciter) error("请在导入此名字空间下其他子模块以前调用 
+import web.sciter; 创建类名字空间！",2);
+
+class sciter { 
+	ctor ( winform,handleEvents=0x80000100/*_HL_HANDLE_LITE*/ ) { 
+		if( winform.className == "static" ){
+			winform.modifyStyle(,0x100/*_SS_NOTIFY*/ | 0x2000000/*_WS_CLIPCHILDREN*/); 
+		} 
+		else{
+			winform.modifyStyle(,0x2000000/*_WS_CLIPCHILDREN*/)
+			if( winform.isForm &&  (! ..table.next( winform._ctrlHwnd) ) 
+				&& ( ! ..win.getStyle(winform.hwnd,0x40000000/*_WS_CHILD*/) ) ){
+				::CreateWindowEx(0x20/*_WS_EX_TRANSPARENT*/,"static",""
+					,0x44000000/*_WS_CHILD | _WS_CLIPSIBLINGS*/ ,-2,-2,1,1,winform.hwnd,winform._getFreeCommandId(), _HINSTANSE ); 
+			}
+		};
+		
+		winform._sciter = this;
+		this.hwnd = winform[["hwnd"]];
+		this._form = winform;
+		
+		::Sciter.ProcND(this.hwnd, 0x1/*_WM_CREATE*/, 0, 0);
+		if( ..win.getStyleEx(this.hwnd,0x80000/*_WS_EX_LAYERED*/) )
+			if( !::User32.GetLayeredWindowAttributes(this.hwnd,null,null,null) ) ::Sciter.SetOption(this.hwnd,12/*_SCITER_ALPHA_WINDOW*/,1);
+			
+		winform.transparentReal = winform.transparent;
+		winform.transparent = function(trans,...){
+			::Sciter.SetOption(this.hwnd,12/*_SCITER_ALPHA_WINDOW*/,trans === true ? 1 : 0);
+			return winform.transparentReal(trans,...);
+		}
+		
+		winform.tailWndproc = function (hwnd, message, wParam, lParam) {
+			var re, handled = ::Sciter.ProcND(hwnd, message, wParam, lParam);
+			if( message == 0x5/*_WM_SIZE*/ ){  
+				return;//调整其他不属于Sciter的子窗口
+			}
+			elseif( message == 0x2/*_WM_DESTROY*/ ){
+				::Sciter.WindowDetachEventHandler(this.hwnd,this._domEventsHandler_c,0);
+				::Sciter.SetCallback(this.hwnd,null,null);
+				winform.wndproc = null;
+				return;//默认析构
+			}
+			
+			if( handled ) 
+				return re; 
+		};
+		
+		winform.onEraseBkgnd = null; 
+		if( winform.isDialogMessage ){
+			if( winform.isDialogMessage!= ..win.isDialogMessage ){
+				error("在创建web.sciter窗体以前,禁止重写默认 isDialogMessage() 函数 ",2)
+			}
+			else{
+				winform.isDialogMessage = function(hwnd,msg) {
+					return false; 
+				}
+			}
+		};
+		
+		this._callback_c = ..raw.tostdcall( _callback, "addr(ptr lParam, ptr callbackParam)",this);
+		::Sciter.SetCallback(this.hwnd, this._callback_c,null);
+ 
+ 		this._event_subscriptions = handleEvents;
+ 		this._domEventsHandler_c = ..raw.tostdcall( event._handler, "bool(pointer tag,pointer he,INT evtg,pointer prms)",this); 
+		::Sciter.WindowAttachEventHandler(this.hwnd, this._domEventsHandler_c,0, handleEvents ); 
+	};
+	@_metaProperty;
+}
+
+if( ! ..win.version.isVistaLater ) {
+	error("本组件不支持XP系统\nXP请改用web.layout",2)
+}
+
+namespace sciter {
+	
+	namespace ..global{ 
+		import web.sciter.api
+		import web.sciter.behavior;
+		import web.sciter.behavior.custom;
+		import web.sciter.valueObject;
+		import web.sciter.element;
+		import web.sciter.event;
+	}
+	
+ 	var fromUnicode = ..string.fromUnicode;
+ 	var loadBinary = ..string.loadBuffer;
+ 	var joinpath = ..fsys.joinpath
+ 	var match = ..string.match;
+ 	var replace = ..string.replace;
+ 	var indexOf = ..string.indexOf;
+ 
+	setMasterCss = function(css){
+		return !! ::Sciter.SetMasterCSS(css,#css);
+	};
+	appendMasterCss = function(css){
+		return !! ::Sciter.AppendMasterCSS(css,#css);
+	};
+	appendMasterCssFile = function(path){
+		var css  = loadBinary(path)
+		if(#css) ::Sciter.AppendMasterCSS(css,#css);
+	};
+	createEle = function (tag, text) {
+		var re, he = ::Sciter.CreateElement(tag, text);
+		if( re == 0/*_HLDOM_OK*/) {
+			return element(he,false);
+		}
+	};
+	declareEle = function(tag,model){
+		::Sciter.DeclareElementType(tag,model);
+	};
+
+	appendMasterCss($"~/lib/web/sciter/.res/master.css" );
+ 	
+	_defaultNotifyHandler ={
+		[ 0x01/*_SC_LOAD_DATA*/ ]  = function(this, lParam,notifyCode){
+			var nmld = NMHL_LOAD_DATA();  
+			raw_convert(lParam, nmld);
+			var uri = fromUnicode(nmld.uri,,true);  
+
+			if( match( uri,"^\a[\a\-]+\:" ) ){
+				if( ..string.startWith( uri,"file:///@") ){
+					uri = ..string.sub(uri,10);
+				}
+				else return 0/*_LOAD_OK*/;
+			}
+			
+			
+			uri = ..string.split(uri,'?');
+			uri[1] = ..string.unhex(uri[1],"%")
+			
+			var data,err;
+			if(..string.endWith(uri[1],".aardio",true) ){
+				var lst = {};
+				if(uri[2]){
+					for p in ..string.lines(uri[2],"\&\s*") { 
+						var nv = ..string.split(p,"=",2);
+						lst[ ..string.unhex(nv[1],"%") ] = ..string.unhex( nv[2],"%" );
+					}
+				}
+				var r = ..request;
+				..request = { get = lst; }
+				data,err = loadcodeWithBom(uri[1],lst);
+				..request = r;
+			}
+			else{
+				data,err = loadBinary(uri[1]);
+			}
+			
+			if (data)
+				::Sciter.DataReady(this.hwnd, uri[1], data, #data);
+			elseif( debug[["write"]] )
+				debug.write("加载失败:",uri[1],'\n',err ); 
+			
+			return 0/*_LOAD_OK*/;
+		}
+		[0x02/*_SC_DATA_LOADED*/]  = function(this, lParam,notifyCode){
+			if(this.onDataLoaded) this.onDataLoaded(lParam);
+			
+ 			return 0;
+		}
+		[0x04/*_SC_ATTACH_BEHAVIORR*/] = function(this, lParam,notifyCode){
+			var nmld = NMHL_ATTACH_BEHAVIOR();
+			raw_convert(lParam, nmld);
+			var behaviorName = ..raw.str( nmld.behaviorName );
+			var handler = behavior[behaviorName]; 
+
+			if( !handler  ) { 
+				if( indexOf(behaviorName,".") ){
+					handler = ..table.getByNamespace( match(behaviorName,"[^/\\]+$") ,behavior); 
+				}
+				else{
+					var name,camel = replace(behaviorName,"-(\w)",function(c){  return ..string.upper(c); } ); 
+					handler = ( camel ? behavior[name] );
+					if( !handler ){
+						var name,space = replace(behaviorName,"_","."); 
+						handler = ( space ? ..table.getByNamespace( name ,behavior) ); 
+					}
+				}
+				if( !handler  ) return 0;
+				
+				behavior[behaviorName] = handler; 
+			}
+			
+			var tb = type(handler); 
+			if( tb == "class" ){
+				handler = handler( element(nmld.element),this );
+				tb = type(handler);
+				
+				if(tb != "table" ) return 0; 
+				behavior.__addRef(handler); //添加引用,防止对象被析构  
+			}
+			elseif(tb != "table" ) return 0; 
+			
+			if( !handler._domEventsHandler_c ){
+				if( (!handler._event_subsriptions) && (!handler.onSubscriptionRequest) )
+					handler._event_subsriptions = event.getSubscriptions(handler) ;
+				
+				handler._domEventsHandler_c  =  ..raw.tostdcall( event._handler, "bool(pointer tag,pointer he,INT evtg,pointer prms)",handler ); 
+			}
+			
+			..raw.mixin( lParam,nmld,{
+				elementProc =  handler._domEventsHandler_c;
+			} );
+ 			return 0;
+		}
+	};     
+
+	var _nmhdr = ::NMHDR(); 
+	_callback = function (lParam,callbackParam) {
+		var notifyCode = raw_convert( lParam, {
+  			INT code; 
+  			addr hwnd;
+		}  ).code; 
+		if ( owner.callback ) {
+			var re = owner.callback( lParam,notifyCode);
+			if (re !== null) return re;
+		} 
+		
+		var handler = _defaultNotifyHandler[notifyCode]
+		if( handler ){
+			var result = handler(owner, lParam,notifyCode)
+			if( result !== null )
+				return result;
+		}	 
+		return 0;
+	};
+	
+	loadcodeWithBom = function(c,...){
+		var f,e = loadcode(c,"=(web.sciter)");
+		if(!f) return null,e;
+		
+		var p = ..print;
+		var t = {'\xEF\xBB\xBF'};
+		..print = function(s,...){
+			if(s!==null) ..table.push(t,tostring(s));
+			if(...===null) return;
+			return ..print(...);
+		}
+		
+		var r,e = callex(,f,,...);
+		..print = p;
+		
+		if(!r) return null,e;
+		return ..string.join(t);
+	}
+	
+	var delay = ..win.delay;
+	_metaProperty = ..util.metaProperty(
+		go = function (filename,param) {
+			if ( ..io.localpath(filename) ) {
+				owner.localBaseDir = ..io.splitpath(filename).dir;
+				var data,err;
+				if(..string.endWith(filename,".aardio",true) ){
+					var r = ..request;
+					if(type(param) != "table" )param={};
+					..request = { get = param; }
+					data,err = loadcodeWithBom(filename,param);
+					..request = r;
+					
+					if(!#data) error(err,2)
+				} 
+				else {
+					data = loadBinary(filename);
+				}
+				
+				if(#data) {
+					if( owner.localBaseDir ) owner.localBaseDir = "file:///@" + ..string.replace(owner.localBaseDir,"\\","/");
+					var ret = ::Sciter.LoadHtml( owner.hwnd, data, #data,owner.localBaseDir );
+				}
+			}
+			else {
+			
+				if( !match( filename,"^\a\a+\:" ) )
+					filename = "file:///" + filename;
+				
+				var d = ..string.lastIndexAny(filename,"\/");
+				if(d)::Sciter.SetHomeURL(owner.hwnd,..string.left(filename,d) );
+				
+				return ::Sciter.LoadFile(owner.hwnd,filename) )
+			}
+		};
+		post = function(url,param,dt){
+			owner.write('<body></body> ');
+			return owner.querySelector("body").request(url,param,"POST");
+		};
+		wait = function(){
+			var ready;
+			var eventId = owner.attachEventHandler({
+				onFrameDocumentComplete = function(scTarget,scOwner,reason,behaviorParams){
+					if( scOwner != scOwner.root() ) return;
+					ready = true;
+				}
+				onSubscriptionRequest= function(){
+					return 0x80000000 | 0x0100
+				} 
+			})
+
+			var hwnd = owner._form.hwnd;   
+			var isWnd = ..win.isWindow;
+			while( (!ready) && delay(200) && isWnd(hwnd) ){} 
+			owner.detachEventHandler(eventId);
+			return true;
+		};
+		write = function (data, baseUrl="/") {
+			var data,err  = loadcodeWithBom(data);
+			if( err ) error( 'HTML不是开始于正确的HTML标记,或者aardio模板语法错误:\n' + err,2);
+			
+			if( ( data[1]  != 0xEF ) && ( data[2]  != 0xBB ) && ( data[3]  != 0xBF ) ){
+				data = '\xEF\xBB\xBF' + data;
+			}
+
+			return ::Sciter.LoadHtml( owner.hwnd, data, #data,baseUrl );
+		};
+		createEle = createEle;
+		commitUpdates = function(){
+			::Sciter.CommitUpdates(owner._form.hwnd);
+		};
+		fromPoint = function(x=0,y=0,screen ){
+			if(screen)
+				x,y = ..win.toClient( owner.hwnd,x,y );
+				
+			var ret,he = ::Sciter.FindElement( owner.hwnd,x,y )
+			if( (ret == 0/*_HLDOM_OK*/) && he )
+				return element(he,true);
+		}; 
+		documentElement = {
+			_get = function () {
+				var re, he = ::Sciter.GetRootElement( owner.hwnd );
+				return he ? ( element(he) );
+			}
+		};
+		getEle = function (id) {
+			var doc = owner.documentElement;
+			return doc ? doc.getElementById(id) ;
+		};
+		getCtrl = function(id){
+			var doc = owner.documentElement;
+			var ele = doc ? doc.getElementById(id);
+			if(ele)return ele.getCtrl();
+		};
+		getEleByUid = function (uid) {
+			var doc = owner.documentElement;
+			return doc ? doc.getElementByUid(uid:0) ;
+		}; 
+		getFocus = function() {
+			var re,he = ::Sciter.GetFocusElement(owner.hwnd) ;
+			if( re == 0/*_HLDOM_OK*/ )
+				return element(he)
+		};
+		getEles = function (name) {
+			var doc = owner.documentElement;
+			return doc ? doc.getElementsByName(name);
+		};
+		getElesByTag = function (tag) {
+			var doc = owner.documentElement;
+			return doc ? doc.getElementsByTagName(tag);
+		};
+		enumQuery = function(...){
+			var doc = owner.documentElement;
+			return doc ? doc.enumQuery(...);	
+		};
+		querySelectorAll = function (...) {
+			var doc = owner.documentElement;
+			return doc ? doc.queryElements(...);
+		};
+		querySelector = function (...) {
+			var doc = owner.documentElement;
+			return doc ? doc.queryElement(...);
+		}; 
+		setCss = function(css,mediaType,baseUrl ){
+			if(!owner.documentElement ) error("无效的文档对象",2);
+			 if  ::Sciter.SetCSS(owner.hwnd,css,#css,baseUrl,mediaType : "screen"){
+			 	owner.documentElement.update(true);
+			 	return true;
+			 }
+		}; 
+		setMasterCss = function(css){
+			return !! ::Sciter.SetMasterCSS(css,#css);
+		};
+		appendMasterCss = function(css){
+			return !! ::Sciter.AppendMasterCSS(css,#css);
+		};
+		updateWindow = function(){
+			return ::Sciter.UpdateWindow(owner.hwnd);
+		}; 
+		setMode = function(mode){
+			::Sciter.SetMode(owner.hwnd,mode : 0/*_HLM_LAYOUT_ONLY*/)
+		};
+		setOption = function(option,value=1){
+			return !! ::Sciter.SetOption(owner.hwnd,option,value)
+		}; 
+		addHeaders = {
+			_set = function(v){
+				return ::Sciter.SetHttpHeaders(owner.hwnd,v,#v);
+			}
+		};
+		enumRes = function(func){
+			if( type(func) != type.function) error("请指定回调函数参数",2)
+			var callBack = ..raw.tostdcall(
+				function(u,t,i,s){
+		 			return false !== func( fromUnicode(u,,true),t,i,s); 
+				} ,"bool(pointer resUri,string resType,pointer imgData,pointer imgSize)");
+			::Sciter.EnumResources(owner.hwnd,callBack);
+		};
+		combineUrl = function(url){
+			var doc = owner.documentElement;
+			return doc ? doc.combineUrl(url);
+		};
+		attachEventHandler = function( handler,subscription ){ 
+			if( type(handler) != type.table ){
+				error("请指定监听对象",2) 
+			} 
+			
+			if( subscription === null )
+				subscription = handler._event_subsriptions
+				
+			if( ( subscription === null ) && handler[["onSubscriptionRequest"]] )
+				subscription = handler.onSubscriptionRequest();
+			
+			if( subscription === null )
+				subscription = event.getSubscriptions(handler);
+			
+			var tagId = event._handlerByTagRegistry.reg(handler);
+			var ret = ::Sciter.WindowAttachEventHandler(owner.hwnd, event._handlerByTagId_c,tagId,subscription );  
+			
+			if( ret == 0/*_HLDOM_OK*/){ 
+				return tagId;
+			}
+			else {
+				event._handlerByTagRegistry.unReg(tagId);
+			}
+		};
+		detachEventHandler = function(tagId){
+			if(!tagId){
+				error("请指定事件ID,必须大于零",2)
+			}
+			 
+			return ( 0/*_HLDOM_OK*/ == ::Sciter.WindowDetachEventHandler(owner.hwnd, event._handlerByTagId_c ,tagId ) );
+		}; 
+		doScript = function(code,asServerScript){
+			owner.eval("(
+				function (){ 
+					view.root.loadcode = function (code,asServerScript=false){ 
+					var stream = Stream.openFile(code);
+					if(!stream) stream = Stream.openString(code);
+					return load(stream,asServerScript); }  
+				}
+				)()");  
+				
+			if(#code<0x410/*_MAX_PATH_U8*/) code = ..io.exist(code) : ..string.load(code) : code;
+			return owner.documentElement.loadcode(code,asServerScript) 
+		};
+		call = function(methodName,...){
+			var args;
+			args = {...};
+			var _,len = ..table.range(args);
+			if( len ) {
+				for( i=1;len;1 ) args[i] = valueObject(args[i]);
+				args = {struct array[]=args}
+			}
+			else args = {}
+			
+			retval = valueObject();
+			if( ::Sciter.Call(owner.hwnd,methodName,len,args,retval) ){
+				if( retval.isErrorString() ) error(retval.getString(),2);
+				return retval.getValue();
+			}
+		}; 
+		eval = function(script){	
+			retval = valueObject();
+			script = ..string.toUnicode(script);
+			if( ::Sciter.Eval(owner.hwnd,script,#script/2,retval) ){
+				if( retval.isErrorString() ) error(retval.getString(),2);
+				return retval.getValue();
+			}
+		};
+	); 
+	
+	with _metaProperty{
+		css = { _set = setCss };
+		masterCss = { _set = setMasterCss }; 
+		html =  { _set = write };
+		$ = querySelectorAll;
+		$1 = querySelector;
+		queryEles = querySelectorAll;
+		queryEle = querySelector;
+	} 
+	
+	setGraphicsLayer = function(layer){
+		::Sciter.SetOption(0,9/*_SCITER_SET_GFX_LAYER*/,layer ? ({gdi=1;warp=2;d2d=3;skia=4;opengl=5})[layer] : 0xFFFF)
+	}
+	
+	NMHL_LOAD_DATA = class {
+		INT CODE;
+		addr hwnd;
+		pointer uri;
+		pointer outData;
+		INT outDataSize;
+		INT dataType;
+		addr requestId;
+		int principal;
+		int initiator;
+	}
+ 
+	NMHL_ATTACH_BEHAVIOR = class {
+		INT CODE;
+		addr hwnd;
+		pointer element;
+		pointer behaviorName;
+		pointer elementProc;
+		pointer elementTag;
+	}
+}
+
+/*****intellisense()
+web.sciter.setGraphicsLayer("gdi") = 设置绘图引擎,可选值为"gdi","d2d","auto"
+web.sciter(.(窗口对象,捕获事件) = 从窗口对象创建Sciter窗口\n 参数二默认为 _HL_HANDLE_LITE - 仅允许捕获按钮命令等基本交互事件
+?web.sciter = !websciter.
+!websciter.querySelectorAll(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n查找所有符合条件节点,\n如果有多个参数则首先调用string.format格式化为CSS文本,\n该函数名可使用'$'代替,等价于CSS!中的$函数
+!websciter.querySelector(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n查找第一个符合条件节点,\n如果有多个参数则首先调用string.format格式化为CSS文本,\n该函数名可使用'$1'代替,等价于CSS!中的$1函数
+!websciter.$(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n查找所有符合条件节点
+!websciter.$1(.("标签名[属性名='属性值']") = 使用CSS选择器语法,\n查找第一个符合条件节点
+!websciter.querySelectorAll() = !sciterEle.
+!websciter.querySelector() = !sciterEle.
+!websciter.queryEle() = !sciterEle.
+!websciter.queryEles() = !sciterEle.
+!websciter.$() = !sciterEle.
+!websciter.$1() = !sciterEle.
+!websciter.html = @.html = /**\n<!doctype html>\n<html>\n<head>\n   <META http-equiv="Content-Type" content="text/html; charset=utf-8">\n    <script type="text/tiscript">\n    \n    </script>\n    <style type="text/css">\n    html,body{ height:100%; margin:0; } __\n    </style>\n</head>\n<body>\n    <div id="header"></div>\n    <div id="container"> \n        <div class="lside"> </div> \n        <div class="rside"> </div>  \n    </div>\n</body>\n</html>\n**/
+!websciter.external = @.external = {\n    scriptCallTest = function(scOwner,str){ \n    	__/*使用external接口定义网页脚本可调用的本地函数,\nscOwner是额外自动添加的节点参数*/\n        return "收到:"+str; \n    }\n}
+!websciter.addHeaders = @.addHeaders = /**\nAccept-Language: cn\n__/*设置默认的HTTP请求头\n多个请求头使用回车换行分隔*/\n**/
+!websciter.setMode( _HLM__ ) = 设置模式\n _HLM_SHOW_SELECTION 类似于在body节点应用behavior:htmlarea
+!websciter.setOption(_HL_OPTIONS__,1) = 设置选项
+!websciter.callback = @.callback = function ( message,wParam,lParam,vParam,notifyCode ) {\n	__\n}
+!websciter.eventsHandler = @.eventsHandler = function (tag,he,evtg,prms) {\n	__\n}
+!websciter.onFrameDocumentComplete = @.onFrameDocumentComplete = function(scTarget,scOwner,reason,behaviorParams) {
+	if( scTarget != scOwner.root() ) return;
+	__/*文档或框架文档已加载\n此事件在onDocumentReady以后触发*/
+}
+!websciter.onDataLoaded = @.onDataLoaded = function(lParam) {
+	var dataLoaded = raw.convert(lParam,{
+    	INT code; 
+    	addr hwnd;
+    	ustring  uri; 
+    	ptr data;
+    	INT dataSize; 
+    	INT dataType;
+    	INT status; 
+	});
+	__/*单个文件数据加载完成后触发*/
+}
+!websciter.doScript(.("脚本代码",服务器模板) = 执行TIS脚本代码\n参数@1可以是脚本代码、或脚本文件、支持资源文件\n参数@2可省略,设为true支持服务器模板语法
+!websciter.call(.("函数名",其他参数) = 调用TIS脚本函数\nTIS对象返回为 web.sciter.valueObject对象,其他基础对象转换为aardio类型\n使用 web.sciter.isValueObject 函数可以判断返回值是否TIS对象
+!websciter.eval(__) = 计算TIS脚本表达式的值\nTIS对象返回为 web.sciter.valueObject对象,其他基础对象转换为aardio类型\n使用 web.sciter.isValueObject 函数可以判断返回值是否TIS对象
+!websciter.eval() = !web_sciter_value.
+!websciter.call() = !web_sciter_value.
+!websciter.enumQuery(枚举函数,CSS选择器,格式化参数) = @.enumQuery(\n	function(scEle){\n		 __/*返回true停止枚举*/\n	},"div"\n)
+!websciter.go("__/*路径*/") = 跳转到指定网址,支持aardio资源文件\nHTML文件使用BOM标记或HTM代码内的编码声明识别编码，\n如果参数指定的是aardio文件,参数@2可选用一个表指定request.get对象
+!websciter.post(.(网址,参数) =  参数可以是字符串或键值对组成的表对象\n该函数可触发onDataArrived事件
+!websciter.write(__/*HTML 代码*/) = 写出指定 HTML 代码
+!websciter.wait() = 等待所有资源加载完成
+!websciter.debug() = @import web.sciter.debug;\n??.attachEventHandler( web.sciter.debug );
+!websciter.documentElement = !sciterEle.
+!websciter.getCtrl("") = 根据ID或name查找节点,\n并获取在该节点中自定义的控件对象
+!websciter.getCtrl() = !static.
+!websciter.getEle() = !sciterEle.
+!websciter.getEles() = !sciterEle.
+!websciter.getFocus() = 获取当前输入焦点所在节点\n!sciterEle.
+!websciter.getEleByUid(.(UID) = 根据唯一标志符(数值)返回节点 
+!websciter.getEleByUid() = !sciterEle.
+!websciter.getEle("__") = 根据ID查找节点\n如果未找到,尝试使用name查找	
+!websciter.getEles("__") = 根据name属性查找节点
+!websciter.createEle(.(标签名,节点内容) = 创建节点,\n节点内容可省略 
+!websciter.createEle() = !sciterEle. 
+!websciter.traverseUiEvent(.(结构体参数) =  结构体参数是 web.sciter.event.MOUSE_PARAMS 或 KEY_PARAMS\n该函数发送事件经过捕获与冒泡过程直到事件被处理
+!websciter.fromPoint(.(x坐标,y坐标,是否屏幕坐标) = 参数三可选,默认为窗口客户区坐标\n成功返回节点对象
+!websciter.fromPoint() = !sciterEle.
+!websciter.updateWindow() = 更新窗口\n如果仅仅需要更新节点位置等,可调用commitUpdates函数
+!websciter.commitUpdates() = 立即更新所有节点\n因为节点可能会延迟更新,\n需要立即获取节点更新后的位置可调用此函数\n该函数不会调用updateWindow
+!websciter.combineUrl(.(URL) = 将URL转换为绝对路径,\n可省略参数返回 baseURL
+!websciter.setCss(.(css,mediaType,baseUrl) = 替换CSS
+!websciter.css = @.css = /**\n#my-button{ \n	behavior:"my.command"; \n	active-on!:\n		__/*输入CSS脚本,语句用逗号分隔*/\n  	; \n} \n**/
+!websciter.attachEventHandler(.(eventHandler,subscription) = 添加事件监听对象,参数一不可省略,\nsubscription 可选使用 _HL_HANDLE_ 前缀常量指定捕获的事件,\n 省略该参数则根据定义的回调函数自动设定该值,\n也可以使用对象的 _event_subsriptions 成员指定该值,\n该函数返回事件ID,用于注销监听
+!websciter.detachEventHandler(.(事件ID) = 注销事件监听对象,事件ID不可省略
+!websciter.enumRes(枚举函数) = @.enumRes(\n	function(uri,resType,imgData,size){ \n		__/*枚举页面页源*/ \n	} \n)
+web.sciter.setMasterCss(.(css) = 替换默认CSS\n必须在调用其他函数之前调用
+web.sciter.appendMasterCssFile(.("/res/master->css") = 追加默认CSS文件\nCSS文件请使用UTF编码保存,\n必须在创建Sciter窗体,以及调用其他函数以前调用
+web.sciter.appendMasterCss(.(css) =  追加默认CSS,\n必须在创建Sciter窗体,以及调用其他函数以前调用
+web.sciter.declareEle( "__", _HLELM___ ) = 声明标记,\n必须在创建Sciter窗体,以及调用其他函数以前调用,\n并且须要早于设置MasterCss的函数调用
+web.sciter.createEle(.(标签名,节点内容) = 创建节点,\n节点内容可省略
+web.sciter.createEle() = !sciterEle.
+end intellisense*****/
+

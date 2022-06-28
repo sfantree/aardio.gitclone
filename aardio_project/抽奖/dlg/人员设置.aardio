@@ -1,0 +1,122 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="人员设置";right=359;bottom=487;border="thin";exmode="toolwindow";max=false;min=false;mode="popup")
+winform.add(
+button={cls="button";text="确认";left=72;top=432;right=296;bottom=480;font=LOGFONT(h=-20;name='微软雅黑');tabstop=1;z=3};
+edit={cls="edit";text="一行一个抽奖者";left=16;top=48;right=352;bottom=424;edge=1;font=LOGFONT(h=-20;name='微软雅黑');multiline=1;vscroll=1;z=2};
+static={cls="static";text="抽奖名单";left=16;top=8;right=344;bottom=40;align="center";center=1;color=255;font=LOGFONT(h=-20;name='微软雅黑');transparent=1;z=1};
+去重={cls="checkbox";text="去重";left=24;top=16;right=80;bottom=40;checked=1;font=LOGFONT(h=-15;name='微软雅黑');z=4};
+导入={cls="button";text="导入";left=280;top=16;right=312;bottom=40;z=5}
+)
+/*}}*/
+
+import config;
+var config_file_name="人员设置";
+get_config=function(name){ return config[config_file_name][name]  }
+set_config=function(name,val){config[config_file_name][name]=val; }
+
+var 换行符='\r\n';
+var PEOPLE="PEOPLE";
+var 去重="去重";
+
+winform.button.oncommand = function(id,event){   
+    格式化_edit();
+    sleep(100);
+	var t=winform.edit.text ;
+	t= string.trim(t);
+	if(!#t) {
+	 	win.msgboxErr("请增加","错误");
+	 	return ; 
+	}  
+	thread.set(PEOPLE,t); 
+	publish("PEOPLE_CHANGE","PEOPLE_CHANGE" ) ;	
+	winform.close();
+}
+已经重复=function(line){
+	var edit=winform.edit.text;
+	var editarr=string.split(edit, 换行符);
+	for(k,v in editarr){ 
+		v=string.trim(v);
+		if( v == line ){ return true; }
+	}
+	return false;	
+}
+
+
+格式化_edit=function(){
+    var 去重s =  winform.去重.checked ; 
+	var edit=winform.edit.text;
+	edit=string.trim(edit) ;
+	if(!#edit) return ;  //没数据,不需要
+	var editarr=string.split(edit, 换行符);
+	if(!#editarr) return ;
+	if(#editarr>1000) {
+		win.msgboxErr("数据不能超过1000条","错误" );
+		 return ;
+	}
+	winform.edit.text="";	
+	for(k,v in editarr){ 
+		v=string.trim(v);	
+		if(!#v) continue;  
+		if( 去重s && 已经重复(v) ) continue;  
+		winform.edit.appendText(v++换行符);
+	} 
+}
+
+winform.edit.wndproc = function(hwnd,message,wParam,lParam){
+	  select( message ) { 
+        case 0x0008/*_WM_KILLFOCUS*/{ //失去焦点
+           格式化_edit(); 
+        } 
+    } 
+} 
+
+winform.onOk = function(){
+    winform.button.oncommand();
+}
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+    var 去重s = get_config(去重);
+    winform.去重.checked = !!去重s;
+	var t=thread.get(PEOPLE);
+    if(!#t){ t=get_config(PEOPLE); }
+	if(!#t) t="一行一个姓名" ;
+	winform.edit.text = t  ;
+	winform.center();
+}
+ 
+winform.onClose = function(hwnd,message,wParam,lParam){
+	var t=thread.get(PEOPLE);
+	if(#t) set_config(PEOPLE,t );    
+}
+
+winform.去重.oncommand = function(id,event){
+	var 去重s =  winform.去重.checked ;
+	if(去重s){ 格式化_edit(); }
+	set_config(去重,去重s);	
+} 
+
+/*在窗口内创建热键*/
+import win.ui.accelerator;
+var accelerator = win.ui.accelerator({
+    {  
+        vkey = ' '#; ///空格键 
+        oncommand = function() { 
+            ///winform.button.oncommand();
+        } 
+    };   
+},winform );
+ 
+winform.导入.oncommand = function(id,event){
+	import fsys.dlg ;
+	var str= fsys.dlg.open("文本文件<GBK>(*.txt)|*.txt;","文本导入",,winform.hwnd) ;
+	if(io.exist(str)) {
+		winform.edit.text="";		
+        for le in io.lines(str) {  
+			winform.edit.appendText( string.fromto(le,936,65001) ++换行符);            
+        } 
+	}
+}
+
+winform.show();
+win.loopMessage();
+return winform;

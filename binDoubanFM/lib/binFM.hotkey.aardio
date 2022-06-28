@@ -1,0 +1,188 @@
+﻿//hotkey 热键
+namespace binFM.hotkey{
+	import key;
+
+	/* 
+ 	 * 注册热键
+ 	 */
+	 reg = function() {
+		hkid_back = ..mainForm.reghotkey(function(id,mod,vk){
+				..binFM.to.back();
+			}
+			,8,0x8/*_VK_BACK*/ );	
+		hkid_next = ..mainForm.reghotkey(function(id,mod,vk){
+				..binFM.to.next();
+			}
+			,8,0x22/*_VK_NEXT*/ );
+		hkid_play = ..mainForm.reghotkey(function(id,mod,vk){
+			..binFM.to.play();
+			}
+			,8,0xFA/*_VK_PLAY*/ );
+			
+		var hotkeyTitle = "当前热键设置：&#13;";
+		if(..hk_next_a && ..hk_next_a!=0 && ..hk_next_b && ..hk_next_b!=0) {
+			hkid_next_2 = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.to.next();
+				}
+				,..hk_next_a,..hk_next_b );
+			hotkeyTitle += "下一首歌：" ++ getCtrlKey(..hk_next_a) ++ " + " ++ ..key.getName(..hk_next_b) ++ "&#13;";
+			if(..binFM.ui.$("#toNext")) ..binFM.ui.$("#toNext").title="下一首 [ " ++ getCtrlKey(..hk_next_a) ++ " + " ++ ..key.getName(..hk_next_b) ++ " ]";
+		}
+		if(..hk_back_a && ..hk_back_a!=0 && ..hk_back_b && ..hk_back_b!=0) {
+			hkid_back_2 = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.to.back();
+				}
+				,..hk_back_a,..hk_back_b );
+			hotkeyTitle += "上一首歌：" ++ getCtrlKey(..hk_back_a) ++ " + " ++ ..key.getName(..hk_back_b) ++ "&#13;";
+		}
+		if(..hk_play_a && ..hk_play_a!=0 && ..hk_play_b && ..hk_play_b!=0) {
+			hkid_play_2 = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.to.play();
+				}
+				,..hk_play_a,..hk_play_b );
+			hotkeyTitle += "暂停播放：" ++ getCtrlKey(..hk_play_a) ++ " + " ++ ..key.getName(..hk_play_b) ++ "&#13;";	
+			if(..binFM.ui.$("#pause_play")) ..binFM.ui.$("#pause_play").title="热键：" ++ getCtrlKey(..hk_play_a) ++ " + " ++ ..key.getName(..hk_play_b);
+		}
+		if(..hk_like_a && ..hk_like_a!=0 && ..hk_like_b && ..hk_like_b!=0) {
+			hkid_like = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.to.like(true);
+				}
+				,..hk_like_a,..hk_like_b );
+			hotkeyTitle += "新欢加心：" ++ getCtrlKey(..hk_like_a) ++ " + " ++ ..key.getName(..hk_like_b) ++ "&#13;";
+			if(..binFM.ui.$("#like_hotkey")) ..binFM.ui.$("#like_hotkey").innerHTML = getCtrlKey(..hk_like_a) ++ " + " ++ ..key.getName(..hk_like_b);	
+		}
+		if(..hk_del_a && ..hk_del_a!=0 && ..hk_del_b && ..hk_del_b!=0) {
+			hkid_del = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.to.del();
+				}
+				,..hk_del_a,..hk_del_b );
+			hotkeyTitle += "不再听之：" ++ getCtrlKey(..hk_del_a) ++ " + " ++ ..key.getName(..hk_del_b) ++ "&#13;";
+			if(..binFM.ui.$("#del_hotkey")) ..binFM.ui.$("#del_hotkey").innerHTML = getCtrlKey(..hk_del_a) ++ " + " ++ ..key.getName(..hk_del_b);
+		}
+		if(..hk_lrc_a && ..hk_lrc_a!=0 && ..hk_lrc_b && ..hk_lrc_b!=0) {
+			hkid_lrc = ..mainForm.reghotkey(function(id,mod,vk){
+					..binFM.ui.showLrc();
+				}
+				,..hk_lrc_a,..hk_lrc_b );
+			hotkeyTitle += "显示歌词：" ++ getCtrlKey(..hk_lrc_a) ++ " + " ++ ..key.getName(..hk_lrc_b) ++ "&#13;";
+			if(..binFM.ui.$("#displayLrc")) ..binFM.ui.$("#displayLrc").title="热键：" ++ getCtrlKey(..hk_lrc_a) ++ " + " ++ ..key.getName(..hk_lrc_b);
+		}
+		if(..hk_front_a && ..hk_front_a!=0 && ..hk_front_b && ..hk_front_b!=0) {
+			hkid_front = ..mainForm.reghotkey(function(id,mod,vk){
+					..win.setForeground(..mainForm.hwnd);
+				}
+				,..hk_front_a,..hk_front_b );
+			hotkeyTitle += "激活窗口：" ++ getCtrlKey(..hk_front_a) ++ " + " ++ ..key.getName(..hk_front_b) ++ "&#13;";
+		}
+		if(..hk_exit_a && ..hk_exit_a!=0 && ..hk_exit_b && ..hk_exit_b!=0) {
+			hkid_exit = ..mainForm.reghotkey(function(id,mod,vk){
+					..mainForm.close();
+				}
+				,..hk_exit_a,..hk_exit_b );
+			hotkeyTitle += "退出程序：" ++ getCtrlKey(..hk_exit_a) ++ " + " ++ ..key.getName(..hk_exit_b);
+			if(..binFM.ui.$("#exit")) ..binFM.ui.$("#exit").title="热键：" ++ getCtrlKey(..hk_exit_a) ++ " + " ++ ..key.getName(..hk_exit_b);
+			if(..binFM.ui.$("#exit-titleBar")) ..binFM.ui.$("#exit-titleBar").title="退出 [ " ++ getCtrlKey(..hk_exit_a) ++ " + " ++ ..key.getName(..hk_exit_b) ++ " ]";	
+		}
+		..binFM.ui.html("#showHotkeySetups",'<span id="hotkeyTitle" title="' ++ hotkeyTitle ++ '">设置热键（查看）</span>');
+	}
+	
+	
+	/* 
+ 	 * 取消注册热键
+ 	 */
+	unReg = function() {
+		if(hkid_next) ..mainForm.unreghotkey(hkid_next);
+		if(hkid_next_2) ..mainForm.unreghotkey(hkid_next_2);
+		if(hkid_back) ..mainForm.unreghotkey(hkid_back);
+		if(hkid_back_2) ..mainForm.unreghotkey(hkid_back_2);
+		if(hkid_play) ..mainForm.unreghotkey(hkid_play);
+		if(hkid_play_2) ..mainForm.unreghotkey(hkid_play_2);
+		if(hkid_like) ..mainForm.unreghotkey(hkid_like);
+		if(hkid_del) ..mainForm.unreghotkey(hkid_del);
+		if(hkid_lrc) ..mainForm.unreghotkey(hkid_lrc);
+		if(hkid_front) ..mainForm.unreghotkey(hkid_front);
+		if(hkid_exit) ..mainForm.unreghotkey(hkid_exit);
+
+		..binFM.ui.$("#toNext").title="下一首";
+		..binFM.ui.$("#pause_play").title="播放/暂停";
+		..binFM.ui.$("#like_hotkey").innerHTML = "<无热键>";	
+		..binFM.ui.$("#del_hotkey").innerHTML = "<无热键>";
+		..binFM.ui.$("#displayLrc").title="显示/隐藏歌词";
+	}
+	
+	
+	/*
+ 	 * 读取控制键的名称
+ 	 * -- 1:alt; 2:ctrl; 4:shift
+ 	 */
+	getCtrlKey = function(vCode) {
+		if(!vCode) return " ";
+		if(vCode==1) return "Alt";
+		if(vCode==2) return "Ctrl";
+		if(vCode==4) return "Shift";
+		if(vCode==3) return "Ctrl + Alt";
+		if(vCode==5) return "Alt + Shift";
+		if(vCode==6) return "Ctrl + Shift";
+		if(vCode==7) return "Ctrl + Alt + Shift";
+		if(vCode==11) return "Ctrl + Alt";
+		return " ";	
+	}
+	
+	
+	/* 
+	 * 读取热键设置
+ 	 */
+	read = function(from="db") {
+		if(from && from=="db") {
+			if(..binFM.db.set("hk_next_a")) ..hk_next_a = tonumber(..binFM.db.set("hk_next_a"));
+			if(..binFM.db.set("hk_next_b")) ..hk_next_b = tonumber(..binFM.db.set("hk_next_b"));
+			if(..binFM.db.set("hk_back_a")) ..hk_back_a = tonumber(..binFM.db.set("hk_back_a"));
+			if(..binFM.db.set("hk_back_b")) ..hk_back_b = tonumber(..binFM.db.set("hk_back_b"));
+			if(..binFM.db.set("hk_play_a")) ..hk_play_a = tonumber(..binFM.db.set("hk_play_a"));
+			if(..binFM.db.set("hk_play_b")) ..hk_play_b = tonumber(..binFM.db.set("hk_play_b"));
+			if(..binFM.db.set("hk_like_a")) ..hk_like_a = tonumber(..binFM.db.set("hk_like_a"));
+			if(..binFM.db.set("hk_like_b")) ..hk_like_b = tonumber(..binFM.db.set("hk_like_b"));
+			if(..binFM.db.set("hk_del_a")) ..hk_del_a = tonumber(..binFM.db.set("hk_del_a"));
+			if(..binFM.db.set("hk_del_b")) ..hk_del_b = tonumber(..binFM.db.set("hk_del_b"));
+			if(..binFM.db.set("hk_lrc_a")) ..hk_lrc_a = tonumber(..binFM.db.set("hk_lrc_a"));
+			if(..binFM.db.set("hk_lrc_b")) ..hk_lrc_b = tonumber(..binFM.db.set("hk_lrc_b"));
+			if(..binFM.db.set("hk_front_a")) ..hk_front_a = tonumber(..binFM.db.set("hk_front_a"));
+			if(..binFM.db.set("hk_front_b")) ..hk_front_b = tonumber(..binFM.db.set("hk_front_b"));
+			if(..binFM.db.set("hk_exit_a")) ..hk_exit_a = tonumber(..binFM.db.set("hk_exit_a"));
+			if(..binFM.db.set("hk_exit_b")) ..hk_exit_b = tonumber(..binFM.db.set("hk_exit_b"));
+		}
+		if(..hotkeyForm) {
+			..hotkeyForm.hotkey_next.sethotkey(..hk_next_a,..hk_next_b);
+			..hotkeyForm.hotkey_back.sethotkey(..hk_back_a,..hk_back_b);
+			..hotkeyForm.hotkey_play.sethotkey(..hk_play_a,..hk_play_b);
+			..hotkeyForm.hotkey_like.sethotkey(..hk_like_a,..hk_like_b);
+			..hotkeyForm.hotkey_del.sethotkey(..hk_del_a,..hk_del_b);
+			..hotkeyForm.hotkey_lrc.sethotkey(..hk_lrc_a,..hk_lrc_b);
+			..hotkeyForm.hotkey_front.sethotkey(..hk_front_a,..hk_front_b);
+			..hotkeyForm.hotkey_exit.sethotkey(..hk_exit_a,..hk_exit_b);
+		}
+	}
+	
+	
+	/* 
+ 	 * 保存热键设置
+ 	 */
+	save = function() {
+		..binFM.db.set("hk_next_a",..hk_next_a);
+		..binFM.db.set("hk_next_b",..hk_next_b);
+		..binFM.db.set("hk_back_a",..hk_back_a);
+		..binFM.db.set("hk_back_b",..hk_back_b);
+		..binFM.db.set("hk_play_a",..hk_play_a);
+		..binFM.db.set("hk_play_b",..hk_play_b);
+		..binFM.db.set("hk_like_a",..hk_like_a);
+		..binFM.db.set("hk_like_b",..hk_like_b);
+		..binFM.db.set("hk_del_a",..hk_del_a);
+		..binFM.db.set("hk_del_b",..hk_del_b);
+		..binFM.db.set("hk_lrc_a",..hk_lrc_a);
+		..binFM.db.set("hk_lrc_b",..hk_lrc_b);
+		..binFM.db.set("hk_front_a",..hk_front_a);
+		..binFM.db.set("hk_front_b",..hk_front_b);
+		..binFM.db.set("hk_exit_a",..hk_exit_a);
+		..binFM.db.set("hk_exit_b",..hk_exit_b);
+	}
+}

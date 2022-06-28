@@ -1,0 +1,33 @@
+
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+//[MVC应用配置文件]
+
+namespace config.mvcconfig
+
+/*
+配置mvc应用,可启用多个
+如需要多个,请复制以下mvcapp一份
+*/
+
+mvcapp = {
+	name = "默认MVC应用";				//mvc应用名称
+	webpath = "/index.aardio";			//web网站访问入口文件,相对于网站根目录
+	controller = {
+		dir = "mvc\controller\";		//控制器工作目录,相对于\application\目录下
+		ext = "Ctl";					//控制器后缀
+		nameSpace = "mvc.controller";	//控制器名字空间
+	}
+	view = {
+		dir = "mvc\view\";				//视图工作目录,相对于\application\目录下
+		ext = "";						//视图后缀
+	}
+};

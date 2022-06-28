@@ -1,0 +1,113 @@
+﻿namespace flashk{
+	startADB=function(){ // 开启adb进程
+		import process.popen
+		import fsys
+		var commandV=/****
+		cd tools
+		adb.exe devices
+		****/
+		var prcs = process.popen.cmd(commandV)
+	}
+	fastbootConnet=function(){ // fastboot链接信息
+		import process.popen
+		import fsys
+		var commandV=/****
+		cd tools
+		fastboot.exe devices
+		****/
+		var prcs = process.popen.cmd(commandV)
+		var result=prcs.readAll()
+		return result
+	}	
+	adbFormatMsg2Fb=function(result){ // 格式化adb输出为fastboot格式
+		var res=tostring(result)
+		if(res=="List of devices attached"){
+			return ""; 
+		}
+		var formatLine=string.split(res,'\n')
+		var removeFirstLine=""
+		for(i=2;table.count(formatLine);1){
+			if(table.count(formatLine)==2){
+				removeFirstLine+=formatLine[2]
+				break
+			}
+			removeFirstLine+=formatLine[i]+'\n'	
+		}
+		return removeFirstLine
+	}	
+	adbConnet=function(){ // adb链接信息
+		import process.popen
+		import fsys
+		var commandV=/****
+		cd tools
+		adb.exe devices
+		****/
+		var prcs = process.popen.cmd(commandV)
+		var result=prcs.readAll()
+		return adbFormatMsg2Fb(result)
+	}	
+	formatDeviceMsg=function(cos,result){ // 格式化设备信息
+		var res=tostring(result)
+		var formatResult=""
+		if(cos=="fb" and fb=="rec"){
+			formatResult=string.split(res,"<fastboot>")
+		}else {
+			formatResult=string.split(res,"<sideload>")
+		}
+		return formatResult
+	}
+
+	// cos=tostring(clickButton)
+	findDevice = function(cos){ //寻找设备（判断为adb还是fb
+		var findRt=""
+		if(cos=="fb" or cos=="rec"){
+			findRt=fastbootConnet()
+		}else{
+			startADB()
+			findRt=adbConnet()
+		}
+		var formatResult=formatDeviceMsg(cos,findRt)
+		if(!table.count(formatResult)){
+			return "404"
+		}else{
+			var findListRes={}
+			if(table.count(formatResult)==1){
+				findListRes[1]=formatResult[1]
+			}else {
+				for(i=1;table.count(formatResult)-1;1){
+					findListRes[i]=formatResult[i]
+				}		
+			}
+		}
+		return findListRes; 
+	}
+	choseDir=function(cos){ // 选择镜像地址
+		import fsys.dlg;
+		var filedir =""
+		if(cos=="rec" or cos=="fb"){
+			filedir = fsys.dlg.open("镜像文件 *.img|*.img|");
+		}else {
+			filedir = fsys.dlg.open("压缩文件 *.zip|*.zip|");
+		}
+		return filedir; 
+	}
+	createFlashCode=function(cos){ // 生成刷机指令
+		var flashTool = ""; 
+		if(cos=="fb"){
+			flashTool="
+		cd tools
+		fastboot.exe flash "+rfile+" "+cfile+" "+device
+		}elseif(cos=="rec"){
+			flashTool="
+		cd tools
+		fastboot.exe flash recovery "+cfile+" "+device+"
+		fastboot.exe boot "+cfile+" "+device
+		}else {
+			flashTool="
+		cd tools
+		adb.exe sideload "+cfile
+		}
+		return flashTool; 
+	}
+	
+}

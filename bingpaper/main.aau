@@ -1,0 +1,88 @@
+﻿import win.ui;
+/*DSG{{*/
+mainForm = ..win.form( parent=...;right=1;bottom=1 )
+mainForm.add(  )
+/*}}*/
+
+import win.util.tray;
+var tray = win.util.tray(mainForm)
+
+import inet.http;
+var http = inet.http()
+
+//建立保存BING背景图的目录
+var img_save_dir = string.replace(io._exepath,"\.\w*$","") ++ "\"
+import fsys;
+if not(io.exist(img_save_dir,6)){
+	fsys.createDir(img_save_dir)
+}
+
+//用于匹配源码背景图链接的正则
+var image_regex = {}
+table.push(image_regex,"g_img\=\{url\:\'(.*?)\'.*\}")
+table.push(image_regex,"background-image\:url\((.*?)\)")
+
+//下载BING主页源码
+var bing = ""
+for(i=1;10;1){
+	bing = http.get("http://cn.bing.com")
+	if(#bing > 0){
+		break ;
+	}
+	tray.pop("无法下载BING源码，等待10秒后重试","")//提示XX秒后重试
+	sleep(10*1000)
+}
+
+//匹配源码中的背景图链接
+var bing_img = ""
+for(pos,img_regex in image_regex){
+	bing_img = string.match(bing,img_regex)
+	if(bing_img != null){
+		break ;
+	}
+}
+if(bing_img == null){
+	tray.pop("无法匹配BING背景图链接，退出程序","")//提示没有找到匹配
+	sleep(3*1000); tray.delete(); win.quitMessage() //退出程序	
+}
+var img_save_path = img_save_dir ++ string.match(bing_img,".*/(.*)$") //保存背景图的路径
+
+//下载背景图到硬盘上
+import inet.downBox
+var downBox = inet.downBox(mainForm,"正在下载壁纸")
+downBox.endProc = function(ret,fileSize,err){ 
+	if(ret) owner.endModal(); //下载完成后自动关闭对话框
+}
+downBox.download( bing_img, img_save_path ) //开始下载
+if( downBox.complete ){ //下载完成后的处理
+	fsys.delete(img_save_path ++ ".dowload") //AAUTO自动生成，可删
+}
+
+//是否设置为壁纸，超时则自动确认
+var active_wallpaper = 6 //不经过确认，直接设置壁纸
+//var active_wallpaper = win.msgboxTimeout("是否设置当前下载的背景图为壁纸？","超时4秒后将自动确认",4*1000,4)
+if (active_wallpaper == 6 || active_wallpaper == 32000){ //为6则选择了『是』，为32000则是超时没有选择
+	import gdip;
+	var wallpaper_path = fsys.getTempDir() ++ "wallpaper.bmp"
+	var img_object = gdip.image(img_save_path) //加载原图片，创建图片对象
+	img_object.save(wallpaper_path)
+	img_object.dispose() //释放图片对象
+	
+	//设置壁纸显示方式(平铺、居中、拉伸)
+	import win.reg;
+	regedit = win.reg("HKEY_CURRENT_USER\Control Panel\Desktop")
+	regedit.setSzValue("TileWallpaper","0") //好像是拉伸，不确认
+	regedit.close()
+	
+	//调用API函数修改壁纸
+	SystemParametersInfo = ::User32.api("SystemParametersInfoA","int(int uAction,int uParam,string lpvParam,int fuWinIni)")
+	//用API函数修改壁纸
+	SystemParametersInfo(0x14/*_SPI_SETDESKWALLPAPER*/,0, wallpaper_path, 1 | 2 /*_SPIF_UPDATEINIFILE | _SPIF_UPDATEINIFILE*/);
+}
+
+http.close()
+tray.delete()
+win.quitMessage()
+
+//mainForm.show()
+//win.loopMessage()

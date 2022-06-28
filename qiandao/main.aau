@@ -1,0 +1,75 @@
+import console;
+import curl;
+import inet.http;
+
+var http = curl.easy()
+var haha =inet.http()
+var html,err,errCode
+var dourl=""
+var loginurl="http://10.68.100.39/xt_UserLogin.asp"
+var inurl="http://10.68.100.39/Sign/xt_SignAdd.asp"
+var outurl="http://10.68.100.39/Sign/xt_SignoutAdd.asp"
+var username="songqn"
+var password="123"
+var site="%C6%E4%CB%FB"
+var hostname="songqn-pc"
+var mac="00%3A24%3A7E%3A04%3AB7%3AEB"
+var tm
+var tmm
+
+signbak=function(){
+
+http.setCookieFile()
+var str = http.post(loginurl,{
+	UserID=username; 
+	pwd=password;
+	WORKSITE=site;
+	LOGON_INFO=hostname;
+	MAC_ADD=mac;
+	x="46";
+	y="15"
+})
+str = http.post(dourl,{})	
+}
+
+sign=function(){
+if(time.now().dayofweek<1||time.now().dayofweek>5){
+	return ; 
+}
+if(time.now().hour==8){
+	dourl=inurl
+	console.log(time.now())
+	console.log("签到")
+}else {
+	dourl=outurl;
+	console.log(time.now())
+	console.log("签出")
+}
+
+html,err,errCode = haha.post( loginurl,"UserID="+username+"&pwd="+password+"&WORKSITE="+site+"&LOGON_INFO="+hostname+"&MAC_ADD="+mac+"&x=46&y=15" );
+html,err,errCode = haha.post( dourl ,"" );
+}
+
+math.randomize()
+
+while(true){
+tm=time.now();
+tm.hour=17;
+tm.minute=math.random(38,50);
+console.log(tm)
+console.log(tm.diffsecond(time.now()))
+console.log("等待")
+sleep(tm.diffsecond(time.now())*1000)
+sign();
+tmm=time.now();
+tmm.addday(1)
+tmm.hour=8;
+tmm.minute=math.random(8,22);
+console.log(tmm)
+console.log(tmm.diffsecond(time.now()))
+console.log("等待")
+sleep(tmm.diffsecond(time.now())*1000)
+console.clearScreen ()
+sign();
+}
+

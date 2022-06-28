@@ -1,0 +1,79 @@
+import win.ui;
+/*DSG{{*/
+iSwitchConfig = win.form(text="iSwitch Pro";right=287;bottom=359;border="dialog frame";max=false;min=false;mode="popup")
+iSwitchConfig.add(
+btn_cancel={cls="button";text="取消";left=160;top=312;right=232;bottom=344;z=3};
+btn_confirm={cls="button";text="确认";left=56;top=312;right=128;bottom=344;default=1;tabstop=1;z=2};
+edit_ip_addr={cls="edit";left=96;top=136;right=256;bottom=160;edge=1;tabstop=1;z=4};
+edit_passwd={cls="edit";left=96;top=248;right=256;bottom=272;edge=1;password=1;tabstop=1;z=6};
+edit_username={cls="edit";left=96;top=192;right=256;bottom=216;edge=1;tabstop=1;z=5};
+groupbox={cls="groupbox";left=16;top=104;right=272;bottom=296;ah=1;aw=1;edge=1;z=1};
+plus={cls="plus";left=112;top=16;right=168;bottom=72;ah=1;aw=1;background="\res\i.png";iconStyle={font=LOGFONT(name='FontAwesome');valign="bottom"};z=7};
+static={cls="static";text="配置";left=128;top=81;right=160;bottom=97;ah=1;aw=1;transparent=1;z=8};
+static1={cls="static";text="配置地址：";left=25;top=138;right=97;bottom=162;transparent=1;z=9};
+static2={cls="static";text="用 户 名：";left=25;top=197;right=97;bottom=221;transparent=1;z=10};
+static3={cls="static";text="密    码：";left=25;top=252;right=97;bottom=276;notify=1;transparent=1;z=11}
+)
+/*}}*/
+
+import win.cur
+
+iSwitchConfig.beforeShowWindow = function(shown, status) { 
+	config = iSwitchConfig.parent.iconfig
+	
+	iSwitchConfig.edit_ip_addr.text = config.addr
+	iSwitchConfig.edit_username.text = config.username
+	iSwitchConfig.edit_passwd.text = config.passwd
+
+}
+
+
+iSwitchConfig.onInitDialog = function(hwnd,message,wParam,lParam) {
+	// 在父窗口中设置了autoLogin则自动登录
+	if (iSwitchConfig.parent.autoLogin) {
+    	iSwitchConfig.btn_confirm.oncommand()
+
+	}
+}
+
+iSwitchConfig.btn_cancel.oncommand = function(id,event) {
+	// iSwitchConfig.close()
+	win.cur.endCur()
+	iSwitchConfig.endModal(false)
+}
+
+
+iSwitchConfig.btn_confirm.oncommand = function(id, event) {
+    var text = iSwitchConfig.btn_confirm.text
+    iSwitchConfig.btn_confirm.text = "连接中..."
+	iSwitchConfig.btn_confirm.disabled = true
+
+	win.cur.beginWaitCur()
+    
+	var success, message = iSwitchConfig.parent.login(
+									iSwitchConfig.edit_ip_addr.text,
+									iSwitchConfig.edit_username.text,
+									iSwitchConfig.edit_passwd.text)
+	if (!success) {
+		iSwitchConfig.btn_confirm.text = text
+		iSwitchConfig.btn_confirm.disabled = false
+		win.cur.endCur()
+		
+		iSwitchConfig.msgbox(message)
+		return
+	}
+	
+	config = iSwitchConfig.parent.iconfig
+	config.addr = iSwitchConfig.edit_ip_addr.text
+	config.username = iSwitchConfig.edit_username.text
+	config.passwd = iSwitchConfig.edit_passwd.text
+	config.save()
+		
+	// iSwitchConfig.close()
+	win.cur.endCur()
+	iSwitchConfig.endModal(true)	
+}
+
+iSwitchConfig.show()
+
+return win.loopMessage()

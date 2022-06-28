@@ -1,0 +1,211 @@
+import win.ui;
+import win.util.tray;
+/*DSG{{*/
+mainForm = ..win.form( right=380;bottom=126;max=false;text="定时启动器";parent=...)
+mainForm.add( 
+spin={ top=57;bottom=77;z=8;right=131;left=111;cls="spin" };
+startTimer={ bottom=120;text="启动定时任务";left=29;top=99;z=12;right=116;cls="button" };
+static={ notify=1;text="当前时间";left=11;top=1;transparent=1;bottom=20;right=238;z=1;cls="static" };
+minedit={ bottom=78;text="0";left=188;top=57;z=10;right=217;edge=1;cls="edit" };
+static2={ bottom=46;text="启动程序:";left=11;right=66;top=31;z=4;transparent=1;cls="static" };
+state={ bottom=120;align="center";right=371;left=230;top=97;center=1;z=5;color=255;border=1;cls="static" };
+editProjectDir={ bottom=51;right=300;left=82;top=27;z=3;edge=1;cls="edit" };
+spin2={ top=57;bottom=77;z=11;right=237;left=217;cls="spin" };
+btnDlgDir={ bottom=47;text="浏览...";left=315;top=29;z=2;right=359;cls="button" };
+houredit={ bottom=78;text="0";left=82;top=57;z=7;right=111;edge=1;cls="edit" };
+stopTimer={ disabled=1;bottom=120;right=223;left=136;top=99;z=13;text="停止定时任务";cls="button" };
+hourlab={ bottom=82;right=82;left=11;text="时(24):";top=62;z=6;transparent=1;cls="static" };
+minlab={ bottom=81;text="分(60):";left=141;right=185;top=61;z=9;transparent=1;cls="static" }
+)
+/*}}*/
+
+task_t = function(hwnd,ms){
+	import win;
+	import thread.event;
+	import process;
+	
+	var evt = thread.event("定时事件 GUID:064748DD-AC15-4143-B077-BCC5B6ABAD92")
+	while( ! evt.wait(ms) ){ 
+		//win.setText(hwnd,tostring( time() ) )
+		var tm = time();
+		var needHour = thread.get("startHour") - tonumber(tm.hour);
+		var needMin = thread.get("startMin") - tonumber(tm.minute)-1;
+		var needSec = 59-tm.second;
+		if(needMin<0){	
+			needMin = 60+needMin;
+			needHour -= 1;
+		}
+		if(needHour<0){
+			needHour = 24 + needHour;
+		}
+		var needText = "任务倒计时:"+string.format("%02i", needHour)+":"+string.format("%02i",needMin)+":"+string.format("%02i", needSec);
+		win.setText(hwnd,needText);
+		io.print(needText);
+		if(needHour==0&&needMin==0&&needSec==0){
+			process(thread.get("execPath"));
+			return;
+		}
+	}
+}
+
+import thread.event;
+var evtTask = thread.event("定时事件 GUID:064748DD-AC15-4143-B077-BCC5B6ABAD92",false)
+
+mainForm.startTimer.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startTimer.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			var len = string.len(mainForm.editProjectDir.text);
+			if(len==0){
+				mainForm.msgboxErr("定时目标为空，请选择...","警告");
+			}else{
+				startHour = tonumber(mainForm.houredit.text);
+				startMin = tonumber(mainForm.minedit.text);
+				thread.set("startHour",startHour );
+				thread.set("startMin", startMin);
+				thread.set("execPath", mainForm.editProjectDir.text);
+				mainForm.startTimer.disabled = true;
+				mainForm.editProjectDir.disabled = true;
+				mainForm.stopTimer.disabled = false;
+				hThread = thread.create(task_t,mainForm.state.hwnd,1000);
+				thread.waitOne(hThread)
+				mainForm.startTimer.disabled = false;
+				mainForm.editProjectDir.disabled = false;
+				mainForm.stopTimer.disabled = true;
+				mainForm.state.text = "";
+			}
+		}
+	}
+	
+}
+
+mainForm.stopTimer.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.startTimer.text );
+	select(event) {
+		case 0x0/*_BN_CLICKED*/ {
+			evtTask.set();//使事件对象切换为有信号状态,使wait函数退出;
+		}
+	}
+	
+}
+
+mainForm.houredit.oncommand = function(id,event){
+     select(event) {
+     	case 0x300/*_EN_CHANGE*/{
+     		var val =  tonumber(mainForm.houredit.text,10);
+        	if(val>=0&&val<24){
+        		mainForm.spin.pos = val;
+        	}else{
+        		mainForm.houredit.text = "00";
+        	}
+     	}
+     	
+     }
+	
+}
+
+mainForm.minedit.oncommand = function(id,event){
+     select(event) {
+     	case 0x300/*_EN_CHANGE*/ {
+     		var val =  tonumber(mainForm.minedit.text,10);
+        	if(val>=0&&val<=59){
+        		mainForm.spin2.pos = val;
+        	}else{
+        		mainForm.minedit.text = "00";
+        	}
+     	}
+     	
+     }
+	
+}
+
+
+mainForm.spin.oncommand = function(id,event,pos){
+	if( pos && event==4){
+		mainForm.houredit.text = string.format("%02i", pos);
+		io.print(pos);
+	}
+	if(pos == 0 && event==4)
+		mainForm.houredit.text = string.format("%02i", pos);
+}
+
+mainForm.spin2.oncommand = function(id,event,pos){
+	if( pos && event==4){
+		mainForm.minedit.text = string.format("%02i", pos);
+	}
+	if(pos == 0 && event==4)
+		mainForm.minedit.text = string.format("%02i", pos);
+}
+
+
+mainForm.static.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.static.text );
+	
+	
+}
+
+import fsys.dlg;
+mainForm.btnDlgDir.oncommand = function(id,event){
+	//var dir = fsys.dlg.opendir( fsys.getParentDir( mainForm.editProjectDir.text ),mainForm.hwnd );
+	var dir = fsys.dlg.open("可执行文件|*.exe|所有文件|*.*",,fsys.getCurDir(),mainForm.hwnd);
+	if( dir ){
+		mainForm.editProjectDir.text = dir;
+	} 
+}
+mainForm.spin.setRange(0,23);
+mainForm.spin2.setRange(0,59);
+
+var tray;
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x205/*_WM_RBUTTONUP*/{
+			//鼠标右键弹起,下面获取坐标
+			var x,y = win.getMessagePos(lParam);
+			
+		}
+		case( 0x400/*_WM_USER*/+9981 ) { //托盘图标消息
+            select(lParam){
+                case = (0x203/*_WM_LBUTTONDBLCLK*/ ){//双击托盘图标打开窗口
+                	if(tray) tray.delete();
+                    mainForm.show(true);
+                }
+            
+            }                                                  
+
+         } 
+        case( 0x112/*_WM_SYSCOMMAND*/ ){ //系统命令消息
+            if( wParam == 0xF020/*_SC_MINIMIZE*/ ){ //用户点击了最小化按钮
+                import win.util.tray;
+                tray = win.util.tray(mainForm.hwnd) //创建托盘图标
+                tray.message = 0x400/*_WM_USER*/ + 9981 //设置托盘图标回调消息
+                tray.pop("定时器最小化" )
+                mainForm.show(false); //隐藏窗口
+                return true;//阻击默认消息传递，取消最小化过程
+
+              } 
+        }
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+        	if(tray) tray.delete();
+        }
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+var ff=function(hwnd,msg,id,tick){//定时执行代码    
+     var tm=time()
+     tm.format="%Y-%m-%d %H:%M:%S";
+     mainForm.static.text="当前时间：" ++ tostring(tm);
+ }
+ ff()
+ tmid = mainForm.addtimer(
+     1000/*毫秒*/,
+     ff
+ );
+
+
+var tm = time();
+mainForm.houredit.text = tm.hour;
+mainForm.minedit.text = tm.minute;
+
+mainForm.show() 
+win.loopMessage(); 

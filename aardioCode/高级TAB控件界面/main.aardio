@@ -1,0 +1,34 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=759;bottom=469)
+mainForm.add(
+edit={cls="edit";left=14;top=246;right=743;bottom=455;db=1;dl=1;dr=1;dt=1;edge=1;multiline=1;z=1}
+)
+/*}}*/
+
+import thread.command;
+var listener = thread.command();
+listener.print = function( ... ){
+    mainForm.edit.print( ... ) //将线程传过来的参数追加输出到文本框
+} 
+
+//创建工作线程,线程内错误信息默认输出到控制台
+thread.invoke(
+
+    function(hwnd){ 
+    
+        //必须在线程函数内部导入需要的库
+        import thread.command;
+        
+        //调用界面线程的命令
+        thread.command.print("hello world",1,2,3);
+        
+        //也可以用post方法异步调用线程命令,不会等待调用完成
+        thread.command.post("print","hello world",1,2,3);
+    } 
+);
+
+mainForm.enableDpiScaling();
+mainForm.show();
+
+return win.loopMessage(); 

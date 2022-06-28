@@ -1,0 +1,62 @@
+﻿import web.json;    
+import inet.http;
+
+namespace sdk;
+class kuaishou{
+	ctor(url){
+		var http = ..inet.http();
+		http.disableCache();
+	};
+	getStreamInfo = function(){
+		var roomId = ..string.match( url, "<@live.kuaishou.com/u/@>(.+)");
+		if !roomId
+			return null, "房间号填写有误";
+		var webapi = "https://m.gifshow.com/fw/live/%s";
+		var header = {
+    			['User-Agent'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1';
+   		 	};
+		var html = http.get( url, header, "" )
+		if( !html ){
+			return null, "网络连接有误"; 
+		}
+
+		var roomData = ..string.match( html, 'name="keywords"\\s+content="([^"]+)"' );
+		if( !roomData ){
+			return null, "网址数据已更新，暂时不支持"; 
+		}
+		
+		var roomName = ..web.json.parse( roomData );
+	
+		var streamUrl;
+	 	html = http.get(url, header, "");
+   		streamUrl = ..string.match(html, 'type="video/mp4"\\s+src="([^"]*?)_sd1000tp.m3u8');
+ 		streamUrl ?= streamUrl ++ ".flv";
+		return {
+			website = "kuaishou";
+			roomUrl = url;
+			roomId = roomId;
+			ownerName = roomId;
+			roomName = roomName;
+			isLive = true;
+			streamUrl = streamUrl;
+			avatarUrl = "https://www.kuaishou.com/favicon.ico";
+		} 
+	}
+}
+namespace kuaishou{
+    info = {
+        name = "快手";
+        url = "https://www.kuaishou.com/";
+    }
+    
+ 	canHandle = function(url){
+		return ..string.match( url, "<@live.kuaishou.com/u/@>(.+)" ); 
+	}      	
+}
+
+/*
+import console;
+console.open();
+console.dump(kuaishou("https://live.kuaishou.com/u/dayazong").getStreamInfo());
+execute("pause");
+*/

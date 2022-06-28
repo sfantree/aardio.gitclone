@@ -1,0 +1,175 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+ 
+namespace libidevice;
+
+..raw.loadDll("\dll\libgcc_s_dw2-1.dll");
+..raw.loadDll("\dll\libiconv-2.dll");
+..raw.loadDll("\dll\libxml2-2.dll");
+..raw.loadDll("\dll\msvcr110.dll");
+..raw.loadDll("\dll\libeay32.dll");
+..raw.loadDll("\dll\ssleay32.dll");
+..raw.loadDll("\dll\libplist.dll", ,"cdecl");
+..raw.loadDll("\dll\libusbmuxd.dll", ,"cdecl");
+..raw.loadDll("\dll\libimobiledevice.dll", ,"cdecl");
+
+var dll = ..raw.loadDll("\dll\libidevice.dll", ,"cdecl");
+	
+class idevice {
+	
+	ctor( ... ){
+			
+		..table.gc(this,"disconnect")
+	};	
+	
+	connect = function(udid) {
+	
+		return dll.connect(udid);
+	};
+	
+	getDeviceInfo = function() {	
+		var info  = {};
+		var plist = topointer(dll.get_device_info());
+		if(plist) {
+			info = ..raw.convert(plist,
+				{
+					string device_name;
+					string device_class;
+					string device_color;
+					string product_version;
+					string serial_number;
+					string phone_number;
+					string model;
+					string fs_totalbytes;
+					string fs_freebytes;
+					string fs_blocksize
+				}
+			);	
+			dll.idevice_info_free(plist);
+		}
+		return info;
+	};
+	
+	getDeviceList = function() {
+		var dsp = {};
+		var plist = topointer(dll.get_device_list()); 
+		var p = plist;
+		while(p){
+			var info = ..raw.convert(p,{string udid;string name;string device_class;pointer next});
+			p = info.next;
+			info.next = null;
+			..table.push(dsp,info);
+		}
+		dll.idevice_list_free(plist);
+		return dsp;	
+	};
+	
+	setDeviceName = function(name) {
+		
+		return dll.set_idevice_name(name);	
+	};
+	
+	getAppList = function(apptype) {
+		var dsp = {};
+		var plist = topointer(dll.get_app_list(apptype)); 
+		var p = plist;
+		while(p){
+			var info = ..raw.convert(p,
+				{
+					string s_appid;
+					string s_name;
+					string s_version;
+					pointer next
+				}
+			);
+			p = info.next;
+			info.next = null;
+			..table.push(dsp,info);
+		}
+		dll.idevice_app_list_free(plist);
+		return dsp;		
+	}	
+	
+	uninstallApp = function(appid) {
+	
+		if(..string.trim(appid) == "") return;
+		
+		return dll.idevice_uninstall_app(appid);	
+	};
+	
+	ls = function(path) {
+		var dsp = {};
+		var plist = topointer(dll.do_list(path)); 
+		var p = plist;
+		while(p){
+			var info = ..raw.convert(p,
+				{
+					string name;
+					string st_nlink;
+					string st_ifmt;
+					string st_mtime;
+					string st_birthtime;
+					pointer next
+				}
+			);
+			p = info.next;
+			info.next = null;
+			..table.push(dsp,info);
+		}
+		dll.idevice_file_list_free(plist);
+		return dsp;
+	};
+	
+	mkdir = function(path) {
+	
+		return dll.do_mkdir(path);	
+	};
+	
+	remove = function(path) {
+		
+		return dll.do_rm(path);
+	};
+	
+	rename = function(src, dst) {
+		
+		return dll.do_rename(src, dst);
+	};	
+	
+	download = function(src, dst) {	
+	
+		return dll.do_download(src, dst);
+	};
+		
+	upload = function(src, dst) {
+		
+		return dll.do_upload(src, dst);
+	};
+	
+	shutdown = function() {
+	
+		return dll.idevice_shutdown();	
+	};
+	
+	restart = function() {
+	
+		return dll.idevice_restart();
+	};
+		
+	disconnect = function(){	
+		
+		dll.disconnect();
+	};
+	  
+	getVersion = function() {
+	
+		return ..raw.tostring(topointer(dll.get_version())); 
+	};
+	
+	getAuthor = function() {
+	
+		return ..raw.tostring(topointer(dll.get_author()));
+	};
+}

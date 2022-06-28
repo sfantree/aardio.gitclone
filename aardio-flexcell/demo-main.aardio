@@ -1,0 +1,264 @@
+import win.ui;
+import win.ui.menu;
+/*DSG{{*/
+mainForm = win.form(text="FlexCell库调用示例";right=840;bottom=501)
+mainForm.add(
+button={cls="button";text="取消合并";left=-1;top=336;right=119;bottom=371;z=2};
+button10={cls="button";text="Button";left=147;top=451;right=278;bottom=499;z=11};
+button2={cls="button";text="先用鼠标拖动范围选中,然后点这里合并";left=128;top=334;right=346;bottom=369;z=3};
+button3={cls="button";text="画个图表";left=672;top=332;right=835;bottom=367;z=4};
+button4={cls="button";text="导出到excel";left=572;top=333;right=661;bottom=368;z=5};
+button5={cls="button";text="第三列添加下拉框控件";left=403;top=334;right=566;bottom=369;z=6};
+button6={cls="button";text="插入一行";left=626;top=452;right=836;bottom=499;z=7};
+button7={cls="button";text="冻结上面两行";left=442;top=452;right=620;bottom=502;z=8};
+button8={cls="button";text="关于FlexCell控件";left=292;top=453;right=423;bottom=501;z=9};
+button9={cls="button";text="设置第3行自动适应字体大小";left=596;top=394;right=833;bottom=429;z=10};
+static={cls="static";left=42;top=51;right=813;bottom=299;db=1;dl=1;dr=1;dt=1;transparent=1;z=1}
+)
+/*}}*/
+
+import FlexCellLib;
+var flexobj = FlexCellLib(mainForm.static,33,10);
+flexobj.Cell(3,3).BackColor = 0x2D8ECF
+//flexobj.Cell(9,9).EnsureVisible()
+for(i=1;9;1){
+    flexobj.Cell(0, i).Text = i
+	for(j=1;9;1){
+		flexobj.Cell(i,j).Text = i++j;
+		if((i+j)%3 == 0){
+			flexobj.Cell(i,j).ForeColor = 0x2D12CF;
+			flexobj.Cell(i,j).Alignment=0xA/*_cellCenterCenter*/;
+			
+		}
+	}
+}
+
+flexobj.BackColorComment = 0x1480FF
+flexobj.Cell(5,6).Comment = "十大国际空港"
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+mainForm.popmenu.add('删除此行',function(id){
+	//在下面输入菜单响应代码
+	
+	flexobj.RemoveItem(flexobj.MouseRow)
+});
+mainForm.popmenu.add();//分隔线
+mainForm.popmenu.add('删除此列',function(id){ 
+	flexobj.Range(0,flexobj.MouseCol,0,flexobj.MouseCol).DeleteByCol()
+
+ })
+
+
+
+
+
+
+import console
+console.open()
+
+flexobj.AfterUserSort = function(col)
+{
+	console.log(col)
+}
+flexobj.CellChange = function(row,col)
+{
+	console.log(row,col)
+}
+flexobj.DblClick = function()
+{
+	console.log("双击表格了")
+}
+
+flexobj.EditRow = function(index){
+	/***此事件在活动单元格设置到一个新行后，第一次编辑单元格的内容时发生
+	 Index 返回一个整数，标识正在编辑的单元格的行号  ***/
+	console.log(index)
+}
+flexobj.EnterRow = function(index){
+	/***此事件在活动单元格设置到一个新行后发生
+	 Index 返回一个整数，标识进入的行号   ***/
+	console.log(index)
+}
+flexobj.MouseDown = function(Button , Shift, x, y){
+	/***这些事件是当按下(MouseDown)、释放(MouseUp)或者移动(MouseMove)鼠标按钮时发生
+	 Button 返回一个整数，用来标识该事件的产生是按下 ( MouseDown ) 或者释放 ( MouseUp ) 按钮引起的。
+	 button 参数是具有相应于左按钮（位 0），右按钮（位 1），以及中间按钮（位 2）的一个位字段。这些位的值分别等于 1，2，和 4。其中仅有一位被设置，指示出引起该事件的那个按钮  
+	 Shift 返回一个整数，在 button 参数指定的按钮被按下或者被释放的情况下，该整数相应于 SHIFT,CTRL,和 ALT 键的状态。
+	 某键被按下使得一个二进制位被设置。shift 参数是具有相应于 SHIFT 键（位 0），CTRL 键（位 1），以及 ALT 键（位 2）最少二进制位的一个位字段。
+	 这些位的值分别等于 1，2，和 4。shift 参数指示这些键的状态。这些位中可能有一些，全部，或者一个也没有被设置，指示这些键中的一些、全部，或者一个也没有被按下。
+	 例如，CTRL 和 ALT 键都被按下，则 shift 的值就是 6。  
+	 x,y 返回一个指定鼠标指针当前位置的数 
+	***/
+	
+}
+flexobj.MouseUp = function(Button , Shift, x, y){
+	/***这些事件是当按下(MouseDown)、释放(MouseUp)或者移动(MouseMove)鼠标按钮时发生
+	 Button 返回一个整数，用来标识该事件的产生是按下 ( MouseDown ) 或者释放 ( MouseUp ) 按钮引起的。
+	 button 参数是具有相应于左按钮（位 0），右按钮（位 1），以及中间按钮（位 2）的一个位字段。这些位的值分别等于 1，2，和 4。其中仅有一位被设置，指示出引起该事件的那个按钮  
+	 Shift 返回一个整数，在 button 参数指定的按钮被按下或者被释放的情况下，该整数相应于 SHIFT,CTRL,和 ALT 键的状态。
+	 某键被按下使得一个二进制位被设置。shift 参数是具有相应于 SHIFT 键（位 0），CTRL 键（位 1），以及 ALT 键（位 2）最少二进制位的一个位字段。
+	 这些位的值分别等于 1，2，和 4。shift 参数指示这些键的状态。这些位中可能有一些，全部，或者一个也没有被设置，指示这些键中的一些、全部，或者一个也没有被按下。
+	 例如，CTRL 和 ALT 键都被按下，则 shift 的值就是 6。  
+	 x,y 返回一个指定鼠标指针当前位置的数 
+	***/
+	console.log(Button , Shift, x, y)
+	if(Button == 2){
+		mainForm.popmenu.popup();
+	}
+}
+flexobj.RowColChange = function(row,col){
+	/***当前活动单元更改到不同单元时发生
+	 Row 返回一个整数，标识单元格所在的行  
+	 Col 返回一个整数，标识单元格所在的列  
+	***/
+	console.log(row,col)
+}
+flexobj.Scroll  = function(){
+	/***此事件在滚动条的值改变时发生***/
+	console.log("滚动条动了")
+}
+
+flexobj.AfterUserSort = function(col){
+	/***用户可以点击列标题（固定行）对表格数据进行排序，此事件在排序完成后发生
+	 Col 返回一个整数，标识已排序的列号 ***/
+	
+}
+flexobj.ComboClick = function(index){
+	/***此事件在用户用鼠标点击ComboBox子控件下拉列表中的项时发生
+	 Index 返回一个整数，标识ComboBox子控件在FlexCell控件中所处的列数 ***/
+	console.log( "comboBox在第?列",index )
+}
+
+flexobj.Cell(3,3).CellType = 1/*_cellComboBox*/;
+flexobj.ComboDropDown = function(row,col){
+	/***此事件在用户用鼠标点击ComboBox中的小箭头时发生。
+	 只有CellType设置为cellComboBox的单元格才能触发此事件，
+	 在此事件发生前，会清除ComboBox(0)的下拉列表项，因此必须在此事件中编程向ComboBox(0)添加下拉列表项
+	 Row 返回一个整数，标识ComboBox子控件在Grid中所处的行数  
+	 Col 返回一个整数，标识ComboBox子控件在Grid中所处的列数   ***/
+	 for(i=1;5;1){	
+	 	flexobj.ComboBox(0).AddItem("动态加载的"++i)
+	 }
+	 console.log("此处只对3,3单元格有效",row,col)
+	
+}
+flexobj.Cell(3,5).CellType = 4/*_cellButton*/;
+flexobj.Cell(3,5).BackColor = 0x32A2CF;
+flexobj.ButtonClick = function(){
+	/***此事件在用户用鼠标点Button类型的单元格时发生。
+	您可以在此事件中做一些有用的事情，例如可以调用CommonDialog控件来选择文件名 ***/
+	
+	mainForm.msgbox("你点击了按钮"++flexobj.Cell(flexobj.MouseRow,flexobj.MouseCol).Text)
+}
+
+mainForm.button.oncommand = function(id,event){
+	//console.dump( flexobj.BottomRow )
+	//flexobj.OpenFile("")
+	//console.dump(flexobj.FixedCols)
+	//flexobj.HPageBreaks.Add(5)
+	//flexobj.LeftCol = 5
+	//flexobj.Range(1, 1, 2, 4).Selected()
+	flexobj.Selection.MergeCells = false
+}
+
+mainForm.button2.oncommand = function(id,event){
+    //flexobj.ReadOnly = true
+    //flexobj.FixedRowColStyle =0
+	//flexobj.SaveFile("")
+	//console.dump(flexobj.HPageBreaks.Count())
+	//flexobj.Images.Item("key").Key
+	
+	//flexobj.Range(1, 1, 2, 4).Selected()
+	flexobj.Selection.MergeCells = true
+	//flexobj.Selection.Merge();
+	flexobj.Selection.BackColor = 0xe0e0e0
+	flexobj.Selection.ForeColor = 0xcc1111;
+	flexobj.Selection.Alignment = 0xA/*_cellCenterCenter*/
+	flexobj.Selection.Borders(1/*_cellEdgeRight*/,2/*_cellThick*/);
+}
+
+mainForm.button3.oncommand = function(id,event){
+	flexobj.Range(6, 1, 8, 7).Merge()
+	flexobj.Range(6, 1, 8, 7).Borders(0,1)
+	flexobj.Range(6, 1, 8, 7).Borders(1,1)
+	flexobj.Range(6, 1, 8, 7).Borders(2,1)
+	flexobj.Range(6, 1, 8, 7).Borders(3,1)
+	flexobj.AddChart(6,1)
+	flexobj.Chart(6, 1).PlotBy = 1/*_cellRows*/
+	flexobj.Chart(6, 1).SetDataSource( 2, 2, 2, 7)
+	flexobj.Chart(6, 1).ChartType = 1/*_cell3DLine*/
+	flexobj.Range(1, 1, 1, 7).Merge()
+	flexobj.Refresh();
+
+}
+
+mainForm.button4.oncommand = function(id,event){
+	//flexobj.AddItem("hah	123	456")
+	//flexobj.PrintPreview();
+	//flexobj.FileName = "C:\Users\yjw\Desktop\flexcell\aa6.xls"
+
+	flexobj.ExportToExcel("",true,true);
+	
+}
+
+mainForm.button5.oncommand = function(id,event){
+	flexobj.Column(3).CellType = 1/*_cellComboBox*/
+	flexobj.Column(3).SearchMethod = 0;
+	flexobj.ComboBox(3).ListRows = 8;
+	flexobj.ComboBox(3).ListWidth = 200;
+	for(i=1;9;1){
+		flexobj.ComboBox(3).AddItem("item"++i)
+	
+	}
+
+}
+//设置无左侧和上侧栏
+//flexobj.Column(0).Width = 0;
+//flexobj.setRowHeight(0,0)
+//允许双击排序
+
+mainForm.button6.oncommand = function(id,event){
+	//flexobj.Cell(4,4).Text = "ha哈哈哈"
+	//flexobj.ReadOnly = false;
+	flexobj.InsertRow(flexobj.ActiveCell().Row, 1)
+	//flexobj.ReadOnly = true;
+}
+
+
+//flexobj.ReadOnly = true;
+
+mainForm.button7.oncommand = function(id,event){
+    if(flexobj.FrozenRows){
+    	flexobj.FrozenRows = 0
+    }else {
+    	flexobj.FrozenRows = 2
+    }
+}
+
+mainForm.button8.oncommand = function(id,event){
+	//flexobj.MoveRow(4,3)
+	flexobj.AboutBox()
+}
+
+mainForm.button9.oncommand = function(id,event){
+    flexobj.Cell(3,6).Font.setSize(50)
+	flexobj.AutoFitRowHeight(3)
+}
+
+mainForm.button10.oncommand = function(id,event){
+	//flexobj.Cell(6,6).Font.setSize(50);
+	//flexobj.Cell(6,6).Font.setName("微软雅黑");
+}
+
+flexobj.SortIndicatorColor = 0x3223CF
+flexobj.BoldFixedCell= false;
+flexobj.AllowUserSort = true;
+flexobj.SelectionMode = 0
+flexobj.ReadOnlyFocusRect = 1
+flexobj.DefaultRowHeight = 30
+flexobj.BackColorFixed = 0x2DFFCF;
+flexobj.BackColorFixedSel = 0x2DFF4C;
+flexobj.BackColorScrollBar = 0x2DB400
+flexobj.BackColorBkg = 0xFFFFFF
+flexobj.BackColorSel = 0xFFA3FF
+mainForm.show();
+return win.loopMessage();

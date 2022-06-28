@@ -1,0 +1,88 @@
+import win.ui;
+import win.inputBox;
+import win.ui.menu;
+//import zeromq;
+import console;
+import fsys.dlg;
+/*DSG{{*/
+mainForm = ..win.form( right=600;text="ParseConfig";bottom=400 )
+mainForm.add( 
+//transformBtn={ bottom=195;color=0;right=248;left=168;top=168;font=LOGFONT( h=-16 );z=8;text="转换";cls="button" };
+//cancelBtn={ bottom=195;color=0;right=352;left=272;top=168;font=LOGFONT( h=-16 );z=7;text="取消";cls="button" };
+//tplVal={ bottom=90;right=355;left=184;top=64;z=3;edge=1;cls="edit" };
+//openTplBtn={ bottom=88;color=0;text="浏览...";left=367;top=61;font=LOGFONT( h=-16 );z=1;right=477;cls="button" };
+//configStorePath={ bottom=130;right=355;left=184;top=104;z=5;edge=1;cls="edit" };
+//openCfgBtn={ bottom=131;color=0;text="浏览...";left=368;top=104;font=LOGFONT( h=-16 );z=6;right=478;cls="button" };
+//tplLabel={ bottom=97;align="right";right=175;left=51;top=65;z=2;text="模板文件：";transparent=1;cls="static" };
+//cfgStoreLabel={ bottom=135;align="right";right=173;left=49;top=103;z=4;text="config存放路径：";transparent=1;cls="static" }
+)
+/*}}*/
+
+/*
+mainForm.openCfgBtn.oncommand = function(id,event){
+    //mainForm.msgbox( mainForm.openCfgBtn.text );	
+    var openDirName,openDirErr = fsys.dlg.opendir();
+    if (openDirErr == null) {
+        mainForm.configStorePath.text = openDirName;
+    } else {
+        win.msgbox(openDirErr);
+    }
+    
+}
+
+
+mainForm.cancelBtn.oncommand = function(id,event){
+    //mainForm.msgbox( mainForm.button2.text );
+    mainForm.close();
+    
+}
+
+
+mainForm.openTplBtn.oncommand = function(id,event){
+    //mainForm.msgbox( mainForm.openTplBtn.text );	
+    var openFileName,openFileErr = fsys.dlg.open("","","");
+    if (openFileErr == null) {
+        mainForm.tplVal.text = openFileName;
+    } else {
+        win.msgbox(openFileErr);
+    }
+    
+    
+}
+*/
+/*
+mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+mainForm.popmenu.add('&open',function(id){
+    //在下面输入菜单响应代码
+    
+});
+mainForm.popmenu.add();//分隔线
+mainForm.popmenu.add('&exit',function(id){ mainForm.close() })
+var menu = win.ui.menu(mainForm);//创建主菜单
+menu.add('file',mainForm.popmenu)
+*/
+/***
+import config;
+mainForm.bindConfig( config.mainForm,{
+    edit = "text"; //绑定edit控件的text属性值到配置文件
+    radiobutton = "checked";
+    checkbox = "checked";
+    combobox = "selIndex";
+} );
+***/
+
+mainForm.wndproc = {
+	[0x233/*_WM_DROPFILES*/] = function(hwnd,message,wParam,lParam){
+		var files = win.getDropFile(wParam)
+		win.msgbox(files);
+		//for(i=1;#files;1){
+		//	winform.lvChange.addItem(files[i])  
+		//}
+		//winform.files = table.concat(files,winform.files : {} );
+		//希望接受拖放后立即开始监控文件，而不是手动点击按钮
+		//winform.setTimeout( watchFiles ); 
+	}
+}
+
+mainForm.show() 
+win.loopMessage(); 

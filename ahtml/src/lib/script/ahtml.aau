@@ -1,0 +1,55 @@
+import script.aau;
+namespace script.ahtml;
+
+var rep = ..string.replace;
+
+var preCompile = function (ns, code) {
+	if ( ! ..string.find(code, "<\<\?>|<\?\>>") ) {
+		return '..io.stdout.write("' + rep(code, '"', '""') + '");';
+	}
+	var replacer = function (r, s) {
+		if (#s) {
+			return r + '..io.stdout.write("' + rep(s, '"', '""') + '");';
+		}
+		else {
+			return r;
+		}
+	}
+	code = rep(code, "\<\?<\s*>=([\s\S]*?)<;*>\?\>", "<?..io.stdout.write(\1);?>");
+	code = rep(code, "^(<\r\n>?)([\s\S]*?)\<\?", replacer);
+	code = rep(code, "\?\>(<\r\n>?)([\s\S]*?)\<\?", replacer);
+	code = rep(code, "\?\>(<\r\n>?)([\s\S]*?)$", replacer);
+	code = '
+		namespace ' + ns + ';
+		import io; import console; import string;
+		import table; import math; import time;
+		import com; import util;
+		var request = ..request;
+		var response = ..response;
+		var require = function (filename, args, code) {
+			if (code === null)
+				filename = ..io.fullpath(filename);
+			..script.ahtml.run("' + ns + '", filename, code, args);
+		}
+		' + code;
+	return code;
+}
+
+run = function (ns, filename = "", code, args) {
+	if (code === null) {
+		var file = ..fsys.file(filename, "r");
+		if ( ! file) {
+			error( ..string.concat(filename, "²»´æÔÚ"), 3 );
+		}
+		code = file.read(-1);	
+		file.close();
+	}
+	if ( ..string.startWith(code, "<?=AAuto") ) {
+		// ahtml ÒÑ±àÒë
+		code = ..string.right(code, -3);
+	}
+	else {
+		code = preCompile(ns, code);
+	}
+	..script.aau.run(ns, filename, code, args);
+}

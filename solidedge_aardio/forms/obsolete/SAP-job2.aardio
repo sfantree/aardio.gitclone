@@ -1,0 +1,85 @@
+import console; 
+console.open();
+
+import console.progress;
+var bar = console.progress();
+
+
+
+import com.excel;
+var excel = com.excel(true);
+bar.setProgress(1, "> open workbook ......");
+import fsys;
+fl = fsys.list("S:\Admin\SAP\",,"*.xlsx")
+table.sort(fl,function(k,v){
+	
+})
+
+console.log("打开:" ++ fl[#fl] )
+
+if !console.askYesNo("按Y键继续,按N键取消") return;
+
+console.clearScreen();
+console.log("正在打开...")
+var qWb = excel.WorkBooks.Open("S:\Admin\SAP\" ++ fl[#fl]);
+
+
+bar.setProgress(2, "> 查找总量 ......");
+var qSht = qWb.Sheets(1);
+
+var qTab = qSht.usedRange.Value2;
+var rc = #qTab;
+
+qWb.close(false);
+qSht = null;
+qWb = null;
+excel.Quit();
+
+//import etip;
+import tarray;
+
+qTab.fields = table.shift(qTab);
+qTab.fields = tarray.replaceValue(qTab.fields,"大小/量纲", "展平尺寸");
+qTab.fields = tarray.replaceValue(qTab.fields,"大小/量纲-开发", "展平尺寸");
+qTab.fields = tarray.replaceValue(qTab.fields,"行业标准描述-工艺", "生产展平尺寸");
+qTab.fields = tarray.replaceValue(qTab.fields,"禁用物料", "禁用");
+qTab.fields = tarray.replaceValue(qTab.fields,"物料状态", "禁用");
+
+/*
+bar.setProgress(3, "> 获取A列数据 ......");
+var qTabA = qSht.Range("A2:A" ++ rc).value2;
+
+bar.setProgress(3, "> 获取DE列数据 ......");
+var qTabD = qSht.Range("D2:E" ++ rc).value2;
+bar.setProgress(4, "> 打开DB ......");
+*/
+import sqlite.aes256;
+var db = sqlite.aes256("S:\Admin\SAP\db\qhcsap.db");
+if db.existsTable("qhc_export") db.exec("DROP table qhc_export;")
+
+/*
+var fields = string.join({qSht.Cells(1,"A").value2,qSht.Cells(1,"D").value2,qSht.Cells(1,"E").value2},",");
+fields = string.replace(fields, "禁用,","禁用物料,")
+*/
+var fields = string.join(qTab.fields,", ");
+
+db.exec("CREATE TABLE [qhc_export](" ++ fields ++ ");")  
+
+console.clearScreen();
+
+db.beginTrans();
+var n = #qTab;
+var vl = string.join(table.array(#qTab.fields,"?"),", ");
+
+for(i=1;n){
+	bar.setProgress(math.round(i*100/n), math.round(i*100/n) + "% 导入数据 ......");
+	var cmd = db.prepare("INSERT INTO [qhc_export] VALUES(" ++ vl ++ ");");
+	cmd.bind.parameters(
+		table.unpack(qTab[i])
+	).step()
+}
+db.commitTrans();
+bar.setProgress(100, "完成");
+db.close();
+
+console.pause(true);

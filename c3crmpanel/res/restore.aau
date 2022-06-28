@@ -1,0 +1,97 @@
+import win.ui;
+import droson;
+import fsys.dlg;
+import string.template;
+/*DSG{{*/
+var winform = ..win.form( min=false;right=415;bottom=239;parent=...;text="还原数据库";border="dialog frame";max=false )
+winform.add( 
+button2={ bottom=152;text="选择";left=312;top=128;z=3;right=368;cls="button" };
+editUserName={ bottom=55;right=368;left=120;top=32;z=5;edge=1;cls="edit" };
+static={ bottom=152;right=96;left=32;text="SQL 路径";top=136;z=1;transparent=1;cls="static" };
+editSqlPath={ bottom=151;right=287;left=120;top=128;z=2;edge=1;cls="edit" };
+editPassword={ bottom=87;right=368;left=120;top=64;z=6;edge=1;cls="edit" };
+static3={ bottom=46;right=80;left=32;text="用户名";top=32;z=7;transparent=1;cls="static" };
+editDatabase={ bottom=119;right=368;left=120;top=96;z=4;edge=1;cls="edit" };
+static5={ bottom=110;right=80;left=32;text="数据库名称";top=96;z=9;transparent=1;cls="static" };
+buttonRestore={ bottom=207;right=199;left=104;top=184;z=10;text="开始还原";cls="button" };
+static4={ bottom=78;right=80;left=32;text="密码";top=64;z=8;transparent=1;cls="static" };
+buttonClose={ bottom=207;text="关闭";left=312;top=184;z=11;right=367;cls="button" }
+)
+/*}}*/
+
+import process;
+import config;
+import droson;
+//io.open();
+
+if(config.backup.UserName){
+	winform.editUserName.text = config.backup.UserName;
+}else {
+	winform.editUserName.text = "backupuser";
+}
+
+if(config.backup.Password){
+	winform.editPassword.text = config.backup.Password;
+}else {
+	winform.editPassword.text = "crmone321";
+}
+
+if(config.backup.Database){
+	winform.editDatabase.text = config.backup.Database;
+}else {
+	winform.editDatabase.text = "ecustomer";
+}
+
+ 
+
+winform.buttonClose.oncommand = function(id,event){
+	//winform.msgbox( winform.buttonClose.text );
+	winform.close();
+}
+
+
+ 
+
+winform.buttonRestore.oncommand = function(id,event){
+	var status = win.msgboxTest("确定要开始还原？",droson.mfr);
+	if(!status){
+		return false; 
+	}
+
+	winform.buttonRestore.disabled = true;
+	winform.buttonRestore.text = "还原中...";
+str = /*
+@echo on
+${drive}:
+cd ${drive}:\xampp\mysql\bin
+mysql --default-character-set=utf8 -u${username} -p${password} -P${port} ${database}< ${path}
+@echo off
+*/
+	template = string.template( str )
+	var CurrentDrive = droson.getDrive();
+	str = template.format(
+    	drive = CurrentDrive;
+    	username = winform.editUserName.text;
+    	password = winform.editPassword.text;
+    	database = winform.editDatabase.text;
+    	path = winform.editSqlPath.text;
+    	port = droson.getMysqlPort();
+	)
+ 	string.save(config.backup.TargetFolder  + "\restore.bat", str )
+ 	process.execute_wait(config.backup.TargetFolder  + "\restore.bat",,,"N")
+ 	fsys.delete(config.backup.TargetFolder  + "\restore.bat")
+ 	winform.buttonRestore.text = "开始还原";
+ 	winform.buttonRestore.disabled = false;
+ 	win.msgbox("还原完成",droson.mfr);	
+}
+
+
+winform.button2.oncommand = function(id,event){
+    var path = fsys.dlg.save("SQL文件|*.sql||")
+    if(path){
+ 		winform.editSqlPath.text = path;
+	}	
+}
+winform.show() 
+win.loopMessage();
+return winform;

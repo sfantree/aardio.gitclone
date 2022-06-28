@@ -1,0 +1,14 @@
+﻿import sqlite;
+
+namespace data{
+	db=..sqlite("/notes");
+	
+	//创建数据库
+	init=function(){
+		..data.type.init();
+		..data.notes.init();
+	}
+}
+
+import data.type;
+import data.notes;

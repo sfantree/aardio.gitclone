@@ -1,0 +1,100 @@
+
+assert(web.sciter.element);
+
+namespace web.sciter.element;
+
+class state{
+	ctor(element){
+		this.element = element;
+	}
+	@_meta;
+}
+namespace state{ 
+	bits = {  
+		link = 0x1;
+		hover = 0x2;
+		active = 0x4;
+		focus = 0x8;
+		visited = 0x10;
+		current = 0x20;
+		checked = 0x40;
+		disabled = 0x80;
+		readonly = 0x100;
+		expanded = 0x200;
+		collapsed = 0x400;
+		incomplete = 0x800;
+		animating = 0x1000;
+		focusable = 0x2000;
+		anchor = 0x4000;
+		synthetic = 0x8000;
+		ownsPopup = 0x10000;
+		tabfocus = 0x20000;
+		empty = 0x40000;
+		busy = 0x80000;
+		dragOver = 0x100000;
+		dropTarget = 0x200000;
+		moving = 0x400000;
+		copying = 0x800000;
+		dragSource = 0x1000000;
+		dropMarker = 0x2000000;
+		pressed = 0x4000000;
+		popup = 0x8000000;
+		ltr = 0x10000000;
+		rtl = 0x20000000; 
+	}
+	var bits = bits;
+	
+	_meta = {
+		_get = function(k){
+			state = bits[k];
+			if(state) return !!owner.element.getState(state)
+		}
+		_set = function(k,v){
+			state = bits[k];
+			if(!state){
+				error("错误的状态名",2)
+			}
+			if(v){
+				owner.element.modifyState(state)
+			}
+			else {
+				owner.element.modifyState(,state)
+			}
+			
+		};
+	}
+}
+
+/**intellisense(!htmsciter_state)
+link=未被点击超链接
+hover=鼠标悬停
+active=鼠标按下状态
+focus=拥有焦点
+visited=点击过的超链接
+current=当前选中节点
+checked=是否选中
+disabled=禁用状态
+readonly=只读
+expanded=展开状态
+collapsed=折叠状态
+incomplete=背景或前景图像、框架页面等请求的资源未加载完成\nCSS中 frame:not(:busy):incomplete 匹配框架下载失败数据未加载
+animating=是否正在播放动画
+focusable=可接受输入焦点;
+anchor=多选的选区端点
+synthetic=是否引擎自动生成的节点
+ownsPopup=是否弹出节点的所有者节点\nCSS中对应 :owns-popup
+tabfocus=通过tab键得到焦点
+empty=文本内容为空
+busy=节点忙状态\n指正在下载、但尚未下载结束\nCSS中 frame:not(:busy):incomplete 匹配框架下载失败数据未加载
+dragOver=是否正在当前节点上拖动\nCSS中对应 :drag-over
+dropTarget=是否拖放目标节点\nCSS中对应 :drag-target
+moving=是否正在拖动,移动模式
+copying=是否正在拖动,复制模式
+dragSource=是否拖放源节点\nCSS中对应 :drag-source
+dropMarker=是否指示拖放目的位置的副本\nCSS中对应 :drag-marker
+pressed=键按下
+popup=弹出状态
+ltr=是否左向右显示
+rtl=是否右向左显示
+end intellisense**/
+  

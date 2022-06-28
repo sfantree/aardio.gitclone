@@ -1,0 +1,29 @@
+﻿assert(hpsocket,"请先调用 import hpsocket 或 import hpsocket.ssl");
+
+namespace hpsocket.gzip;
+	
+compress = function(str,len){
+	if( len === null ) len = #str;
+	var buf = ..raw.malloc(len+1024)
+	var destLen = {INT value = len+1024 }
+	if( 0 == ::HPSocket.SYS_GZipCompress(str,len,buf,destLen) ){
+		return ..string.left( buf,destLen.value);
+	}
+}
+
+uncompress = function(str){
+	var len = ::HPSocket.SYS_GZipGuessUncompressBound(str,#str);
+	//..console.log("len",len)
+	if(!len) return;
+	
+	var buf = ..raw.malloc(len)
+	var destLen = {INT value=len}
+	if( 0 == ::HPSocket.SYS_GZipUncompress(str,#str,buf,destLen) ){
+		return ..string.left( buf,destLen.value);
+	}
+}
+
+/**intellisense(hpsocket.gzip)
+compress(__) = GZIP压缩数据
+uncompress(__) = 解压缩GZIP数据
+end intellisense**/

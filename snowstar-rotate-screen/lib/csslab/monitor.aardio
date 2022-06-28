@@ -1,0 +1,206 @@
+﻿// SnowstarCyan_Monitor_Libriay
+//
+//  Updates:
+//  2016y 01m 28d
+//      Created By Snowstar(SnowstarCyan@gmail.com)
+//
+//      = =#
+//      For rotate my screens to play computer games on bed at winter. ~\(≧▽≦)/~
+//
+
+/*API_IMPORT{{*/
+::ChangeDisplaySettingsA   := User32.api("ChangeDisplaySettingsA","void(struct&lpDevMode, INT dwflags)")
+::ChangeDisplaySettingsExA := User32.api("ChangeDisplaySettingsExA","void(str DeviceName, struct&lpDevMode, pointer HWND, INT dwflags, pointer lParam)")
+::EnumDisplaySettingsA     := User32.api("EnumDisplaySettingsA","INT(str DeviceName, INT iModeNum, struct&lpDevMode)")
+::EnumDisplayDevicesA      := User32.api("EnumDisplayDevicesA","INT(str DeviceName, INT iDevNum, struct&lpDevMode, INT dwflags)")
+
+::DEVMODE_DISPLAY_DEVICE := class {
+    BYTE deviceName[0x20/*_CCHDEVICENAME*/];
+    WORD specVersion;
+    WORD driverVersion;
+    WORD size = 156;
+    WORD driverExtra;
+    INT fields;
+    struct position = {INT x;INT y;}
+    INT displayOrientation;
+    INT displayFixedOutput;
+    word color;
+    word duplex;
+    word yResolution;
+    word ttOption;
+    word collate;
+    BYTE formName[0x20/*_CCHFORMNAME*/];
+    WORD logPixels;
+    INT bitsPerPel;
+    INT pelsWidth;
+    INT pelsHeight;
+    INT displayFlags;
+    INT displayFrequency;
+    INT icmMethod;
+    INT icmIntent;
+    INT mediaType;
+    INT ditherType;
+    INT reserved1;
+    INT reserved2;
+    INT panningWidth;
+    INT panningHeight;
+}
+
+_DISPLAY_DEVICE_ATTACHED_TO_DESKTOP := 1
+
+::DISPLAY_DEVICE := class{
+  INT cb = 424;
+  BYTE DeviceName[0x20/*_CCHDEVICENAME*/];
+  BYTE DeviceString[128];
+  INT StateFlags;
+  BYTE DeviceID[128];
+  BYTE DeviceKey[128];
+}
+/*}}*/
+
+namespace csslab.monitor{
+    var MapByFunc = function(tab, func, ...){
+        var newtab = {}
+        for k, v in tab
+            newtab[k] = func(v, ...)
+        return newtab
+    }
+    var Merge = function(tab1, tab2){
+        var newtab = {}
+        for k, v in tab1
+            if tab1[k] !== null && tab2[k] !== null
+                ..table.push(newtab, {tab1[k];tab2[k]})
+        return newtab
+    }
+    var GetDevMode = function(deviceName){
+        var devMode = ::DEVMODE_DISPLAY_DEVICE()
+        if ! ::EnumDisplaySettingsA(deviceName, -1/*_ENUM_CURRENT_SETTINGS*/,devMode)
+            return null, "Can't get current settings."
+        return devMode
+    }
+    var GetDeviceName = function(device){
+        return device.DeviceName
+    }
+    var RotateDevMode90 = function(devMode, devModeMain){
+        var New_Orientation = ( devMode.displayOrientation + 1 ) % 4
+
+        // Warning, here may some other codes are better
+        // hope someone can improve and mail to me
+        // and correct my English grammar error. ^_^
+        //
+
+        var New_position_x  = (function(){
+            if devModeMain === null
+                return devMode.position.y
+            else
+                return devModeMain.pelsHeight - devMode.position.y - devMode.pelsHeight
+            })()
+        var New_position_y  = devMode.position.x
+        var New_pelsWidth   = devMode.pelsHeight
+        var New_pelsHeight  = devMode.pelsWidth
+
+        // Over
+
+        devMode.position.x         = New_position_x
+        devMode.position.y         = New_position_y
+        devMode.pelsWidth          = New_pelsWidth
+        devMode.pelsHeight         = New_pelsHeight
+        devMode.displayOrientation = New_Orientation
+
+        return devMode
+    }
+    var ApplyDevMode = function(deviceToDevmode){
+        var deviceName, devMode = deviceToDevmode[1], deviceToDevmode[2]
+        return ::ChangeDisplaySettingsExA(deviceName, devMode, null, 0, null)
+    }
+    GetDisplayDevices = function(){
+        var lsDisplayDevice = {}
+        var iDevNum = 0
+        while true{
+            var lpDisplayDevice = DISPLAY_DEVICE()
+            if! ::EnumDisplayDevicesA(lpDevice, iDevNum, lpDisplayDevice, 0)
+                break;
+            if lpDisplayDevice.StateFlags & _DISPLAY_DEVICE_ATTACHED_TO_DESKTOP{
+                ..table.push(lsDisplayDevice, lpDisplayDevice)
+            }
+            iDevNum++
+        }
+        return lsDisplayDevice
+    }
+    RotateOneMonitor = function(degree, abs=false, deviceName){
+
+        // Get devmode
+        var devMode = GetDevMode(deviceName)
+
+        // Rotate devmode rect
+        var rotCount = (0 | (tonumber(degree) / 90)) % 4
+        if abs
+            rotCount = (rotCount - devMode.displayOrientation) % 4
+        for( i = 1; rotCount; 1 )
+            devMode = RotateDevMode90(devMode)
+
+        // Apply
+        var success = ApplyDevMode({deviceName;devMode})
+        return success
+    }
+    RotateAllMonitor = function(degree, abs=false){
+
+        // Get display devices
+        var lsDevice = GetDisplayDevices()
+        var lsDeviceName = MapByFunc(lsDevice, GetDeviceName)
+
+        // Get devmodes
+        var lsDevMode = MapByFunc(lsDeviceName, GetDevMode)
+        assert(lsDevMode[1], "you can't rotate the `non-screen`")
+
+        // Rotate devmode rects
+        var rotCount = (0 | (tonumber(degree) / 90)) % 4
+        if abs
+            rotCount = (rotCount - lsDevMode[1].displayOrientation) % 4
+        for(i=1;rotCount;1)
+            lsDevMode = MapByFunc(lsDevMode, RotateDevMode90, ..table.clone(lsDevMode[1]))
+
+        // Apply
+        var lsDeviceToDevmode = Merge(lsDeviceName, lsDevMode)
+        var lsSuccess = MapByFunc(lsDeviceToDevmode, ApplyDevMode)
+        return lsSuccess
+    }
+}
+
+/** Unit Test //
+import console
+console.open()
+csslab.monitor.RotateOneMonitor(90)
+console.pause()
+csslab.monitor.RotateOneMonitor(0, true)
+console.pause()
+csslab.monitor.RotateAllMonitor(-90)
+console.pause()
+csslab.monitor.RotateAllMonitor(180)
+console.pause()
+csslab.monitor.RotateAllMonitor(90, true)
+console.pause()
+csslab.monitor.RotateAllMonitor(-90, true)
+console.pause()
+csslab.monitor.RotateAllMonitor(0, true)
+console.pause()
+// test pass **/
+
+
+/**intellisense()
+csslab.monitor.RotateAllMonitor(.(degree, abs)         = 旋转屏幕
+csslab.monitor.RotateAllMonitor(0, true)               = 逆时针绝对旋转所有屏幕到 0度   //绝对指的是相对于主屏幕的正位置
+csslab.monitor.RotateAllMonitor(90, true)              = 逆时针绝对旋转所有屏幕到 90度  //绝对指的是相对于主屏幕的正位置
+csslab.monitor.RotateAllMonitor(180, true)             = 逆时针绝对旋转所有屏幕到 180度 //绝对指的是相对于主屏幕的正位置
+csslab.monitor.RotateAllMonitor(270, true)             = 逆时针绝对旋转所有屏幕到 270度 //绝对指的是相对于主屏幕的正位置
+csslab.monitor.RotateOneMonitor(0, true, deviceName)   = 逆时针绝对旋转指定屏幕到 0度    //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateOneMonitor(90, true, deviceName)  = 逆时针绝对旋转指定屏幕到 90度   //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateOneMonitor(180, true, deviceName) = 逆时针绝对旋转指定屏幕到 180度  //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateOneMonitor(270, true, deviceName) = 逆时针绝对旋转指定屏幕到 270度  //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateAllMonitor(90)                    = 逆时针相对旋转所有屏幕 90度
+csslab.monitor.RotateAllMonitor(180)                   = 逆时针相对旋转所有屏幕 180度
+csslab.monitor.RotateAllMonitor(270)                   = 逆时针相对旋转所有屏幕 270度
+csslab.monitor.RotateOneMonitor(90,,deviceName)        = 逆时针相对旋转指定屏幕 90度    //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateOneMonitor(180,,deviceName)       = 逆时针相对旋转指定屏幕 180度   //省略指定屏幕为旋转主屏幕
+csslab.monitor.RotateOneMonitor(270,,deviceName)       = 逆时针相对旋转指定屏幕 270度   //省略指定屏幕为旋转主屏幕
+**/

@@ -1,0 +1,32 @@
+import win.ui;
+_IMPORTURL["reportRl"] = "https://github.com/drunkenOstrich/reportRl/releases/latest/download/reportRl.tar.lzma"
+import reportRl;
+import reportRl.path;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=288;bottom=110)
+mainForm.add(
+btnPrint={cls="button";text="打印";left=60;top=38;right=144;bottom=70;z=1};
+btnPrintPreview={cls="button";text="打印预览";left=144;top=38;right=228;bottom=72;z=2}
+)
+/*}}*/
+
+var report = reportRl();
+if(!report){
+	mainForm.msgbox("报表组件创建失败！")
+}
+
+var fileName = reportRl.path.templatePath() + "1a.简单表格.grf";
+report.LoadFromFile(fileName);
+report.DetailGrid.Recordset.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=" + reportRl.path.dataPath() + "NorthWind.mdb;";
+
+mainForm.btnPrint.oncommand = function(id,event){
+	report.Print(true);
+}
+mainForm.btnPrintPreview.oncommand = function(id,event){
+	report.PrintPreview(true);
+}
+
+mainForm.enableDpiScaling()
+mainForm.show();
+
+return win.loopMessage(); 

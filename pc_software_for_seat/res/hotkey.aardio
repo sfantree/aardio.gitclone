@@ -1,0 +1,198 @@
+import win.ui;
+import win.ui.atom;
+import fsys.version;
+import internationalData;
+/*DSG{{*/
+var winform = win.form(text="设置快捷键";right=439;bottom=441;bgcolor=16777215;border="dialog frame";exmode="none";max=false;min=false;mode="popup";topmost=1)
+winform.add(
+btn_close={cls="button";text="关闭";left=80;top=391;right=184;bottom=423;z=9};
+btn_save={cls="button";text="保存";left=256;top=391;right=360;bottom=423;z=26};
+ck_abandon={cls="checkbox";text="开启";left=232;top=152;right=360;bottom=176;bgcolor=16777215;font=LOGFONT(h=-16);z=21};
+ck_call={cls="checkbox";text="开启";left=232;top=32;right=360;bottom=56;bgcolor=16777215;font=LOGFONT(h=-16);z=10};
+ck_done={cls="checkbox";text="开启";left=232;top=232;right=360;bottom=256;bgcolor=16777215;font=LOGFONT(h=-16);z=23};
+ck_eval={cls="checkbox";text="开启";left=232;top=348;right=360;bottom=372;bgcolor=16777215;font=LOGFONT(h=-16);z=29};
+ck_recall={cls="checkbox";text="开启";left=232;top=72;right=360;bottom=96;bgcolor=16777215;font=LOGFONT(h=-16);z=19};
+ck_secCall={cls="checkbox";text="开启";left=232;top=272;right=360;bottom=296;bgcolor=16777215;font=LOGFONT(h=-16);z=24};
+ck_specCall={cls="checkbox";text="开启";left=232;top=312;right=360;bottom=336;bgcolor=16777215;font=LOGFONT(h=-16);z=25};
+ck_start={cls="checkbox";text="开启";left=232;top=112;right=360;bottom=136;bgcolor=16777215;font=LOGFONT(h=-16);z=20};
+ck_transfer={cls="checkbox";text="开启";left=232;top=192;right=360;bottom=216;bgcolor=16777215;font=LOGFONT(h=-16);z=22};
+lab_abandon={cls="static";text="弃号：";left=40;top=152;right=152;bottom=184;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=4};
+lab_call={cls="static";text="呼叫：";left=40;top=32;right=152;bottom=64;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=1};
+lab_done={cls="static";text="完成：";left=40;top=232;right=152;bottom=264;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=6};
+lab_recall={cls="static";text="追呼：";left=40;top=72;right=152;bottom=104;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=2};
+lab_secCall={cls="static";text="重呼：";left=40;top=272;right=152;bottom=304;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=7};
+lab_specCall={cls="static";text="特呼：";left=40;top=312;right=152;bottom=344;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=8};
+lab_start={cls="static";text="开始：";left=40;top=112;right=152;bottom=144;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=3};
+lab_transfer={cls="static";text="转移：";left=40;top=192;right=152;bottom=224;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=5};
+static={cls="static";text="F1";left=168;top=32;right=240;bottom=48;font=LOGFONT(h=-14);transparent=1;z=11};
+static10={cls="static";text="F9";left=169;top=349;right=241;bottom=365;font=LOGFONT(h=-14);transparent=1;z=28};
+static2={cls="static";text="F2";left=168;top=72;right=240;bottom=88;font=LOGFONT(h=-14);transparent=1;z=12};
+static3={cls="static";text="F3";left=168;top=112;right=240;bottom=128;font=LOGFONT(h=-14);transparent=1;z=13};
+static4={cls="static";text="F4";left=168;top=152;right=240;bottom=168;font=LOGFONT(h=-14);transparent=1;z=14};
+static5={cls="static";text="F5";left=168;top=192;right=240;bottom=208;font=LOGFONT(h=-14);transparent=1;z=15};
+static6={cls="static";text="F6";left=168;top=232;right=240;bottom=248;font=LOGFONT(h=-14);transparent=1;z=16};
+static7={cls="static";text="F7";left=168;top=272;right=240;bottom=288;font=LOGFONT(h=-14);transparent=1;z=17};
+static8={cls="static";text="F8";left=168;top=312;right=240;bottom=328;font=LOGFONT(h=-14);transparent=1;z=18};
+static9={cls="static";text="评价：";left=40;top=348;right=152;bottom=380;align="right";font=LOGFONT(h=-16);notify=1;transparent=1;z=27}
+)
+/*}}*/
+
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = winform.atom("3C01AD3A-691C-4981-BD47-2F07DE4F3629");
+if(!atom){
+	/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+	win.quitMessage();	return;
+}
+
+import constant;
+/**初始化语言**/
+initLanguage = function(){
+	winform.lab_call.text = internationalData.getValue("call");
+	winform.lab_recall.text = internationalData.getValue("recall");
+	winform.lab_start.text = internationalData.getValue("start");
+	winform.lab_abandon.text = internationalData.getValue("abandon");
+	winform.lab_transfer.text = internationalData.getValue("transfer");
+	winform.lab_done.text = internationalData.getValue("done");
+	winform.lab_secCall.text = internationalData.getValue("secCall");
+	winform.lab_specCall.text = internationalData.getValue("specCall");
+	winform.btn_close.text = internationalData.getValue("close");
+	winform.btn_save.text = internationalData.getValue("save");	
+	winform.static9.text = internationalData.getValue("eval");	
+	
+	winform.ck_call.text = internationalData.getValue("enable");
+	winform.ck_done.text = internationalData.getValue("enable");
+	winform.ck_recall.text = internationalData.getValue("enable");
+	winform.ck_secCall.text = internationalData.getValue("enable");
+	winform.ck_specCall.text = internationalData.getValue("enable");
+	winform.ck_start.text = internationalData.getValue("enable");
+	winform.ck_transfer.text = internationalData.getValue("enable");
+	winform.ck_abandon.text = internationalData.getValue("enable");
+	winform.ck_eval.text = internationalData.getValue("enable");
+	
+	winform.text = internationalData.getValue("hotkey");
+		
+	
+}
+
+//读取配置文件，加载到界面
+initConf = function(){
+	constant.removeReadonlyAttr(constant.getUserConfPath())
+	ini=fsys.ini(constant.getUserConfPath())
+	//读取小节对象
+	sec = ini.getSection("hotkey")
+	if(sec.call == 1){
+		winform.ck_call.checked = true;
+	}else{
+		winform.ck_call.checked = false;
+	}
+	if(sec.recall == 1){
+		winform.ck_recall.checked = true;
+	}else{
+		winform.ck_recall.checked = false;
+	}
+	if(sec.start == 1){
+		winform.ck_start.checked = true;
+	} else{
+		winform.ck_start.checked = false;
+	}
+	if(sec.abandon == 1){
+		winform.ck_abandon.checked = true;
+	} else{
+		winform.ck_abandon.checked = false;
+	}
+	if(sec.transfer == 1){
+		winform.ck_transfer.checked = true;
+	} else{
+		winform.ck_transfer.checked = false;
+	}
+	if(sec.done == 1){
+		winform.ck_done.checked = true;
+	} else{
+		winform.ck_done.checked = false;
+	}
+	if(sec.secCall == 1){
+		winform.ck_secCall.checked = true;
+	} else{
+		winform.ck_secCall.checked = false;
+	}
+	if(sec.specCall == 1){
+		winform.ck_specCall.checked = true;
+	} else{
+		winform.ck_specCall.checked = false;
+	}
+	if(sec.eval == 1){
+		winform.ck_eval.checked = true;
+	} else{
+		winform.ck_eval.checked = false;
+	}	
+}
+
+
+winform.btn_close.oncommand = function(id,event){
+	winform.close()
+}
+
+
+//保存设置
+winform.btn_save.oncommand = function(id,event){	
+    constant.removeReadonlyAttr(constant.getUserConfPath())
+	ini=fsys.ini(constant.getUserConfPath())
+	//读取小节对象
+	sec = ini.getSection("hotkey")
+	if(winform.ck_call.checked){
+		sec.call = 1
+	}else{
+		sec.call = 0
+	}
+	if(winform.ck_recall.checked){
+		sec.recall = 1
+	}else{
+		sec.recall = 0
+	}
+	if(winform.ck_start.checked){
+		sec.start = 1
+	} else{
+		sec.start = 0
+	}
+	if(winform.ck_abandon.checked){
+		sec.abandon = 1
+	} else{
+		sec.abandon = 0
+	}
+	if(winform.ck_transfer.checked ){
+		sec.transfer = 1
+	} else{
+		sec.transfer = 0
+	}
+	if(winform.ck_done.checked){
+		sec.done = 1;
+	} else{
+		sec.done = 0;
+	}
+	if(winform.ck_secCall.checked){
+		sec.secCall = 1;
+	} else{
+		sec.secCall = 0
+	}
+	if(winform.ck_specCall.checked){
+		sec.specCall = 1
+	} else{
+		sec.specCall = 0
+	}
+	if(winform.ck_eval.checked){
+		sec.eval = 1
+	} else{
+		sec.eval = 0
+	}
+	sec.save()
+	winform.parent.initHotkey()
+	winform.close()
+}
+
+
+initLanguage();
+initConf();
+
+winform.enableDpiScaling();
+winform.show(true);
+win.loopMessage();
+return winform;

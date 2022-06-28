@@ -1,0 +1,107 @@
+﻿import hpsocket;
+import hpsocket.socket.udpServer;
+import hpsocket.listen.server;
+namespace hpsocket
+
+class udpServer{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_UdpServerListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_UdpServer(pListener) );
+			this = ..hpsocket.listen.server(pListener,"udpServer");
+		}
+		
+		this.pSocket = pSocket;
+		..hpsocket.socket.udpServer(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_UdpServer(this.pSocket);
+			::HPSocket.Destroy_HP_UdpServerListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.udpServer() = 创建TCP服务端\n!hpUdpServer.
+end intellisense**/
+
+/**intellisense(!hpUdpServer)
+pSocket = 组件句柄
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+start(.("监听IP地址",监听端口) = 启动服务端通信组件\n所有参数可省略,\n成功返回true
+stop() = 关闭服务端通信组件\n成功返回true
+send(.(connId,buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(connId,buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+disconnect(connId,bForce) = 断开与某个客户端的连接
+disconnectLongConnections(.(时长,是否强制断开e) = 断开超过指定毫秒时长的连接
+disconnectSilenceConnections(.(时长,是否强制断开) = 断开超过指定毫秒时长的静默连接
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+getPendingDataLength(connId) = 获取连接中未发出数据的长度
+getConnectionCount() = 获取客户端连接数 
+getAllConnectionIds() = 获取所有连接ID
+getConnectPeriod(connId) = 获取某个客户端连接时长,毫秒 
+getSilencePeriod(connId) = 获取某个连接静默时间,毫秒
+getListenAddress() = 获取监听 Socket 的地址,端口号\n注意有2个返回值
+getLocalAddress(connId) = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress(connId) = 获取某个连接的远程地址,端口号\n注意有2个返回值
+setConnectionExtra(connId,pExtra) = 对连接ID绑定指针\n如果使用了reallocString函数，不应再调用此函数
+getConnectionExtra(connId) = 返回连接ID绑定的指针\n如果使用了reallocString函数，返回的是动态指针
+sendPolicy = 发送策略
+freeSocketObjLockTime = 缓存对象锁定时间，毫秒
+freeBufferObjPool = 设置内存块缓存池大小\n通常设置为 Socket 缓存池大小的 2 - 3 倍
+freeBufferObjHold = 设置内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+freeSocketObjPool = 设置 Socket 缓存池大小\n通常设置为平均并发连接数量的 1/3 - 1/2
+freeSocketObjHold = 设置 Socket 缓存池回收阀值\n通常设置为 Socket 缓存池大小的 3 倍
+maxConnectionCount = 设置最大连接数\n组件会根据设置值预分配内存，因此需要根据实际情况设置，不宜过大
+workerThreadCount = 设置工作线程数量\n通常设置为 2 * CPU + 2
+markSilence = 设置是否标记静默时间，默认：true\n设置为 true 时 disconnectSilenceConnections 和 getSilencePeriod 才有效
+setMaxDatagramSize(__) = 设置数据报文最大长度\n建议在局域网环境下不超过 1472 字节，\n在广域网环境下不超过 548 字节
+getMaxDatagramSize() = 获取数据报文最大长度 
+setDetectAttempts(__) = 设置监测包尝试次数\n0 则不发送监测跳包，如果超过最大尝试次数则认为已断线
+getDetectAttempts() =  获取心跳检查次数
+setDetectInterval(__) = 设置监测包发送间隔\n秒，0 不发送监测包
+getDetectInterval() = 获取心跳检查间隔 
+setPostReceiveCount(__) = 设置 Receive 预投递数量\n根据负载调整设置，Receive 预投递数量越大则丢包概率越小
+getPostReceiveCount() = 获取 Receive 预投递数量
+reallocString(connId,__/*长度*/) = 预分配内存并将动态指针用setConnectionExtra函数绑定到指定连接\n长度为0时释放内存,使用此函数后不应再使用setConnectionExtra函数
+appendString(connId,pData,len) = 保存数据\n参数分别为连接ID,内存指针,内容长度\n该函数自动调用getConnectionExtra获取可用的动态指针\n使用reallocString函数分配动态指针给指定连接
+getString(connId) = 从指定连接绑定的动态指针中获取appendString函数保存的所有数据
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareListen = @.onPrepareListen = function(hpUdpServer,soListen){
+	__/*绑定监听地址前触发*/
+}
+onAccept = @.onAccept = function(hpUdpServer,connId,pClient){
+	__/*接受请求触发*/
+}
+onHandShake = @.onHandShake = function(hpUdpServer,connId,pClient){
+	__/*握手完成触发*/
+}
+onSend = @.onSend = function(hpUdpServer,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpUdpServer,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*接收到数据时触发*/
+}
+onClose = @.onClose = function(hpUdpServer,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpUdpServer){
+	__/*关闭通信组件触发*/
+}
+end intellisense**/

@@ -1,0 +1,12 @@
+//gripper 拖动手柄
+namespace web.sciter.behavior.gripper;
+
+onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {
+	if( mouseParams.button_state == 1 )  {
+		mouseParams.dragging = scOwner.parent().handle;
+		mouseParams.dragging_mode = 1/*_HL_DRAGGING_MOVE*/;
+		
+		::CopyMemoryByStruct( mouseParams.pointer,mouseParams,48/*..raw.sizeof(mouseParams)*/ )
+		return true;
+	} 
+}

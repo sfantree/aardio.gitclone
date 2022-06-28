@@ -1,0 +1,45 @@
+import win.ui;
+ 
+// 字体
+import fonts.miSans
+
+
+/*DSG{{*/
+mainForm = win.form(text="FlashTools";right=399;bottom=599)
+mainForm.add(
+button={cls="button";text="刷入Rec";left=45;top=150;right=350;bottom=190;ah=1;aw=1;font=LOGFONT(h=-26;name='MiSans');z=5};
+button2={cls="button";text="Sideload刷机";left=45;top=210;right=350;bottom=250;ah=1;aw=1;font=LOGFONT(h=-26;name='MiSans');z=7};
+button4={cls="button";text="Fastboot线刷";left=45;top=270;right=350;bottom=310;ah=1;aw=1;font=LOGFONT(h=-26;name='MiSans');z=8};
+groupbox={cls="groupbox";text="功能清单";left=15;top=95;right=385;bottom=580;ah=1;aw=1;edge=1;font=LOGFONT(name='MiSans';weight=700);z=1};
+groupbox2={cls="groupbox";text="常用操作";left=30;top=120;right=370;bottom=350;ah=1;aw=1;edge=1;font=LOGFONT(name='MiSans';weight=700);z=2};
+static={cls="static";text="Coolapk@PPKun07";left=0;top=60;right=400;bottom=80;ah=1;align="center";aw=1;center=1;font=LOGFONT(name='MiSans');transparent=1;z=3};
+static1={cls="static";text="刷机有风险，三思而后行！";left=0;top=35;right=400;bottom=65;ah=1;align="center";aw=1;center=1;color=255;font=LOGFONT(h=-20;name='MiSans Heavy';weight=900);transparent=1;z=4};
+static2={cls="static";text="FlashTools V2.0";left=0;top=0;right=400;bottom=45;ah=1;align="center";aw=1;center=1;font=LOGFONT(h=-29;name='MiSans';weight=700);transparent=1;z=6};
+static3={cls="static";text="当前为最新版本";left=0;top=580;right=400;bottom=600;ah=1;align="center";aw=1;center=1;font=LOGFONT(h=-10;name='MiSans');transparent=1;z=9}
+)
+/*}}*/
+
+/*自带代码{{*/
+if(_ARGV.opt){
+	//mainForm.edit.print(_ARGV.opt,_ARGV[#_ARGV]);
+}
+/*}}*/
+
+clickButton="";
+mainForm.button.oncommand = function(id,event){
+	clickButton="rec";
+	win.loadForm("\dlg\flash.aardio")
+}
+
+mainForm.button2.oncommand = function(id,event){
+	clickButton="sideload";
+	win.loadForm("\dlg\flash.aardio")
+}
+
+mainForm.button4.oncommand = function(id,event){
+	clickButton="fb";
+	win.loadForm("\dlg\flash.aardio")
+}
+
+mainForm.show();
+return win.loopMessage();

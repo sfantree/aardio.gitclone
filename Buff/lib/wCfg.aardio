@@ -1,0 +1,36 @@
+﻿//wCfg 生成默认配置文件
+namespace wCfg{
+	writeCfg = function(cfg){				
+			//默认快捷键 Alt+1
+			cfg.Hotkey = {
+				mod = 1;
+				vk = 49;
+			}
+			
+			//UI
+			cfg.UI = {
+				maskAlpha = 180;
+				maskColor = "000000";
+				drawColor = "0xFF00FFFF";
+				minSize = 100;
+				minType = 1;
+				minAlpha = 200;
+				isMinAlpha = 1;
+			}
+			cfg.Mouse = {
+				lowMouseSpeed = 5;
+			}
+			cfg.Sys = {
+				doubleStartup = 0;
+				isHotkey = 1;
+			}
+		}
+		writeColor = function( p ){
+			var color = {row1={column1={name="0";value=3355621};column2={name="0";value=26341};column3={name="0";value=39423};column4={name="0";value=1918308};column5={name="0";value=10798559};column6={name="0";value=58879}};row2={column1={name="0";value=39168};column2={name="0";value=26112};column3={name="0";value=48025};column4={name="0";value=53688};column5={name="0";value=7919968};column6={name="0";value=16766208}};row3={column1={name="0";value=15040307};column2={name="0";value=10040064};column3={name="0";value=15020876};column4={name="0";value=15020953};column5={name="0";value=15021004};column6={name="0";value=15610862}};row4={column1={name="0";value=16777215};column2={name="0";value=13421772};column3={name="0";value=10066329};column4={name="0";value=6710886};column5={name="0";value=3355443};column6={name="0";value=0}}};
+			var str = ..table.tostring(color)
+			..string.save(p,'\xEF\xBB\xBF' )
+			..string.save(p, str,true);
+			return color; 
+		}
+		
+}

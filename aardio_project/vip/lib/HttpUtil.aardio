@@ -1,0 +1,52 @@
+﻿import debug;
+import console;
+import fsys;
+import string;
+import string.builder;
+import environment;
+class HttpUtil {
+    ctor() {}
+    sent = function(url) {
+        import inet.http;
+        import string.builder;
+        var http = inet.http();
+        var bs = string.builder();
+        var html, err, errCode = http.get(url);
+        if (#html) {
+            bs.assign(html);
+        }
+        http.close();
+        return html, err, errCode, bs.size();
+    }
+}
+namespace HttpUtil {}
+/**
+var url="https://www.eggvod.cn/jx.php?lrspm=29211626&zhm_jx=https://v.youku.com/v_show/id_XNDUyMDA1MjEwMA==.html"
+console.log( url ) ;
+var httpUtil=HttpUtil();
+var html,err,errCode,length= httpUtil.sent(url);
+console.log(html,err,errCode,length  ) ;
+..string.save("", )
+console.pause();
+**/
+/**
+import fsys;
+import inet.http
+import inet.httpFile;
+import console;
+var remoteFile = inet.httpFile( url ,"c:\eggvod.html" )
+var ok,err,fileSize = remoteFile.download() 
+console.log( ok,fileSize,err,inet.lastResponse() )
+console.pause();
+**/
+/**
+import console;
+import environment;
+for(name,value in environment.each() ){
+	if( value ) {		 
+		console.log(name, value ) 
+	}
+}
+console.log(environment.user().get("TEMP")) 
+console.pause();
+**/

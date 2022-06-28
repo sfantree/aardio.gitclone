@@ -1,0 +1,26 @@
+﻿namespace string.utils {
+	javaStyle = function(str, sep = "-") {
+		var strings = ..string.split(str, "<" + sep + ">");
+		var result = "";
+		for(_,v in strings){
+			result += self.capitalize(v);
+		}
+		return result; 
+	}
+
+	capitalize = function(str){
+		if (str && #str) {
+			return ..string.upper(str[[1]]) + ..string.sub(str, 2, #str);
+		} else {
+			return '';
+		}
+	}
+	
+	saveFile = function(path, str, append=false){
+		parentDir = ..fsys.getParentDir(path);
+		if (!..io.exist(parentDir)) {
+			..fsys.createDir(parentDir);
+		}
+		..string.save(path, str, append=false);
+	}
+}

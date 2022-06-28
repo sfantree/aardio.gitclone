@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.component.properties.httpSyncClient;
+import aaz.libhpsocket.ssl.component.properties.client;
+
+namespace aaz.libhpsocket.ssl.component.properties.httpSyncClient;
+..table.mix(
+	self,
+	..aaz.libhpsocket.component.properties.httpSyncClient,
+	..aaz.libhpsocket.ssl.component.properties.client
+);

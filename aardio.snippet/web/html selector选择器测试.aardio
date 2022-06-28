@@ -1,0 +1,107 @@
+﻿// @Author  : popy32
+// @Contact : 74o5o27o8#qq.com
+// @Comment : 网页元素选择器（selector not xpath）
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="网页元素选择器（selector not xpath）";right=751;bottom=503)
+winform.add(
+button={cls="button";text="访问";left=544;top=472;right=640;bottom=496;z=3};
+button2={cls="button";text="解析";left=648;top=472;right=744;bottom=496;z=5};
+button3={cls="button";text="方法";left=440;top=472;right=536;bottom=496;z=11};
+edit={cls="edit";left=8;top=96;right=368;bottom=464;autohscroll=false;edge=1;multiline=1;vscroll=1;z=1};
+edit2={cls="edit";text="https://www.cnblogs.com/";left=8;top=32;right=744;bottom=56;edge=1;z=2};
+edit3={cls="edit";text="#footer_bottom > div.about > a:nth-child(1)";left=376;top=96;right=744;bottom=152;autohscroll=false;edge=1;multiline=1;z=4};
+edit4={cls="edit";left=376;top=192;right=744;bottom=464;autohscroll=false;edge=1;multiline=1;vscroll=1;z=6};
+static={cls="static";text="网页源码：";left=8;top=72;right=120;bottom=88;transparent=1;z=7};
+static2={cls="static";text="元素选择器：";left=376;top=72;right=488;bottom=88;transparent=1;z=8};
+static3={cls="static";text="url地址：";left=8;top=8;right=120;bottom=24;transparent=1;z=9};
+static4={cls="static";text="匹配元素(outerHTML)：";left=376;top=168;right=536;bottom=184;transparent=1;z=10}
+)
+/*}}*/
+
+import console;
+import web.mshtml;
+import win.dlg.message;
+
+winDlgMessage = win.dlg.message(winform);
+
+// 处理异常
+tryQuerySelector = function(o, text){
+	if(not o) {
+	    return null;
+	}
+	var ldom;
+	try{
+	    ldom = o.querySelector(text);
+	}
+	return ldom;
+}
+
+winform.button.oncommand = function(id,event){
+	var url = winform.edit2.text;
+	if(#url) {
+		import string.xml;
+	    import inet.http;
+	    //var ohttp = inet.http();
+	    //HtmlText = ohttp.get(url);
+	    HtmlText = inet.http.get(url);
+	    
+	    if(HtmlText and #HtmlText > 0) {
+	        var string_xml = string.xml(HtmlText);
+	        HtmlText = string_xml.outerXml();
+	    
+	        winform.edit.text = HtmlText;
+	    }
+	}
+}
+
+winform.button2.oncommand = function(id,event){
+	// 判断 selector 
+	HtmlText = winform.edit.text;
+	if not(HtmlText and #HtmlText > 0) {
+	    winDlgMessage.err("网页源码为空", 800);
+	    return;
+	}
+	
+	// 判断 selector 
+	var ldom;
+	var selectorText = winform.edit3.text;
+	if not(selectorText and #selectorText > 0) {
+	    winDlgMessage.err("selector为空", 800);
+	    return;
+	}
+	
+	var mshtm = web.mshtml();
+	var o = mshtm.getDoc();
+	o.designMode = "on";
+	o.write(HtmlText);
+	
+	ldom = tryQuerySelector(o, selectorText);
+	
+	if(ldom) {
+		var outerHTML = ldom.outerHTML;
+		if (outerHTML and #outerHTML > 0) {
+	    	// 格式化
+	    	var string_xml = string.xml(outerHTML);
+	        outerHTML = string_xml.outerXml();
+	    	
+	    	winform.edit4.text = "";
+	    	winform.edit4.text = outerHTML;
+	    	return;
+		}
+	} 
+
+	winDlgMessage.err("未匹配", 800);
+	return;	
+}
+
+winform.button3.oncommand = function(id,event){
+	winDlgMessage.info("selector获取方法：" ++ '\r\n' ++
+	"Chrome开发者工具 -> 右键检查元素 -> Copy -> Copy selector"
+	);
+}
+
+winform.center(winform.hwnd);
+winform.show();
+win.loopMessage();

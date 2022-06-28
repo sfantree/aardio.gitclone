@@ -1,0 +1,173 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="Printing Center";right=759;bottom=599;image=$"\res\SE BG.jpg";bkBottom=0;bkLeft=0;bkRight=0;bkTop=0)
+winform.add(
+button={cls="button";text='    \uF0F6  Print Active';left=624;top=32;right=739;bottom=77;align="left";clipch=1;dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');tabstop=1;z=3};
+button2={cls="button";text='    \uF233  Print All';left=624;top=96;right=739;bottom=141;align="left";dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');tabstop=1;z=4};
+button3={cls="button";text='\uF1DA';left=544;top=32;right=608;bottom=144;color=8421376;dr=1;dt=1;font=LOGFONT(h=-48;name='FontAwesome');z=10};
+button4={cls="button";text='\uF07C';left=8;top=555;right=28;bottom=575;db=1;dl=1;flat=1;font=LOGFONT(name='FontAwesome');z=11};
+groupbox={cls="groupbox";text='\uF097  Actions';left=5;top=5;right=752;bottom=152;aw=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-16;name='FontAwesome');z=1};
+listbox={cls="listbox";left=24;top=32;right=157;bottom=146;border=1;dl=1;dt=1;font=LOGFONT(h=-16;name='微软雅黑');items={".pdf";".dwg";".dxf";".stp";".bmp"};msel=1;tabstop=1;z=2};
+outpath={cls="syslink";text="d:\workspaces";left=32;top=560;right=750;bottom=573;align="left";aw=1;center=1;db=1;dl=1;dr=1;transparent=1;z=9};
+progress={cls="progress";left=0;top=576;right=752;bottom=600;aw=1;color=32768;db=1;dl=1;dr=1;max=100;min=0;z=7};
+radNameRule0={cls="radiobutton";text="仅图号";left=168;top=56;right=276;bottom=76;bgcolor=16777215;dl=1;dt=1;group=1;z=5};
+radNameRule2={cls="radiobutton";text="图号-版本-型号-名称";left=168;top=88;right=312;bottom=108;bgcolor=16777215;dl=1;dt=1;z=6};
+tab={cls="tab";left=8;top=160;right=752;bottom=552;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;z=8}
+)
+/*}}*/
+
+import win.util.tray;
+var tray = win.util.tray(mainForm) //创建托盘图标,用于通知 
+
+import process;
+import config;
+import fsys.dlg.dir;
+/*
+import console
+console.open();
+*/
+
+winform.bindConfig( config.printingCenter, {	//绑定控件值
+    radiobutton = "checked";
+    listbox = "selected";
+} );
+
+
+winform.outpath.text = string.replace(`<a href="URL">URL</a>`,"@URL", config.setbm.workingDir);
+
+import solidedge.application;
+import solidedge.DraftDocument;
+
+
+/*initDeclare{{*/
+var seApp, seDFT, seSht, tbs;
+var seDfts;
+subscribe("dft_loaded", function(...){
+	seDfts = ...;
+})
+var initDeclare = function(){
+	seApp := solidedge.application();
+	if (! seApp) return false; 
+	solidedge.application.setPdfOptions();
+	// TODO: 含多页文档保存为DWG时, 因为未指定多页, 可能导致只有一页.
+	//seApp.Documents.AutoCadConfigFile = config.setbm.workingDir + "\SEACAD.INI";
+	seApp.DisplayAlerts = 1;
+	return true; 
+}
+/*}}*/
+/*printAllFiles{{*/
+var getListViewTable = function(listview){
+	var fields = {};
+	for (i=1; listview.columnCount)
+		table.push(fields, listview.getColumnText(i));
+	var tab = {};
+	tab.fields = fields;
+	for (i=1; listview.count){
+		var t={}
+		for(j=1; #fields)			
+			t[fields[j]] = listview.getItemText(i,j);
+		table.push(tab, t);
+	}
+
+	return tab; 
+}
+
+var startPrintAllLV = function(vtab){
+	seApp.DisplayAlerts = 0;
+	tray.message = 0xACCF/*_WM_TRAYMESSAGE*/
+	for x,j in tbs[1].listview.checked {
+        	var	seDFT = solidedge.DraftDocument(seApp.Documents.item(seDfts.seIndex[j]));  //线程传出来的seDfts会丢失item内容
+			seDFT.Activate(); //如果不Activate,只会重复保存当前文件
+			for y,k in winform.listbox.selected{
+				winform.progress.pos += 1 ;
+/*
+				var tip = "TBM正在打印";
+				tip = tip ++ vtab[j].物料;
+				tip = tip ++ winform.listbox.getItemText(k);
+				tip = tip ++ "...";	
+*/			
+				//tray.pop(tip, x ++ "/" ++ #tbs[1].listview.checked);
+				if !vtab[j] continue;
+				var fname = seDFT.getNameByExt(winform.listbox.getItemText(k), vtab[j], config.setbm.workingDir);
+				var succ = seDFT.saveToExt(fname);
+				
+				if !mainForm or !mainForm.taskbar continue;
+				mainForm.taskbar.SetProgressValue(mainForm.hwnd, winform.progress.pos, winform.progress.max)	//win taskbar
+			}
+	}
+	seApp.DisplayAlerts = 1;
+	tray.pop("All Print Done","TBM");
+
+}
+/*}}*/
+/*控件事件{{*/
+
+//打印当前DFT
+winform.button.oncommand = function(id,event){
+    if !seApp return ; 
+    if (seApp.ActiveDocumentType !== 2 /*Draft Document Type*/) return ; 
+	var vtab = getListViewTable(tbs[1].listview);
+	for(i=1; #vtab)
+		if (string.upper(seApp.ActiveDocument.Name) !== string.upper(vtab[i].物料 ++ ".dft")) vtab[i] = null;
+	winform.progress.min = 0;
+	winform.progress.max = #winform.listbox.selected;
+	winform.progress.pos = 1;	
+	startPrintAllLV(vtab);
+}
+//打印所有DFT
+winform.button2.oncommand = function(id,event){
+    if !seApp return ; 
+	var vtab = getListViewTable(tbs[1].listview);
+	winform.progress.min = 0;
+	winform.progress.max = #tbs[1].listview.checked * #winform.listbox.selected;
+	winform.progress.pos = 1;
+	startPrintAllLV(vtab);
+}
+
+winform.outpath.onHyperlinkClick = function(nmSysLink,url,id){
+	process.explore(url);
+}
+winform.button4.oncommand = function(id,event){
+	var path = fsys.dlg.dir(,winform,"指定TBM工作目录"); //反应慢?
+	if !path return ; 
+	config.setbm.workingDir = path;
+	config.setbm.save();
+	winform.outpath.text = string.replace(`<a href="URL">URL</a>`,"@URL",path);
+}
+winform.button3.oncommand = function(id,event){
+    winform.progress.pos = 0;
+	tbs[1].publish("refresh_dft_list");
+}
+/*}}*/
+
+winform.show();
+
+tbs = {
+	[1] = winform.tab.loadForm("\forms\printcenter\dft-list.aardio" );
+	[2] = winform.tab.loadForm("\forms\printcenter\psm2dxf.aardio" );
+	[3] = winform.tab.loadForm("\forms\printcenter\printpaper.aardio" );
+}
+
+initDeclare();
+
+subscribe("refresh",function(){
+		//winform.redraw();
+		tbs[1].publish("refresh_dft_list");
+	}
+);
+
+winform.radNameRule0.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ; 
+	config.printingCenter.save();
+	//console.log(seApp.useQhcNameRule)
+}
+
+winform.radNameRule2.oncommand = function(id,event){
+	if event !== 0/*_BN_CLICKED*/ return ; 
+	config.printingCenter.save();
+	//console.log(seApp.useQhcNameRule);
+}
+
+win.loopMessage();
+return winform;

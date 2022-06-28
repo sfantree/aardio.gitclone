@@ -1,0 +1,86 @@
+import fsys;
+import console;
+import process;
+import thread;
+import wsock.tcp.simpleHttpServer;
+
+//获取cpu 数目
+get_processor_number = function(){
+    var info = sys.info();
+    return info.dwNumberOfProcessors;
+}
+
+var threadNum = tonumber( _ARGV[1] ) || (2 * get_processor_number()) ;
+
+var srvHttp = wsock.tcp.simpleHttpServer()
+
+var dir= fsys.getCurDir();
+srvHttp.documentRoot = dir ;
+srvHttp.threadNum = threadNum  ;
+
+thread.set("dir",dir );
+
+console.log("并发数: ", srvHttp.threadNum);
+console.log("启动时间: ", ..time.now());
+console.log("下载主目录: ", srvHttp.documentRoot);
+console.log("访问地址: ", srvHttp.getUrl());
+
+process.execute(srvHttp.getUrl());
+
+srvHttp.run(
+    function(response,request){
+        import fsys;
+        import inet.url;
+		import console;
+		import thread;
+        
+       // console.varDump(request);
+        
+        if(!fsys.isDir(request.path) ) {
+            if( ..io.exist(request.path) ){
+                var strData = ..string.load(request.path);
+            	response.contentType = ..fsys.mime.fromFile(request.path); //下载
+                response.write(strData); 
+                //response.loadcode(request.path);   
+            } else {
+                request.path = fsys.getParentDir(request.path);
+            }
+        }
+         if( !..io.exist(request.path) ){
+                request.path = thread.get("dir") || fsys.getDrive();
+         }
+         
+        // console.log(..time(),request.path);
+         console.log(..time(),request.remoteAddr,request.path);
+         
+        response.write("<html><head>",
+        " <style> li:hover a {display:none;}; li{margin:0.4em} </style>",
+        " <title>万能下载 - ",request.path," </title> </head><body><h2>Directory listing for",request.path,"</h2><hr><ol style=''>")
+
+        if("/" != request.path ){
+            response.write('<li><a href="'
+                ,inet.url.append(  request.path , "../" )
+                ,'">'+""+"  ","上级目录",'</a></li> ');        	
+        }
+        
+        var file,dir = fsys.list(request.path,,"*.*");
+        for(i=1;#dir;1){
+            response.write('<li><a href="'
+                ,inet.url.append(request.path,dir[ i ])
+                ,'">'+""+"  <b>",dir[ i ],'</b> </a></li> ');
+        
+        }
+        
+        for(i=1;#file;1){
+            response.write('<li><a href="'
+                ,inet.url.append(request.path,file[ i ])
+                ,'">'+""+"  &nbsp; &nbsp; ",file[ i ],' &nbsp; &nbsp; </a></li> ');
+        
+        }
+        
+        response.write(" </ol>" ,
+        "<hr />" , ..time() ,
+        ,"</body></html>") ;
+
+    }
+)

@@ -1,0 +1,146 @@
+
+var d = ... : {};
+var list = d.list : {};
+var user = owner.base.user;
+owner.view.loadcode("web.common.header",...);
+
+?>
+<div class="main layui-clear">
+  <div class="wrap">
+    <div class="content">
+      <div class="fly-tab fly-tab-index">
+        <span>
+          <a href="<?=mvcapp.urlAction("index","web.post")?>">全部</a>
+          <a href="<?=mvcapp.urlAction("unsolved","web.post")?>" <?=d.status == 'unsolved' ? 'class="tab-this"' : '' ?>>未结帖</a>
+          <a href="<?=mvcapp.urlAction("solved","web.post")?>" <?=d.status == 'solved' ? 'class="tab-this"' : '' ?>>已采纳</a>
+          <a href="<?=mvcapp.urlAction("wonderful","web.post")?>" <?=d.status == 'wonderful' ? 'class="tab-this"' : '' ?>>精帖</a>
+          <? if(user.uid){ ?>
+          <a href="<?=mvcapp.urlAction("index","web.user")?>">我的帖</a>
+          <? } ?>
+        </span>
+        <form action="http://cn.bing.com/search" class="fly-search">
+          <i class="iconfont icon-sousuo"></i>
+          <input class="layui-input" autocomplete="off" placeholder="搜索内容，回车跳转" type="text" name="q">
+        </form>
+        <a href="<?=mvcapp.urlAction("add","web.post")?>" class="layui-btn jie-add">发布问题</a>
+      </div>
+      
+      <ul class="fly-list fly-list-top">
+      <?       
+      for(i=1;#list.rows;1){
+      	var row = list.rows[i];
+      	if(row.isTop != "1") continue ;
+      ?>
+        <li class="fly-list-li">
+          <a href="/u/<?=row.uid?>" class="fly-list-avatar">
+            <img src="<?=row.avatarUrl?>" alt="<?=row.nickname?>">
+          </a>
+          <h2 class="fly-tip">
+            <a href="<?=mvcapp.urlAction("detail&id=" ++ row.postId,"web.post")?>"><?= row.postTitle?></a>
+            <?= row.IsTop == "1" ? '<span class="fly-tip-stick">置顶</span>' :'' ?>
+            <?= row.IsFine == "1" ? '<span class="fly-tip-jing">精帖</span>' : ''?>
+          </h2>
+          <p>
+            <span><a href="/u/<?=row.uid?>"><?=row.nickname?></a></span>
+            <span><?=row.ShowTime?></span>
+            <span><?= row.categoryName ?></span>
+            <span class="fly-list-hint"> 
+              <i class="iconfont" title="回答">&#xe60c;</i> <?=row.replyCount?>
+              <i class="iconfont" title="人气">&#xe60b;</i> <?=row.viewCount?>
+            </span>
+          </p>
+        </li>
+      <? } ?>
+      </ul>
+
+      <ul class="fly-list">
+      <?
+      for(i=1;#list.rows;1){
+      	var row = list.rows[i];
+      	if(row.isTop != "0") continue ;
+      ?>
+        <li class="fly-list-li">
+          <a href="/u/<?=row.uid?>" class="fly-list-avatar">
+            <img src="<?=row.avatarUrl?>" alt="<?=row.nickname?>">
+          </a>
+          <h2 class="fly-tip">
+            <a href="<?=mvcapp.urlAction("detail&id=" ++ row.postId,"web.post")?>"><?= row.postTitle?></a>
+            <?= row.IsTop == "1" ? '<span class="fly-tip-stick">置顶</span>' :'' ?>
+            <?= row.IsFine == "1" ? '<span class="fly-tip-jing">精帖</span>' : ''?>
+          </h2>
+          <p>
+            <span><a href="/u/<?=row.uid?>"><?=row.nickname?></a></span>
+            <span><?=row.showTime?></span>
+            <span><?=row.categoryName ?></span>
+            <span class="fly-list-hint"> 
+              <i class="iconfont" title="回答">&#xe60c;</i> <?=row.replyCount?>
+              <i class="iconfont" title="人气">&#xe60b;</i> <?=row.viewCount?>
+            </span>
+          </p>
+        </li>
+      <? } ?>
+      </ul>
+      
+      <div style="text-align: center">
+        <div class="laypage-main">
+          <a href="<?=mvcapp.urlAction("page&page=2","web.post")?>" class="laypage-next">更多求解</a>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  <div class="edge">
+
+    <div class="fly-panel leifeng-rank">
+      <h3 class="fly-panel-title">近一月回答榜 - TOP 12</h3>
+      <dl>
+      <? //d.leifeng.forEach(function(item){
+      for(k,v in t){
+
+       ?>
+        <dd>
+          <a href="/u/<?=168*item.uid?>">
+            <img src="<?=item.user.avatar?>">
+            <cite><?=item.user.username?></cite>
+            <i><?=item['count(*)']?>次回答</i>
+          </a>
+        </dd>  
+      <? } ?>
+      </dl>
+    </div>
+    
+    <dl class="fly-panel fly-list-one">
+      <dt class="fly-panel-title">最近热帖</dt>
+      <? for(k,v in t){ ?>
+      <dd>
+        <a href="/post/<?=item.id?>.html"><?= item.title ?></a>
+        <span><i class="iconfont">&#xe60b;</i> <?=item.hits?></span>
+      </dd>
+      <? }; ?>
+    </dl>
+    
+    <dl class="fly-panel fly-list-one">
+      <dt class="fly-panel-title">近期热议</dt>
+      <? for(k,v in t){ ?>
+      <dd>
+        <a href="/post/<?=item.id?>.html"><?= item.title ?></a>
+        <span><i class="iconfont">&#xe60c;</i> <?=item.comment?></span>
+      </dd>
+      <? }; ?>
+    </dl>
+    
+    <div class="fly-panel fly-link">
+      <h3 class="fly-panel-title">友情链接</h3>
+      <dl>
+        <dd><a href="http://layim.layui.com/" target="_blank">LayIM</a><dd>
+        <dd><a href="http://layer.layui.com/" target="_blank">layer</a><dd>
+      </dl>
+    </div>
+
+  </div>
+</div>
+
+<? owner.view.loadcode("web.common.footer");?>
+
+</body>
+</html>

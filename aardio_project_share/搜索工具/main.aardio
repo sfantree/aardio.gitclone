@@ -1,0 +1,61 @@
+import win.ui;
+import web.form;
+import fsys.ini;
+
+import io
+io.open()
+/*DSG{{*/
+mainForm = win.form(text="搜索工具";right=959;bottom=591)
+mainForm.add(
+api={cls="combobox";left=544;top=16;right=696;bottom=40;dl=1;dt=1;edge=1;items={};mode="dropdownlist";z=3};
+custom={cls="custom";text="自定义控件";left=0;top=56;right=960;bottom=592;bgcolor=12632256;db=1;dl=1;dr=1;dt=1;z=4};
+keyWord={cls="edit";text="关键词";left=24;top=16;right=496;bottom=40;dl=1;dt=1;edge=1;multiline=1;z=1};
+search={cls="button";text="搜索";left=736;top=16;right=800;bottom=40;dl=1;dt=1;z=2}
+)
+/*}}*/
+
+ini = fsys.ini("\setting.ini")
+list = ini.readKeys("搜索引擎")
+init = {
+	name = "百度";
+	api = "https://www.baidu.com/s?wd=关键词";
+	keyWord = "我的过去";
+}
+if(!list) { // 设置默认值
+	ini.write("搜索引擎",init.name, init.api)
+}
+default = ini.readKeys("默认值")
+if(!default) { // 设置默认值
+    ini.write("默认值","搜索引擎",init.name)
+    ini.write("默认值","关键词",init.keyWord)
+}
+list = ini.readKeys("搜索引擎") // 读取最新值
+for(i=1;#list;1){
+	mainForm.api.add(list[i])
+}
+mainForm.keyWord.text = ini.read("默认值","关键词")
+mainForm.api.selText = ini.read("默认值","搜索引擎")
+
+wb = web.form(mainForm.custom)
+wb.noScriptErr=true; // 禁用弹出脚本错误
+wb.NewWindow3 = function() { // 禁止使用外面的浏览器打开新页面
+    return owner.openproxy
+};
+
+mainForm.search.oncommand = function(id,event){
+    keyWord = mainForm.keyWord.text
+    api = mainForm.api.selText
+    url = string.replace(ini.read("搜索引擎", api), "关键词", keyWord)
+    io.print(api, url)
+	wb.go(url)
+    ini.write("默认值","搜索引擎",api)
+    ini.write("默认值","关键词",keyWord)
+}
+
+mainForm.custom.oncommand = function(id,event){
+	
+}
+
+mainForm.enableDpiScaling()
+mainForm.show();
+return win.loopMessage();

@@ -1,0 +1,59 @@
+import win.ui;
+import fonts.fontAwesome;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=460)
+winform.add(
+button={cls="button";text='\uF0EE 获 取';left=590;top=421;right=759;bottom=454;db=1;dr=1;font=LOGFONT(h=-24;name='FontAwesome');z=2};
+button2={cls="button";text='\uF07C';left=511;top=421;right=555;bottom=454;db=1;dr=1;font=LOGFONT(h=-24;name='FontAwesome');z=4};
+edit={cls="edit";left=0;top=0;right=760;bottom=418;db=1;dl=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=1};
+edit2={cls="edit";text="https://www.htmlayout.cn/upload/image/20190201/1549016893753891.png";left=6;top=421;right=512;bottom=454;db=1;dl=1;dr=1;edge=1;font=LOGFONT(h=-16);z=3}
+)
+/*}}*/
+ 
+import fsys.dlg;
+ 
+winform.button.oncommand = function(id,event){
+   owner.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+     
+   var ret = win.invoke(
+        function(edit,url){
+            import web.rest.jsonClient;
+            import crypt.bin;
+ 
+            var http = web.rest.jsonClient();
+            //OCR识别接口
+            var ocr = http.api("https://www.paddlepaddle.org.cn/paddlehub-api/image_classification/");
+            var result;
+            //简单检测是否以http开始（忽略大小写）
+            if(string.startWith(url,"http",true)){
+                result = ocr.chinese_ocr_db_crnn_mobile( 
+                    //调用网络图片
+                    image_url = url;
+                )
+            }else {
+                result = ocr.chinese_ocr_db_crnn_mobile( 
+                    //调用本地图片
+                    image = crypt.bin.encodeBase64(string.load(url));
+                )
+            }
+ 
+            //分析结果
+            for(k,v in result[["result"]][1][["data"]]){
+                edit.log( v[["text"]],'\r\n' )
+            }
+        } ,winform.edit,winform.edit2.text
+    ) 
+     
+    owner.disabledText = null;   
+}
+ 
+winform.button2.oncommand = function(id,event){
+    var path = fsys.dlg.open('图像文件|*.jpg;*.bmp;*.png',,,winform);
+     
+    if(path){
+        winform.edit2.text = path;
+    }
+}
+ 
+winform.show();
+win.loopMessage();

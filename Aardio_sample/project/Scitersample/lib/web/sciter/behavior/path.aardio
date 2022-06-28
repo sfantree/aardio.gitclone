@@ -1,0 +1,14 @@
+//path 文件路径
+namespace web.sciter.behavior.path
+	 
+onDrawContent = function(scOwner,hdc,rc){  
+ 	var pta = ::GetTextAlign(hdc);
+    ::SetTextAlign(hdc, 0x0/*_TA_LEFT*/ | 0x0/*_TA_TOP*/ | 0x0/*_TA_NOUPDATECP*/ ); 
+ 
+	::DrawText(hdc, scOwner.innerText, -1, rc, 0x20/*_DT_SINGLELINE*/ | 
+		0x0/*_DT_LEFT*/ | 0x4/*_DT_VCENTER*/ | 0x4000/*_DT_PATH_ELLIPSIS*/ | 0x800/*_DT_NOPREFIX*/);
+
+    ::SetTextAlign(hdc, pta); 
+    
+	return true; /*skip default draw as we did it already*/ 
+}

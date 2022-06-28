@@ -1,0 +1,37 @@
+//collapsibleList 折叠列表
+import web.sciter.behavior.expandableList;
+
+namespace web.sciter.behavior;
+
+var expandableList = expandableList; 
+
+namespace collapsibleList { 
+	onAttach = expandableList.onAttach;
+	onMouseDown = expandableList.onMouseDown;
+	onMouseDblClick = expandableList.onMouseDblClick;
+	onActiveChild = expandableList.onActiveChild;
+	onKeyDown = expandableList.onKeyDown;
+
+	setCurrentItem = function( scOwner, scTarget )  {
+		// get previously expanded scTarget:
+		var prev = scOwner.querySelector(":root > :expanded");
+		var prevCurrent = scOwner.querySelector(":root > :current");
+		
+		if(prevCurrent != scTarget && prevCurrent)
+			prevCurrent.modifyState(0,  0x20/*_HL_STATE_CURRENT*/);
+		
+		if( prev == scTarget ) {
+			prev.modifyState(0,  0x200/*_HL_STATE_EXPANDED*/); 
+			prev.postEvent(0x90/*_HL_ELEMENT_COLLAPSED*/,0, prev); // source here is old collapsed tab itself
+		}
+		else {
+			if( prev ) {
+  				prev.modifyState(0,  0x200/*_HL_STATE_EXPANDED*/); // collapse old one
+  				prev.postEvent(0x90/*_HL_ELEMENT_COLLAPSED*/,0, prev); // source here is old collapsed tab itself
+			}
+			scTarget.modifyState( 0x20/*_HL_STATE_CURRENT*/ |  0x200/*_HL_STATE_EXPANDED*/); // set new expanded.
+			scTarget.postEvent(0x91/*_HL_ELEMENT_EXPANDED*/,0, item);  // source here is new expanded tab itself
+		}
+		scTarget.scrollToView();
+	} 
+}

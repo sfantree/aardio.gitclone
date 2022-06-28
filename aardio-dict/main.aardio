@@ -1,0 +1,218 @@
+import fonts.fontAwesome;
+import win.ui;
+import win.ui.atom;
+import win.clip;
+import win.ui.statusbar;
+import inet.url;
+/*DSG{{*/
+mainForm = win.form(text="简易多结果翻译工具";right=613;bottom=515;border="thin";max=false)
+mainForm.add(
+btnClear={cls="button";text="清空";left=490;top=160;right=540;bottom=192;z=9};
+btnClip={cls="button";text="剪切板词典";left=398;top=160;right=481;bottom=192;z=11};
+btnQryDict={cls="button";text="查询词典";left=321;top=160;right=389;bottom=192;z=10};
+btnQuery={cls="button";text="查询";left=549;top=160;right=600;bottom=192;z=7};
+edtBaidu={cls="edit";left=13;top=21;right=279;bottom=164;autohscroll=false;edge=1;font=LOGFONT(h=-14);multiline=1;readonly=1;z=2};
+edtInput={cls="edit";left=329;top=21;right=595;bottom=143;autohscroll=false;edge=1;multiline=1;z=6};
+edtTencent={cls="edit";left=13;top=332;right=279;bottom=475;autohscroll=false;edge=1;font=LOGFONT(h=-14);multiline=1;readonly=1;z=4};
+edtYoudao={cls="edit";left=13;top=176;right=279;bottom=320;autohscroll=false;edge=1;font=LOGFONT(h=-14);multiline=1;readonly=1;z=3};
+grbOutput={cls="groupbox";text="整句翻译结果(百度/有道/腾讯）";left=7;top=3;right=287;bottom=486;edge=1;z=1};
+grpInput={cls="groupbox";text="输入要查询的句子或单词";left=321;top=3;right=604;bottom=152;edge=1;z=5};
+plusBaidu={cls="plus";text='\uF0A4';left=289;top=46;right=319;bottom=76;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=13};
+plusBaiduCopy={cls="plus";text='\uF0C5';left=289;top=97;right=319;bottom=127;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=12};
+plusTencent={cls="plus";text='\uF0A4';left=289;top=369;right=319;bottom=399;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=17};
+plusTencentCopy={cls="plus";text='\uF0C5';left=289;top=419;right=319;bottom=449;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=16};
+plusYoudao={cls="plus";text='\uF0A4';left=289;top=204;right=319;bottom=234;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=15};
+plusYoudaoCopy={cls="plus";text='\uF0C5';left=289;top=254;right=319;bottom=284;bgcolor=16772568;font=LOGFONT(h=-18;name='FontAwesome');forecolor=16772568;notify=1;z=14};
+tab={cls="tab";left=319;top=199;right=603;bottom=486;edge=1;z=8}
+)
+/*}}*/
+
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = mainForm.atom("ADD5532F-ED49-4F6A-B7E2-7E14E53BD508");
+if(!atom){
+	/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+	win.quitMessage();	return;
+}
+import translate;
+//import skin.sharp;
+//skin.sharp.attach("\res\skin.she");
+
+import wsock.tcp.simpleHttpServer;
+webUrl = wsock.tcp.simpleHttpServer.startUrl();
+
+win.ui.statusbar(mainForm).addItem("  版本:1.01（20190724） ", 321/*宽度*/)
+mainForm.statusbar.addItem(" ", 292);
+
+mainForm.reghotkey(function(id,mod,vk){dictresult();},0x2/*_MOD_CONTROL*/,'D'#); //注册热键 CTRL+D
+mainForm.reghotkey(function(id,mod,vk){clipresult();},0x2/*_MOD_CONTROL*/,'B'#); //注册热键 CTRL+B
+mainForm.reghotkey(function(id,mod,vk){clear();},0,0x2E/*_VK_DELETE*/); //注册热键 DELETE
+mainForm.reghotkey(function(id,mod,vk){query();},0x2/*_MOD_CONTROL*/,'X'#); //注册热键 CTRL+X
+
+frmTabPage1 = mainForm.tab.loadForm("\res\frmTab1.aardio");
+frmTabPage2 = mainForm.tab.loadForm("\res\frmTab2.aardio");
+frmTabPage3 = mainForm.tab.loadForm("\res\frmTab3.aardio");
+
+baidu = function(lang,str,hwnd){
+	import translate;
+	import win.ui.ctrl;
+ 
+	edit=win.ui.ctrl.edit();
+    edit.hwnd=hwnd;
+    //百度翻译API KEY，自行申请
+    var bdfy = translate("20151119*****","***EdWcKHKl****");
+    edit.text =  bdfy.baidu(lang,str);
+}
+
+youdao = function(str,hwnd){
+    import translate;
+	import win.ui.ctrl;
+
+	edit=win.ui.ctrl.edit();
+    edit.hwnd=hwnd;
+ 
+	var ydfy = translate("hy12com","1322070351");   
+    edit.text =  ydfy.youdao(str);
+}
+
+tencent = function(lang,str,hwnd){
+    import translate;    
+  	import win.ui.ctrl;
+	
+	edit = win.ui.ctrl.edit();
+    edit.hwnd = hwnd;
+    //腾讯翻译API KEY，自行申请
+	var qqfy = translate("AKIDbnj2*****GijQ3J****","***Mqo1th***cEUHe***");
+    edit.text = qqfy.tencent(lang,str);
+}
+
+
+dictWeb = function(Source){		
+	mainForm.statusbar.setText("",2)
+	var word = inet.url.encode(string.trim(Source),true);	
+	var arrText = {"金山词典";"海词词典";"有道词典"}	
+	for(i=1;3;1){
+		tabText = mainForm.tab.getItemText(i);
+		if( tabText != arrText[i] ){
+			mainForm.tab.setItemText(i,arrText[i])
+		}
+	}	
+	frmTabPage1.nav(webUrl++"/res/assets/iciba.aardio?word="++word)
+	frmTabPage2.nav(webUrl++"/res/assets/dict.aardio?word=" ++ word)
+	frmTabPage3.nav(webUrl++"/res/assets/youdao.aardio?word="++word)
+}
+
+function copy(hwnd,txt){
+	if(string.trim(hwnd) != ""){
+		win.clip.write(hwnd);
+		mainForm.statusbar.setText("成功拷贝"++ txt ++"翻译结果",2);	
+	}
+}
+
+function change(hwnd){
+	if(string.trim(hwnd) != ""){
+		mainForm.edtInput.text = hwnd;
+	}
+}
+
+function dictresult(){
+	if( #mainForm.edtInput.text ){
+		dictWeb(mainForm.edtInput.text);
+	} else {
+		mainForm.statusbar.setText("请输入要查询的单词",2);
+	    mainForm.edtInput.setFocus();
+	}	
+}
+
+function clipresult(){
+	var strClip = win.clip.read();
+	if ( type(strClip) == "string" ){
+		if(#string.trim(strClip)<20){
+			mainForm.edtInput.text = strClip;
+			dictWeb(strClip);
+		}
+	}else {
+		mainForm.statusbar.setText("剪切板中无可查询的单词",2);
+	}
+}
+
+function query(){
+	if( ! #mainForm.edtInput.text ){
+		mainForm.statusbar.setText("请输入要查询的单词或句子",2);
+	    mainForm.edtInput.setFocus();
+	    return;
+	   } 
+	mainForm.statusbar.setText("",2)
+	
+	var Source = string.trim(mainForm.edtInput.text);
+	var lang = "zh";
+	var fromlang = translate.fromlang(Source);
+	if (fromlang=="zh"){
+		lang = "en"
+	}
+
+    thread.create(baidu, lang, Source, mainForm.edtBaidu.hwnd);
+ 	thread.create(youdao,Source, mainForm.edtYoudao.hwnd);
+ 	thread.create(tencent, lang, Source, mainForm.edtTencent.hwnd);
+}
+
+function clear(){
+	mainForm.edtInput.text='';
+	mainForm.edtBaidu.text='';
+	mainForm.edtYoudao.text='';
+	mainForm.edtTencent.text='';	
+	mainForm.edtInput.setFocus();
+	
+	var arrText = {"简介";"日志";"快捷键"}
+	for(i=1;3;1){
+		tabText = mainForm.tab.getItemText(i);
+		if( tabText != arrText[i] ){
+			mainForm.tab.setItemText(i,arrText[i])
+		}
+	}
+	
+	frmTabPage1.nav(webUrl++"/res/assets/index.aardio?param=preface")
+	frmTabPage2.nav(webUrl++"/res/assets/index.aardio?param=updatelog")
+	frmTabPage3.nav(webUrl++"/res/assets/index.aardio?param=shortkey")		
+}
+
+mainForm.plusBaidu.oncommand = function(id,event){
+	change(mainForm.edtBaidu.text);	
+}
+
+mainForm.plusYoudao.oncommand = function(id,event){
+	change(mainForm.edtYoudao.text);	
+}
+
+mainForm.plusTencent.oncommand = function(id,event){
+	change(mainForm.edtTencent.text);	
+}
+
+mainForm.plusBaiduCopy.oncommand = function(id,event){
+	copy(mainForm.edtBaidu.text,"百度");	
+}
+
+mainForm.plusYoudaoCopy.oncommand = function(id,event){
+	copy(mainForm.edtYoudao.text,"有道");	
+}
+
+mainForm.plusTencentCopy.oncommand = function(id,event){
+	copy(mainForm.edtTencent.text,"腾讯");
+}
+
+mainForm.btnQryDict.oncommand = function(id,event){
+	dictresult();
+}
+
+mainForm.btnClip.oncommand = function(id,event){
+	clipresult();
+}
+
+mainForm.btnQuery.oncommand = function(id,event){
+    query();
+}
+
+mainForm.btnClear.oncommand = function(id,event){
+	clear();
+}
+
+mainForm.show() 
+return win.loopMessage();

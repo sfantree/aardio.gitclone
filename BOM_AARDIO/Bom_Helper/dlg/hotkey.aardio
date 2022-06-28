@@ -1,0 +1,42 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="热键";right=984;bottom=589;bgcolor=16777215)
+winform.add(
+button={cls="button";text='\uF113 内网地址校正';left=680;top=192;right=904;bottom=248;font=LOGFONT(h=-16;name='FontAwesome');z=2};
+edit={cls="edit";left=56;top=72;right=904;bottom=192;edge=1;multiline=1;z=1};
+static={cls="static";text="done to clipboard !";left=776;top=256;right=904;bottom=280;align="right";color=255;hide=1;transparent=1;z=3}
+)
+/*}}*/
+
+import win.clip;
+var map = {
+	["@N:\"] = "\\CCNSIA1A\SolidEdge\"; 
+	["@O:\"] = "\\CCNSIA1A\LDC-Projects_SHA-MZ\"; 
+	["@Q:\"] = "\\CCNSIA1A\cad3d\"; 
+	["@S:\"] = "\\CCNSIA1A\SEParts\"; 
+	["@Y:\"] = "\\CCNSIF0G\SRDC\CCR\"; 
+	["@Z:\"] = "\\CCNSIA1H\proe_stds\pro_proj_wc\";
+    ["172.24.236.60"] = "CCNSIF0G";
+    ["172.24.236.61"] = "CCNSIA1A";
+    ["172.24.236.15"] = "CCNSIA1H";
+    ["http://static.huohua.cn/pdf_previewer/preview/viewer.html?file="] = "";
+}
+var ReplaceDriver = function(str){
+    for(k,v in map ) str=string.replace(str,k,v);
+    return str; 
+}
+
+winform.button.oncommand = function(id,event){
+    if (winform.edit.text == "") winform.edit.text = win.clip.read() ;
+	winform.edit.text = ReplaceDriver( winform.edit.text );
+	win.clip.write( winform.edit.text );
+	winform.static.hide = false;
+	winform.redraw();
+	sleep(2000);
+	win.quitMessage();
+}
+
+winform.show();
+win.loopMessage();
+return winform;

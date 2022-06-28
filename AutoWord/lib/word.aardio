@@ -1,0 +1,98 @@
+﻿class word{//山寨com.excel
+    ctor( create = true ,ver){
+        if( !create ){
+            try{
+                this.oWord = ..com.GetObject("Word.Application");
+            }  
+            if( ! this.oWord )
+            	error("请先打开word文件",2);
+        }
+        else {
+            this.oWord = ..com.CreateObject( ..string.concat( "Word.Application" ,ver) );
+            this.oWord.Visible = false;
+        }
+    };
+    @_metaProperty;
+    
+    Open = function(path){
+        return this.oWord.Documents.Open(..io.fullpath(path));
+    };
+    
+    SaveAs = function(path){//另存为原来的word版本
+        if(!#path) error("请指定保存路径",2);
+
+        return this.oWord.Documents.SaveAs(..io.fullpath(path));
+    };
+    
+    //替换文本为 '~' 表示替换为空格
+    testReplaceText = function(replaceText){
+        return replaceText !== "~" ? replaceText : " ";
+    }        
+    
+    insertBookmarkValue = function(bookmark, replaceText){
+        if(replaceText === null) return; //避免数字 0 被转换为 false
+        if(this.oWord.ActiveDocument.Bookmarks.Exists(bookmark)){
+            this.oWord.ActiveDocument.Bookmarks(bookmark).Select();
+            this.oWord.Selection.TypeText(replaceText !== "~" ? tostring(replaceText) : " ");
+        }
+    };
+     
+    replace = function(text, replaceText){
+        if(!text) return ;
+        if(text == replaceText) return ;
+        
+        /*
+		// 替换代码无效
+        owner.Selection.Find.ClearFormatting();
+		owner.Selection.Find.Text = text;
+		owner.Selection.Find.Replacement.ClearFormatting();
+        owner.Selection.Find.Replacement.Text = replaceText;
+    	owner.Selection.Find.Execute(owner.oWord.wdReplaceAll);
+		*/
+		
+		this.oWord.Selection.Find.ClearFormatting();
+		this.oWord.Selection.HomeKey(this.oWord.wdStory); //移动到文档头部
+		
+		while(this.oWord.Selection.Find.Execute(text)){
+			if(replaceText === null or replaceText == "~") { //用数据库方式获取的Excel数据，会获取不到在数字列的字符串内容		
+				this.oWord.Selection.TypeText(" ");
+				/**
+				import key;
+				key.press(0x2E/*_VK_DELETE*/);
+				..win.delay(1);
+				**/
+			}
+			else {
+				this.oWord.Selection.TypeText(tostring(replaceText));
+			}	
+			
+			this.oWord.Selection.HomeKey(this.oWord.wdStory); //移动到文档头部
+		}			
+    };
+}
+    
+namespace word{ //继续山寨	
+	import util.metaProperty; 	
+	_metaProperty = util.metaProperty( 
+     
+        alerts = {
+            _get = function(){
+                return owner.oWord.Application.DisplayAlerts && owner.Application.ScreenUpdating;
+            }        
+            _set = function( value ){
+                value = value? 1 : 0;
+                owner.oWord.Application.DisplayAlerts = value;
+                owner.oWord.Application.ScreenUpdating = value;
+            }
+        };
+        
+        get = function(k){
+            return owner.oWord[k];
+        };
+        
+        set = function(k,v){
+            owner.oWord[k] = v;
+        };
+        
+    );
+}

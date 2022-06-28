@@ -1,0 +1,70 @@
+import console; 
+console.open();
+console.log("从SAP下载清单", time());
+
+
+var thrdHandle = thread.create( 
+	function(){
+		import SAP.session;
+		var session = SAP.session();
+		session.findById("wnd[0]").maximize()
+		session.findById("wnd[0]/tbar[0]/okcd").text = "mm60"
+		session.findById("wnd[0]/tbar[0]/btn[0]").press()
+		session.findById("wnd[0]/usr/chkBEWFLG").selected = false
+		session.findById("wnd[0]/usr/ctxtMS_MATNR-LOW").text = "*"
+		session.findById("wnd[0]/usr/ctxtMS_WERKS-LOW").text = "0841"
+		session.findById("wnd[0]/tbar[1]/btn[8]").press()
+		session.findById("wnd[0]/tbar[1]/btn[45]").press()
+		session.findById("wnd[1]/tbar[0]/btn[0]").press()
+		session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = "allcost.txt"
+		sleep(1 * 1000)
+		session.findById("wnd[1]/tbar[0]/btn[11]").press()
+		session.findById("wnd[0]/tbar[0]/btn[12]").press()
+		session.findById("wnd[0]/tbar[0]/btn[12]").press()
+		session = null;
+		
+	}
+)
+thread.waitOne(thrdHandle);
+raw.closehandle(thrdHandle);
+console.log("从SAP下载清单完成", time());
+
+import fsys;
+import fsys.file;
+
+_path = "D:\users\CCL100100\Work_Documents\SAP\SAP GUI\allcost.txt";
+_npath = string.replace(_path,"allcost","_temp_allcost");
+var file = io.open(_path,"r");
+var nfile = fsys.file(_npath,"w+");
+console.log("开始处理多余行", time())
+var n = 1;
+for line in io.lines(file){
+    //跳过制表符号
+	if string.startWith(line, "|") {
+		nl = string.split(line,"|");
+		table.pop(nl,1)
+		table.shift(nl,1)
+		nfile.write( string.join(nl,",") ++ '\n');
+	}
+	n = n + 1 ;
+}
+file.close();
+nfile.close();
+
+io.remove(_path);
+io.rename(_npath,_path);
+console.log("完成",time())
+
+/**
+import com;
+var accessapp = com.CreateObject("Access.Application");
+accessapp.visible = true
+accessapp.application.OpenCurrentDatabase ("D:\users\CCL100100\Work_Documents\SAP\SAP GUI\sapjoin.accdb");
+accessapp.doCmd.OpenModule ("模块1","exportJoinedDB")
+accessapp.doCmd.runMacro ("exportJoinedDB");
+
+accessapp.application.quit ( 2 /* acQuitSaveNone */)
+**/
+import process;
+process.execute("D:\users\Personal LGP\personal Documents\code_space\DB.Browser.for.SQLite-3.11.2-win64\DB Browser for SQLite\DB Browser for SQLite.exe",  " S:\Admin\SAP\db\qhcsap.db",,,"D:\users\CCL100100\Work_Documents\")
+console.pause(true);

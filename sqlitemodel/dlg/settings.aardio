@@ -1,0 +1,84 @@
+import win.ui;
+import fsys.dlg;
+import config;
+/*DSG{{*/
+var	winform	= win.form(text="设置";right=423;bottom=216;max=false;parent=...)
+winform.add(
+button={cls="button";text="选择";left=345;top=6;right=414;bottom=32;z=3};
+button2={cls="button";text="确定";left=346;top=183;right=415;bottom=209;z=7};
+button3={cls="button";text="取消";left=227;top=184;right=296;bottom=210;z=8};
+edit_Orgs={cls="edit";left=106;top=115;right=341;bottom=174;autohscroll=false;edge=1;multiline=1;vscroll=1;z=11};
+edit_companyname={cls="edit";left=105;top=84;right=340;bottom=108;edge=1;multiline=1;z=9};
+edit_dbpath={cls="edit";left=104;top=7;right=339;bottom=31;edge=1;multiline=1;z=1};
+rdConfirmDelete1={cls="radiobutton";text="是";left=106;top=50;right=175;bottom=69;z=5};
+rdConfirmDelete2={cls="radiobutton";text="否";left=185;top=50;right=254;bottom=69;z=6};
+static={cls="static";text="数据库路径";left=21;top=12;right=97;bottom=34;transparent=1;z=2};
+static2={cls="static";text="单位名称";left=20;top=85;right=96;bottom=107;transparent=1;z=10};
+static3={cls="static";text="部门处室";left=21;top=116;right=97;bottom=138;transparent=1;z=12};
+static5={cls="static";text="删除要求确认";left=21;top=51;right=105;bottom=73;transparent=1;z=4}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+	var	lastpath = config.settings.dbpath;
+	if(lastpath!=null and lastpath !=""){
+		if(!io.exist(lastpath)){
+			lastpath = "D:\"
+		}
+	}
+
+	var	path = fsys.dlg.opendir(lastpath)
+	if(path==null){
+		winform.msgbox("未选择数据库路径, 程序将不能正确运行")
+	}else {
+		winform.edit_dbpath.text=path
+		config.settings.dbpath = path;
+	}
+}
+
+
+winform.bindConfig(	config.settings,{
+	edit_dbpath	= "text";
+	edit_companyname = "text";
+	edit_Orgs =	"text";
+	rdConfirmDelete1 = "checked";
+	rdConfirmDelete2 = "checked";
+} );
+
+
+
+init = function(){
+	winform.edit_dbpath.text = config.settings.dbpath;
+	if(config.settings.confirm_delete){
+		winform.rdConfirmDelete1.checked = true;
+	}else {
+		winform.rdConfirmDelete2.checked = true;
+	}
+
+}
+
+winform.rdConfirmDelete1.oncommand = function(id,event){
+	config.settings.confirm_delete = true;
+}
+
+winform.rdConfirmDelete2.oncommand = function(id,event){
+	config.settings.confirm_delete = false;
+}
+
+winform.button2.oncommand =	function(id,event){
+	config.saveAll();
+	winform.close();
+}
+
+
+winform.button3.oncommand =	function(id,event){
+	winform.close();
+}
+
+init()
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

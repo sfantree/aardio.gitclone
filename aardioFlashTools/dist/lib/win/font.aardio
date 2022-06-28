@@ -1,0 +1,174 @@
+//font 字体
+import win;
+import gdi;
+namespace win.font; 
+
+ ::Gdi32 := ..raw.loadDll("Gdi32.dll") 
+RemoveFontResource  =  Gdi32.api("RemoveFontResource","bool(str filename)");
+AddFontMemResourceEx =  Gdi32.api("AddFontMemResourceEx","pointer( pointer pbFont,INT cbFont,pointer pdv,INT &pcFonts)");
+RemoveFontMemResourceEx =  Gdi32.api("RemoveFontMemResourceEx","bool(str filename)");
+EnumFontFamiliesEx = ::Gdi32.api("EnumFontFamiliesExW","int(PTR hdc,struct font,pointer lpEnumFontFamExProc,int lParam,int flags)") 
+class ENUMLOGFONTEX {
+  	struct elfLogFont = ::LOGFONT();
+  	WORD elfFullName[0x40/*_LF_FULLFACESIZE*/];
+  	WORD elfStyle[0x20/*_LF_FACESIZE*/];
+  	WORD elfScript[0x20/*_LF_FACESIZE*/];
+} 
+
+enum = function(proc,logfont,hdc){ 
+	if( type(proc) != type.function ) error("参数@1必须指定回调函数",2);
+	
+	var elf = ENUMLOGFONTEX();
+	var cstr = ..string.str;
+	var convert = ..raw.convert;
+	var proc_c = ..raw.tostdcall( function(lpelf,lpntme,ftype,lParam){
+		convert(lpelf,elf);
+		var ret = proc( elf.elfLogFont,cstr(elf.elfFullName),ftype,cstr(elf.elfStyle),cstr(elf.elfScript),lpntme)
+		return ret === null : ret;
+	} ,"bool(ptr font,ptr lpntme,INT ftype,int lParam") 
+
+	
+	if(!logfont[["_struct"]] ){  
+		var font = ::LOGFONT()
+		font.charset = 1/*_DEFAULT_CHARSET*/;
+		font.name = "";//列举所有字体名
+		if( type( logfont) == type.table ) ..table.assign(  font ,logfont);
+		logfont = font;
+	}
+	
+	var hdcFree;
+	if( !hdc ){
+		hdc = ::GetDC(0);
+		hdcFree = hdc;
+	}	 
+	
+	EnumFontFamiliesEx( hdc,logfont,proc_c,0,0);
+	if(hdcFree)::ReleaseDC( 0, hdcFree );	
+}
+
+add = function(f,notify){
+	if( !f ) error("字体参数不能为空值",2);
+	if( notify === null ) notify = true;
+	
+	var data = f;
+	if( #f <= 0x410/*_MAX_PATH_U8*/ ){
+		var path = ..io.exist(f)
+
+		if( path ){
+			var num = ::Gdi32.AddFontResourceEx( path,0x10/*FR_PRIVATE*/,0 )
+			if( num > 0 ){ 
+				if(notify)::PostMessage( 0xFFFF/*_HWND_BROADCAST*/,0x1D/*_WM_FONTCHANGE*/,0,0);  
+				return path,num;
+			}
+		}
+		
+		data = ..string.load(f) : f; 
+	}
+	 
+	if( data ){
+		var hnd,num = AddFontMemResourceEx( data,#data,null,0); 
+		if( hnd && num ) {
+			if(notify)::PostMessage( 0xFFFF/*_HWND_BROADCAST*/,0x1D/*_WM_FONTCHANGE*/,0,0); 
+			return hnd,num;
+		}
+	}
+}
+
+remove = function(f,notify){ 
+	if( !f ) error("字体参数不能为空值",2);
+	if( notify === null ) notify = true;
+	
+	var ret;
+	if( type(f) == type.string ){
+		ret = ::Gdi32.RemoveFontResourceEx( ..io.fullpath(f),0x10/*FR_PRIVATE*/,0  )
+	}
+	else {
+		ret = RemoveFontMemResourceEx(f);
+	} 
+	if( ret ){
+		if(notify)::PostMessage( 0xFFFF/*_HWND_BROADCAST*/,0x1D/*_WM_FONTCHANGE*/,0,0);  
+		return true; 
+	}
+}
+
+sendChange = function(){
+	::PostMessage( 0xFFFF/*_HWND_BROADCAST*/,0x1D/*_WM_FONTCHANGE*/,0,0); 
+}
+
+getResourceInfo = function(filename){
+	var info = {}; 
+	var size = { INT n }
+	var addFilename;
+	filename = ..string.toUnicode(filename);
+ 
+  	if(!::Gdi32.GetFontResourceInfoW) return;
+  	if( ! ::Gdi32.GetFontResourceInfoW(filename,size,0,1) ){
+  		addFilename = add(..string.fromUnicode(filename),false );
+  		if(!addFilename) return;
+  	}
+  	
+	if( ::Gdi32.GetFontResourceInfoW(filename,size,0,1) ){
+		var buffer = ..raw.buffer(size.n);
+		::Gdi32.GetFontResourceInfoW(filename,size,buffer,1) 
+		info.description  = ..string.fromUnicode(..raw.str(buffer,true));
+	}
+
+	size.n = 0;
+	if( ::Gdi32.GetFontResourceInfoW(filename,size,0,2) ){ 
+		var buffer = ..raw.buffer(size.n);
+		::Gdi32.GetFontResourceInfoW(filename,size,buffer,2);
+		info.logfonts = {}; 
+		for(i=1;size.n - (size.n % 92);92){
+			var font = 	{
+				int h; 
+				int w;
+				int esc;
+				int ori;
+				int weight;
+				BYTE italic;
+				BYTE underline;
+				BYTE strike;
+				BYTE charset;
+				BYTE out;
+				BYTE clip;
+				BYTE quality;
+				BYTE family;
+				WORD name[32] ;
+			} 
+			..raw.convert(buffer,font,i-1);
+			..table.push(info.logfonts,::LOGFONT(font));
+		} 
+	} 
+	
+	if(addFilename){ remove(addFilename,false) }
+	return info;
+}
+
+/**intellisense()
+win.font.enum(proc,logfond,hdc) = @.enum( \n	function(logfont,fullname,ftype,style,script,lpntme){\n		if( ftype == 0x4/*_TRUETYPE_FONTTYPE*/ && fullname[1] != '@'#/*翻转90度字体*/ ){\n			__\n		}\n	},{ charset = 0x86/*_GB2312_CHARSET*/; name = "" }\n)
+win.font.add( = 添加字体,\n此函数加载的字体仅适用于GDI以及传统控件,\n有个别控件可能不支持内存字体\n建议改用 fonts.addFamily 函数可以支持GDI,GDI+,plus 控件等
+win.font.add(.(字体) = 添加字体,\n参数@!可以是字体文件路径,资源文件路径,或内存数据\n参数2省略或为真删除成功后调用sendChange函数通知所有窗体\n返回值1为字体路径或字体句柄,返回值2为添加字体数目,失败返回空值\n注册的字体仅在当前进程可用，并可覆盖系统同名字体
+win.font.remove(.(字体) = 移除字体,参数必须是add函数的第一个非空返回值\n参数2省略或为真删除成功后调用sendChange函数通知所有窗体
+win.font.sendChange() = 字体增删后可选使用此函数通知所有顶层窗口
+win.font.getResourceInfo(.("字体路径") = 返回字体文件信息\n注意此函数不支持内嵌资源文件
+win.font.getResourceInfo() = !win_font_res_info.
+!win_font_res_info.description = 字体描述
+!win_font_res_info.logfonts = !logfont.
+end intellisense**/
+
+/**intellisense()
+_ANSI_CHARSET = @0x0/*_ANSI_CHARSET*/
+_BALTIC_CHARSET = @0xBA/*_BALTIC_CHARSET*/
+_CHINESEBIG5_CHARSET = @0x88/*_CHINESEBIG5_CHARSET*/
+_DEFAULT_CHARSET = @0x1/*_DEFAULT_CHARSET*/
+_EASTEUROPE_CHARSET = @0xEE/*_EASTEUROPE_CHARSET*/
+_GB2312_CHARSET = @0x86/*_GB2312_CHARSET*/
+_GREEK_CHARSET = @0xA1/*_GREEK_CHARSET*/
+_HANGUL_CHARSET = @0x81/*_HANGUL_CHARSET*/
+_MAC_CHARSET = @0x4D/*_MAC_CHARSET*/
+_OEM_CHARSET = @0xFF/*_OEM_CHARSET*/
+_RUSSIAN_CHARSET = @0xCC/*_RUSSIAN_CHARSET*/
+_SHIFTJIS_CHARSET = @0x80/*_SHIFTJIS_CHARSET*/
+_SYMBOL_CHARSET = @0x2/*_SYMBOL_CHARSET*/
+_TURKISH_CHARSET = @0xA2/*_TURKISH_CHARSET*/
+end intellisense**/

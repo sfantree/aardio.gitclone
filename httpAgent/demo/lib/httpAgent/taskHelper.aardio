@@ -1,0 +1,109 @@
+﻿import hpsocket.helper.headers;
+
+namespace httpAgent;
+
+class taskHelper {
+	ctor(connId_obj){
+		//以后考虑增加重试次数，重试时间
+		
+		this.connIdHelper = connId_obj;
+		
+		this.queue = {//取出执行的时候，马上从队列中移除,尾端的先执行
+			lock = false;
+			["add"] = function(task){
+				//带锁的时候需要等待
+				while(owner.lock){
+					..win.delay(10)
+				}
+				..table.insert(owner,task,1);
+				return #owner; 
+			}
+			["remove"] = function(index){
+				..table.remove(owner,index);
+			}
+		}
+		this.completeCallBack = null;
+		this.completeShowUp = true;
+	}
+	addTask = function(task,delay){
+		this.completeShowUp = false;
+		owner.queue.add(task);
+		if (!delay) return owner.nextStep();
+	}
+	addRequest = function(url,onResponse,header,method,body,delay){
+		var task = ..httpAgent.taskData(url,onResponse,header,method,body);
+		
+		//判断当onResponse是Table并包含多值时,重新建立回调函数的关系
+		if type(onResponse) == type.table{
+			//重新绑定table.onResponse为最终回调函数,可以是null
+			task.bindCallBack(onResponse.onResponse)
+			
+			for k,j in onResponse{
+				if (k="onResponse") continue ;
+				if (type(j) == type.function){
+					task.bindCallBack(j,k)
+				}
+			}
+		}
+		
+		return task.guid, task, owner.addTask(task,delay);
+	}
+	setComplete = function(func){//允许为null，即取消
+		this.completeCallBack = func;
+	}
+	nextStep = function(maxCount = 1){//检查新任务,返回成功任务数;
+		var task;
+		var count = 0;
+		
+		if (#owner.queue == 0){
+			if (this.completeCallBack && !this.completeShowUp) call(this.completeCallBack);
+			this.completeShowUp = true;
+			return ; 
+		}
+		
+		owner.queue.lock = true;
+		
+		for index=#owner.queue;1;-1{
+			task = owner.queue[index];
+			var connId,isNewOrError,errTextOrServer = owner.connIdHelper.getConnId(task)
+			if (connId) {
+				var isNew = isNewOrError;
+				var server = errTextOrServer;
+				
+				var method,url,header,body,isWebSocket = task.request();
+				
+				owner.queue.remove(index);
+
+				if (!isNew) { //不是新连接的时候，就直接发送请求就可以了
+					var taskHeaders =  owner.connIdHelper.getHttpHeader(url)
+					
+					var requestHeaders =  ..hpsocket.helper.headers(taskHeaders.headers());
+					if (header) requestHeaders.mix(header.headers());	
+				
+					if (isWebSocket){
+						server.socket.sendWsUpgradeRequest(connId,url.uri,requestHeaders)
+					}
+					else {
+						server.socket.sendRequest(connId,body,url.uri,requestHeaders,method) 
+					}
+				}
+				count += 1;
+				if (count >= maxCount) break ;
+			}
+			else {
+				var err = isNewOrError;
+				var errText = errTextOrServer;
+				//线程满了就跳过
+				if (!err) continue ;
+				
+				//如果是错误就告知出错，并从队列移除
+				owner.queue.remove(index);
+				task.onParseError(errText);
+			}
+		}
+		
+		owner.queue.lock = false;
+		
+		return count; 
+	}
+}

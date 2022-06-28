@@ -1,0 +1,206 @@
+import win.ui;
+import win.ui.menu;
+/*DSG{{*/
+var baseForm = win.form(text="aardio form";right=759;bottom=469;border="none";exmode="toolwindow";max=false;min=false;mode="popup";parent=...;sysmenu=false;title=false)
+baseForm.add(
+custom={cls="custom";text="custom";left=0;top=0;right=760;bottom=470;center=1;transparent=1;z=1};
+custom2={cls="custom";text="custom2";left=0;top=0;right=100;bottom=100;center=1;hide=1;transparent=1;z=2}
+)
+/*}}*/
+
+import common;
+import snaps;
+import baseFun;
+var bf = baseFun( baseForm );
+
+
+
+if( common.path ){
+	var bitmap = gdip.bitmap( common.path )
+	baseForm.setPos( ,,bitmap.width,bitmap.height );
+	baseForm.custom.setPos(0,0,bitmap.width,bitmap.height);
+	baseForm.custom.image = bitmap.copyHandle();	
+	bf.imgW,bf.imgH = bitmap.width,bitmap.height;
+	bitmap.dispose();
+}else {
+	common.snap = 1;
+	var snap = snaps( baseForm.hwnd );
+	
+	var data = snap.doModal();
+	
+	
+	if(data){
+		var rect = data.rect;
+		
+		baseForm.setPos( rect.left,rect.top,rect.width(),rect.height() );
+		baseForm.custom.setPos(0,0,rect.width(),rect.height());
+		
+		//baseForm.image = data.imgData;
+		baseForm.custom.image = data.imgData;
+		if( common.minType == 2 ){
+			var bmp = gdip.bitmap(data.imgData);
+			var img = gdip.bitmap(common.minSize,common.minSize);
+			var g = gdip.graphics(img);
+			g.drawImageRectRect(bmp,0,0,common.minSize,common.minSize,0,0,bmp.width,bmp.height);
+			baseForm.custom2.image = img.copyHandle();
+			g.delete();
+			bmp.dispose();
+			img.dispose();
+		}
+		bf.imgW,bf.imgH = rect.width(),rect.height();
+		
+	}
+	else 
+		baseForm.close();
+	common.snap = 0;
+}	
+
+baseForm.custom.wndproc = function(hwnd,message,wParam,lParam){
+
+	select( message ) {
+		case 0x201/*_WM_LBUTTONDOWN*/ {
+			var mx,my = win.getMessagePos();
+			var wx,wy = baseForm.getPos();
+			bf.offSet = {
+				x = mx - wx;
+				y = my - wy;
+			}
+			bf.mouseDown = true;
+			win.setCapture( baseForm.custom.hwnd );
+		}
+		case 0x202/*_WM_LBUTTONUP*/ {
+			bf.clickOrDblClk();
+			win.setForeground(baseForm.hwnd);
+		}
+		case 0x200/*_WM_MOUSEMOVE*/ {
+			if(bf.mouseDown)
+				bf.setNewPos();
+		}
+		case 0x205/*_WM_RBUTTONUP*/ {
+			var x,y = win.getMessagePos();
+			baseForm.custom.popmenu.popup( x,y,true );
+		}
+	}
+}
+
+baseForm.custom2.wndproc = function(hwnd,message,wParam,lParam){ 
+	select( message ) {
+		case 0x201/*_WM_LBUTTONDOWN*/ {
+			var mx,my = win.getMessagePos();
+			var wx,wy = baseForm.getPos();
+			bf.offSet = {
+				x = mx - wx;
+				y = my - wy;
+			}
+			bf.mouseDown = true;
+			win.setCapture( baseForm.custom.hwnd );
+		}
+		case 0x202/*_WM_LBUTTONUP*/ {
+			bf.clickOrDblClk();
+			win.setForeground(baseForm.hwnd);
+		}
+		case 0x200/*_WM_MOUSEMOVE*/ {
+			if(bf.mouseDown)
+				bf.setNewPos();
+		}
+	}
+}
+
+baseForm.wndproc = function(hwnd,message,wParam,lParam){ 
+	if( message == 0x87/*_WM_GETDLGCODE*/ ){
+		if( wParam == 27 ){
+			bf.escEvent();
+			win.setForeground(baseForm.hwnd);
+		}
+	}
+}
+
+
+
+baseForm.custom.onEraseBkgnd  = function(hwnd,message,wParam,lParam){
+   
+	if(bf.isRedraw){
+		bf.draw( "redraw",,,bf.img );
+    	return false;
+	}
+
+}
+
+
+
+
+
+baseForm.onClose = function(hwnd,message,wParam,lParam){
+    if( bf.img ){
+    	bf.graphics.delete();
+    	bf.img.dispose();
+    }
+   baseForm.custom.image = null; 
+}
+
+var preview = win.ui.popmenu(baseForm); //创建子菜单
+preview.addTable( {
+	{ "菜单文本";  function(id){
+		
+	} }; { /*分隔线*/ }
+	{ "退出程序"; function(id){  
+		baseForm.close() 
+ 	} };
+} )
+var loadLastImg = win.ui.popmenu(baseForm); //创建子菜单
+loadLastImg.addTable( {
+	{ "菜单文本";  function(id){
+		
+	} }; 
+} )
+
+var reset = win.ui.popmenu(baseForm); //创建子菜单
+reset.addTable( {
+	{ "初始";  function(id){
+		bf.resetImg("a");
+	} };
+	{ "旋转";  function(id){
+		bf.resetImg("r");
+	} }; 
+	{ "缩放";  function(id){
+		bf.resetImg("s");
+	} }; 
+} )
+
+baseForm.custom.popmenu = win.ui.popmenu(baseForm);//创建弹出菜单
+
+
+baseForm.custom.popmenu.add('关闭',function(id){ baseForm.close() })
+baseForm.custom.popmenu.add();//分隔线
+//baseForm.custom.popmenu.add('参考图预览',preview);
+//baseForm.custom.popmenu.add('回收站',function(id){ });
+//baseForm.custom.popmenu.add('清空回收站',function(id){ });
+baseForm.custom.popmenu.add('选项',function(id){ mainForm.show() });
+baseForm.custom.popmenu.add();//分隔线
+baseForm.custom.popmenu.add('复制到剪贴板',function(id){ bf.copyToClip() });
+baseForm.custom.popmenu.add('另存为',function(id){ bf.saveAs() });
+baseForm.custom.popmenu.add();//分隔线
+baseForm.custom.popmenu.add('保存当前参考图',function(id){ });
+baseForm.custom.popmenu.add('保存全部参考图',function(id){ });
+baseForm.custom.popmenu.add('载入参考图',loadLastImg );
+baseForm.custom.popmenu.add();//分隔线
+//baseForm.custom.popmenu.add('鼠标缩放',function(id){ bf.reSize("b") });
+//baseForm.custom.popmenu.add('缩小',function(id){ bf.reSize("s") });
+baseForm.custom.popmenu.add('水平翻转',function(id){ bf.flip("h") });
+baseForm.custom.popmenu.add('垂直翻转',function(id){ bf.flip("v") });
+baseForm.custom.popmenu.add();//分隔线
+//baseForm.custom.popmenu.add('顺时针旋转90°',function(id){ bf.rotateFlip("r") });
+//baseForm.custom.popmenu.add('逆时针旋转90°',function(id){ bf.rotateFlip("l") });
+
+baseForm.custom.popmenu.add('R  旋转',function(id){ bf.rotateByMouse()});
+baseForm.custom.popmenu.add('S  缩放',function(id){ bf.resizeByMouse()});
+baseForm.custom.popmenu.add('重置',reset);
+
+import win.ui.shadow;
+win.ui.shadow(baseForm); //添加阴影边框
+
+win.setTopmost( baseForm.hwnd )
+baseForm.show();
+
+return baseForm; 
+//win.loopMessage();

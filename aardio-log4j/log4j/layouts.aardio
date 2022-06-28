@@ -1,0 +1,25 @@
+﻿//layouts 日志格式化
+import util.table;
+namespace log4j.layouts
+basic = function(loggingEvent,...){
+    var layouts = loggingEvent.layouts
+    var timeNow = ..time.now()
+	var times = tostring(timeNow) + '.' + tostring(timeNow.milliseconds)
+	var msg = ''
+	var arg = {...}
+	for i,v in ..table.eachIndex(arg){
+		if(type(v) == type.table){
+			msg = msg +"    " + ..util.table.stringify(v)
+		}else{
+			msg = msg + "    " +tostring(v)
+		}
+	}
+	var toast = ..string.format("[%s]  [%s]  [%s]:",times, loggingEvent.level,loggingEvent.loggerCategory)
+	msg = toast+msg
+	return msg; 
+};
+
+/**intellisense(log4j.layouts)
+
+basic = 设置消息\n@.basic(loggingEvent,...)
+end intellisense**/

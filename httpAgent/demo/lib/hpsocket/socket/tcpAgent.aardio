@@ -1,0 +1,37 @@
+﻿import hpsocket.socket.agent;
+namespace hpsocket.socket;
+
+class tcpAgent{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.agent(obj);
+	};
+	sendSmallFile = function(connId,filename,head,tail){
+		if( head ) head ={ INT len=#head;ptr head = head }
+		if( tail ) tail ={ INT len=#tail;ptr tail = tail }
+		return 	::HPSocket.HP_TcpAgent_SendSmallFile(this.pSocket,connId,..io.fullpath(filename),head, tail);
+	}
+	setReuseAddress = function(reuse){
+		::HPSocket.HP_TcpAgent_SetReuseAddress(this.pSocket,reuse);
+	}
+	getReuseAddress = function(){
+		return ::HPSocket.HP_TcpAgent_IsReuseAddress(this.pSocket);
+	}
+	setSocketBufferSize = function(v){
+		::HPSocket.HP_TcpAgent_SetSocketBufferSize(this.pSocket,v);
+	}
+	getSocketBufferSize = function(){
+		return ::HPSocket.HP_TcpAgent_GetSocketBufferSize(this.pSocket);
+	}
+	setKeepAliveTime = function(v){
+		::HPSocket.HP_TcpAgent_SetKeepAliveTime(this.pSocket,v);
+	}
+	getKeepAliveTime = function(){
+		return ::HPSocket.HP_TcpAgent_GetKeepAliveTime(this.pSocket);
+	}
+	setKeepAliveInterval = function(v){
+		::HPSocket.HP_TcpAgent_SetKeepAliveInterval(this.pSocket,v);
+	}
+	getKeepAliveInterval = function(){
+		return ::HPSocket.HP_TcpAgent_GetKeepAliveInterval(this.pSocket);
+	}
+}

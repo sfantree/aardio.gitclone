@@ -1,0 +1,193 @@
+import console; 
+import libxl;
+import preg;
+import console;
+
+
+var WriteData = function(){
+	io.open()
+	
+	var file = "export/receipt.xlsx"
+	var xlExcel,err = libxl()
+	
+	//var Lincense_Name,Lincense_Key = "Halil Kural","windows-2723210a07c4e90162b26966a8jcdboe";
+	
+	//xlExcel.setKey(Lincense_Name,Lincense_Key);//注册
+	
+	
+	var logoId = xlExcel.addPicture("script/logo.png")
+	
+	var textFont = xlExcel.addFont();
+	textFont.size = 8;
+	textFont.name = "Century Gothic"
+	
+	var titleFont = xlExcel.addFont(textFont)
+	titleFont.size = 38
+	titleFont.color = 22/*_COLOR_GRAY25*/
+	
+	var font12 = xlExcel.addFont(textFont);
+	font12.size = 12;
+	
+	var font10 = xlExcel.addFont(textFont);
+	font10.size = 10;
+	
+	var textFormat = xlExcel.addFormat()
+	textFormat.font = textFont
+	textFormat.alignH = 1/*ALIGNH_LEFT*/
+	
+	var titleFormat = xlExcel.addFormat()
+	titleFormat.font = titleFont;
+	titleFormat.alignH = 3/*ALIGNH_RIGHT*/
+	
+	var companyFormat = xlExcel.addFormat()
+	companyFormat.font = font12
+	
+	var dateFormat = xlExcel.addFormat(textFormat)
+	dateFormat.numStyle = xlExcel.addNumFormat("[$-409]mmmm d, yyyy;@")
+	
+	var phoneFormat = xlExcel.addFormat(textFormat)
+	phoneFormat.numStyle = xlExcel.addNumFormat("[<=9999999]###\-####;\(###\)\ ###\-####")
+
+	
+	var borderFormat = xlExcel.addFormat(textFormat)
+	borderFormat.borderStyle = 1 /*BORDERSTYLE_THIN*/
+	borderFormat.borderColor = 22/*_COLOR_GRAY25*/
+	borderFormat.alignV = 1/*ALIGNV_CENTER*/
+	
+	var percentFormat = xlExcel.addFormat(borderFormat)
+	percentFormat.numStyle = xlExcel.addNumFormat("#%_)")
+	percentFormat.alignH = 3/*ALIGNH_RIGHT*/
+	
+	var textRightFormat = xlExcel.addFormat(textFormat)
+	textRightFormat.alignV = 1/*ALIGNV_CENTER*/
+	textRightFormat.alignH = 3/*ALIGNH_RIGHT*/
+	
+	var thankFormat = xlExcel.addFormat()
+	thankFormat.font = font10;
+	thankFormat.alignH = 2/*ALIGNH_CENTER*/;
+	
+	var dollarFormat = xlExcel.addFormat(borderFormat)
+	dollarFormat.numStyle = xlExcel.addNumFormat("_($* # ##0.00_);_($* (# ##0.00);_($* -??_);_(@_)")
+	
+	xlSheet = xlExcel.addSheet("Sales Receipt")
+	xlSheet.displayGridlines = false
+	
+	xlSheet.Column(1).width = 10
+	xlSheet.Column(2).width = 36
+	xlSheet.Column(3,4).width = 11
+	xlSheet.Column(5).width = 13
+	xlSheet.Row(3).height = 47.25
+	
+	xlSheet.Cells(3,2).value = "Sales Receipt"
+	xlSheet.Cells(3,2).format = titleFormat
+	xlSheet.setMerge(3,3,2,5)
+	xlSheet.setPicture(3,2,logoId,0.8)
+	
+	xlSheet.Cells(5,1).value = "Apricot Ltd.";
+	xlSheet.Cells(5,1).format = companyFormat;
+	xlSheet.Cells(5,4).value = "Date:";
+	xlSheet.Cells(5,4).format = textFormat;
+	xlSheet.Cells(5,5).formula = "TODAY()";
+	xlSheet.Cells(5,5).format = dateFormat;
+	
+	xlSheet.Cells(6,4).value = "Receipt #:"
+	xlSheet.Cells(6,4).format = textFormat;
+	xlSheet.Cells(6,5).value = 652;
+	xlSheet.Cells(6,5).format = textFormat;
+	
+	xlSheet.Cells(9,1).value = "Sold to:"
+	xlSheet.Cells(9,1).format = textFormat
+	xlSheet.Cells(9,2).value = "John Smith"
+	xlSheet.Cells(9,2 ).format = textFormat
+	xlSheet.Cells(10,2).value = "Pineapple Ltd."
+	xlSheet.Cells(10,2).format = textFormat
+	xlSheet.Cells(11 ,2 ).value = "123 Dreamland Street"
+	xlSheet.Cells(11 ,2 ).format =textFormat
+	xlSheet.Cells(12 ,2 ).value = "Moema, 52674"
+	xlSheet.Cells(12 ,2 ).format = textFormat
+	xlSheet.Cells(13 ,2 ).value = 2659872055
+	xlSheet.Cells(13 ,2 ).format = phoneFormat
+	
+	xlSheet.Cells(15,1).value = "Item #"
+	xlSheet.Cells(15,1).format = textFormat
+	xlSheet.Cells(15,2).value = "Description"
+	xlSheet.Cells(15,2).format = textFormat
+	xlSheet.Cells(15,3).value = "Qty"
+	xlSheet.Cells(15,3).format = textFormat
+	xlSheet.Cells(15,4).value = "Unit Price"
+	xlSheet.Cells(15,4).format = textFormat
+	xlSheet.Cells(15,5).value = "Line Total"
+	xlSheet.Cells(15,5).format = textFormat
+	
+	for row=16;38;1{
+		xlSheet.Row(row).height = 15
+		for col=1;3;1{
+			xlSheet.Cells(row,col).blank = borderFormat
+		}
+		xlSheet.Cells(row,4).blank = dollarFormat;
+		var str = string.concat("IF(C",row,">0;ABS(C",row ,"*D",row,");)")
+		xlSheet.Cells(row,5).formula = str;
+		xlSheet.Cells(row,5).format = dollarFormat;
+	}
+	
+	xlSheet.Cells(39,4).value = "Subtotal"
+	xlSheet.Cells(39,4).format = textRightFormat
+	xlSheet.Cells(40,4).value = "Sales"
+	xlSheet.Cells(40,4).format = textRightFormat
+	xlSheet.Cells(41,4).value = "Total "
+	xlSheet.Cells(41,4).format = textRightFormat
+	xlSheet.Cells(39,5).formula = "SUM(E16:E38)"
+	xlSheet.Cells(39,5).format = dollarFormat
+	xlSheet.Cells(40,5).value = 0.2
+	xlSheet.Cells(40,5).format = percentFormat
+	xlSheet.Cells(41,5).formula = "E39+E39*E40"
+	xlSheet.Cells(41,5).format = dollarFormat
+	xlSheet.Row(39).height = 15
+	xlSheet.Row(40).height = 15
+	xlSheet.Row(41).height = 15
+	
+	xlSheet.Cells(43,1).value = "Thank you for your business!"
+	xlSheet.Cells(43,1).format = thankFormat;
+	xlSheet.setMerge(43,43,1,5)
+	
+	xlSheet.Cells(16,1).value = 45;
+	xlSheet.Cells(16,1).format = borderFormat;
+	xlSheet.Cells(16,2).value = "Grapes";
+	xlSheet.Cells(16,2).format = borderFormat;
+	xlSheet.Cells(16,3).value = 250;
+	xlSheet.Cells(16,3).format = borderFormat;
+	xlSheet.Cells(16,4).value = 4.5;
+	xlSheet.Cells(16,4).format = dollarFormat;
+	
+	xlSheet.Cells(17,1).value = 12;
+	xlSheet.Cells(17,1).format = borderFormat;
+	xlSheet.Cells(17,2).value = "Bananas";
+	xlSheet.Cells(17,2).format = borderFormat;
+	xlSheet.Cells(17,3).value = 480;
+	xlSheet.Cells(17,3).format = borderFormat;
+	xlSheet.Cells(17,4).value = 1.4;
+	xlSheet.Cells(17,4).format = dollarFormat;
+	
+	xlSheet.Cells(18,1).value = 19;
+	xlSheet.Cells(18,1).format = borderFormat;
+	xlSheet.Cells(18,2).value = "Apples";
+	xlSheet.Cells(18,2).format = borderFormat;
+	xlSheet.Cells(18,3).value = 180;
+	xlSheet.Cells(18,3).format = borderFormat;
+	xlSheet.Cells(18,4).value = 2.8;
+	xlSheet.Cells(18,4).format = dollarFormat;
+	
+	io.print(xlExcel.Save(file))
+	
+	io.print(xlExcel.getErrMsg())
+	
+	xlExcel.Close()
+
+	io.print("Done")
+
+
+};
+
+WriteData()
+
+console.pause(true);

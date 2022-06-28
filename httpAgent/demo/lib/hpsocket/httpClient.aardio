@@ -1,0 +1,176 @@
+﻿import hpsocket;
+import hpsocket.socket.httpClient;
+import hpsocket.listen.httpClient;
+namespace hpsocket
+
+class httpClient{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_HttpClientListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_HttpClient(pListener) );
+			this = ..hpsocket.listen.httpClient(pListener,"httpClient"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.httpClient(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_HttpClient(this.pSocket);
+			::HPSocket.Destroy_HP_HttpClientListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.httpClient() = 创建HTTP客户端\n!hpHttpClient.
+end intellisense**/
+
+/**intellisense(!hpHttpClient)
+pSocket = 组件句柄
+start(.("ip",端口,是否异步连接) = 启动连接\n省略参数@3时默认为使用异步连接
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+stop() = 关闭服务端通信组件\n成功返回true
+send(.(buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+getConnectionId() = 获取所有连接ID
+getLocalAddress() = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress() = 获取某个连接的远程地址,端口号\n注意有2个返回值
+getRemoteHost() = 获取某个连接的远程主机名
+getUrlHost() = 获取URL中主机端口部份
+getUrl(__) = 获取URL\n可选指定子路径
+getWsUrl(__) = 获取WebSocketURL\n可选指定子路径
+getPendingDataLength() = 获取连接中未发出数据的长度
+freeBufferPoolSize = 内存块缓存池大小\n通常设置为 -> PUSH 模型：5 - 10；PULL 模型：10 - 20
+freeBufferPoolHold = 内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+sendSmallFile = function(filename,head,tail) = 向服务端发送 4096 KB 以下的小文件\nhead,tail为可选参数
+sendGet(.(path,headers) = 发送GET请求\n参数：path -- 请求路径\nheaders -- 请求头，可选参数
+sendRequest(.(body,path,headers,method) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头\nmethod -- 请求方法，默认为"GET"
+sendPost(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数 	
+sendPut(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数 
+sendPatch(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数  
+sendDelete(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数  
+sendHead(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数  
+sendTrace(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数  
+sendOptions(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数  
+sendConnect(.(body,path,headers) = 发送请求\n参数：\nbody -- 发送数据,字符串或缓冲区\npath -- 请求路径\nheaders -- 请求头，可选参数
+sendLocalFile(.(filename,method,path,headers) =  发送 4096 KB 以下的小文件\n返回布尔值\n参数：\nfilename -- 文件路径\npath -- 请求路径\nheaders 请求头
+sendWsUpgradeRequest("/__") = 发送升级协议请求,可选指定一个URL子路径\n此函数会临时使用setExtra函数绑定动态指针储存密钥\n在checkWsUpgradeResponse函数中释放该动态指针
+checkWsUpgradeResponse() = 验证服务端WebSocket升级协议回复的密钥是否有效
+getWsMessageState() =获取当前 WebSocket 消息状态，返回值为表对象
+sendWsMessage( = 向对端端发送 WebSocket消息
+sendWsMessage(.(data,opCode,final,mask,bodyLen,reserved) = 向对端端发送 WebSocket消息\n返回布尔值\n消息参数：\ndata : 消息体数据缓冲区\nopCode -- 操作码：0x0 - 0xF,可选参数默认为1\nfinal : 是否结束帧\nreserved 可选参数，RSV1/RSV2/RSV3 各 1 位\nmask 可选参数，数值掩码，\nbodyLen 可选参数，后续消息体长度\n后续消息体通过底层方法 send  函数发送
+setSocketBufferSize = 设置通信数据缓冲区大小\n根据平均通信数据包大小调整设置，\n通常设置为： N * 1024 - TBufferObj大小
+getSocketBufferSize = 获取通信数据缓冲区大小
+setKeepAliveTime = 设置正常心跳包间隔\n毫秒，0 则不发送心跳包，默认：30 * 1000）
+getKeepAliveTime = 获取正常心跳包间隔
+setKeepAliveInterval = 设置异常心跳包间隔\n毫秒，0 不发送心跳包，，默认：10 * 1000，\n如果超过若干次 [默认：WinXP 5 次, Win7 10 次] \n检测不到心跳确认包则认为已断线）
+getKeepAliveInterval = 获取异常心跳包间隔
+getContentType() = 获取内容类型
+getContentLength() =  获取内容长度
+setLocalVersion(__) = 设置本地协议版本
+getLocalVersion() = 获取本地协议版本
+getVersion() = 获取协议版本
+isKeepAlive() =  检查是否有 Keep-Alive 标识
+isUpgrade() = 检查是否升级协议
+getParseErrorCode() = 获取解析错误代码
+getHeader(name) = 获取某个请求头\n单值
+getHeaders(name) = 获取某个请求头\n多值
+getAllHeaders() = 获取所有请求\n!hpsockethdrs.
+getAllHeaderNames() = 获取所有请求头名称
+getCookie(name) = 获取 Cookie
+getAllCookies() = 获取所有 Cookie
+addCookie(.(名字,值,是否替换) = 添加cookie
+deleteCookie(name) 
+deleteAllCookies() 
+getUpgradeType() = 获取协议升级类型
+getContentEncoding() = 获取内容编码
+getTransferEncoding() = 获取传输编码
+setExtra(pExtra) = 对连接ID绑定指针\n如果使用了reallocString函数，不应再调用此函数
+getExtra() = 返回连接ID绑定的指针\n如果使用了reallocString函数，返回的是动态指针
+reallocString(__/*长度*/) = 预分配内存并将动态指针用setExtra函数绑定到指定连接\n长度为0时释放内存,使用此函数后不应再使用setExtra函数
+appendString(pData,len) = 保存数据\n参数分别为连接ID,内存指针,内容长度\n该函数自动调用getExtra获取可用的动态指针\n使用reallocString函数分配动态指针给指定连接
+getString() = 从指定连接绑定的动态指针中获取appendString函数保存的所有数据
+sslSetupContext(.(mode,certFile,keyFile,password,ca) = 初始化通信组件 SSL 环境参数\n仅SSL组件支持此函数接口
+sslCleanup() = 清理通信组件 SSL 运行环境\n仅SSL组件支持此函数接口
+startHttp() = 手工启动 HTTP 通信，当通信组件设置为非自动启动时，需要调用本方法启动 HTTP 通信
+setHttpAutoStart(.(bAutoStart) = 设置 HTTP 通信启动方式（默认：TRUE，自动启动）
+isHttpAutoStart() = 获取 HTTP 通信启动方式
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareConnect = @.onPrepareConnect = function(hpHttpClient,connId,soListen){
+	__/*准备建立连接前触发*/
+}
+onHandShake = @.onHandShake = function(hpHttpClient,connId){
+	__/*握手完成触发*/
+}
+onConnect = @.onConnect = function(hpHttpClient,connId){
+	__/*建立连接后触发*/
+}
+onSend = @.onSend = function(hpHttpClient,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpHttpClient,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*只有HTTP 隧道协议接收到数据时会触发此事件*/
+}
+onClose = @.onClose = function(hpHttpClient,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpHttpClient){
+	__/*关闭通信组件触发*/
+}
+onMessageBegin = @.onMessageBegin = function(hpHttpClient,connId){
+	__/*开始解析数据,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onStatusLine = @.onStatusLine = function(hpHttpClient,connId,statusCode,Desc){
+	__/*客户端状态行解析完成,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeader = @.onHeader = function(hpHttpClient,connId,name,value){
+	__/*请求头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onHeadersComplete = @.onHeadersComplete = function(hpHttpClient,connId){
+	__/*请求头完成事件,\n成功无返回值,返回1跳过当前请求BODY,返回2升级协议,\n出错返回-1停止解析断开连接*/
+}
+onBody = @.onBody = function(hpHttpClient,connId,pData,len){
+	var str = ..raw.tostring(pData,1,len);
+	__/*BODY报文事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkHeader = @.onChunkHeader = function(hpHttpClient,connId,len){
+	__/*Chunked报文头事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onChunkComplete = @.onChunkComplete = function(hpHttpClient,connId){
+	__/*Chunked报文结束事件,\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onMessageComplete = @.onMessageComplete = function(hpHttpClient,connId){
+	__/*完成解析事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onUpgrade = @.onUpgrade = function(hpHttpClient,connId,upgradeType){
+	__/*升级协议触发,\nupgradeType 1为Web Socket协议，2为HTTP 隧道协议\n完成升级后,HTTP 隧道触发onReceive而非HTTP事件\nWeb Socket协议触发onWs....事件而非HTTP事件\n成功无返回值,出错返回-1停止解析断开连接*/
+}
+onParseError = @.onParseError = function(hpHttpClient,connId,errorCode,errorDesc){
+	__/*解析错误事件,\n成功无返回值,出错返回-1断开连接*/
+}
+onWsMessageHeader = @.onWsMessageHeader = function(hpHttpClient,connId,final,reserved,opCode,mask,bodyLen){
+	__/*WebSocket数据包头事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageBody = @.onWsMessageBody = function(hpHttpClient,connId,pData,len){
+	__/*WebSocket数据包体事\n成功无返回值,忽略返回1,错误返回2*/
+}
+onWsMessageComplete = @.onWsMessageComplete = function(hpHttpClient,connId){
+	__/*WebSocket数据完成事件\n成功无返回值,忽略返回1,错误返回2*/
+}
+end intellisense**/

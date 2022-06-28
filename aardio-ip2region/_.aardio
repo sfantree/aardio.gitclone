@@ -1,0 +1,99 @@
+//ip2region ip地理位置查询
+import inet.url;
+import wsock;
+class inet.ip2region {
+    ctor( dbFilePath ) {
+        ip2regionEntry = ip2region_entry();
+        ip2rObj        =..raw.buffer( ip2regionEntry );
+        if ( !dbFilePath ) {
+            dbFilePath =..io.exist( "~/lib/inet/ip2region/ip2region.db" );
+        };
+        if ( !dbFilePath ) {
+            error( "Error: not find db file", 2 );
+        };
+        if ( _dll.ip2region_create( ip2rObj, dbFilePath ) == 0 ) {
+            error( "Error: Fail to create the ip2region object\n", 2 );
+        };
+        ..table.gc( this, this.destroy );
+    };
+    destroy = function() {
+        _dll.ip2region_destroy( ip2rObj );
+        ..raw.realloc( 0, ip2rObj );  //释放动态指针
+    };
+    search = function( ip, algorithm = 2 ) {  //0: memory 整个数据库全部载入内存 1: binary 基于二分查找 2: b-tree 基于btree算法 默认为2
+    	if ( type( ip ) != type.string  or !..string.find(ip,"\d+\.\d+\.\d+\.\d+")) {
+        	return null, "ip 错误";
+    	};
+		var datablock =datablock_entry();
+    	var isState;
+    	select( algorithm ) {
+        	case 0 {
+				isState = _dll.ip2region_memory_search_string(ip2rObj, ip ,datablock);
+			};
+			case 1 {
+				isState = _dll.ip2region_binary_search_string(ip2rObj, ip ,datablock);
+			};
+			case 2{
+				isState = _dll.ip2region_btree_search_string(ip2rObj, ip ,datablock);
+			};
+		};
+		var result =  ..raw.str(datablock.region);
+		if(isState){
+			return result,null;
+		}else{
+			return null,"转换失败";
+		};
+	};
+	getUrlRegion = function (url){
+		if(type(url) != type.string){
+			return null,"url is not string"; 
+		}
+		if(..string.find(url,ipReg)){
+			return this.search(url);
+		}
+		var uri = ..inet.url.split(url,0x0/*_URLIS_URL*/);
+		if(!uri){
+			return null,"url 格式错误" ++url; 
+		};
+		var ip;
+		var host = uri.host;
+		if(..string.find(host,"\d+\.\d+\.\d+\.\d+")){
+			ip = host;
+		}else{
+			ip = ..wsock.getIp(host);
+		}
+		if(!ip){
+			return  null,url++"没有解析出ip"; 
+		}
+		return this.search(ip);
+	}
+};
+namespace inet.ip2region{
+    _dll            =..raw.loadDll( $"~/lib/inet/ip2region/ip2.dll",, "cdecl" );
+    ip2region_entry = class {
+        ptr HeaderSip;//header start ip blocks
+        ptr Headerptr;//header ptr blocks
+        int headerLen;//header block number
+        ptr dbFile;//path of db file
+        str dbHandler;//file handler
+        str dbBinStr;//db binary string for memory search mode
+
+        int firstIndexptr;//first index ptr
+        int lastIndexptr;//last index ptr
+        int totalBlocks;    //total index blocks number2regionEntry = ip2region_entry();
+    };
+
+    datablock_entry = class {
+        int city_id;
+        byte region[255]  =..raw.buffer(255); 
+    };
+	ipReg = "^\d+\.\d+\.\d+\.\d+$";
+};
+
+/**intellisense()
+inet.ip2region(.(dbFilePath) = ip地理位置查询 基于 https://github.com/lionsoul2014/ip2region aardio封装\n @1 数据库文件位置，可选参数，不支持内存地址
+inet.ip2region() =!ip2region.
+getUrlRegion(url) = 根据 url 或者ip地址 返回 ip 位置默认调用 search 的btree 模式
+!ip2region.destroy = gc
+!ip2region.search(ip,algorithm) = 查找ip定位\n @1 ip 字符 @2 查找模式 数字 默认为2\n 0 memory 整个数据库全部载入内存\n 1 binary 基于二分查找\n 2: b-tree 基于btree算法\n @resutl (位置字符串,error)
+end intellisense**/

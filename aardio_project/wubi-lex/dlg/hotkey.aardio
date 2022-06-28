@@ -1,0 +1,112 @@
+import fsys;
+import fsys.lnk;
+import process;
+import process.cache;
+import winex;
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="设置";right=984;bottom=589;bgcolor=16777215)
+winform.add(
+btnReset={cls="plus";text='\uF0E2   重置';left=509;top=529;right=690;bottom=565;bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;tabstop=1;z=6};
+btnSave={cls="plus";text='\uF0C7   保存';left=702;top=529;right=886;bottom=565;bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;tabstop=1;z=5};
+chkDecimalPoint={cls="plus";text='\uF0C8 数字后输入小数点（ 替代句号 ）';left=27;top=55;right=467;bottom=86;align="left";dl=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=2};
+chkEnableHotkey={cls="plus";text='\uF0C8 启用超级热键';left=28;top=23;right=468;bottom=54;align="left";dl=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=3};
+editTable={cls="edit";left=28;top=97;right=946;bottom=498;db=1;dl=1;dr=1;dt=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=4};
+lbTip={cls="static";left=63;top=523;right=695;bottom=572;db=1;dl=1;dr=1;transparent=1;z=1}
+)
+/*}}*/
+
+import style;
+winform.chkDecimalPoint.skin(style.checkBox)
+winform.chkEnableHotkey.skin(style.checkBox)
+
+import config
+import wubi.hotkey;
+if(!#config.hotkey.editTable){
+	config.hotkey.editTable = wubi.hotkey.default; 
+} 
+winform.bindConfig( config.hotkey,{
+	edit = "text";
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+	plus ={
+		["^chk"] = "checked";
+		["^edit"] = "text";
+	};
+	
+} );
+
+winform.chkEnableHotkey.oncommand = function(id,event){
+	winform.chkDecimalPoint.disabled = !winform.chkEnableHotkey.checked
+}
+
+import key.hotkey;
+winform.btnSave.skin(style.primaryButton)
+
+import win.dlg.message;
+import winex;
+var hotkeyMgr;
+winform.btnSave.oncommand = function(id,event){
+    if(!winform.chkEnableHotkey.checked){
+    	if(hotkeyMgr){
+    		hotkeyMgr.close();
+    	    hotkeyMgr= null;
+    	}
+    	
+    	return;
+    }
+    
+	if(!hotkeyMgr){
+		hotkeyMgr =  key.hotkey(winform)
+	} 
+	
+	var code = "{" + winform.editTable.text + "}"
+	var keyTable
+	try{
+		keyTable = eval(code)
+	}
+	catch(e){
+		var msgDlg = win.dlg.message(winform)
+		msgDlg.err('超级热键配置代码错误:\n'+e) 
+	}
+	
+	if(type(keyTable)==type.table){
+		for k,v in table.eachName(keyTable){ 
+			hotkeyMgr.regStr(k,v);
+		} 
+	}
+	
+	if(winform.chkDecimalPoint.checked){
+		//自定义按键处理，返回true阻止按键消息
+		//这个函数的作用是在中文输入法下，可以直接在数字后面输入小数点
+		hotkeyMgr.onKeyDown = function(vk){
+			var prev = hotkeyMgr.prevKeyCode;
+			hotkeyMgr.prevKeyCode = vk;
+		
+			if(vk==190/*_VK_OEM_PERIOD*/){
+				if(prev){
+					if( (prev>='0'# && prev<='9'# ) 
+						|| (prev>=0x60/*_VK_NUMPAD0*/ && prev<=0x69/*_VK_NUMPAD9*/ ) ){ 
+        				winex.say(".");
+        				return true;
+        			}	
+				}		
+			}
+		}
+	}
+}
+
+winform.btnReset.skin(style.button)
+winform.btnReset.oncommand = function(id,event){
+	winform.editTable.text = wubi.hotkey.default
+}
+
+winform.chkEnableHotkey.oncommand()
+winform.btnSave.oncommand()
+
+
+winform.show();
+win.loopMessage();
+return winform;

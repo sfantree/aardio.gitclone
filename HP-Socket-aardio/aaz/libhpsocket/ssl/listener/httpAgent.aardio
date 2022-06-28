@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.listener.httpAgent;
+
+namespace aaz.libhpsocket.ssl.listener;
+class httpAgent{
+	ctor(){
+		this = ..aaz.libhpsocket.listener.httpAgent();
+		this.componentClassPath = "ssl.component.httpAgent";
+	};
+}

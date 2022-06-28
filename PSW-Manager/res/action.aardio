@@ -1,0 +1,21 @@
+
+
+
+ 
+ //备份数据到文件
+ backup=function(c){
+ 	
+ }
+ 
+ //复制密码
+ cp=function(c){
+ 	var zz='cp +-i';
+ }
+ 
+ //下载备份文件到目录
+ download=function(c){
+ 	
+ }
+ 
+
+ 

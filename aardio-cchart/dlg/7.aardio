@@ -1,0 +1,45 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="第一个示例";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+
+AddCurve = dll.api("?AddCurve@Classless@@YAHPAN00H@Z", "int(struct,struct,struct,int)");
+
+CreateChart();
+Attach(winform.static.hwnd,13);//kType3DSurface=13 3维曲面图
+
+var x = { double arr[200] = {0} };
+var y = { double arr[200] = {0} };
+var z = { double arr[200] = {0} };
+for(i=1;200;1){
+	x.arr[i] = 2.0*3.1415926536*i/200*5; ;
+	y.arr[i] = math.cos(x.arr[i]);
+	z.arr[i] = math.sin(x.arr[i]);
+}
+
+AddCurve(x,y,z,200);
+ReDraw();
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    Detach(winform.static.hwnd);
+    DestroyChart();
+}
+
+
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,34 @@
+
+namespace web.sciter.behavior;
+
+__behavior_cache = {};
+
+__addRef = function(behavior){ 
+	__behavior_cache[behavior] = true;
+}
+
+__release = function(behavior){
+	__behavior_cache[behavior] = null;
+}
+
+/**intellisense(web.sciter.behavior)
+tabs = Sciter tabs behavior\n使用 import 语句在加载页面前导入即可生效
+shellIcon = 文件图标效果\n使用 import 语句在加载页面前导入即可生效
+lightBoxDialog = 高亮对话框效果\n使用 import 语句在加载页面前导入即可生效
+scroller = 自动滚动效果
+sortableGrid = 排序网格控件
+grid = 网格控件
+collapsibleByIcon = 折叠按钮(图标)
+popup = 弹出面板
+dropdown = 下拉选框
+collapsibleList = 折叠列表(项目可展开单项或全部折叠)
+expandableList = 扩展列表(实现手风琴效果/Outlook风格菜单)
+path = 文件路径显示支持\n超出显示宽度显示省略号,鼠标悬停提示完整内容
+sizer = 使对象可通过鼠标拖动调整大小
+windowSizer = 用于无边框窗口以支持窗体大小可调边框
+windowCommand = 支持窗口命令,如最大化,最小化,关闭等等
+gripper = 用于创建拖动手柄,\n拖动该对象时拖动父节点
+splitter = 拆分条
+dragable = 使节点可拖动\n样式中可使用 -drag-margin:"上 右 下 左"指定拖动边距属性以限制拖动范围\n不限制拖动范围则可以将节点拖出窗口,并触发onPopup***系列事件\n节点可使用dragable属性设置是否允许在该节点开始拖动
+selectionBox = 鼠标选框
+end intellisense**/

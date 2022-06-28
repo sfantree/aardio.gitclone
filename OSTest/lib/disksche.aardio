@@ -1,0 +1,72 @@
+﻿
+namespace disksche{
+	import console;
+	list = {3;20;90;45;26;68;72;59;};
+	
+	liftsche = function(mytable,nowposition,direct){
+		..console.log("电梯调度算法：");
+		var temptable = ..table.clone(mytable);
+		var length = 0;
+		lesslist = {};
+		biggerlist = {};
+		for(k,v in temptable){
+			if(v < nowposition){
+				..table.push(lesslist,v);
+			}
+			else {
+				..table.push(biggerlist,v);
+			}
+		}
+		compl = function(b){
+			return owner > b;
+		}
+		
+		..table.sort(lesslist,compl);
+		..table.sort(biggerlist);
+		if(direct > 0){
+			length += 2 * biggerlist[#biggerlist] - nowposition - lesslist[#lesslist];
+			for(k,v in biggerlist){
+				console.dump(v," ");
+			}
+			for(k,v in lesslist){
+				console.dump(v," ");
+			}	
+		}
+		else {
+			length += nowposition - 2 * lesslist[#lesslist] + biggerlist[#biggerlist];
+			for(k,v in lesslist){
+				console.dump(v," ");
+			}
+			for(k,v in biggerlist){
+				console.dump(v," ");
+			}
+		}
+		console.log("总磁道数为：",length);	
+	}
+	liftsche(list,50,-1);
+	
+	shortsche = function(mytable,position){
+		..console.log("最短优先算法：");
+		var length  = 0;
+		var temptable = ..table.clone(mytable);
+		..table.sort(temptable);
+		var pre = position;
+		var pos;
+		shortsort = function(b){
+			return ..math.abs(owner - pre) > ..math.abs(b - pre);
+		}
+		while(true){
+			..table.sort(temptable,shortsort);
+			pos = ..table.pop(temptable);
+			..console.log(pos);
+			length += ..math.abs(pre - pos);
+			pre = pos;
+			if(!#temptable){
+				break ;
+			}
+		}
+		..console.log("总磁道数为：",length);	
+	}
+	shortsche(list,50);
+	..console.pause();
+}

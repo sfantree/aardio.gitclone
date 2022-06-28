@@ -1,0 +1,53 @@
+﻿import aaz.libhpsocket;
+import aaz.libhpsocket.helper.headers;
+import aaz.libhpsocket.component.properties.httpClient;
+
+namespace aaz.libhpsocket.component.properties.httpSyncClient;
+..table.mix(self, ..aaz.libhpsocket.component.properties.httpClient);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+openUrl = function(method="GET", url, headers, body, forceReconnect=false){
+	if(!headers){
+		headers = {
+    		["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36";
+    		["accept-language"] = "zh-CN,zh;q=0.9,ja;q=0.8,zh-TW;q=0.7";  
+		}
+	}
+	headers = ..aaz.libhpsocket.helper.headers(headers);
+	return _dll.HP_HttpSyncClient_OpenUrlB(owner.pSocket, method, url, headers.struct(), headers.length(), body, #body, forceReconnect); 
+}
+
+cleanupRequestResult = function(){
+	return _dll.HP_HttpSyncClient_CleanupRequestResultB(owner.pSocket);
+}
+
+connectTimeout = {
+	_get = function(){
+		return _dll.HP_HttpSyncClient_GetConnectTimeout(owner.pSocket);
+	}
+	
+	_set = function(v){
+		_dll.HP_HttpSyncClient_SetConnectTimeout(owner.pSocket, v);
+	}
+}
+
+requestTimeout = {
+	_get = function(){
+		return _dll.HP_HttpSyncClient_GetRequestTimeout(owner.pSocket);
+	}
+	
+	_set = function(v){
+		_dll.HP_HttpSyncClient_SetRequestTimeout(owner.pSocket, v);
+	}
+}
+
+getResponseBody = function(){
+	var body = {string value};
+	var length = {int value};
+	
+	return 
+		_dll.HP_HttpSyncClient_GetResponseBodyB(owner.pSocket, body, length),
+		body.value,
+		length.value; 
+}

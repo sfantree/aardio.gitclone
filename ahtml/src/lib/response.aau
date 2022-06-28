@@ -1,0 +1,5 @@
+namespace response;
+
+write = function (...) {
+	..io.stdout.write(...);
+}

@@ -1,0 +1,153 @@
+﻿import win.ui;
+/*DSG{{*/
+var winform = ..win.form( text="AAuto Form";bottom=399;parent=...;right=599;border="resizable" )
+winform.add(
+static={ dr=1;dl=1;bottom=384;notify=1;right=584;left=16;dt=1;top=16;z=1;db=1;cp=1;edge=1;cls="static" }
+)
+/*}}*/
+
+var imgGripper = 'GIF89a\x07\0\x07\0\x80\0\0\xFF\xFF\xFF\0\0\x80!\xF9\x04\0\0\0\0\0,\0\0\0\0\x07\0\x07\0\0\x02\x0C\x84o\xA1\x9A\x1B\xBD \x03\xEE\xA1S\0\0;';
+
+winform.static.addCtrl(
+    gripperTopLeft = { cls="picturebox";cur=0x7F82/*_IDC_SIZENWSE*/;notify=1;left=0;top=0;right=7;bottom=7;z=1;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperTop = { cls="picturebox";cur=0x7F85/*_IDC_SIZENS*/;notify=1;left=0;top=0;right=7;bottom=7;z=2;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperTopRight = { cls="picturebox";cur=0x7F83/*_IDC_SIZENESW*/;notify=1;left=0;top=0;right=7;bottom=7;z=3;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperLeft = { cls="picturebox";cur=0x7F84/*_IDC_SIZEWE*/;notify=1;left=0;top=0;right=7;bottom=7;z=4;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperRight = { cls="picturebox";cur=0x7F84/*_IDC_SIZEWE*/;notify=1;left=0;top=0;right=7;bottom=7;z=5;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperBottomLeft = { cls="picturebox";cur=0x7F83/*_IDC_SIZENESW*/;notify=1;left=0;top=0;right=7;bottom=7;z=6;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperBottom = { cls="picturebox";cur=0x7F85/*_IDC_SIZENS*/;notify=1;left=0;top=0;right=7;bottom=7;z=7;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+    gripperBottomRight = { cls="picturebox";cur=0x7F82/*_IDC_SIZENWSE*/;notify=1;left=0;top=0;right=7;bottom=7;z=8;image=imgGripper;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; }
+);
+
+import win.cur;
+import win.graphics;
+
+var selectedCtrl = null; // 当前选中控件
+var gridSize = 8; // 网格大小
+
+{
+    var grippers = {
+        winform.static.gripperTopLeft;winform.static.gripperTop;winform.static.gripperTopRight;
+        winform.static.gripperLeft;winform.static.gripperRight;
+        winform.static.gripperBottomLeft;winform.static.gripperBottom;winform.static.gripperBottomRight;
+    };
+    var messages = {
+        0xD/*_HTTOPLEFT*/; 0xC/*_HTTOP*/; 0xE/*_HTTOPRIGHT*/;
+        0xA/*_HTLEFT*/; 0xB/*_HTRIGHT*/;
+        0x10/*_HTBOTTOMLEFT*/; 0xF/*_HTBOTTOM*/; 0x11/*_HTBOTTOMRIGHT*/;
+    };
+   
+    for (i = 1; #grippers) {
+        grippers[ i ].wndproc = {
+            [0x200/*_WM_MOUSEMOVE*/] = function () {
+                win.cur.setCur(win.cur.load(grippers[ i ].cur));
+            }
+            [0x201/*_WM_LBUTTONDOWN*/] = function () {
+                return selectedCtrl ? ::SendMessageInt(selectedCtrl.hwnd, 0xA1/*_WM_NCLBUTTONDOWN*/, messages[ i ], 0);
+            }
+        };
+    }
+}
+
+insertCtrl = function (name, options) {
+    winform.static.addCtrl([name] = options);
+   
+    var adjustRect = function (rect, ...) {
+        for (i, v in { ... }) {
+            if (rect[v] % gridSize)
+                rect[v] = math.round(rect[v] / gridSize) * gridSize;
+        }
+    }
+   
+    var ctrl = winform.static[name];
+    ctrl.wndproc = function (hwnd, message, wParam, lParam) {
+        select (message) {
+            case 0x201/*_WM_LBUTTONDOWN*/ {
+                ::SendMessage(owner.hwnd, 0x5/*_WM_SIZE*/);
+                ::SendMessageInt(owner.hwnd, 0xA1/*_WM_NCLBUTTONDOWN*/, 2/*_HTCAPTION*/, 0);
+                return 0;
+            }
+            case 0x5/*_WM_SIZE*/, 0x3/*_WM_MOVE*/ {
+                var left = owner.left - 7;
+                var top = owner.top - 7;
+                var right = owner.right;
+                var bottom = owner.bottom;
+                var center = owner.left / 2 + owner.right / 2 - 3;
+                var middle = owner.top / 2 + owner.bottom / 2 - 3;
+               
+                owner.setPos(, , , , 0x0/*_HWND_TOP*/);
+                winform.static.gripperTopLeft.setPos(left, top, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperTop.setPos(center, top, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperTopRight.setPos(right, top, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperLeft.setPos(left, middle, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperRight.setPos(right, middle, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperBottomLeft.setPos(left, bottom, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperBottom.setPos(center, bottom, 7, 7, 0x0/*_HWND_TOP*/);
+                winform.static.gripperBottomRight.setPos(right, bottom, 7, 7, 0x0/*_HWND_TOP*/);
+               
+                selectedCtrl = owner;
+            }
+            case 0x214/*_WM_SIZING*/ {
+                var ptr = topointer(lParam);
+                var rect = ::RECT();
+                raw.convert(ptr, rect);
+                if (wParam === 4/*_WMSZ_TOPLEFT*/ || wParam === 0x3/*_WMSZ_TOP*/ || wParam === 5/*_WMSZ_TOPRIGHT*/)
+                    adjustRect(rect, "top");
+                if (wParam === 4/*_WMSZ_TOPLEFT*/ || wParam === 1/*_WMSZ_LEFT*/ || wParam === 7/*_WMSZ_BOTTOMLEFT*/)
+                    adjustRect(rect, "left");
+                if (wParam === 5/*_WMSZ_TOPRIGHT*/ || wParam === 2/*_WMSZ_RIGHT*/ || wParam === 8/*_WMSZ_BOTTOMRIGHT*/)
+                    adjustRect(rect, "right");
+                if (wParam === 7/*_WMSZ_BOTTOMLEFT*/ || wParam === 6/*_WMSZ_BOTTOM*/ || wParam === 8/*_WMSZ_BOTTOMRIGHT*/)
+                    adjustRect(rect, "bottom");
+                ::CopyMemoryByStruct(ptr, rect, raw.sizeof(rect));
+                return 1;
+            }
+            case 0x203/*_WM_LBUTTONDBLCLK*/ {
+                return 0;
+            }
+        }
+    }
+   
+    return ctrl;
+}
+
+{
+    var buttonCount = 0;
+   
+    insertButton = function (x, y) {
+        buttonCount++;
+        return insertCtrl("button" + buttonCount, { cls="button";text="button" + buttonCount;left=x;top=y;right=x;bottom=y;style=0x4000000/*_WS_CLIPSIBLINGS*/;autoResize=0; });
+    }
+}
+
+winform.static.wndproc = function (hwnd, message, wParam, lParam) {
+    select (message) {
+        case 0x201/*_WM_LBUTTONDOWN*/ {
+            var button = insertButton(::LOWORD(lParam), ::HIWORD(lParam));
+            ::SendMessageInt(button.hwnd, 0xA1/*_WM_NCLBUTTONDOWN*/, 0x11/*_HTBOTTOMRIGHT*/, 0);
+            if (button.width <= 4)
+                button.width = 100;
+            if (button.height <= 4)
+                button.height = 30;
+            return 0;
+        }
+        case 0xF/*_WM_PAINT*/ {
+            var cvs = win.graphics.canvas();
+            cvs.beginPaint(owner.hwnd);
+            cvs.brush.color = ::GetSysColor(0xF/*_COLOR_BTNFACE*/);
+            cvs.fillRect(owner.clientRect);
+            for (x = 0; owner.clientRect.right; gridSize) {
+                for (y = 0; owner.clientRect.bottom; gridSize) {
+                    cvs.setPixel(x, y, 0);
+                }
+            }
+            cvs.endPaint();
+            return 1;
+        }
+    }
+}
+
+winform.static.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/); // 防止闪烁
+
+winform.show();
+win.loopMessage();

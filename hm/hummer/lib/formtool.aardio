@@ -1,0 +1,22 @@
+﻿import string;
+namespace formtool{
+//设置状态栏
+setStatusBar = function(wb,winform,db){
+    //import win.ui.statusbar;
+    //状态栏
+    //win.ui.statusbar( winform ).addItem("", 500/*宽度*/);
+	wb.go("https://www.taobao.com/");
+	wb.wait(,2000);
+    var cookieUserName = (string.match(wb.document.cookie,"lgc=([^;]+);"));
+    if(cookieUserName){  
+        var sqlStr = "SELECT user_id,user_name,user_pwd,login_status,login_time,remark from login_info where 1=1";
+        sqlStr = string.concat(sqlStr," and user_name='",cookieUserName,"'");
+        sqlStr = string.concat(sqlStr," ORDER BY login_time DESC");
+    	var result = db.stepQuery(sqlStr);
+    	if(result){
+        	winform.statusbar.setText("登录用户名: 【" + cookieUserName + "】,   登录时间: " + result.login_time);
+    	}
+    }
+}
+
+}

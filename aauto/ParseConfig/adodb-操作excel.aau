@@ -1,0 +1,15 @@
+import com;
+var conn = com.CreateObject("adodb.connection");
+conn.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;
+                                        Persist Security Info=False;
+                                        Data Source=C:\test.xls;
+                                        Extended Properties='Excel 8.0;HDR=Yes'";
+conn.Open();
+
+conn.execute("CREATE TABLE 题库 (题目 char(20),答案 char(20))");//创建表
+    
+conn.execute("insert into 题库(题目,答案)values('我','你')");//插入数据
+
+conn.close();
+conn = null;
+

@@ -1,0 +1,20 @@
+//使用SQL创建excel
+import access;
+var db,err = access( "/test.xls") //文件不存在可自动创建
+
+//创建表	
+if( ! db.existsTable( "题库" ) )
+	db.exec("CREATE TABLE 题库 (题目 char(20),答案 char(20))"); 
+	
+//插入数据
+db.exec( "insert into 题库(题目,答案)values('我','你')");
+
+//查询
+io.open()
+for(rs in db.each("select * from [题库]") ){ 
+	io.print( rs("题目").value );
+	io.print( rs("答案").value );
+}
+
+//关闭数据库
+db.close();

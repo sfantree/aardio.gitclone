@@ -1,0 +1,86 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="HTMLayout IMG ´°¿Ú";right=580;bottom=599;border="none")
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+import io;
+import table;
+ 
+var wbLayout = web.layout( winform ,0xFFFF);
+wbLayout.html='<body><div id="body"><div id="close" command="window-close" >r</div><img command="window-caption" id="imgShow" src = "http://192.168.85.166/rjchat/view/chatHistory/image/loading.png" /></div></body>';
+wbLayout.css=/**
+body {
+	background: #FFF;
+	padding:0px;
+	margin:0px;
+}
+#body {
+	height:100%%;
+	background-color: #CCC;
+	padding:0px;
+	margin:0px;
+	//border-radius: 11px;
+	border: 1px solid #999;
+	overflow: hidden;
+}
+img {
+	border: 1px solid #999;
+	margin:10px auto auto auto;
+	behavior: windowCommand;
+}
+#close {
+  position: absolute;
+  right: 5px;
+  top: 5;
+  height: 23px; 
+  line-height: 23px;
+  width:23px;
+  text-align: center;
+  border-radius: 11px;
+  font-family:"Marlett";
+  background-color: #666;
+  behavior: windowCommand;
+}
+#close:hover {
+  background-color: red;
+}
+**/
+
+var timer = winform.addtimer(
+    100,
+    function(hwnd,msg,id,tick){
+    	if(wbLayout.queryEle("#imgShow")){
+    		var rect=wbLayout.queryEle("#imgShow").getRect(0/*_HL_CONTENT_BOX*/ );
+			io.print(table.tostring(rect));
+			io.print(winform.right,winform.bottom);
+			if(winform.right != winform.left + rect.right+37 || winform.bottom != winform.top + rect.bottom+37){
+				winform.right=winform.left + rect.right+37;
+				winform.bottom=winform.top + rect.bottom+37;
+			}
+			else{
+				var width,height=win.getScreen();
+				io.print(height-(winform.bottom-winform.top)-200);
+				if((height-(winform.bottom-winform.top)-200) < 0){
+					win.setPos(winform.hwnd,(width-(winform.right-winform.left))/2,47);
+				}
+				else{
+					win.setPos(winform.hwnd,(width-(winform.right-winform.left))/2,100);
+				}
+				wbLayout.queryEle("#imgShow").style.margin="10px auto auto auto";
+				return 9999999;
+			}
+		}
+    
+    }
+);
+wbLayout.queryEle("#imgShow").onMouseDblClick = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+	win.close(winform.hwnd);
+}
+
+winform.show() 
+win.loopMessage();
+return wbLayout;

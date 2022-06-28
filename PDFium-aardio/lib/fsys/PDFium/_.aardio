@@ -1,0 +1,224 @@
+﻿namespace fsys
+import util.metaProperty;
+import gdip
+class PDFium{
+	ctor( pdfPath,password="" ){
+		this.LIBRARY_CONFIG = {
+			int version = 2;
+			pointer m_pUserFontPaths = 0;
+			pointer m_pIsolate = 0;
+			INT m_v8EmbedderSlot = 0;
+			pointer m_pPlatform = 0;
+		}
+		dll.FPDF_InitLibraryWithConfig(topointer(this.LIBRARY_CONFIG))
+		if (type.isString(pdfPath) and #pdfPath > 0x410/*_MAX_PATH_U8*/){
+			this.doc = dll.FPDF_LoadMemDocumentP(pdfPath,#pdfPath,password)
+		}else {
+			pdfPath = ..string.fromto(pdfPath)
+			this.doc = dll.FPDF_LoadDocumentP(pdfPath,password)
+		}
+		var round = ..math.round
+		
+		this.currentPageHandle = 0;
+		..table.gc(this,"destroy");
+	};
+	
+	extractBookmarks = function(){
+		var bookmarks = self.bookmark(this.doc,0);
+		return bookmarks
+	}
+	
+	eachTextRect = function(){
+		var textPage = dll.FPDFText_LoadPageP(this.currentPage);
+		var textCountChars = dll.FPDFText_CountChars(textPage);
+		var rectCount = dll.FPDFText_CountRects(textPage,0,textCountChars)
+		var rectIndex = 0;
+		return function(){
+			var err,left,top,right,bottom = FPDFText_GetRect(textPage,rectIndex,0,0,0,0)
+			//getBoundedText
+			var len = FPDFText_GetBoundedText(textPage,left,top,right,bottom,null,0)
+			var buffer = ..raw.buffer(len*2);
+			len = FPDFText_GetBoundedText(textPage,left,top,right,bottom,buffer,len);
+			rectIndex++
+			if rectIndex > rectCount return null; 
+			return round(left),round(top),round(right),round(bottom),..string.fromUnicode( buffer ); 
+		}; 	
+	}
+
+	getMeta = function(){
+		var keys = {"Title";"Author";"Subject";"Keywords";"Creator";"Producer";"CreationDate";"ModDate"}
+		var meta = {}
+		for(k,v in keys){
+			var len = dll.FPDF_GetMetaText(this.doc,v,null,null)
+			var buffer = ..raw.buffer(len)
+			len = dll.FPDF_GetMetaText(this.doc,v,buffer,len)
+			meta[v] = ..string.fromUnicode( buffer )
+			buffer = null
+		}
+		return meta
+	}
+	
+	extractText = function(pageNum=0){
+		if(pageNum<0 || pageNum>owner.pageCount){
+			assert(false,"页码超过pdf范围")
+		}
+		var textPage = dll.FPDFText_LoadPageP(this.currentPage);
+		var textCountChars = dll.FPDFText_CountChars(textPage);
+		var buffer = ..raw.buffer( textCountChars*2 )
+		var num = dll.FPDFText_GetText(textPage,0,textCountChars,buffer)
+		return ..string.fromUnicode( buffer )
+	}
+	
+	// #define FPDFBitmap_BGR 2
+	asBitmap = function(){
+		if(owner.pageNum<0 || owner.pageNum>owner.pageCount){
+			assert(false,"页码超过pdf范围")
+		}
+		//var bit = dll.FPDFBitmap_CreateExP( owner.pageWidth,owner.pageHeight,2,null,null )
+		var bit = dll.FPDFBitmap_CreateP( owner.pageWidth,owner.pageHeight,0 )
+		dll.FPDFBitmap_FillRect(bit,0,0,owner.pageWidth,owner.pageHeight,0xFFFFFFFF);
+		dll.FPDF_RenderPageBitmap(bit,this.currentPage,0,0,owner.pageWidth,owner.pageHeight,0,0x02 | 0x01);
+		var buffer = dll.FPDFBitmap_GetBufferP(bit);
+		var stride = dll.FPDFBitmap_GetStride(bit)
+		var bitmap,err = ..gdip.bitmap( owner.pageWidth,owner.pageHeight,0x26200A/*_PixelFormat32bppARGB*/,buffer,stride )
+		if(!bitmap) dll.FPDFBitmap_Destroy(bit)
+		return bitmap,err; 
+	}
+	
+	destroy = function(){
+		if(this.currentPage){
+			dll.FPDF_ClosePage(this.currentPage);
+			this.currentPage = null
+		}
+		dll.FPDF_CloseDocument(this.doc)
+		dll.FPDF_DestroyLibrary()
+	}
+	@_metaProperty;	
+}
+
+namespace PDFium{
+	dll = ..raw.loadDll( $"~\lib\fsys\PDFium\.dll\pdfium.dll",,"cdecl" )
+	FPDFText_GetRect= dll.api("FPDFText_GetRect","bool(pointer text_page,int rect_index,double& left,double& top,double& right,double& bottom)");
+	FPDFText_GetBoundedText= dll.api("FPDFText_GetBoundedText","int(pointer text_page,double left,double top,double right,double bottom,pointer buffer,int buflen)");
+	class bookmark{
+		ctor( doc,handle ){
+			this.doc = doc;
+			this.handle = handle;
+		};
+
+		asTree = function(){
+			var treeData = {}; 
+			var enumInfo;
+			enumInfo = function(info,td,parent){  
+				for(k,v in info.children){    
+					if( v.children ){
+						var children = {text = v.title;pageIndex = v.pageIndex}
+						..table.push(td,children); 
+						enumInfo(v,children,info); 
+					}
+					else {
+						..table.push(td,{text = v.title;pageIndex = v.pageIndex;}); 
+					} 
+				}
+			} 
+			enumInfo(this,treeData);
+			return treeData; 
+		};
+		
+		@_bmMeta;
+	}
+	_metaProperty = ..util.metaProperty(
+		pageCount = {
+			_get = function(){ 
+				return dll.FPDF_GetPageCount(owner.doc)
+			}	 
+		};
+		pageWidth = {
+			_get = function(){
+				if(!owner.currentPage) owner.loadPage()
+				return ..math.round( dll.FPDF_GetPageWidthF(owner.currentPage) ); 
+			}
+		}
+		pageHeight = {
+			_get = function(){
+				if(!owner.currentPage) owner.loadPage()
+				return ..math.round( dll.FPDF_GetPageHeightF(owner.currentPage) ); 
+			}
+		}
+		pageNum = {
+			_get = function(){
+				return owner[["pageNum"]] : 0
+			}
+			_set = function(value){
+				if(owner.currentPage){
+					dll.FPDF_ClosePage(owner.currentPage);
+					owner.currentPage = null
+				}
+    			owner.currentPage = dll.FPDF_LoadPageP(owner.doc,value)	
+			}
+		}
+	)
+}
+
+namespace PDFium.bookmark{
+    var dll = ..fsys.PDFium.dll
+	_bmMeta = ..util.metaProperty(
+    	children = {
+    		_get = function(){
+    			var c = {}
+    			var h = dll.FPDFBookmark_GetFirstChildP(owner.doc,owner.handle)
+    			if(h){
+					do{
+    					..table.push( c,..fsys.PDFium.bookmark(owner.doc,h) )
+    					h = dll.FPDFBookmark_GetNextSiblingP(owner.doc,h)
+    				}while(h)
+    			}
+    			return c; 
+    		} 	
+    	}
+    	
+    	title = {
+    		_get = function(){ 
+				var len = dll.FPDFBookmark_GetTitle(owner.handle,0,0)
+				var buffer = ..raw.buffer( len*2 )
+				len = dll.FPDFBookmark_GetTitle(owner.handle,buffer,len)
+				return ..string.fromUnicode(buffer);
+    		}	
+    	};
+    	
+    	pageIndex = {
+    		_get = function(){
+				var dst = dll.FPDFBookmark_GetDestP(owner.doc,owner.handle)
+				var pageIndex = dll.FPDFDest_GetDestPageIndex(owner.doc,dst)
+				return pageIndex; 	
+    		}		
+    	}
+	)	
+}
+
+
+/**intellisense()
+fsys.PDFium = 基于Google开源的PDFium库,封装的pdf解析库
+fsys.PDFium() = !PDFium.
+fsys.PDFium(.(pdf路径或pdf数据,pdf密码) = 创建pdf解析对象
+end intellisense**/
+
+/**intellisense(!PDFium)
+pageNum = 读取或设置当前活动页码
+extractBookmarks() = 提取目录,返回bookmark对象
+getMeta() = 获取pdf属性表
+extractText() = 提取当前页文本
+asBitmap() = 当前页转换为bitmap对象
+eachTextRect() = 遍历当前页文本块
+eachTextRect() = @for left,top,right,bottom,text in ??.eachTextRect(){
+	
+}
+end intellisense**/
+
+ /**intellisense()
+_FPDFBitmap_Unknown=@0/*_FPDFBitmap_Unknown*/
+_FPDFBitmap_Gray=@1/*_FPDFBitmap_Gray*/
+_FPDFBitmap_BGR=@2/*_FPDFBitmap_BGR*/
+_FPDFBitmap_BGRx=@3/*_FPDFBitmap_BGRx*/
+_FPDFBitmap_BGRA=@4/*_FPDFBitmap_BGRA*/
+end intellisense**/

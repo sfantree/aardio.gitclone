@@ -1,0 +1,286 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="睿江IM";right=399;bottom=292;bgcolor=16777215;border="none";parent=...)
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.keyboard;
+import web.layout.debug; //调试 htmlayout 窗体
+import web.layout.behavior.windowCommand; //支持标题栏按钮
+import web.layout.behavior.dropdown;
+import win.ui.minmax; //最大化不覆盖任务栏
+import win.util.round; //圆角窗口
+import inet.http;
+import process;
+import web.json;
+import win.util.tray;
+import key;
+import thread;
+import thread.event;
+
+tray = win.util.tray(winform.hwnd,"\layout\img\im010.ico");
+tray.message = 0x400+9981;
+tray.tip = "你的鼠标踩到我了。。。。";
+winform.onClose = function(hwnd,message,wParam,lParam){
+    tray.delete();
+}
+ 
+wbLayout = web.layout( winform,0xFFFF/*_HL_HANDLE_ALL*/)  
+if( _STUDIO_INVOKED ){
+	io.open();
+	import web.layout.debug;
+	wbLayout.attachEventHandler( web.layout.debug );
+}
+wbLayout.go("/layout/fang-qq.html") 
+http = inet.http();
+//初始化 
+
+
+//登录表单响应
+wbLayout.onButtonClick = {
+	getpassword = function (ltTarget,ltEle,x,y,ltMouseParams) {
+		process.execute("http://192.168.85.166/rjchat/view/login.php") 
+	}
+	register = function (ltTarget,ltEle,x,y,ltMouseParams) {
+		process.execute("http://192.168.85.166/rjchat/view/login.php")
+	}
+	button = function (ltTarget,ltEle,x,y,ltMouseParams) {
+		io.print("in login" ++ wbLayout.queryEle("#username").value);
+		var loginName=wbLayout.queryEle("#username").value;
+		var loginPasswd=wbLayout.queryEle("#passwd").value;
+		
+		var response=http.get("http://192.168.85.166/rjchat/view/login.php?userName=" ++ inet.url.encode(loginName,true) ++ "&passwd=" ++ inet.url.encode(loginPasswd,true));
+		io.print("http://192.168.85.166/rjchat/view/login.php?userName=" ++ inet.url.encode(loginName,true) ++ "&passwd=" ++ inet.url.encode(loginPasswd,true));
+		io.print(response);
+		session = web.json.parse(response);
+		if(session["ret"] > 0){
+			wbLayout.queryEle("#login_notice").innerText=session["error"];
+			return;
+		}
+		
+		winform.left=100;
+		winform.top=50;
+		winform.height=700;
+		winform.width=1050;
+		iframeLoad=0;
+		wbLayout.onDocumentComplete = function() {
+			charShow = wbLayout.queryEle("#charShow");
+			noticRight = wbLayout.queryEle("#noticRight");
+			charInput = wbLayout.queryEle("#charInput");
+			user = wbLayout.queryEle("#user");
+			charHistory={};
+			prvAlt="所有人";
+			user.value=(session["trueName"]);
+			io.print("username:" ++ (session["trueName"]));
+			wbLayout.onDocumentComplete = null;
+			charInput.xcall("load","http://192.168.85.166/rjchat/view/chatInput.php?sessionID=" ++ session["ID"]);
+			noticRight.xcall("load","http://192.168.85.166/rjchat/view/noticeRight.php?sessionID=" ++ session["ID"] ++ "&to=" ++ inet.url.encode("所有人",true) ++ "&group=" ++ inet.url.encode("个人群组",true));
+			session["initComplete"]=0;
+    		panelSiderInit();
+		}
+		wbLayout.go("/layout/index.html");
+	}
+}
+
+wbLayout.onSelectSelectionChanged = { 
+	username = function (ltTarget,ltEle,reason,behaviorParams) {
+	 
+		var ltOption = ltEle.queryElement("OPTION:current");
+		var ltNumber = ltOption.queryElement(".number")
+		 
+		ltEle.queryElement("caption").innerText = ltNumber.innerText; 
+	}
+}
+var timer = winform.addtimer(
+    1000,
+    function(hwnd,msg,id,tick){
+    	var event = thread.event("getMessage");
+    	event.set(); 
+    }
+)
+
+var getMessage = function(){
+	import thread.event;
+	var event = thread.event("getMessage");
+	while(1){
+		io.print("into thread.");
+    	event.wait();
+    	io.print("into thread111.");
+    	if(!session || session["initComplete"] != 0 || !charInput.querySelector("#charAlt")){
+    		io.print("not login");
+    	}
+    	else{
+    		var group=charInput.querySelector("#group").value;
+    		var to=charInput.querySelector("#to").value;
+			var str = http.get("http://192.168.85.166/rjchat/view/sessionMessage.php?group=" ++ inet.url.encode(group,true) ++ "&to=" ++ inet.url.encode(to,true));
+			io.print("http://192.168.85.166/rjchat/view/sessionMessage.php?group=" ++ inet.url.encode(group,true) ++ "&to=" ++ inet.url.encode(to,true));
+			if(str != ""){
+				io.print(str);
+				charShow.insertAdjacentHTML("beforeEnd",string.fromto(str));
+				var last = wbLayout.createEle("p");
+				charShow.append(last);
+				last.scrollToView(false);
+			}
+			var str = http.get("http://192.168.85.166/rjchat/view/messageNotice.php?sessionID=" ++ session["ID"]);
+			io.print( string.fromto(str));
+			messageNotice = web.json.parse(str);
+			var $links = wbLayout.queryEles("#panel_sider a");
+			if ( #$links ) {
+				var newMessage='';
+				for (i,link in $links ){
+					if(messageNotice && messageNotice[link.group] != null && messageNotice[link.group][link.innerText] !=null){
+						if(link.group=="个人群组" && link.innerText != "所有人"){
+							link.style.border="2px solid #0073c8";
+						}
+						else{
+							link.style.background="url(/layout/img/im_new.png) no-repeat 10px center;";
+						}
+						newMessage = newMessage ++ link.innerText ++ '\r\n';
+					}
+					else{
+						if(link.group=="个人群组" && link.innerText != "所有人"){
+							link.style.border="1px solid #666";
+						}
+					}
+				}
+				if(newMessage != ''){
+					tray.icon="\layout\img\im011.ico";
+					tray.pop("新消息:" ++ '\r\n' ++ newMessage);
+				}
+				else{
+					tray.icon="\layout\img\im010.ico";
+					tray.pop("");
+				}
+			}
+		}
+			io.print("getMessage end+++++++++++++++++++++++++++++++++++");
+	}
+
+}
+thread.create(getMessage);
+
+namespace web.layout.behavior.inputResize {
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {
+		if(..charInput.style.height=="180px"){
+			..charInput.style.height="380px";
+		}
+		else{
+			..charInput.style.height="180px";
+		}
+	}
+}
+namespace web.layout.behavior.changeTo {
+	import inet;
+	import table;
+	import io;
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {
+				var charAlt=..charInput.querySelector("#charAlt");
+				charAlt.innerHTML="沟通对象：" ++ ltOwner.innerText;
+				..io.print(ltOwner.innerHTML);
+				..charInput.querySelector("#to").value=ltOwner.innerText;
+				..charInput.querySelector("#group").value=ltOwner.group;
+				..charHistory[..prvAlt] = ..charShow.innerHTML;
+				..prvAlt=ltOwner.innerText;
+				if(..charHistory[ltOwner.innerText] != null && ..charHistory[ltOwner.innerText] != ""){
+					..io.print("into history restory!" ++ ..charHistory[ltOwner.innerText]);
+					..charShow.innerHTML=..charHistory[ltOwner.innerText];
+					var $links = ..wbLayout.queryEles(parent = "#chatShow";);
+					if ( #$links ) {
+						io.print("scrollTo.......++++++++++++++++++++++");
+					}
+					
+					var ptable = ..wbLayout.queryEles(parent="#chatShow");
+					// lastNum=ptable.length;
+					//io.print("last P:" ++ ptable[0].innerHTML);
+					if( lastNum ){
+						io.print("scrollTo.......++++++++++++++++++++++");
+						var last = ptable(lastNum-1);
+						last.scrollToView(false);
+					}
+				}
+				else{
+					..charShow.innerHTML='';
+				}
+				..noticRight.xcall("load","http://192.168.85.166/rjchat/view/noticeRight.php?sessionID=" ++ ..session["ID"] ++ "&to=" ++ inet.url.encode(ltOwner.innerText,true) ++ "&group=" ++ inet.url.encode(ltOwner.group,true));
+				..charInput.querySelector("#charInput").state.focus = true;
+	}
+}
+namespace web.layout.behavior.taskPickUp {
+	import inet;
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {
+		..http.get("http://192.168.85.166/rjchat/view/taskDo.php?sessionID=" ++ ..session["ID"] ++ "&taskID=" ++ ltOwner.taskid ++ "&opt=pickup");
+		..noticRight.xcall("load","http://192.168.85.166/rjchat/view/noticeRight.php?sessionID=" ++ ..session["ID"] ++ "&to=" ++ inet.url.encode(..charInput.querySelector("#to").value,true) ++ "&group=" ++ inet.url.encode(..charInput.querySelector("#group").value,true));
+	}
+}
+namespace web.layout.behavior.taskPutDown {
+	import inet;
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {
+		..http.get("http://192.168.85.166/rjchat/view/taskDo.php?sessionID=" ++ ..session["ID"] ++ "&taskID=" ++ ltOwner.taskid ++ "&opt=putdown");
+		..noticRight.xcall("load","http://192.168.85.166/rjchat/view/noticeRight.php?sessionID=" ++ ..session["ID"] ++ "&to=" ++ inet.url.encode(..charInput.querySelector("#to").value,true) ++ "&group=" ++ inet.url.encode(..charInput.querySelector("#group").value,true));
+	}
+}
+
+winform.wndproc = function(hwnd,message,wparam,lparam){
+    select (message) {
+        case 0x100/*_WM_KEYDOWN*/ {
+            if (key.getState('ENTER')) {
+            	if(wbLayout.queryEle("#username") && wbLayout.queryEle("#passwd") && wbLayout.queryEle("#username").value != '' && wbLayout.queryEle("#passwd").value != ''){
+            		wbLayout.queryEle("#button").click();
+            	}
+            }
+            if (key.getState('CTRL') && wparam == 0xD/*_VK_ENTER*/ && charInput.querySelector("#charInput") && charInput.querySelector("#charInput").value != '') {
+                charInput.querySelector("#send").click();
+            }
+            
+        }
+    }
+}
+
+panelSiderInit = function(){
+	//绑定h5事件
+	var $h5 = wbLayout.queryEles("#panel_sider h5");
+	if ( #$h5 ) {
+		for (i,h5 in $h5 ) {
+			//设置菜单小标题点击展开收起菜单
+			h5.onMouseClick = function( ltTarget,ltEle,x,y,mouseParams ) {
+				var target = ltEle.nextSibling();
+				target.style.display = ("none" == target.style.display) ? "block" : "none";
+			}
+			h5.attachEventHandler();
+		}
+	}
+	
+	//超链接触发事件
+	var $links = wbLayout.queryEles("#panel_sider ul li a");
+	if ( #$links ) {
+		var current_selected = null;
+		for (i,link in $links ) {
+			link.onHyperlinkClick = function( ltTarget,ltEle,x,y,mouseParams ) {
+				var target = ltEle.parent().parent().child(2);
+				//如有子菜单，则设置子菜单显隐状态
+				if ( target && "ul" == target.tagName ) {
+					target.style.display = ("none" == target.style.display) ? "block" : "none";
+				}
+				//设置当前点中高亮状态
+				if ( current_selected ) {
+					current_selected.setAttribute("selected", "false");
+				}
+				ltEle.setAttribute("selected", "true");
+				ltEle.style.background="url(/layout/img/im.png) no-repeat 10px center;";
+				current_selected = ltEle;
+				web.layout.behavior.changeTo.onMouseClick( ltTarget,ltEle,x,y,mouseParams );
+			}
+			link.attachEventHandler();
+		}
+	}
+}
+
+//圆角窗口
+import win.util.round;
+win.util.round(winform)
+ 
+winform.show() 
+win.loopMessage();
+tray.delete();
+return winform;

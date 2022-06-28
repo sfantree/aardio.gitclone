@@ -1,0 +1,235 @@
+//picture 图像
+import com; 
+import win;
+import gdi;
+import win.ole;
+namespace com.picture;
+
+IID_IPicture = '\x80\x09\xF8\x7B\x32\xBF\x1A\x10\x8B\xBB\x00\xAA\x00\x30\x0C\xAB'
+OleLoadPicture = ::OleAut32.api("OleLoadPicture","int(pointer lpStream,int lSize,int fRunmode,ptr riid,pointer &pic)");
+
+load = function(strfile){  
+	var bin = "";
+	var len = #strfile;
+	
+	if(!len) return null,"无效参数";
+	elseif( len < 0x410/*_MAX_PATH_U8*/){
+		if( (strfile[1] == 'h'#) && ..string.startWith(strfile,"http") && ..inet[["http"]]  ){
+			if( !self.http ) self.http = ..inet.http();
+			bin = self.http.get(strfile);
+		}
+		else{
+			bin = ..string.load(strfile)
+		};
+		
+		if( !bin ) bin = strfile;
+	}
+	else{
+		bin = strfile;
+	}
+	
+	len = #bin;
+	if(!len) return null,"图像数据为空"; 
+	
+	var hImageMemory = ::GlobalAlloc( 0x2 /*_GMEM_MOVEABLE*/, len); 
+	pImageMemory = ::GlobalLock(hImageMemory); 
+	::CopyMemory(pImageMemory,bin,len);
+	::GlobalUnlock(hImageMemory); 
+		
+	var re,pIStream,pIPicture ;
+	re,pIStream = ::CreateStreamOnHGlobal(hImageMemory,true/*GlobalFree*/,pIStream) 
+	if( re ){
+		::GlobalFree(hImageMemory); 
+		return null,..lasterr() 
+	}
+	
+	re,pIPicture =  OleLoadPicture(pIStream, len, 0, IID_IPicture, pIPicture  );
+	..com.Release(pIStream);
+		
+	if(re) return null,..lasterr() 
+	var pic = ..com.GetIPicture( pIPicture )
+	..com.Release(pIPicture)
+
+	return  pic; 
+}
+
+loadObject = function(path){
+	var pic = load(path);
+	if(pic) return ..com.QueryObject(pic);
+}
+
+loadBitmap = function(path){
+	var p,e = load(path);
+	if(!p) return null,e;
+	
+	var h =  p.CopyHandle();
+		..com.Release(p); 
+	return h; 
+};
+
+OleCreatePictureIndirect = ::OleAut32.api("OleCreatePictureIndirect","int(struct desc, ptr riid, bool fOwn, pointer &obj)");
+fromBitmap = function(hBmp,fOwn=true,picType=0x1/*_PICTYPE_BITMAP*/){
+	var picdesc = {
+		INT cbSize = 20;
+		INT picType;
+		union desc = {
+			struct bmp = {pointer hbitmap; pointer hpal;} 
+			struct wmf = {pointer hmeta;int xExt;int yExt;} 
+			struct icon ={pointer hicon;} ;
+			struct emf = {int hemf;} 
+		};
+	}
+	picdesc.cbSizeofstruct = ..raw.sizeof( picdesc );
+	picdesc.desc.bmp.hbitmap = hBmp;
+	picdesc.picType = picType;
+		
+	var re ,pIPicture  = OleCreatePictureIndirect( picdesc, IID_IPicture, fOwn );  
+	var pic = ..com.GetIPicture( pIPicture )
+	..com.Release(pIPicture); 
+	
+	return pic; 
+}
+
+fromIcon = function(hIcon,fOwn=true){
+	return fromBitmap(hIcon,fOwn,0x3/*_PICTYPE_ICON*/);
+}
+
+printClient = function(hwnd,x,y,w,h){
+	return printWindow(hwnd,x,y,w,h,true);
+}
+
+printWindow = function(hwnd,x=0,y=0,w,h,clientOnly) {
+	
+	if( hwnd===null ) hwnd =  ..win.getDesktop();
+	if( ..win.isIconic(hwnd)  || ( !..win.isVisible(hwnd) ) ) 
+		..win.show(hwnd, 0x4/*_SW_SHOWNOACTIVATE*/);
+
+	var picture; 
+	..gdi.windowBuffer( hwnd,
+		function( hdc,hMemDc,hMemBitmap,width,height ){
+			::PrintWindow( hwnd,hMemDc,0)
+			
+			if( x : y : w : h : clientOnly ){  
+				if( clientOnly ){ 
+					var left,top,width,height = ..win.getClientPos(hwnd);
+					x = x + left;
+					y = y + top; 
+				} 
+				width = w:( width - x)
+				height = h:( height - y)  
+					
+				..gdi.doubleBuffer( hMemDc,width,height,
+					function( hdc,hMemDc,hMemBitmap ){
+						::BitBlt( hMemDc , 0, 0,width,height, hdc, x, y,0xCC0020/*_SRCCOPY*/ | 0x40000000/*_CAPTUREBLT*/) 
+							picture = fromBitmap(hMemBitmap);
+							return true/*borrowBitmap*/;
+					}
+				)  
+			}  
+				else {
+					picture = fromBitmap(hMemBitmap);
+					return true/*borrowBitmap*/;
+				} 
+		} 
+	) 
+	return picture; 
+} 
+
+snapClient = function(hwnd,x,y,w,h){
+	return snap(hwnd,x,y,w,h,true);
+}
+
+snap = function(hwnd,x=0,y=0,w,h,clientOnly)   {
+	var hSrc = ..win.getDesktop();
+	if( hwnd===null ) hwnd =  hSrc; 
+	if( hSrc!==hwnd ){
+		..win.showForeground(hwnd);	
+		..win.delay(10);
+	}
+	
+	var hdc = ::GetWindowDC(hSrc);
+	var rc;
+	
+	if(clientOnly){ 
+		rc = ..win.getClientRect(hwnd); 
+		..win.toScreenRect(hwnd,rc);
+	}
+	else{
+		rc = ..win.getRect(hwnd,true);
+	}
+	if(!w) w = rc.right - rc.left - x;
+	if(!h) h = rc.bottom - rc.top - y;
+	x = rc.left + x;
+	y = rc.top + y;
+	
+	var hBmp = ..gdi.doubleBuffer( hdc,w,h,
+		function( hdc,hMemDc,hMemBitmap ){ 
+				::BitBlt(hMemDc,0,0,w,h, hdc, x, y,0xCC0020/*_SRCCOPY*/ | 0x40000000/*_CAPTUREBLT*/)
+			picture = fromBitmap(hMemBitmap);
+				return true/*borrowBitmap*/;
+		}
+	)
+	::ReleaseDC(hSrc, hdc);
+		
+	return picture;
+} 
+
+self.type = {
+	none = 0;
+	uninitialized = -1;
+	bitmap = 1;
+	metafile = 2;
+	icon = 3;
+	enhmetafile = 4;
+}
+
+is = function(v){
+	return( type(v) == type.cdata && type.rget(v) == "com.IPicture")
+}
+
+/**intellisense(com.picture) 
+load(__/*请输入文件路径*/) =  载入图像并返回 com.IPicture 对象,\n参数也可以指定资源路径、或者图像的内存数据\n如果已经导入了inet.http,加载路径可以使用小写http,https开头的网址,网址长度必须小于1040字节
+loadObject(__/*请输入文件路径*/) =  载入图像并返回 com.IDispath 对象,\n参数也可以指定资源路径、或者图像的内存数据\n如果已经导入了inet.http,加载路径可以使用小写http,https开头的网址,网址长度必须小于1040字节
+snap(.(窗口句柄,左坐标,顶坐标,宽,高) = 自屏幕抓取窗口图象并返回com.IPicture对象,\n截图结果会包含透明部分的背景图像，\n所有参数都是可选参数
+snapClient(.(窗口句柄,左坐标,顶坐标,宽,高) = 自屏幕抓取窗口客户区图像并返回com.IPicture对象,\n截图结果会包含透明部分的背景图像，\n所有参数都是可选参数
+printWindow(.(窗口句柄,左坐标,顶坐标,宽,高) = 后台抓取窗口图象并返回com.IPicture对象\n所有参数都是可选参数
+printClient(.(窗口句柄,左坐标,顶坐标,宽,高) = 后台抓取窗口客户区图像并返回com.IPicture对象 \n所有参数都是可选参数
+loadBitmap(__/*请输入文件路径*/) = 载入图像并返回位图句柄,\n参数也可以指定资源路径、或者图像的内存数据
+fromBitmap(__/*位图句柄*/) = 自位置句柄返回IPicture对象
+fromIcon(__/*图标句柄*/) = 从图标句柄返回IPicture对象
+fromBitmap(__/*位图句柄*/,false) = 自位置句柄返回IPicture对象\n不负责销毁位图
+fromIcon(__/*图标句柄*/,false) = 从图标句柄返回IPicture对象\n不负责销毁位图
+IID_IPicture = IPicture IID;
+is(__) = 判断对象是否 com.IPicture 对象
+end intellisense**/
+	
+/**intellisense()
+com.picture = IPictrue图像支持库\n在导入win.ui,win.ui.ctrl中时自动导入此库
+!ipicture.Handle = 位图句柄
+!ipicture.Type = 图片类型\n参考com.picture.type成员
+!ipicture.Save(__/*文件路径*/) = 保存位图到文件，只能保存为bmp格式\n使用 com.interface.IPicture 可保存到内存
+!ipicture.CopyHandle(.(宽度,高度) = 复制新的位图并返回位图句柄,位图类型(_IMAGE_BITMAP 或 _IMAGE_ICON)\n可选指定宽度、高度
+!ipicture.Width = 图像宽度
+!ipicture.Height = 图像高度
+com.picture.snap() = !ipicture.
+com.picture.snapClient() = !ipicture.
+com.picture.printWindow() = !ipicture.
+com.picture.printClient() = !ipicture.
+com.picture.load() = !ipicture.
+com.picture.snap() = !ipicture.
+com.picture.load() = !ipicture.
+com.picture.loadObject() = !ipicture.
+com.picture.fromBitmap() = !ipicture.
+com.picture.fromIcon() = !ipicture.
+com.GetIPicture(__) = 转换为 com.IPicture 对象\n参数可指定 IPictrue 接口的指针或 COM 对象
+com.GetIPicture() = !ipicture.
+end intellisense**/ 
+
+/**intellisense()
+_PICTYPE_UNINITIALIZED=@0xFFFFFFFF/*_PICTYPE_UNINITIALIZED*/
+_PICTYPE_NONE=@0x0/*_PICTYPE_NONE*/
+_PICTYPE_BITMAP=@0x1/*_PICTYPE_BITMAP*/
+_PICTYPE_METAFILE=@0x2/*_PICTYPE_METAFILE*/
+_PICTYPE_ICON=@0x3/*_PICTYPE_ICON*/
+_PICTYPE_ENHMETAFILE=@0x4/*_PICTYPE_ENHMETAFILE*/
+end intellisense**/

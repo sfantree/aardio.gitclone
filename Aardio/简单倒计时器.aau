@@ -1,0 +1,40 @@
+import win.ui;
+/*DSG{{*/
+mainForm = ..win.form(text="倒计时器";right=297;bottom=121)
+mainForm.add(
+button={cls="button";text="开始";left=105;top=79;right=198;bottom=110;z=1};
+edit={cls="edit";left=25;top=43;right=76;bottom=64;edge=1;num=1;z=5};
+edit2={cls="edit";left=112;top=43;right=163;bottom=64;edge=1;num=1;z=6};
+edit3={cls="edit";left=198;top=43;right=249;bottom=64;edge=1;num=1;z=7};
+static2={cls="static";text="小时";left=82;top=46;right=110;bottom=65;transparent=1;z=2};
+static3={cls="static";text="分";left=173;top=46;right=190;bottom=65;transparent=1;z=3};
+static4={cls="static";text="秒";left=259;top=46;right=276;bottom=65;transparent=1;z=4};
+static5={cls="static";text="倒计时：";left=128;top=14;right=180;bottom=33;transparent=1;z=8}
+)
+/*}}*/
+
+mainForm.button.oncommand = function(id,event){
+	var hour, minute, second
+	if(mainForm.edit.text!="") {
+		hour = tonumber(mainForm.edit.text);
+	}
+	else hour = 0;
+	if(mainForm.edit2.text!="") {
+		minute = tonumber(mainForm.edit2.text);
+	}
+	else minute = 0;
+	if(mainForm.edit3.text!="") {
+		second = tonumber(mainForm.edit3.text);
+	}
+	else second = 0;
+	var yes = mainForm.msgboxTest("按确定开始计时！");
+	if(yes) {
+		mainForm.show(false);
+		win.delay((hour*60*60+minute*60+second) * 1000);
+		mainForm.msgbox("过了"++tostring(hour)++"小时"++tostring(minute)++"分"++tostring(second)++"秒，时间到！");
+		mainForm.show(true);
+	}
+}
+
+mainForm.show()
+return win.loopMessage(); 

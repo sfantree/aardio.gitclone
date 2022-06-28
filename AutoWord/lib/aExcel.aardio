@@ -1,0 +1,96 @@
+﻿
+namespace aExcel{
+	getData = function(exFile, sheetName){
+		import com.excel;
+		var ex = com.excel(true);
+		ex.Visible = true;
+		var book = ex.WorkBooks.Open(exFile);
+		var sheet = book.Worksheets(sheetName);		
+		
+		// 取标题行列数
+		var colIndex = 1;
+		var colCount = 0;	
+		while(true){
+			var cell = sheet.Cells(1, colIndex);
+			if(!cell) break ;
+			var title = cell.Value2;
+			if(title == null or title = "" or title = 0) break ;
+			colCount += 1;
+			colIndex += 1;
+		}
+		if colCount = 0 return;
+		
+		//取行数据
+		var data = {};
+		var rowIndex = 2;
+		while(true){
+			var cell = sheet.Cells(rowIndex, 1);
+			if(!cell) break ;
+			var value = cell.Value2;
+			if(value == null or value = "" or value = 0) break ;
+			
+			var row = {};
+			for(colIndex = 1; colCount; 1){
+				var title = sheet.Cells(1, colIndex).Value2;
+				var value = sheet.Cells(rowIndex, colIndex).Value2;
+				row[title] = value;
+			}
+			..table.push(data, row);
+			rowIndex += 1;
+		}
+		
+		book.close(false);
+		ex.Quit();
+		return data;
+	}
+	
+	getDataWithDb = function(exFile, sheetName){
+		import access;
+		var db, err = access(exFile);
+		
+		if(! ..string.endWith(sheetName, "$")) sheetName += "$"; //数据库表名有 ‘$’ 后缀
+		
+		var sql = ..string.format("select * from [%s]", sheetName); 
+		var data = db.getTable(sql);	//会获取不到在数字列中的文本内容
+		
+		db.close();
+		return data;
+	}
+	
+	getSheetNames = function(exFile){
+		var sheetNames = {};
+		import com.excel;
+		var ex = com.excel(true);
+		ex.Visible = false;
+		var book = ex.WorkBooks.Open(exFile);
+		for(i = 1; book.WorkSheets.Count; 1){
+			..table.push(sheetNames, book.Sheets(i).Name);
+		}
+		book.close(false);
+		ex.Quit();
+		return sheetNames;
+	}
+	
+	getSheetNamesWithDb = function(exFile){
+		var sheetNames = {};
+		
+		import access;
+		var db, err = access(exFile);
+		
+		//有些电脑上第一次打开数据库会出问题
+		if(!db) db, err = access(exFile);
+		
+		import com;
+		var cat = com.CreateObject("ADOX.Catalog");
+		cat.ActiveConnection = db.connection; 
+		for index,tbl in com.each(cat.Tables){
+        	if( tbl.Type = "TABLE" && ..string.endWith(tbl.Name, "$")){
+            	..table.push(sheetNames, tbl.Name);
+        	}
+		}
+		
+		db.close();
+		return sheetNames;
+	}
+	
+}

@@ -1,0 +1,72 @@
+﻿
+
+class sdk{
+	ctor(url){
+		var v = handle( url )  
+		if( !v ) return ; 
+		this = v(url);
+		var _getStreamInfo = this.getStreamInfo;
+	};
+	getStreamInfo = function(){
+		var ret, err = _getStreamInfo() 
+		if( !ret ){
+			return null, err; 
+		}		
+		var ok, err = this.checkResult(ret);
+		if( !ok ){
+			return null, err; 
+		}
+		return ret; 
+	}
+	checkResult = function(ret){
+		if( !ret.website ){
+			return null, "缺少网站名称"; 
+		}
+		if( !ret.roomId ){
+			return null, "缺少直播间ID"; 
+		}
+		if( !ret.roomUrl ){
+			return null, "缺少直播间地址"; 
+		}					
+		return true; 	
+	}	
+}
+
+import sdk.douyu;
+import sdk.huya;
+//import sdk.panda;
+import sdk.bilibili;
+//import sdk.kingkong;
+import sdk.longzhu;
+//import sdk.quanmin;
+//import sdk.six;
+import sdk.yy;
+//import sdk.momo;
+import sdk.kuaishou;
+import sdk.xigua;
+
+namespace sdk{
+ 	handle = function(url){
+		for( k, v in self){ 
+			if( type(v) == type.class  ){
+				if( v.canHandle(url) ){
+					return v; 
+				}
+			}
+		}
+	}
+	
+	website = {}; 
+	for( k, v in self){ 
+		if( type(v) == type.class  ){
+			var info = v.info;
+
+			..table.push( website, {
+				name = info.name;
+				url = info.url;
+				sdk = k;
+			})
+		}
+	}	     	
+}
+

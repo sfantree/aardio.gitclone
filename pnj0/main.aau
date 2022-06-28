@@ -1,0 +1,210 @@
+import console;
+function canZhengChu(a,b){ //判断a是否能整除b
+	return (a % b) == 0;
+	/* return (a / b) == math.floor(a / b); */
+	/*var table = {math.modf(a / b)};
+	return table[2] == 0; 这个方法比较慢，不使用*/
+}
+
+function welcome(){ //欢迎信息
+	var text = /*
+质数判断 0.2
+(C)版权所有 2014-2015 闪闪的星
+提示：使用命令“/?”可以查看帮助
+*/;
+	console.print(text);
+}
+function help(){
+	var text = /*本程序支持的命令列举如下：
+
+ /[正整数]         不算是真正的命令吧。效果等同于 /judge [正整数]。
+ /?                等同于 /help 命令。
+ /exit             退出。
+ /help             显示帮助信息，等同于 /? 命令。
+ /jd [正整数]      与“/judge [正整数]”相似，区别在不加询问直接进行因数分解。
+ /judge [正整数]   核心功能，进行质数判断和因数分解。等同于 /[正整数]。
+
+ 使用“/123456”和“/judge 123456”试试！
+ 呃，这个程序暂时不支持“[正整数]”超过15位。
+
+上述命令同样适用于外部参数调用，下面是一个例子：*/;
+	console.print(text);
+	console.print('"' ++ io._exepath ++ '" /jd 123456');
+	text = /*
+
+作者主页是 https://shansing.com，可在上面了解算法详情。	
+*/;
+	console.print(text);
+}
+function judge(){ //核心功能
+/*
+  下面会用到质数的性质，本人概括为：
+  a. 6以内有且只有2，3，5是质数；
+  b. 6之后的质数必以1，3，7，9结尾；
+  c. 4以后的质数必然和6的某一倍数相邻。
+  
+  我们的目标是，得出一个有着比较简单的规律的数列，由数列所有项构成的集合能较好地排除合数，而包含所有质数。
+  根据那些性质（特别是性质c），我得出了一个从数5开始“加2加4”的数列（质数2，3，5单独列出），能满足上述要求；
+  这个数列用以代替原来从2开始“加1”的数列，并略过除5外5倍数的项，可使处理速度提升为3倍。
+  
+  欲知详情，请查阅作者博客。
+*/
+	if (string.find(tab[2],"[1-9]")){
+		n = tonumber(string.format("%.0f",tonumber(string.sub(tab[2],string.find(tab[2],"[1-9]"),-1)))); //必须去0，否则会被识别为8进制数
+	}else{
+		n = 0;
+	}
+	if (n == 1){ //对1的处理
+		console.print("(!) 1 既不是质数，也不是合数。");
+		console.print("");
+	}elseif(n == 0){ //对0的处理，是彩蛋哦
+		eggshell();
+	}elseif(n >= 1000000000000000){ //对超过15位正整数的提示 if(string.len(string.format("%.0f",n)) > 15)
+		console.print("错误：请求的数已超过15位，本程序暂不支持。");
+		console.print("");
+	}else{
+    	var a,result,tempPercent,k = 2,"",0,1;
+    	if (tab[1] != "jd" && n != 2 && n != 3){
+    		console.print("开始初步判断 " ++ string.format("%.0f",n) ++ " 是否为合数。");
+   			if (( !canZhengChu(n + 1, 6) && !canZhengChu(n - 1, 6) ) //如果n并不与6的某一倍数相邻
+   			  || ( canZhengChu(math.sqrt(n), 1) )){ //或者n是一个完全平方数
+    			console.print("(!) 已得出 " ++ string.format("%.0f",tonumber(string.sub(tab[2],string.find(tab[2],"[1-9]"),-1))) ++ " 是合数！");
+    			console.writeBack("(?) 继续分解吗？输入字母“Y”继续，其他输入视为结束：");
+    			console.writeBack("(?) 继续分解吗？输入字母“Y”继续，其他输入视为结束：");//用两行writeBack代替一行print是为了让接下来的字符输入跟随在后
+    			if (string.lower(console.getche()) != "y") {
+    				result = "用户终止";
+    			}else{
+    				tab[1] = "jd2"; //防止后面继续提示，临时弄出个 jd2 的值吧
+    			}
+    			console.print("");
+    		}else{
+    			console.print("初步判断结束，未得出确切结果。");
+    		}
+    	}
+    	if (result != "用户终止"){
+    		console.print("开始对 " ++ string.format("%.0f",n) ++ " 进行因数分解！");
+    		while (a <= math.sqrt(n)){
+    			if (tempPercent != math.round(k * 100 / (math.sqrt(n) / 3),0)){ //除以三：约每六个正整数中有一个数是那个数列中的项
+    				tempPercent = math.round(k * 100 / (math.sqrt(n) / 3),0);
+    				if (result == ""){ //如果还是在分解第一个数，下同
+    					console.writeBack("开始分解 " ++ string.format("%.0f",n) ++ "。（完成度：" ++ tempPercent ++ '%）');
+    				}else{
+    					console.writeBack("转而分解 " ++ string.format("%.0f",n) ++ "。（完成度：" ++ tempPercent ++ '%）');
+    				}
+    			}
+    			if(canZhengChu(n / a, 1)){   //如果n能整除a。这时已经可以转而分解另一个数了
+    				if (result == ""){ //
+    					console.writeBack("开始分解 " ++ string.format("%.0f",n) ++ "。（完成度：已中止）");
+    					console.print("");
+    					if (tab[1] != "jd2"){console.print("(!) 已得出 " ++ string.format("%.0f",tonumber(string.sub(tab[2],string.find(tab[2],"[1-9]"),-1))) ++ " 是合数！");} //“jd2”在此体现
+    					if (tab[1] == "judge"){ //“/jd”命令不需提示
+    						console.writeBack("(?) 继续分解吗？输入字母“Y”继续，其他输入视为结束：");
+    						console.writeBack("(?) 继续分解吗？输入字母“Y”继续，其他输入视为结束：");
+    						if (string.lower(console.getche()) != "y") {
+    							console.print("");
+    							result = "用户终止";
+    							break;
+    						}else{
+    							console.print("");
+    						}
+    					}
+    				}else{
+    					console.writeBack("转而分解 " ++ string.format("%.0f",n) ++ "。（完成度：已中止）");
+    					console.print("");
+    				}
+         			result = result ++ string.format("%.0f",a) ++ "×";
+            		n = n / a;
+            		a = 2;
+            		tempPercent = 0;
+            		k = 1;
+        		}else{
+            		//a = a + 1; 已弃用。换用了一个上面所提到的新数列的方法。
+            		do{
+            		k = k + 1;
+            			if(k == 2){
+            				a = 3; //a = a + 1;
+            			}elseif(k == 3 || canZhengChu(k, 2)){
+            				a = a + 2;
+            			}else{
+            				a = a + 4;
+            			}
+        			}while(a != 5 && canZhengChu(a, 5)); //排除a是5倍数的情况（但不排除5）
+    			}
+    		}
+    	}
+    	if (result == ""){ //结果为质数
+    		console.writeBack("开始分解 " ++ string.format("%.0f",n) ++ "。（完成度：已完成）");
+    		console.print("");
+    		console.print("(!) 完成！" ++ string.format("%.0f",tonumber(string.sub(tab[2],string.find(tab[2],"[1-9]"),-1))) ++ " 是质数！");
+    	}elseif(result == "用户终止"){ //用户选择终止，只能得到为合数的结果，但没有因数分解结果
+    		console.print("完成，分解过程被用户结束。");
+    	}else{ //结果为合数，还要输出分解结果
+    		console.writeBack("转而分解 " ++ string.format("%.0f",n) ++ "。（完成度：已完成）");
+    		console.print("");
+        	console.print("(!) 完成！" ++ string.format("%.0f",tonumber(string.sub(tab[2],string.find(tab[2],"[1-9]"),-1))) ++ "＝" ++ result ++ string.format("%.0f",n));
+    	}
+		console.print("");
+	}
+}
+function exit(){
+	console.close();
+}
+function eggshell(){ //彩蛋
+	var eggNo = 0;
+	while (eggNo <= 10){
+		console.writeBack(" (°ο°)~@");
+		sleep(100);
+		console.writeBack(" (°__°)~@");
+		sleep(100);
+		eggNo = eggNo + 1;
+	}
+	console.print("");
+	console.print("");
+}
+function command(){ //对命令进行处理
+	if (tab[1] == ""){ //如果无命令名
+	
+	}elseif (tab[1] == "help" or tab[1] == "?"){
+		help();
+	}elseif (tab[1] == "exit"){
+		exit();
+	}elseif (tab[1] == "judge" || tab[1] == "jd"){
+		if(#tab[2] && string.find(tab[2], "^[+]?\d+$")){
+			judge();
+		}else{
+			console.print("错误：请输入有效的正整数！");
+			console.print("");
+		}
+	}elseif(string.find(tab[1],"^[+]?\d+$")){ //若是输入的0或正整数（可含正号）
+		tab[2] = tab[1];
+		tab[1] = "judge";
+		judge();
+	}else{
+		console.print("错误：“/" ++ tab[1] ++ "”既不是本程序支持的命令，也不是“/”加正整数的结构。");
+		console.print("");
+	}
+}
+
+console.open();
+console.setTitle("质数判断");
+tab = {""};
+if (#_CMDLINE){ //若程序运行时有命令行参数
+	if (string.startWith(_CMDLINE,'/')){
+		..str = string.sub(_CMDLINE,2,-1);
+		..tab = string.split(string.lower(str),' '); //小写哟
+		command();
+	}else{
+		console.print("错误：请求的命令行参数无效，请检查格式。");
+		console.print("");
+	}
+}else{ //直接运行，无命令行参数
+	welcome();
+	do{
+		..str = console.getText("/");
+		..tab = string.split(string.lower(str),' '); //得到空格分割的 table，顺便转为小写
+		command();
+	}while(tab[1] != "exit"); //总是在过程结束后再让用户输入命令，除非用户使用了退出命令
+}
+
+// https://shansing.com
+// 请遵守开源协议！

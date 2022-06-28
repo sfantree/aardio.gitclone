@@ -1,0 +1,56 @@
+﻿import win.ui;
+import com.activeX;
+/*DSG{{*/
+mainForm = ..win.form(text="ReportX 打印小例子";right=763;bottom=565;parent=...)
+mainForm.add(
+button={cls="button";text="打印预览";left=554;top=523;right=641;bottom=554;z=2};
+button2={cls="button";text="填充数据";left=447;top=525;right=534;bottom=556;z=3};
+button3={cls="button";text="直接打印";left=656;top=522;right=743;bottom=553;z=4};
+custom={cls="custom";text="custom";left=8;top=6;right=746;bottom=503;autosize=1;center=1;edge=1;transparent=1;z=1}
+)
+/*}}*/
+
+
+
+com.activeX.regsvr32As("\dll\ReportX.ocx"); //注册控件
+ReportX = com.CreateObject("{A5DA6E97-1D4C-4708-B705-84A45716B4DD}");
+mainForm.custom.createEmbed(ReportX);
+
+//调用ReportX报表方法
+ReportX.OpenReport( io.fullpath("/Example/销售单.rpxe"));
+
+mainForm.button.oncommand = function(id,event){
+	ReportX.PrintPreview()
+}
+
+
+mainForm.button3.oncommand = function(id,event){	
+	ReportX.PrintSheet(false)   //打印文件,是否显示打印设置对话框
+}
+
+
+mainForm.button2.oncommand = function(id,event){
+	ReportX.InvalidatePaint()
+	ReportX.SetCellValue(1,2,"小小山货店销售单")     //设置文本(列，行，文本)
+	ReportX.SetCellValue(3,4,"劲松") 
+	ReportX.SetCellValue(6,4,"15697979979") 
+	ReportX.SetCellValue(9,4,"湖北荆州") 
+	ReportX.SetCellValue(3,5,"20150522001");
+	var tm = time();
+	tm.format="%Y-%m-%d";
+	ReportX.SetCellValue(6,5,tostring(tm))
+	ReportX.SetCellValue(9,5,"大大傻") 
+	
+	for(i=1;9;1){
+		ReportX.SetCellValue(1,6+i,i) 
+		//后面填充不写了，没意义
+		
+	}
+	ReportX.ValidatePaint();
+}
+
+
+
+
+mainForm.show() 
+win.loopMessage(); 

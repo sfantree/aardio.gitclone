@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<title>Index</title>
+<style type="text/css">
+/** Table 表格样式 **/
+.qgg-table{
+    border-collapse: collapse;
+    width:100%;
+    border:1px solid #c6c6c6 !important;
+    margin-bottom:20px;
+}
+.qgg-table th{
+    border-collapse: collapse;
+    border-right:1px solid #c6c6c6 !important;
+    border-bottom:1px solid #c6c6c6 !important;
+    background-color:#ddeeff !important; 
+    padding:5px 9px;
+    font-size:14px;
+    font-weight:normal;
+    text-align:center;
+}
+.qgg-table td{
+    border-collapse: collapse;
+    border-right:1px solid #c6c6c6 !important;
+    border-bottom:1px solid #c6c6c6 !important; 
+    padding:5px 9px;
+    font-size:12px;
+    font-weight:normal;
+    text-align:center;
+    word-break: break-all;
+}
+.qgg-table tr:nth-child(odd){
+    background-color:#fff !important; 
+}
+.qgg-table tr:nth-child(even){
+    background-color: #f8f8f8 !important;
+}
+</style>
+
+</head>
+<body> 
+<?
+shortcuts = /*
+<table class="qgg-table">
+  <tr>
+    <th>快捷键功能</th>
+    <th>快捷键</th>
+  </tr>
+  <tr>
+    <td>查询词典</td>
+    <td>CTRL+D</td>
+  </tr>
+  <tr>
+    <td>剪切板词典</td>
+    <td>CTRL+B</td>
+  </tr> 
+  <tr>
+    <td>清空</td>
+    <td>DELETE</td>
+  </tr>  
+  <tr>
+    <td>查询</td>
+    <td>CTRL+X</td>
+  </tr>   
+</table>
+*/
+
+param = request.get["param"];
+
+if(param=="preface"){
+	response.write('<p style="text-indent:2em;font-size:13px;">本程序是调用百度翻译、有道翻译、腾讯翻译、金山词典等API来实现的快速多结果翻译工具，安全纯净无广告！</p>')
+}elseif(param=="updatelog"){
+	response.write('更新日志')
+}else {
+	response.write(shortcuts)
+}
+
+?>
+
+
+
+
+
+</body>
+<html>

@@ -1,0 +1,12 @@
+/**
+import ide;
+import fsys;
+
+var publisDir = ide.getPublisDir();
+if(!#publisDir)return; 
+
+var sciterPath =  fsys.joinpath(publisDir,"\lib\web\sciter\.res\sciter.dll" ); 
+if( ! io.exist(sciterPath) ){ 
+	..fsys.copy( "~\lib\web\sciter\.res\sciter.dll",sciterPath,0x10/*_FOF_NOCONFIRMATION*/  | 0x200/*_FOF_NOCONFIRMMKDIR*/); 
+}
+**/

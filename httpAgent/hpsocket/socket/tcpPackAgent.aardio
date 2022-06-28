@@ -1,0 +1,25 @@
+﻿import hpsocket.socket.tcpAgent;
+namespace hpsocket.socket;
+
+class tcpPackAgent{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpAgent(obj);
+	};
+	getMaxPackSize = function(){
+		return ::HPSocket.HP_TcpPackAgent_GetMaxPackSize(this.pSocket);
+	}
+	setMaxPackSize = function(size){
+		::HPSocket.HP_TcpPackAgent_SetMaxPackSize(this.pSocket,size);
+	}
+	getPackHeaderFlag = function(){
+		return 0xFFFF & ::HPSocket.HP_TcpPackAgent_GetPackHeaderFlag(this.pSocket);
+	}
+	setPackHeaderFlag = function(flag){
+		HP_TcpPackAgent_SetPackHeaderFlag(this.pSocket,flag);
+	}
+}
+
+namespace tcpPackAgent{
+	HP_TcpPackAgent_SetPackHeaderFlag = ::HPSocket.api("HP_TcpPackAgent_SetPackHeaderFlag","int(ptr,WORD)")
+}
+ 

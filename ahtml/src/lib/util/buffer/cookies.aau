@@ -1,0 +1,80 @@
+import util.metaProperty;
+import inet.url;
+namespace util.buffer;
+
+cookies = class {
+	ctor (requestCookies) {
+		this._requestCookies = {};
+		if (requestCookies) {
+			var lst = ..string.list(requestCookies, ";", "=");
+			for i, k, v in lst.each() { 
+			 	this._requestCookies[[..inet.url.decode(k)]] = ..inet.url.decode(v);
+			}
+		}
+		this._responseCookies = {};
+	}
+	@_meta;
+}
+
+namespace cookies {
+	var urlEncode = ..inet.url.encode;
+	
+	_meta = ..util.metaProperty(
+		genHeaders = function () {
+			var headers = {};
+			for (k, v in owner._responseCookies) {
+				..table.push(headers, "Set-Cookie: ", k, "=");
+				if ( type(v) !== type.table ) {
+					..table.push( headers, (urlEncode(tostring(v))) );
+				}
+				else {
+					..table.push(headers, (urlEncode(tostring(v[["value"]]))) );
+					var expires = v[["expires"]];
+					if (expires) {
+						..table.push(headers, "; Expires=");
+						..table.push(headers, tostring(..time(tonumber(expires), "!%a, %d %b %Y %H:%M:%S")));
+					}
+					var path = v[["path"]];
+					if (path) {
+						..table.push(headers, "; Path=", urlEncode(path));
+					}
+					var domain = v[["domain"]];
+					if (domain) {
+						..table.push(headers, "; Domain=", urlEncode(domain));
+					}
+					if (v[["httpOnly"]]) {
+						..table.push(headers, "; HttpOnly");
+					}
+				}
+				..table.push(headers, '\r\n');
+			}
+			return ..string.join(headers);
+		}
+		
+		each = function () {
+			var requestCookies = owner._requestCookies;
+			var k, v;
+			return function () {
+				k, v = ..table.next(requestCookies, k);
+				return k, v;
+			}
+		}
+		
+		get = function (k) {
+			return owner._requestCookies[[k]];
+		}
+		
+		set = function (k, v) {
+			if (v === null || type(v) === type.table && v[["value"]] === null) {
+				owner._responseCookies[[k]] = {
+					value = "deleted";
+					expires = ..time(0);
+				}
+			}
+			else {
+				owner._responseCookies[[k]] = v;
+			}
+			owner._requestCookies[[k]] = v[["value"]] : v;
+		}
+	);
+}

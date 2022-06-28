@@ -1,0 +1,145 @@
+﻿import web;
+
+namespace aaz.libhpsocket.helper;
+class headers{
+	ctor(hdr){ 
+		if(hdr) { 
+			if(hdr[["_struct"]] && hdr.array){ 
+				return hdr;
+			}
+			elseif(type(hdr)==type.table){
+				this ={ struct array[]={int length}}
+				for(k,v in hdr){
+					if( type(v) != 'table' ){
+						..table.push(this.array,{str name=k;str value = v});
+					}
+					else{
+						for(i=1;#v) ..table.push( this.array,{str name=k;str value = v[i]} );
+					}
+				}
+			} 
+			elseif(type(hdr)==type.string){
+				this ={ struct array[]={int length}}
+				var hdr = ..string.splitEx(hdr,"\r\n"); 
+				for(i=#hdr;1;-1){ 
+					var h = ..string.splitEx(hdr[i],"\:\s*",2); 
+					if(#h<2) continue ;
+					h[1] = ..string.trim(h[1]); h[2] = ..string.trim(h[2]);
+					..table.push( this.array,{str name= h[1];str value = h[2]} ); 
+				}
+			}
+		} 
+		else {
+			this ={ struct array[] = {int length} }
+		} 
+	}
+	
+	struct = function(){
+		if(#(this.array)) {
+			this.array.length = null;
+			return this;
+		}
+		if( this.array.length ) {
+			this.array[1] = {str name;str value};
+			return this;
+		};
+	}
+	
+	length = function(){
+		return #(this.array);
+	}
+	
+	add = function(k,v){
+		if( k && (v!==null) )
+			..table.push(this.array,{str name=k;str value = v} ); 
+	} 
+	
+	replace = function(k,v){
+		if( !( k && (v!==null) ) ) return; 
+		
+		var hdrs = this.array
+		for(i=#hdrs;1;-1){  
+			if(hdrs[i].name == k ) ..table.remove(hdrs,i);
+		}
+		..table.push(hdrs,{str name=k;str value = v} );
+	}
+	 
+	default = function(k,v){
+		if( !( k && (v!==null) ) ) return; 
+		
+		var hdrs = this.array
+		for(i=#hdrs;1;-1){  
+			if(hdrs[i].name == k ) return;
+		}
+		..table.push(hdrs,{str name=k;str value = v} );
+	}
+	 
+	mixin = function(hdrs){
+		for(k,v in hdrs){
+			this.replace(k,v);
+		} 
+	}
+	mix = function(hdrs){
+		for(k,v in hdrs){
+			this.default(k,v);
+		} 
+	}
+	
+	get = function(k){
+		if(!k) return;
+		var hdrs = this.array;
+		var values = {};
+		for(i=#hdrs;1;-1){  
+			if(hdrs[i].name == k ) ..table.push(values,hdrs[i].value);
+		}
+		if(#value<=1)return ..table.unpack(values);
+		return values;
+	}
+	
+	headers = function(){
+		var values,k  = {};
+		var hdrs = this.array;
+		for(i=1;#hdrs;1){  
+			k = hdrs[i].name;
+			if(!k) continue ;
+			if(values[k]){
+				if(type(values[k])!=type.table) values[k] ={values[k]};
+				..table.push(values[k],hdrs[i].value);
+			}
+			else {
+				values[k] = hdrs[i].value;
+			} 
+		}
+		return values;
+	}
+	
+	stringify = function(){
+		return ..web.joinHeaders(this.headers());
+	}
+	
+	@_meta
+}
+
+namespace headers{
+	_meta = {
+		_tostring = function(){
+			return owner.stringify();
+		} 
+	}
+}
+
+/**intellisense(aaz.libhpsocket.helper)
+headers(__) = 生成HTTP头结构数组\n参数可以是文本,也可以是aaz.libhpsocket.helper.headers对象,\n或者是名值对组成的名值表,值也可以使用数组
+headers() = !hpsockethdrs.
+!hpsockethdrs.struct() = 如果HTTP名值数组不为空返回有效结构体\n否则返回值为空
+!hpsockethdrs.headers() = 返回名值对组成的名值表,值也允许是数组\n与 response.headers 兼容
+!hpsockethdrs.get(__) = 返回指定名字的文本值,多个值返回数组\n注意一般只有cookie会返回数组
+!hpsockethdrs.replace(.(name,value) = 覆盖名值对
+!hpsockethdrs.mixin(__) = 设置多个HTTP头\n参数是名值对组成的名值表
+!hpsockethdrs.mix(__) = 设置多个HTTP头\n参数是名值对组成的名值表\n如果已设置同名字的值,不会更新原来的值\n仅设置尚未设置的名值对
+!hpsockethdrs.add(.(name,value) = 添加名值对
+!hpsockethdrs.default(.(name,value) = 定义默认值\n如果已设置该名字的值,此函数忽略不操作
+!hpsockethdrs.length() = 返回数组长度
+!hpsockethdrs.stringify() = 返回文本格式
+!hpsockethdrs.array.length = int类型,仅在API调用时用于获取长度\n传入array时,API将获得array.length的指针
+end intellisense**/

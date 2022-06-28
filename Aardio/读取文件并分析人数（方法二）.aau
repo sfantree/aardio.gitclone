@@ -1,0 +1,18 @@
+io.open()
+//-----------------------------------------
+//此处输入代码
+
+var fname = "C:\Users\Administrator\Desktop\uv.txt";
+var file = io.open(fname,'r');
+var uid = {}
+var line = file.read()
+while line!=null {
+	var note = string.split(line,' ')
+	uid[note[2] ] = note[2]
+	line = file.read()
+}
+io.print( table.count(uid) )
+
+//-----------------------------------------
+execute("pause")
+io.close()

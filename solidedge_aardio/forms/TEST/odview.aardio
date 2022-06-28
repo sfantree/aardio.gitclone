@@ -1,0 +1,16 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add()
+/*}}*/
+
+import web.form;
+var wb = web.form(winform);
+wb.external = { //必须要有external, 否则wb内报错: Uncaught (in promise) 
+
+}
+ 
+wb.go("\res\odview.html");
+winform.show();
+win.loopMessage();
+return winform;

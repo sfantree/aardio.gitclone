@@ -1,0 +1,29 @@
+﻿//supportedWebsite 支持的网站列表
+import sdk;
+import process.openUrl;
+
+namespace web.layout.behavior.supportedWebsite{
+	onAttach = function( ltOwner ){
+		for(i=1;#..sdk.website;1){
+			var info = ..sdk.website[i]
+			var li = ltOwner.createElement("li")
+			li.class = "common-button item" ;
+			li.href = info.url;
+			
+			var container = li.createElement( "div" )
+			container.class = "container"
+						
+			var img = container.createElement( "img" );
+			//img.src = "\res\layout\website icon\" ++ info.sdk ++ ".ico"
+			img.src = info.url ++ "favicon.ico";	
+				
+			container.createElement( "span", info.name ) 
+		}
+	}
+	sinking = {
+		onHyperlinkClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+			..process.openUrl( ltTarget.href )
+			return true; 
+		}
+	}	
+}

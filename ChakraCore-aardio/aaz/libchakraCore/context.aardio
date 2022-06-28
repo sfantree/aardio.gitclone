@@ -1,0 +1,157 @@
+﻿import util.metaProperty;
+
+var _dll = aaz.libchakraCore._dll;
+
+namespace aaz.libchakraCore;
+class context{
+	ctor(handle){
+		if(!handle) return ; 
+		this.handle = handle;
+	} 
+	
+	@_metaProperty;   
+}
+namespace context{
+ 	idle = function(){
+    	var ticks = {INT value};
+    	_dll.JsIdle(ticks);
+    	return ticks.value; 
+	}
+	
+	parseScript = function(script, sourceContext, sourceName){
+    	var result = {ptr value};
+    	var errCode = _dll.JsParseScript(script, sourceContext, sourceName, result);
+    	if(errCode != 0){
+    		return null, ..aaz.libchakraCore.errCode[errCode]; 
+    	}
+    	return ..aaz.libchakraCore.value(result.value);
+	} 
+	
+	parseSerializedScript = function(script, buffer, sourceContext, sourceName){
+    	var result = {ptr value};
+    	var errCode = _dll.JsParseSerializedScript(script, buffer, sourceContext, sourceName, result);
+    	if(errCode != 0){
+    		return null, ..aaz.libchakraCore.errCode[errCode]; 
+    	}
+    	return ..aaz.libchakraCore.value(result.value);
+	}
+	
+	runScript = function(script, sourceContext, sourceName=""){
+    	var result = {ptr value};
+    	var errCode = _dll.JsRunScript(script, sourceContext, sourceName, result);
+    	if(errCode != 0){
+    		return null, ..aaz.libchakraCore.errCode[errCode]; 
+    	}
+    	return ..aaz.libchakraCore.value(result.value);
+	}
+	
+	runSerializedScript = function(script, buffer, sourceContext, sourceName){
+    	var result = {ptr value};
+    	var errCode = _dll.JsRunSerializedScript(script, buffer, sourceContext, sourceName, result);
+    	if(errCode != 0){
+    		return null, ..aaz.libchakraCore.errCode[errCode]; 
+    	}
+    	return ..aaz.libchakraCore.value(result.value);
+	}
+	
+	serializeScript = function(script){
+    	var bufferSize = {INT value};
+		var errCode = _dll.JsSerializeScript(script, buffer, bufferSize);
+    	if(errCode != 0){
+    		return null, ..aaz.libchakraCore.errCode[errCode]; 
+    	}
+		return bufferSize.value;      	
+	}
+	
+	parseSerializedScriptWithCallback = function(){
+		_dll.JsParseSerializedScriptWithCallback()
+	}
+	
+	runSerializedScriptWithCallback = function(){
+		_dll.JsRunSerializedScriptWithCallback()
+	}
+	
+	getAndClearException = function(){
+    	var exception = {ptr value};
+    	_dll.JsGetAndClearException(exception);
+    	return ..aaz.libchakraCore.value(exception.value); 
+	}
+
+	setException = function(exception){
+    	_dll.JsHasException(exception);
+	}
+    	
+	_meta = {
+    	current = {
+        	_get = function(){
+            	var context = {ptr value};
+            	_dll.JsGetCurrentContext(context);
+            	return ..aaz.libchakraCore.context(context.value); 
+        	}
+        	
+        	_set = function(v){
+            	_dll.JsSetCurrentContext(v);
+        	} 
+    	}
+    	
+    	hasException = {
+        	_get = function(){
+            	var has = {bool value};
+            	_dll.JsHasException(has);
+            	return has.value; 
+        	}
+        	
+    	}
+	}
+	
+	self@ = ..util.metaProperty(_meta);
+	
+	_properties = {
+    	_topointer = function(){
+        	return owner.handle; 
+    	}
+    	
+    	runtime = {
+    		_get = function(){
+ 				var runtime = {ptr value};
+				_dll.JsGetRuntime(owner.handle, runtime);
+				return ..aaz.libchakraCore.runtime(runtime.value);   			
+    		}
+    	}
+    	
+    	addRef = function(){
+    		var count = {INT value};
+    		_dll.JsContextAddRef(owner.handle, count);
+    		return count.value; 
+    	}
+    	
+    	release = function(){
+    		var count = {INT value};
+    		_dll.JsContextRelease(owner.handle, count);
+    		return count.value; 
+    	}
+	}
+	
+	_metaProperty = ..util.metaProperty(_properties);
+	
+	// 作用域，会自动将上下文设置为当前上下文，并在释放时重置原始上下文
+	class scope{
+		ctor(context){
+			// 先前的上下文
+			var previousContext = ..aaz.libchakraCore.context.current;
+			// 是否已完成
+			var disposed = false;
+			
+			// 设置作用域的上下文
+			..aaz.libchakraCore.context.current = context;
+		}
+		
+		// 结束作用域并将之前的上下文设置为当前的
+		dispose = function(){
+			if(!disposed){
+				..aaz.libchakraCore.context.current = previousContext;
+				disposed = true;
+			}
+		}	
+	}	   
+}

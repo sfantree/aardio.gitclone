@@ -1,0 +1,133 @@
+import win.ui;
+import yybCtrl;
+import frmDataFunc;
+/*DSG{{*/
+var frmTabPage1 = win.form(text="基本设置";right=764;bottom=499;mode="popup")
+frmTabPage1.add(
+checkbox={cls="checkbox";text="Checkbox";left=30;top=124;right=44;bottom=138;dl=1;dt=1;z=3};
+combobox={cls="combobox";left=106;top=22;right=212;bottom=44;dl=1;dt=1;edge=1;font=LOGFONT(h=-15;name='宋体');items={"ESC";"PAUSE";"F8"};mode="dropdownlist";z=2};
+combobox2={cls="combobox";left=106;top=54;right=212;bottom=76;dl=1;dt=1;edge=1;font=LOGFONT(h=-15;name='宋体');items={};mode="dropdownlist";z=13};
+edit={cls="edit";text="Edit";left=102;top=155;right=142;bottom=177;dl=1;dt=1;edge=1;font=LOGFONT(h=-14);num=1;z=9};
+edit2={cls="edit";text="Edit";left=102;top=193;right=148;bottom=215;dl=1;dt=1;edge=1;font=LOGFONT(h=-14);num=1;z=10};
+edit3={cls="edit";text="Edit";left=19;top=246;right=306;bottom=482;db=1;dl=1;dt=1;edge=1;multiline=1;readonly=1;z=20};
+groupbox={cls="groupbox";text="连击设置";left=17;top=91;right=306;bottom=233;dl=1;dt=1;edge=1;font=LOGFONT(h=-17);z=15};
+listview={cls="listview";left=327;top=39;right=534;bottom=482;db=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-15);z=11};
+listview2={cls="listview";left=547;top=39;right=754;bottom=482;db=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-15);z=14};
+static={cls="static";text="暂停/继续";left=19;top=24;right=101;bottom=44;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');transparent=1;z=1};
+static10={cls="static";text="左手键位";left=331;top=16;right=408;bottom=36;db=1;dr=1;dt=1;font=LOGFONT(h=-17);transparent=1;z=18};
+static11={cls="static";text="右手键位";left=549;top=16;right=625;bottom=36;db=1;dr=1;dt=1;font=LOGFONT(h=-17);transparent=1;z=19};
+static2={cls="static";text="开启按键连击";left=54;top=124;right=163;bottom=148;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');transparent=1;z=4};
+static3={cls="static";text="持续按下";left=29;top=157;right=102;bottom=181;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');notify=1;transparent=1;z=5};
+static4={cls="static";text="连击间隔";left=29;top=195;right=101;bottom=216;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');transparent=1;z=6};
+static5={cls="static";text="毫秒时连击";left=147;top=157;right=235;bottom=181;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');notify=1;transparent=1;z=7};
+static6={cls="static";text="毫秒";left=153;top=195;right=192;bottom=219;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');transparent=1;z=8};
+static7={cls="static";text='(1\uFF5E5000)';left=235;top=159;right=292;bottom=180;dl=1;dt=1;transparent=1;z=16};
+static8={cls="static";text="并击方案";left=19;top=56;right=97;bottom=80;dl=1;dt=1;font=LOGFONT(h=-17;name='宋体');transparent=1;z=12};
+static9={cls="static";text='(1\uFF5E10000)';left=191;top=195;right=259;bottom=216;dl=1;dt=1;transparent=1;z=17}
+)
+/*}}*/
+
+var dtgrid1 = yybCtrl.dataGrid(frmTabPage1.listview);
+var dtgrid2 = yybCtrl.dataGrid(frmTabPage1.listview2);
+
+var parSch = {};//并击方案集合
+
+//将数据绑定到各个控件。定义为子窗体的成员函数，以便主窗体引用
+var function dataBind() {
+	var info = frmDataFunc.info;//配置信息表
+		parSch = frmDataFunc.parSchemes;//并击方案集合
+	
+	var left = parSch[info.Schema].left;//方案左手键位表
+	var right = parSch[info.Schema].right;//方案右手键位表
+	
+	var schNames = table.keys(parSch);//各方案名称表
+	
+	frmDataFunc.dataShow(dtgrid1, left, 45, 75);
+	frmDataFunc.dataShow(dtgrid2, right, 45, 75);
+	
+	frmTabPage1.combobox.selText = info.HotKey;
+	frmTabPage1.combobox2.items = schNames;
+	frmTabPage1.combobox2.selText = info.Schema;
+	
+	frmTabPage1.checkbox.checked=info.repMode;
+	frmTabPage1.edit.text = info.tmDnHold;
+	frmTabPage1.edit2.text = info.tmInterval;
+}
+
+dataBind();//启动时执行一次
+
+//收到重新加载配置消息后，更新绑定控件数据
+subscribe("重新加载配置",function(){
+	dataBind();
+} )
+
+/*-------------------------控件响应函数---------------------------*/
+//并击方案combobox2改变选项时，显示改变后数据
+frmTabPage1.combobox2.oncommand = function(id,event){
+    //下拉选框：改变了当前选项
+    if( event = 0x1/*_CBN_SELCHANGE*/ ){
+        var schName = frmTabPage1.combobox2.selText;
+        var left = parSch[schName].left;//方案左手键位表
+		var right = parSch[schName].right;//方案右手键位表
+        frmDataFunc.dataShow(dtgrid1, left, 45, 75);
+		frmDataFunc.dataShow(dtgrid2, right, 45, 75);
+	}
+}
+
+//勾选checkbox的动作
+frmTabPage1.checkbox.oncommand = function(id,event){
+	if (frmTabPage1.checkbox.checked) {
+		frmTabPage1.edit.disabled = false;		
+		frmTabPage1.edit2.disabled = false;
+	}
+	if (! frmTabPage1.checkbox.checked) {			
+		frmTabPage1.edit.disabled = true;
+		frmTabPage1.edit2.disabled = true
+	}	
+}
+
+/*---------------------------------------------------------------------*/
+
+//收集控件数据，以备生成配置文件
+var function tbCtrlData(){
+    var tmDnHold = tonumber(frmTabPage1.edit.text);
+    if(tmDnHold<1 or tmDnHold>5000) {
+    	return null
+    };
+
+    var tmInterval = tonumber(frmTabPage1.edit2.text);
+    if(tmInterval<1 or tmInterval>10000) {
+    	return null
+    };
+    
+    var left = frmDataFunc.dataCheck(dtgrid1, "左手键位表");
+    var right = frmDataFunc.dataCheck(dtgrid2, "右手键位表");
+    if(!left or !right) {
+		return null;
+	}
+
+    frmDataFunc.info.HotKey = frmTabPage1.combobox.selText;
+    var schName = frmTabPage1.combobox2.selText;
+   	frmDataFunc.info.Schema = schName;
+    frmDataFunc.info.repMode = frmTabPage1.checkbox.checked;
+    frmDataFunc.info.tmDnHold = tmDnHold;
+    frmDataFunc.info.tmInterval = tmInterval;
+    
+    frmDataFunc.parSchemes[schName].left = left;
+    frmDataFunc.parSchemes[schName].right = right; 
+    return true;
+}
+
+//收到保存消息后，收集控件数据
+subscribe("保存",function(){
+	if(tbCtrlData()){//如收集完毕，将frmDataFunc中的标记设置为真
+		frmDataFunc.frmDataReady.frm1Ready = true;	
+	};
+} );
+
+
+
+
+frmTabPage1.show();
+win.loopMessage();
+return frmTabPage1;

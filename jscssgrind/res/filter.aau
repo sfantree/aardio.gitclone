@@ -1,0 +1,38 @@
+﻿
+//打开需要过滤文件的路径
+mainForm.btn_filter_dir.oncommand = function(id,event){
+	mainForm.edit_filter_dir.text = fsys.dlg.opendir(tostring(mainForm.edit_filter_dir.text)) : mainForm.edit_filter_dir.text
+}
+
+//显示过滤得到的内容
+mainForm.btn_filter_postfix.oncommand = function(id,event){
+	if( !fsys.isDir(mainForm.edit_filter_dir.text) ){
+		mainForm.msgbox("没有发现有效路径！")
+		return ; 
+	}
+	
+	var filelist_tbl = {} //保存过滤文件
+	fsys.enum( tostring(mainForm.edit_filter_dir.text), tostring(mainForm.edit_filter_postfix.text),
+		function(dir,filename,fullpath,findData){ 
+			if(filename){ 
+           		//io.print("发现文件："+filename,"完整路径："+fullpath)
+           		table.push(filelist_tbl, fullpath)
+			}
+		} 
+		,true /*如果此参数为false则忽略子目录*/
+	);
+	
+	if not(#filelist_tbl[1]){
+		mainForm.msgbox("没有过滤到该后缀的文件!")
+		return ; //没有过滤到文件
+	}
+	
+	var filelist_dir = tostring(io.splitpath(mainForm.edit_filter_dir.text).dir) //过滤的目录
+	var filelist_str = string.join(filelist_tbl, "','")
+	filelist_str = string.replace(filelist_str,"@"++filelist_dir,"/")
+	filelist_str = "['" ++ string.replace(filelist_str,"@\","/") ++ "']" //最终的列表
+	
+	string.save(swapfolder ++ "/filelist.txt", filelist_str) //保存列表
+	sleep(1) //等待上面的文件写入完成
+	process.execute(swapfolder ++ "/filelist.txt") //打开列表
+}

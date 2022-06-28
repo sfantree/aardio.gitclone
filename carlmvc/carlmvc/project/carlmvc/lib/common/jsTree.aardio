@@ -1,0 +1,84 @@
+﻿
+namespace common
+
+jsTree = class {
+	ctor( tab,nodeId,text,parentId,typeName,showAll = false ){
+		this.tab = tab;
+		this.nodeId = nodeId;
+		this.parentId = parentId;
+		this.text = text;
+		this.typeName = typeName;
+		this.showAll = showAll;
+		this.tabChildNodeId = {};//所有字节点ID
+		this.tabAllNodeId = {};//所有节点ID
+	};
+	
+	toTreeList = function(){
+		var tabTree = {};
+		if(#this.parentId){//有父ID
+			for(i=1;#this.tab;1){
+				var row = this.tab[i];
+				if(!row[this.parentId] || row[this.parentId] <= 0){
+					table.push(tabTree,this.getTabNode(row));
+				}
+			}
+		}
+		elseif(#this.typeName){//无父ID,有分类字段
+			var tabType = {};
+			for(i=1;#this.tab;1){
+				var row = this.tab[i];
+				var typeName = row[this.typeName]:"";
+				if( !table.find(tabType,typeName) ) table.push(tabType,typeName);
+			}
+			for(n,pTypeName in tabType){
+				var tabNode = {id=tostring(-1*n); text=pTypeName};
+				var tchild = {};
+				for(i=1;#this.tab;1){
+					var row = this.tab[i];
+					var typeName = row[this.typeName]:"";
+					if(pTypeName == typeName) table.push(tchild,this.getTabNode(row));
+				}
+				tabNode.children = tchild;
+				table.push(tabTree,tabNode);
+			}
+		}
+		else {
+			for(i=1;#this.tab;1){
+				var row = this.tab[i];
+				table.push(tabTree,this.getTabNode(row));
+			}
+		}
+		return tabTree; 
+	}
+
+	getTabNode = function(row){
+		var tabNode = this.showAll ? row : {};
+		tabNode.id = tostring(row[this.nodeId]);
+		tabNode.text = row[this.text];
+		if(#this.parentId){
+			var tchild = this.getChlidList(row[this.nodeId]);
+			if(table.count(tchild)) tabNode.children = tchild;
+		}
+		if(!tabNode.children) table.push(this.tabChildNodeId,tabNode.id);//所有字节点ID
+		table.push(this.tabAllNodeId,tabNode.id);//所有节点ID
+		return tabNode;
+	}
+
+	getChlidList = function(parentId){
+		var tabTree = {};
+		for(i=1;#this.tab;1){
+			var row = this.tab[i];
+			if(row[this.parentId] == parentId){
+				table.push(tabTree,this.getTabNode(row));
+			}
+		}
+		return tabTree; 
+	}	
+}
+
+namespace jsTree{
+	
+	table = ..table;
+	string = ..string;
+	
+}

@@ -1,0 +1,702 @@
+import win.ui;
+import win.ui.statusbar;
+import config;
+import mouse;
+import console;
+import sqlitemodel.modelForm;
+/*DSG{{*/
+var winform = win.form(text="数据列表";right=836;bottom=585;border="dialog frame";mode="popup";parent=...)
+winform.add(
+btnGotoNPage={cls="button";text="转到第N页";left=650;top=353;right=724;bottom=374;db=1;dl=1;z=10};
+btnNext={cls="button";text="下一页";left=385;top=353;right=450;bottom=374;db=1;dl=1;z=8};
+btnPrev={cls="button";text="上一页";left=305;top=353;right=370;bottom=374;db=1;dl=1;z=7};
+button={cls="button";text="搜索";left=409;top=28;right=473;bottom=52;dl=1;dt=1;z=4};
+button2={cls="button";text="Button";left=740;top=352;right=811;bottom=374;db=1;dr=1;z=13};
+button3={cls="button";text="添加";left=52;top=28;right=127;bottom=51;dl=1;dt=1;z=15};
+button4={cls="button";text="批量导入";left=696;top=30;right=777;bottom=53;dl=1;dt=1;z=16};
+button6={cls="button";text="刷新";left=476;top=28;right=540;bottom=52;dl=1;dt=1;z=11};
+button7={cls="button";text="选择显示字段";left=551;top=28;right=648;bottom=52;dl=1;dt=1;z=12};
+comboCurrPage={cls="combobox";left=562;top=353;right=643;bottom=374;db=1;dl=1;edge=1;items={};mode="dropdown";z=9};
+comboItemsPerpage={cls="combobox";left=215;top=354;right=293;bottom=374;db=1;dl=1;edge=1;items={"10";"20";"50";"100"};mode="dropdown";z=5};
+edit={cls="edit";left=168;top=29;right=397;bottom=53;dl=1;dt=1;edge=1;z=14};
+listbox={cls="listbox";left=161;top=377;right=827;bottom=578;db=1;dl=1;dr=1;edge=1;hscroll=1;items={};vscroll=1;z=2};
+listview={cls="listview";left=162;top=56;right=827;bottom=346;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(name='Consolas');fullRow=1;gridLines=1;hscroll=1;vscroll=1;z=3};
+static={cls="static";text="每页条数";left=160;top=354;right=211;bottom=369;db=1;dl=1;transparent=1;z=6};
+treeview={cls="treeview";left=5;top=56;right=156;bottom=578;asel=false;bgcolor=16777215;db=1;dl=1;dt=1;edge=1;vscroll=1;z=1}
+)
+/*}}*/
+
+////
+//////////////////////////////
+////全局变量
+winform.model = null;
+winform.lastListviewSelected = 0;
+winform.LAST_ITEMS_PERPAGE = 100;
+
+winform.onMouseClick = function(wParam,lParam){
+	//var x,y = win.getMessagePos(lParam);
+	winform.comboItemsPerpage.setFocus(false);
+	winform.edit.setFocus();
+}
+
+winform.log =  function(text){
+
+	winform.listbox.add(tostring(text))
+	winform.listbox.selIndex=winform.listbox.count
+
+}
+
+
+is_form_valid = function(){
+	if( #winform.edit_title.text
+			&& #winform.edit_account.text
+			&& #winform.edit_pass.text)
+	{
+		return true;
+	}else {
+			winform.msgboxErr("title,account and password is requried","Err")
+	}
+	return false;
+}
+
+initTreeview = function(model, tv){
+
+	var filter_fields = model.filter_fields;
+	if(#filter_fields>0){
+		tv.clear();
+	}
+
+	var item = {text = "显示全部数据"}
+	var hItem = tv.insertItem(item)
+
+	for(i=1;#filter_fields;1){
+		var item = {}
+		/*{ 
+    		text = "上级菜单"; 
+    		{ 
+        		{  text = "下级1"  };
+        		{  text = "下级2" };
+        		{  text = "下级3" };
+        		{  text = "下级4" };
+        		{  text = "下级5" };
+        		{  text = "其他" };
+    		}
+		}*/
+		
+
+
+		var k = filter_fields[i]
+		var caption = model.headers[k]
+
+		console.varDump(model.headers)
+		console.log("caption, k",caption, k)
+
+		item["text"] = string.format("按%s过滤", caption);
+		//query["filter_field"] = k
+
+		var sql = string.format("select distinct %s from %s", k, model.tablename)
+		var items = model.getTable(sql)
+
+		var data = {}
+		for(i=1;#items;1){
+			table.push(data, {text = items[i][k]; filter_field = k})
+		}
+
+		table.push(item, data)
+
+		var hItem = tv.insertItem(item)
+
+	}
+
+	tv.expandAll()
+
+
+}
+
+winform.button.oncommand = function(id,event){
+
+	if(winform.model == null){
+		winform.msgbox("窗口未设置model对象, 无法正确显示数据")
+	}
+
+	keyword = winform.edit.text;
+	winform.load_data(keyword)
+
+}
+
+
+
+winform.load_data = function(keyword=""){
+	var items={};
+	var query = {};
+	if(type(keyword)=="table"){
+		query =  keyword
+	}elseif(type(keyword)=="string"){
+		query["keyword"] = keyword;
+	}
+	query["QUERY_MODE"] = "SEARCH";
+
+	winform.CURR_QUERY = query; //记录到全局变量CURR_QUERY中
+	//log(table.tostring(CURR_QUERY));
+	items = winform.model.search(query);
+
+	winform.resetlistview(items)
+
+
+}
+
+
+
+winform.resetlistview = function(items){
+	winform.statusbar.setText("公司总数:" + #items);
+
+
+	if(#items){
+		winform.listview.clear();
+	}else {
+		winform.listview.clear();
+	}
+
+
+	//for(i=1;#items;1){
+	//     console.varDump(items[i])
+	//}
+
+
+	//如果获取了数据, 那么清空listview
+	var n = winform.listview.columnCount;
+	for(i=1;winform.listview.columnCount;1){
+		winform.listview.delColumn(n+1-i);
+	}
+
+	var display_fields = winform.model.display_fields;
+	for(i=1;#display_fields;1){
+		var k = display_fields[i]
+		var caption = winform.model.headers[k]
+		winform.listview.insertColumn(caption, 140, i);
+	}
+
+	winform.listview.setColumn({cx=40},1)
+	winform.listview.setColumn({cx=180},2)
+	winform.listview.setColumn({cx=80},3)
+
+
+
+	for(i=1;#items;1){
+			//winform.listview.add(items[i]['title']);
+			//console.log("query[i]")
+			//console.varDump(items[i])
+
+			var row ={}
+			for(j=1;#display_fields;1){
+				k = display_fields[j];
+				//if(k=="id"){
+				//	table.push(data, tostring(i))
+				//	continue
+				//}
+				//console.log('k', k);
+				if(items[i][k]!=null){
+					table.push(row, items[i][k])
+				}else {
+					table.push(row, "")
+				}
+
+
+			}
+			//
+			//console.varDump(items[i])
+			//
+
+			winform.listview.addItem({
+				text = row
+			});
+	}
+
+	if(items["ITEMS_PERPAGE"]){
+		winform.comboItemsPerpage.text = tostring(items["ITEMS_PERPAGE"])
+	}
+	if(items["PAGES"]){
+		winform.comboCurrPage.clear();
+		for(i=1;items["PAGES"];1){
+			winform.comboCurrPage.add(tostring(i))
+		}
+	}
+	if(items["CURR_PAGE"]!=null){
+		winform.comboCurrPage.text = tostring(items["CURR_PAGE"]+1)
+	}
+}
+
+
+winform.init = function(model){
+
+	//winform.center()
+	winform.model = model;
+
+	var state = config.settings.autoclose_company_form;
+	//
+	//console.log(" config autoclose_company_form  " ++ state)
+	//
+
+	if(state == null){
+		state = false;
+		config.saveAll()
+	}
+	//
+	//console.log(" started " ++ state)
+	//
+	win.ui.statusbar( winform ).addItem("公司:", 100/*宽度*/)
+
+	winform.statusbar.addItem("数据库:", 500);
+
+	initTreeview(winform.model, winform.treeview)
+
+	winform.load_data(winform.edit.text);
+}
+
+
+
+winform.treeview.onnotify = function(id,code,ptr){
+	if(code = 0xFFFFFFFE/*_NM_CLICK*/){
+		//单击
+		var x,y = mouse.getPos()
+		var hItem,tvht = winform.treeview.hitTest(x,y,true);
+
+		if(!hItem){
+			return
+		}
+
+		winform.treeview.setSelected(hItem);
+		winform.treeview.expandAll()
+
+		var hitem = winform.treeview.getSelection()
+		//winform.text = winform.treeview.getItemData(hitem);
+		var data = winform.treeview.getItemData(hitem);
+
+		var filter_field = data["filter_field"];
+		//if(filter_field == null){
+		//	return
+		//}
+
+		var keyword = "";
+
+		if(data == null or #data>0){
+			//未选中节点, 或者选中节点有子节点(根节点)
+			keyword =  ""
+			//return
+		}else {
+			//没有子节点的节点,如果是根节点, 那么也是在这里处理, 但是没有filter_field数据, 所以后面的filter
+			// 会因为没有filter_field数据, 而返回全部数据, 忽略keyword
+			keyword = data["text"];
+			if(string.indexOf(keyword, "|")){
+				keyword = string.split(keyword, "<|>")[1]
+			}
+			//winform.text = data["text"] ++ " 单位";
+		}
+
+		var query = {};
+		query["filter_field"] = filter_field;
+		query["keyword"] = keyword;
+		var items_perpage = tonumber(winform.comboItemsPerpage.text);
+		query["ITEMS_PERPAGE"] = items_perpage
+		query["QUERY_MODE"] = "FILTER";
+
+		CURR_QUERY = query;
+		winform.log(table.tostring(CURR_QUERY));
+
+		var items = winform.model.filter(query)
+
+		winform.resetlistview(items);
+
+	}
+}
+
+
+winform.item_detail = function(id){
+
+	var mform = sqlitemodel.modelForm(winform.model, winform, id);
+	mform.doModal(winform);
+	winform.load_data(winform.edit.text);
+}
+
+winform.delete_items = function(ids){
+
+	if(!ids){
+		return ;
+	}
+
+	if(type(ids) != type.table){
+		return ;
+	}
+
+	if(#ids==0){
+		return ;
+	}
+
+	var confirmed = false; //默认不删除
+	if(config.settings.confirm_delete){
+		confirmed = winform.msgboxTest("确认删除吗?"); //看用户选择
+	}else {
+		confirmed = true; //无需确认
+	}
+
+	//console.log("confirmed",confirmed, winform.model.tablename)
+	if(confirmed){
+		var deletes = {}
+		for(i=1;#ids;1){
+			var query = {["id"]=ids[i]};
+			//console.log(table.tostring(query))
+			var deleted, _msg = winform.model.delete(query);
+			table.push(deletes, {ids[i]; deleted});
+		}
+
+		var failed = false;
+		for(i=1;#deletes;1){
+			if(!deletes[i][2]){
+				failed  = true;
+				winform.log(string.format("id(%s) 已经删除失败(%s)", deletes[i][1], tostring(deletes[i][2])))
+			}else {
+				winform.log(string.format("id(%s) 已经删除成功(%s)", deletes[i][1], tostring(deletes[i][2])))
+			}
+		}
+
+		if(!failed){
+			winform.load_data();
+			winform.msgbox("删除成功！")
+		}else {
+			winform.msgbox("删除失败！")
+		}
+	}
+}
+
+
+
+winform.listview.onnotify = function(id,code,ptr){
+
+	select(code) {
+
+		case 0xFFFFFFFD/*_NM_DBLCLK*/ {
+			//双击编辑
+			var x,y = mouse.getPos()
+			var iRow, iCol  = winform.listview.hitTest(x,y,true);
+			if(iRow){
+				//console.log("选中行列", iRow, iCol)
+				winform.listview.setSelected(iRow)
+				winform.lastListviewSelected = iRow;
+				var id = winform.listview.getItemText(iRow, 1);
+				//console.log("----id", id)
+				winform.item_detail(id);
+			}
+
+		}
+		case 0xFFFFFFFB/*_NM_RCLICK*/ {
+			//右键菜单
+			var x,y = mouse.getPos()
+			var iRow, iCol  = winform.listview.hitTest(x,y,true);
+			if(iRow){
+				winform.listview.setSelected(iRow)
+				winform.lastListviewSelected = iRow;
+			}
+
+			var menu = win.ui.popmenu(winform)
+
+			menu.add("详细信息",
+				function(){
+					var iRow = winform.listview.getSelection(); //选中的行
+					if(!iRow){
+						winform.msgbox("请选中一项再操作");
+						return
+					}else {
+						var id = winform.listview.getItemText(iRow, 1)
+						winform.item_detail(id);
+					}
+				}
+			);
+
+
+			var filter_fields = winform.model.filter_fields
+
+			var filter_menus = {}
+
+
+
+			for(i=1;#filter_fields;1){
+				var item = {}
+
+				var k = filter_fields[i]
+				var caption = headers[k]
+				if(caption==null){
+					continue
+				}
+
+				table.push(item, string.format("更改选中项的%s为", caption))
+				var sql = string.format("select distinct %s from %s", k, winform.model.tablename)
+				var items = winform.model.getTable(sql)
+
+				//console.log("items")
+				//console.varDump(items)
+
+				var data = {}
+				for(i=1;#items;1){
+					//console.log("items[i][k]", items[i][k]);
+					var x = {
+						tostring(items[i][k]); //tostring() 避免 USTRING ERROR
+						function(id){
+							//winform.msgbox(tostring(items[i][k]))
+							change_company_field(k,items[i][k]);
+						}
+					}
+					//console.log("       console.varDump(x)")
+					//console.varDump(x)
+					table.push(data, x)
+				}
+
+				if(#data){
+					//console.log("console.varDump(data)")
+					//console.varDump(data)
+					table.push(item, data)
+				}else {
+					continue;
+				}
+
+				//console.log("continue;")
+
+				//console.varDump(item)
+				table.push(filter_menus, item)
+			}
+
+			//console.varDump(filter_menus)
+			if(#filter_menus){
+				menu.addTable(
+					//{filter_menus}
+					filter_menus
+				)
+			}
+
+			menu.add({});
+
+			menu.add("全选",
+				function(){
+					for(i=1;winform.listview.count;1){
+						winform.listview.setSelected(i)
+					}
+				}
+			);
+
+
+
+			menu.add("导出选中项数据",
+				function(){
+					var items = {}
+					//console.log(winform.listview.columnCount)
+					var ids = {}
+					for(i=1;winform.listview.count;1){
+						if(winform.listview.getSelected(i)){
+							table.push(ids, winform.listview.getItemText(i,1)); //每一行的第1列就是id
+							//var query = {}
+							//console.log(table.tostring(winform.model.display_fields))
+							//for(i=1;#winform.model.display_fields;1){
+							//	k = winform.model.display_fields[i]
+							//	query[k] = winform.listview.getItemText(iRow, i)
+							//}
+						}
+					}
+					if(#ids){
+						var TABLE_NAME = winform.model.tablename;
+						var sql = "SELECT * FROM [" ++ TABLE_NAME ++ "] where id in (" + string.join(ids, ", ") + ")"
+						items = winform.model.getTable(sql);
+						export_model(winform.model, items);
+					}
+
+				}
+			);
+
+
+			menu.add({});
+
+
+			menu.add("修改",
+				function(){
+					var iRow, iCol  = winform.listview.hitTest(x,y,true);
+					if(iRow){
+						//console.log("选中行列", iRow, iCol)
+						winform.listview.setSelected(iRow)
+						winform.lastListviewSelected = iRow;
+						var id = winform.listview.getItemText(iRow, 1);
+						winform.item_detail(id);
+					}
+				}
+			);
+			menu.add({});
+
+			menu.add("删除选中项",
+				function(){
+					//console.log("删除选中项")
+					var items = {}
+					var ids = {}
+					for(i=1;winform.listview.count;1){
+						if(winform.listview.getSelected(i)){
+							table.push(ids, winform.listview.getItemText(i,1)); //每一行的第1列就是id
+						}
+					}
+					winform.delete_items(ids)
+				}
+			);
+			//menu.add("调换班级",
+			///    function(){
+			//
+			//    }
+			//);
+			menu.popup(x,y,true);
+
+		}
+		else {
+		}
+	}
+}
+
+winform.button3.oncommand = function(id,event){
+	var mform = sqlitemodel.modelForm(winform.model, winform);
+	mform.text = string.format("添加%s数据",  winform.model.label )
+	mform.doModal();
+
+	winform.load_data(winform.model)
+}
+
+winform.button6.oncommand = function(id,event){
+	winform.load_data(winform.model)
+}
+
+//winform.init();
+
+winform.button4.oncommand = function(id,event){
+	var filepath = fsys.dlg.open("Excel文件(*.xls;*xlsx)|*.xls;*xlsx","请选择Excel文件",,winform)
+	if(filepath){
+		import_model(winform.model, filepath);
+	}
+}
+
+winform.btnPrev.oncommand = function(id,event){
+	var curr_page = winform.comboCurrPage.text
+	var prev_page = tonumber(curr_page) - 1;
+	if(prev_page<0){
+		prev_page = 0
+	}
+	var model = winform.model;
+	var query = winform.CURR_QUERY;
+	if(!query){
+		query = {}
+		query["keyword"] ="";
+	}
+	query["CURR_PAGE"] = prev_page
+	var items = {}
+	select(query["QUERY_MODE"]) {
+		case "FILTER" {
+			items = model.filter(query);
+		}
+		case "SEARCH" {
+			items = model.search(query);
+		}
+		else {
+
+		}
+	}
+
+	winform.resetlistview(items);
+	winform.log(table.tostring(query))
+}
+
+winform.btnNext.oncommand = function(id,event){
+	var model = winform.model;
+	var query = winform.CURR_QUERY;
+	if(!query){
+		query={};
+		query["keyword"] ="";
+	}
+
+	var curr_page = winform.comboCurrPage.text
+	var pages = table.map(winform.comboCurrPage.items,function(v,k,result){
+		return tonumber(v);
+	})
+	var min, max = table.range(pages)
+	var next_page = tonumber(curr_page) + 1;
+	if(next_page>max){
+		next_page = max
+	}
+
+	query["CURR_PAGE"] = next_page;
+	var items = {}
+	select(query["QUERY_MODE"]) {
+		case "FILTER" {
+			items = model.filter(query);
+		}
+		case "SEARCH" {
+			items = model.search(query);
+		}
+		else {
+
+		}
+	}
+
+	winform.resetlistview(items);
+
+	log(table.tostring(query))
+}
+
+winform.comboItemsPerpage.oncommand = function(id,event){
+	if(event = 4/*_CBN_KILLFOCUS*/){
+		winform.log("winform.comboItemsPerpage.oncommand _CBN_KILLFOCUS")
+		var n = winform.LAST_ITEMS_PERPAGE;
+
+		try{
+			n = tonumber(winform.comboItemsPerpage.text)
+			if(n != winform.LAST_ITEMS_PERPAGE){
+				var model = winform.model;
+				var query = winform.CURR_QUERY;
+				if(query == null){
+					query = {};
+					query["keyword"] = "";
+					query["QUERY_MODE"] = "SEARCH";
+				}
+
+				query["CURR_PAGE"] = 1;
+				query["ITEMS_PERPAGE"] = n;
+				winform.CURR_QUERY = query;
+				var items = {}
+				select(query["QUERY_MODE"]) {
+					case "FILTER" {
+						items = model.filter(query);
+					}
+					case "SEARCH" {
+						items = model.search(query);
+					}
+					else {
+
+					}
+				}
+
+				winform.resetlistview(items);
+
+				//console.varDump(items)
+
+				winform.log(table.tostring(query))
+				winform.LAST_ITEMS_PERPAGE = n;
+			}
+		}
+		catch(e){
+			log(tostring(e))
+		}
+
+	}
+}
+
+winform.edit.oncommand = function(id,event){
+	if(event=0x300/*_EN_CHANGE*/){
+		winform.button.oncommand();
+	}
+}
+
+winform.enableDpiScaling();
+winform.show();
+
+win.loopMessage();
+return winform;

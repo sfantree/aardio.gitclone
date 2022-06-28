@@ -1,0 +1,51 @@
+﻿import aaz.libhpsocket.component.properties.client;
+
+namespace aaz.libhpsocket.component.properties.tcpClient;
+..table.mix(self, ..aaz.libhpsocket.component.properties.client);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+sendSmallFile = function(filename, head, tail){
+	if(head){
+		head = { 
+			INT len = #head; 
+			ptr head = head;
+		}
+	} 
+	
+	if(tail){
+		tail = { 
+			INT len = #tail; 
+			ptr tail = tail ;
+		}
+	}
+
+	return 	_dll.HP_TcpClient_SendSmallFile(owner.pSocket, ..io.fullpath(filename), head, tail);
+}
+
+socketBufferSize = {
+    _get = function(){
+    	return _dll.HP_TcpClient_GetSocketBufferSize(owner.pSocket);
+    };    
+    _set = function(v){
+    	_dll.HP_TcpClient_SetSocketBufferSize(owner.pSocket, v);
+    } 
+}
+
+keepAliveTime = {
+    _get = function(){
+    	return _dll.HP_TcpClient_GetKeepAliveTime(owner.pSocket);
+    };    
+    _set = function(v){
+    	_dll.HP_TcpClient_SetKeepAliveTime(owner.pSocket, v);
+    } 
+}
+
+keepAliveInterval = {
+    _get = function(){
+    	return _dll.HP_TcpClient_GetKeepAliveInterval(owner.pSocket);
+    };    
+    _set = function(v){
+    	_dll.HP_TcpClient_SetKeepAliveInterval(owner.pSocket, v);
+    } 
+}

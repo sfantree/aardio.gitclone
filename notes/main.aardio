@@ -1,0 +1,55 @@
+import win.ui;
+import win.ui.atom;
+import config;
+
+//导入webkit支持库
+import web.blink;
+import web.blink.form;
+import web.blink.jsFunction;
+import wsock.tcp.simpleHttpServer;
+/*DSG{{*/
+mainForm = win.form(text="记事本";right=674;bottom=509;border="none";max=false;mode="popup")
+mainForm.add()
+/*}}*/
+
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = mainForm.atom("A477B12D-727A-45FF-9D91-43D028402BE3");
+if(!atom){
+	/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+	win.quitMessage();	return;
+}
+
+//导入操作数据库
+import data;
+data.init();
+
+//添加阴影
+import win.ui.shadow;
+win.ui.shadow(mainForm);
+
+//限定最大化范围
+import win.ui.minmax;
+win.ui.minmax(mainForm);
+
+//创建webkit浏览器窗口
+var wbKitView =  web.blink.form(mainForm);
+
+//使用external接口定义网页脚本可调用的本地函数
+web.blink.jsFunction.bind(wbKitView,mainForm);
+
+
+//创建本地服务器
+var startUrl=wsock.tcp.simpleHttpServer.startUrl("/html/Index.html");
+wbKitView.go(startUrl);
+
+//窗体事件绑定
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+	select(message) {//判断消息类型
+		case 0x0006/*_WM_ACTIVATE 一个窗口被激活或失去激活状态*/{
+			if(!wbKitView){return;}
+			if(!wbKitView.window){return}
+			wbKitView.doScript("NOTES.hideContextMenu()");
+			return;
+		} 
+	}
+}
+win.loopMessage();

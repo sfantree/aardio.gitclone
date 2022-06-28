@@ -1,0 +1,52 @@
+﻿if( _AARDIO_VERSION < 13 ) error("hpsocket扩展库需要aardio v13以上版本",2);
+
+namespace hpsocket;
+
+class listen{
+	ctor( pListener,className ){
+		this.pListener = pListener;
+		this.className = className;
+		..table.push(__cache__,this);
+	};
+	createThreadCallback = function(callback,proto){
+		if(!callback) return;
+		return ..thread.tostdcall( 
+			function(pSender,...){
+				if( ! owner.senderClass ){
+					..global.import("hpsocket."+owner.className);
+					owner.senderClass = eval("hpsocket."+owner.className)
+					
+					if( ..thread.callbackInitialize() ){
+						if( owner.threadGlobal ){
+							..table.mixin(global,owner.threadGlobal);
+							owner.threadGlobal = null;
+						}
+						
+						if(owner.onThreadCreated) owner.onThreadCreated();
+						owner.onThreadCreated = null;
+						
+						if(owner.onThreadEnd) ..subscribe("beforeUnload",owner.onThreadEnd );
+						owner.onThreadEnd = null
+					}
+				}
+				owner.callback(owner.senderClass(pSender),...); 
+			},proto,{className = this.className; callback = callback;threadGlobal = this.threadGlobal;onThreadCreated=this.onThreadCreated;onThreadEnd=this.onThreadEnd});	
+	}
+	createCallback  = function(callback,proto){
+		if(!callback) return;
+ 		return ..raw.tostdcall( 
+			function(pSender,...){
+				return assert( call( callback,owner,...) ); 
+			},proto,owner);	
+	}
+}
+
+namespace listen{
+
+	__cache__ = { @{_weak="v"};}
+	..subscribe("beforeUnload",function(){
+		for(i=1;#__cache__;1){
+			__cache__[i].destroy();
+		}
+	} );
+}

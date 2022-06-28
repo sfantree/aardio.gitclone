@@ -1,0 +1,16 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="HTMLayout ´°¿Ú";right=580;bottom=599)
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+ 
+var wbLayout = web.layout( winform )
+//wbLayout.go("http://update.aau.cn/aauto/api/new-file/htmlayout/") ;
+
+winform.show() 
+win.loopMessage();
+return wbLayout,winform;

@@ -1,0 +1,16 @@
+
+/*DSG{{*/
+var winform = win.form(text="常规";right=759;bottom=469;parent=...)
+winform.add(
+button3={cls="button";text="应用";left=613;top=417;right=740;bottom=457;hide=1;z=8};
+checkbox={cls="checkbox";text="使用回收站";left=99;top=62;right=285;bottom=80;hide=1;z=2};
+checkbox2={cls="checkbox";text="显示欢迎界面";left=117;top=263;right=289;bottom=277;hide=1;z=7};
+edit={cls="edit";text="edit";left=110;top=84;right=154;bottom=131;edge=1;hide=1;multiline=1;z=4};
+groupbox={cls="groupbox";text="回收站";left=57;top=28;right=589;bottom=153;edge=1;z=1};
+groupbox2={cls="groupbox";text="其他";left=59;top=199;right=465;bottom=349;edge=1;z=6};
+spin={cls="spin";left=166;top=83;right=200;bottom=124;edge=1;hide=1;z=3};
+static={cls="static";text="张为上限";left=224;top=95;right=359;bottom=112;hide=1;transparent=1;z=5}
+)
+/*}}*/
+
+return winform; 

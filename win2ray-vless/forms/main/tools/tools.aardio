@@ -1,0 +1,110 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469;bgcolor=16777215)
+winform.add(
+btnAardio={cls="plus";text="aardio 桌面软件快速开发（ 开发环境仅 6.5MB ）";left=44;top=340;right=478;bottom=382;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF17A';notify=1;textPadding={left=50};z=3};
+btnDnsFlush={cls="plus";text="清空DNS缓存";left=44;top=130;right=430;bottom=172;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF021';notify=1;textPadding={left=50};z=5};
+btnGitHub={cls="plus";text="github 网速优化";left=44;top=235;right=280;bottom=277;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF09B';notify=1;textPadding={left=50};z=2};
+btnUpdateSystemTime={cls="plus";text="同步系统时间（ 修正 v2ray 连接报错 ）";left=44;top=78;right=430;bottom=120;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF017';notify=1;textPadding={left=50};z=4};
+btnUpdateV2rayCore={cls="plus";text="更新 V2ray Core";left=44;top=25;right=287;bottom=67;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF01A';notify=1;textPadding={left=50};z=6};
+btnWubiLex={cls="plus";text="WIN10 五笔助手（仅830KB，自带五笔86、98、091、新世纪、郑码……）";left=44;top=288;right=679;bottom=330;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-24;name='FontAwesome');padding={left=18}};iconText='\uF11C';notify=1;textPadding={left=50};z=7};
+btnYoutube={cls="plus";text="youtube 视频下载工具";left=44;top=183;right=280;bottom=225;align="left";color=3947580;dl=1;dt=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-27;name='FontAwesome');padding={left=18}};iconText='\uF167';notify=1;textPadding={left=50};z=1}
+)
+/*}}*/
+
+import style;
+winform.btnYoutube.skin(style.plainButton);
+
+var frmYoutube;
+winform.btnYoutube.oncommand = function(id,event){
+	if(frmYoutube&&win.isWindow(frmYoutube.hwnd)){
+		if(win.isIconic(frmYoutube.hwnd)){
+			frmYoutube.show(9/*_SW_RESTORE*/);	
+		}
+		
+		frmYoutube.show();
+		return;
+	}
+	
+	frmYoutube = winform.loadForm("\forms\main\tools\youtube.aardio");
+	frmYoutube.show();
+}
+ 
+import process;
+winform.btnGitHub.skin(style.plainButton)
+winform.btnGitHub.oncommand = function(id,event){
+    if(_STUDIO_INVOKED){
+    	winform.msgboxErr("请在发布后运行此功能");
+    	return;
+    }
+    
+	process.execute(io._exepath,"/github","runas");
+}
+
+winform.btnAardio.skin(style.plainButton)
+winform.btnAardio.oncommand = function(id,event){
+	process.openUrl("http://www.aardio.com")
+}
+
+winform.btnUpdateSystemTime.skin(style.plainButton)
+winform.btnUpdateSystemTime.oncommand = function(id,event){
+    if(_STUDIO_INVOKED){
+    	winform.msgboxErr("请在发布后运行此功能");
+    	return;
+    }
+    
+    winform.btnUpdateSystemTime.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'}
+	if( process.executeWait(io._exepath,"/updateTime","runas") ){
+		winform.btnUpdateSystemTime.disabledText = null;
+		winform.btnUpdateSystemTime.text = '时间已同步'
+		winform.setTimeout( 
+			function(){
+				winform.btnUpdateSystemTime.text = '同步系统时间（ 修正 v2ray 连接报错 ）'
+			},2000) 
+	}
+	else {
+		winform.btnUpdateSystemTime.disabledText = null;
+	} 
+}
+
+winform.btnDnsFlush.skin(style.plainButton)
+winform.btnDnsFlush.oncommand = function(id,event){
+    winform.btnDnsFlush.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'}
+
+    import process.popen;
+	var prcs = process.popen(,"ipconfig /flushdns");
+	var str = prcs.read(-1)
+	
+    var dnsapi = ..raw.loadDll("dnsapi.dll");
+	dnsapi.DnsFlushResolverCacheB();
+		
+	winform.msgInfo(str);
+    winform.btnDnsFlush.disabledText = null;
+}
+
+winform.btnUpdateV2rayCore.skin(style.plainButton)
+winform.btnUpdateV2rayCore.oncommand = function(id,event){
+    winform.btnUpdateV2rayCore.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+    
+	import v2ray.core;
+	var versionTag = v2ray.core.updateCore();
+	if( versionTag ){
+		publish("v2ray.core.reload");
+		winform.btnUpdateV2rayCore.disabledText = null;
+		winform.msgOk("V2ray Core 已更新到：" + versionTag,1500)
+	}
+	else {
+		winform.btnUpdateV2rayCore.disabledText = null;
+	} 
+}
+
+import process;
+winform.btnWubiLex.skin(style.plainButton)
+winform.btnWubiLex.oncommand = function(id,event){
+	process.openUrl("http://wubi.aardio.com/");
+}
+
+winform.enableDpiScaling();
+winform.show();
+win.loopMessage();

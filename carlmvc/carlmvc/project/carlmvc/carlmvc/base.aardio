@@ -1,0 +1,57 @@
+
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+// [mvc框架基础文件]
+
+//设置错误日志文件
+fsys.log.setPath(MVC_LOG_ERROR_PATH);
+
+if(request){
+	//request.get/post 键名忽略大小写
+	request.get = carl.mvc.common.proxy(request.get);
+	request.post = carl.mvc.common.proxy(request.post);
+	request.headers = carl.mvc.common.proxy(request.headers);
+	request.cookies = carl.mvc.common.proxy(request.cookies);
+}
+
+//加载(数据库,WEB网站,MVC应用)配置文件
+var tabFile = carl.mvc.common.getDirCodeFile(MVC_CONFIG_DIR);
+for(i,fullpath in tabFile){
+    table.insert(MVC_LOG_RUN_DATA,fullpath);
+	loadcodex(fullpath);
+}
+
+//重新设置session目录和过期时间
+carl.session.setDir(config.webconfig.sessionDir,config.webconfig.sessionTimeOut);
+
+//注册全局MVC应用
+for(mvcname,tab in config.mvcconfig){
+	tab.controller.dir = MVC_APP_DIR ++ tab.controller.dir;
+	tab.view.dir = MVC_APP_DIR ++ tab.view.dir;
+	tab.appdir = MVC_APP_DIR;						//mvc应用所在目录
+	tab.debug = config.webconfig.debug;
+	var app = carl.mvc.client(mvcname, tab, MVC_LOG_RUN_DATA);		//创建一个全局mvc应用
+	global[mvcname] = app;
+}
+
+//加载MVC应用过滤器
+tabFile = carl.mvc.common.getDirCodeFile(MVC_FILTERS_DIR);
+for(i,fullpath in tabFile){
+    table.insert(MVC_LOG_RUN_DATA,fullpath);
+	loadcodex(fullpath);
+}
+
+//加载MVC应用公共函数(用户自定义)
+tabFile = carl.mvc.common.getDirCodeFile(MVC_COMMON_DIR);
+for(i,fullpath in tabFile){
+    table.insert(MVC_LOG_RUN_DATA,fullpath);
+	loadcodex(fullpath);
+}

@@ -1,0 +1,237 @@
+// -*- coding: utf-8 -*-
+//         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可。
+    // 开始测试
+test = 1; //
+a = '#1';    #test2
+b = "#2";
+c = '汉字';
+names = {"zhao", "钱", "sun", "李"};   // 数组
+/*
+测试写成多行的列表,元组和字典
+*/
+colors = {
+    "黑",
+    "白",
+    "纂"
+];
+//元组
+tup =(
+    1,
+    2,
+    3
+);
+//字典
+dict = {
+    'john': 'boy',
+    'lily': 'girl'
+};
+
+// 测试u字符串和多行字符串
+a = ("1...2...3...");
+b = ('a...b...c...');
+
+c = ("c1...c2...c3...");
+d = ('d1...d2...d3...');
+console.log(_("1.There is no data between {startDate} and {endDate}. Please check your data bundle or select other date period.").format(
+                    startDate, endDate));
+console.log(('2.There is no data between {startDate} and {endDate}. Please check your data bundle or select other date period.').format(s, e));
+// 测试字符串重复拼接
+s = string.repeat(10,"a");
+
+// 函数的参数写成多行
+doSomeThing(
+    p1='a',
+    p2='b',
+    p3='c'
+);
+// 测试部分函数替换
+sourceDir = io.joinpath(fsys.getParentDir(__file__), "test");
+destPath = io.fullpath(io.joinpath(dir, "test"));
+a = isinstance(obj, AClassType);
+b = (type(ids) == type.string);
+c = (type(num) == type.number);
+
+// 测试 import
+import functools; var wraps = functools.wraps;
+import rq.core.events; var EVENT, Event = rq.core.events.EVENT, rq.core.events.Event;
+import rq.utils.logger; var userSystemLog = rq.utils.logger.userSystemLog;
+import rq.core.events; var evt, EVT = rq.core.events.Event, rq.core.events.EVENT;   // 测试
+import rq.utils.exception; var patchUserExc, patchSystemExc, EXC_EXT_NAME, InvalidArgument = rq.utils.exception.patchUserExc, rq.utils.exception.patchSystemExc, rq.utils.exception.EXC_EXT_NAME, rq.utils.exception.InvalidArgument;
+
+//---------父类 Test-----------#
+class Test {     // 继承自object
+    // 构造函数
+    ctor() {
+        this.a = 0;
+    // 不规范的注释缩进
+//----------------------
+        this.b = 0;
+    }
+
+    stock = function() {    // 任意成员函数
+        // -很长的语句,多行, 用反斜杠断行
+        if (((maxp-price)/price)*100>1 or sum(hi['volume'])<0.5*hiday['volume'] or 100*(price-sum(hi['money'])/sum(hi['volume']))/hiday['close']>2) {
+            remove(stock);
+        }
+        // 测试:很长的语句,写成多行, 不带反斜杠
+        if ((maxp-price)/price)*100>1 or
+        {
+            sum(hi['volume'])<0.5*hiday['volume'] or;
+            100*(price-sum(hi['money'])/sum(hi['volume']))/hiday['close']>2:;
+            remove(stock);
+        } elseif sum(lo['volume'])>0.3*loday['volume'] or
+        {
+            100*(price-sum(lo['money'])/sum(lo['volume']))/loday['close']>3:;
+            add(stock);
+        }
+    }
+}
+
+//--------子类 ChildTest--------
+class ChildTest {
+    this = Test(...);// 继承的父类 <--请把这行移入类的构造函数 ctor 内! {  // 继承自父类 Test
+    ctor() { // 构造函数
+        this.b = 1;
+        this.prop1 = 'p';
+    }
+    //@property;
+    varb = { // <-- 只读属性, 请移入 util.metaProperty 属性表里
+        _get = function() {
+            /*
+            只读属性b
+            */
+            return owner.b;
+        }
+    }
+
+    //@property;
+    prop1 = { // <-- 只读属性, 请移入 util.metaProperty 属性表里
+        _get = function() {
+            // 只读属性
+
+            return owner.prop1 + '(readOnly)';
+        }
+    }
+}
+
+//--------孙类 SubChildTest, 继承自多个类--------
+class SubChildTest {
+    this = Test(...);// 继承的父类 <--请把这行移入类的构造函数 ctor 内! { // 继承自两个父类
+    ctor() { // 构造函数
+        this.c = 2;
+        this.d=4; // 不规范的缩进3
+        this.e=5; // 不规则的缩进5
+    }
+}
+
+
+/*
+# 运行策略
+# @param func
+# @return wrapper
+*/
+runHold = function(func) { // 独立测试函数
+    // test begin
+    if (true)  {        // 仅供测试
+        a = 1;
+    } elseif (false)  {    // 并无意义
+        a = 0;
+    } else {
+        a = 2;
+    }
+
+    try {            // 测试try...except
+        a = 1 + w;
+    } catch(e) {       // 不带 as 的异常
+        console.log(e);
+        // pass;
+    } catch(/*Exception as */e) {  // 带 as 的异常
+        console.log('Exception error');
+    }
+    /*finally*/ {
+        console.log('ok');
+    }
+    // end test
+
+    import utils.logger; var systemLog = utils.logger.systemLog;
+    wrapper = function(*args, **kwargs) {
+        if (not Environment.getInstance().config) {
+            return func(*args, **kwargs);
+        } else {
+            systemLog.debug(_("not run {}({}, {}) because strategy is #hold#").format(func, args, kwargs));
+        }
+    }
+
+    return wrapper;
+}
+
+funTry = function() {  // 测试用的函数
+    try {
+        console.log('try--start');
+        a = 1/0;
+    } catch(e) {
+        console.log 'normal except';
+    } catch(Exception) {
+        console.log 'Exception';
+    } catch(/*ValueError as */e) {
+        console.log('ValueError');
+    }
+    /*finally*/ {
+        return 'finally';
+    }
+}
+
+console.log(funTry());
+
+// 类
+class Strategy {
+    ctor(eventBus, scope, ucontext) {
+        // 类的属性和方法
+        this._userContext = ucontext;
+        this._currentUniverse = set();
+
+        this._init = scope.get('init', null);
+        this._handleBar = scope.get(
+            'handleBar', null
+            );
+        this._pe = POS_EFFECT[d["posEffect"]] if d["posEffect"] else null;
+        if (funcBeforeTrading != null and funcBeforeTrading.__code__.coArgcount > 1) {
+            this._beforeTrading = lambda(context) funcBeforeTrading(context, null);
+            userSystemLog.warn(_(string.format("deprecated parameter[barDict] in '%s' function.", 'beforeTrading')));
+        } else {
+            this._beforeTrading = funcBeforeTrading;
+        }
+        this._afterTrading = scope.get('afterTrading', null);
+
+        if (this._openAuction != null) {
+            eventBus.addListener(
+                EVENT.OPEN_AUCTION, 
+                this.openAuction
+            );
+        }
+    }
+
+    //@property;
+    userContext = { // <-- 只读属性, 请移入 util.metaProperty 属性表里
+        _get = function() {
+            return owner._userContext;
+        }
+    }
+
+    init = function() {
+        if (this._init) {
+            // with 语句, 没法转换
+            with (ExecutionContext(EXECUTION_PHASE.ON_INIT)) {
+                with (ModifyExceptionFromType(EXC_TYPE.USER_EXC)) {
+                    this._init(this._userContext);
+                }
+            }
+        }
+
+        // 分为多行的函数参数
+        eventBus.publishEvent(Event(EVENT.POST_USER_INIT),true);
+
+
+
+    }
+}

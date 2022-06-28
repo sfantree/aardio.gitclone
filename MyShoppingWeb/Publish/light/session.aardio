@@ -1,0 +1,10 @@
+namespace Seesion{
+	state = null;
+	identity = null;
+	username = null;
+	password = null;
+	email = null;
+	phone = null;
+	address = null;
+	count = null;
+}

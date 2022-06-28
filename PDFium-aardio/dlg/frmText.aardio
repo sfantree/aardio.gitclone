@@ -1,0 +1,11 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+richedit={cls="richedit";text="RichEdit";left=10;top=11;right=750;bottom=458;edge=1;multiline=1;z=1}
+)
+/*}}*/
+
+winform.show();
+win.loopMessage();
+return winform;

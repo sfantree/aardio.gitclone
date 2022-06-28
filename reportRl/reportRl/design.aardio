@@ -1,0 +1,201 @@
+﻿//design 报表设计器
+
+/************************************/
+/*  2017-04 daheian daheian@qq.com  */
+/************************************/
+
+import process;
+import win.version;
+
+namespace reportRl;
+
+class design{
+
+	ctor( winform ){
+		var designer,err = winform.tryCreateEmbed("grdes.GRDesigner.6") or winform.tryCreateEmbed("grpro.GRDesigner.6");
+		if(!designer){
+			..com.activeX.regsvr32("\grdes6.dll");
+			designer,err = winform.tryCreateEmbed("grdes.GRDesigner.6") or winform.tryCreateEmbed("grpro.GRDesigner.6");
+		}
+		if(!designer){
+			return null,"报表设计器组件加载失败！"++'\r\n'++tostring(err); 
+		}
+		else {
+			this = designer._object;//返回报表设计器对象
+			
+			//关联事件接口
+			this.eventTab = {};
+			..com.Connect(this, this.eventTab);
+			
+			this.eventTab.OpenReport = function(){
+				if(this.OpenReport){
+					return this.OpenReport();
+				}
+			}
+			this.eventTab.SaveReport = function(){
+				if(this.SaveReport){
+					return this.SaveReport();
+				}
+			}
+			this.eventTab.BeforeDoAction = function(Action){
+				if(this.BeforeDoAction){
+					return this.BeforeDoAction(Action);
+				}
+			}
+			this.eventTab.DataChange = function(){
+				if(this.DataChange){
+					return this.DataChange();
+				}
+			}
+			this.eventTab.ExplorerContextMenu = function(){
+				if(this.ExplorerContextMenu){
+					return this.ExplorerContextMenu();
+				}
+			}
+			this.eventTab.InspectorChange = function(){
+				if(this.InspectorChange){
+					return this.InspectorChange();
+				}
+			}
+			this.eventTab.InspectorContextMenu = function(){
+				if(this.InspectorContextMenu){
+					return this.InspectorContextMenu();
+				}
+			}
+			this.eventTab.LayoutPanelContextMenu = function(){
+				if(this.LayoutPanelContextMenu){
+					return this.LayoutPanelContextMenu();
+				}
+			}
+			this.eventTab.RequestData = function(Report){
+				if(this.RequestData){
+					return this.RequestData(Report);
+				}
+			}
+		}
+		
+		winform.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		if(winform.parent){
+			winform.parent.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		}
+	};
+
+}
+
+namespace design{
+    import reportRl;
+}
+
+/**intellisense()
+reportRl.design = 锐浪报表设计器
+reportRl.design(__) = 创建报表设计器嵌入对象。\n参数：要嵌入的窗体对象
+reportRl.design() = !designerObj.
+!designerObj.Report = 获取或设置关联报表主对象的接口引用。可读写
+!designerObj.Post() = 将设计器中的当前报表模板数据提交到关联的报表主对象中去。\n设计器完成设计任务之后，需要将设计结果提交，调用Post方法将数据提交到报表主对象，如果还需要将数据永久保存起来，则调用报表主对象的SaveToFile方法将数据保存到报表模板文件。
+!designerObj.Reload() = 从关联的报表主对象中重新载入模板数据。
+!designerObj.CancelInsertControl() = 取消设计器插入部件框状态，使其回到平常操作状态。
+!designerObj.DisableAllOptions() = 关闭所有的控制选项。
+!designerObj.DisableAllPublished() = 隐藏所有的属性类别
+!designerObj.DoAction(__) = 执行报表设计器的某个动作。\n参数指定动作的类型，请参见文档GRDesignerAction枚举\n如果报表开发者要为用户提供运行时自定义的报表设计功能，使报表用户可以在运行时对报表进行修改设计。报表开发者需要使用一个报表设计器构件，然后提供一些外围操作界面，去通知报表设计器执行某些任务，此时就需要调用DoAction方法，去执行各种设计器动作。
+!designerObj.EnableAllOptions() = 开启所有的控制选项
+!designerObj.EnableAllPublished() = 公开所有的属性类别。
+!designerObj.EnterSubReport(__) = 根据子报表名称进入子报表设计状态。\n参数SubReportName 子报表名称
+!designerObj.GetObjectCount() = 获取设计器中当前选中对象的个数\n返回值：指示当前选中了几个对象。
+!designerObj.GetObjectFontBold() = 获取选中对象其字体属性是否为粗体。\n返回值：bool
+!designerObj.GetObjectFontItalic() = 获取选中对象其字体属性是否为斜体。\n返回值：bool
+!designerObj.GetObjectFontName() = 获取选中对象其字体属性的名称。\n返回值：string
+!designerObj.GetObjectFontPoint() = 获取选中对象其字体属性的大小点数。\n返回值：int
+!designerObj.GetObjectFontStrikethrough() = 获取选中对象其字体属性是否画删除线。\n返回值：bool
+!designerObj.GetObjectFontUnderline() = 获取选中对象其字体属性是否画下画线。\n返回值：bool
+!designerObj.GetObjectName() = 获取某个选中对象的名称，由选中序号指定某个对象。\n返回值：string
+!designerObj.GetObjectTextAlign() = 获取选中对象的文字输出对齐方式。\n返回值：int
+!designerObj.GetObjectTextOrientation() = 获取选中对象的文字输出方向。\n返回值：int
+!designerObj.GetObjectType() = 获取当前选中对象的类型。\n返回值：指示选中对象的类型
+!designerObj.GetOptionValue(__) = 获取指定的控制选项是否开启。\n参数：指定控制选项项目\n返回值：TRUE 表示获控制选项是开启的，FALSE 表示获控制选项是关闭的。
+!designerObj.GetPublishedValue(__) = 获取指定的属性类别是否为公开状态。\n返回值：TRUE 表示公开，FALSE 表示不公开。
+!designerObj.IsActionEnabled() = 判断某个动作在此时是否可以执行。\n返回值：如果动作可以执行，则返回真，否则返回假。
+!designerObj.IsInsertControlEnabled() = 获取控件当前状态是否允许插入部件框。\n返回值：bool
+!designerObj.IsSetObjectBackColorEnabled() = 获取当前选中对象是否允许设置背景色属性。\n返回值：bool
+!designerObj.IsSetObjectFontEnabled() = 获取当前选中对象是否允许设置字体属性。\n返回值：bool
+!designerObj.IsSetObjectForeColorEnabled() = 获取当前选中对象是否允许设置前景色属性。\n返回值：bool
+!designerObj.PrepareInsertControl(__) = 使设计器进入插入部件框状态，在参数中指定部件框的类型。\n静态文字框：1\n图形框：2\n系统变量框：3\n字段框：4\n统计框：5\nRTF格式文字框：6\n图像框：7\n综合文字框：8\n子报表：9\n线段10\n图表：11\n条形码：12\n自由表格：13
+!designerObj.SetObjectBackColor(__) = 设置选中对象的背景色属性值。\n参数：color newVal 新属性值
+!designerObj.SetObjectFontName(__) = 设置选中对象的字体名称属性值。\n参数：string newVal 新属性值
+!designerObj.SetObjectFontPoint(__) = 设置选中对象的字体点数大小属性值。\n参数：int newVal 新属性值
+!designerObj.SetObjectForeColor(__) = 设置选中对象的前景色属性值。\n参数：color newVal 新属性值
+!designerObj.SetOptionValue(__,) = 设置选中对象的前景色属性值。\n参数：GRDesignerOption Option 指定控制选项,bool newVal 指定开启或关闭的标志.
+!designerObj.SetPublishedValue(__,) = 设置公开或隐藏指定的属性类别。\n参数：GRPropertyCategory PropertyCategory 指定属性类别,bool newVal 是否公开标志.
+!designerObj.ShowClassProperty(__,) = 指定是否在属性侦测窗口上显示某类的属性。\n参数：string ClassName 指定类的名称,bool IsShow 指定是否显示.\n在执行本方法之后，必须调用 UpdateUI 方法才能让界面显示更新。
+!designerObj.ShowOneProperty(__,,) = 指定是否在属性侦测窗口上显示某类的属性。\n参数：string ClassName 指定类的名称,string PropertyName 指定属性的名称,bool IsShow 指定是否显示对应属性.\n在执行本方法之后，必须调用 UpdateUI 方法才能让界面显示更新。
+!designerObj.UpdateLanguage() = 在重新设置报表界面语言后，调用本方法更新控件界面显示。
+!designerObj.UpdateUI() = 在更新设计器显示界面\n在执行设计器显示相关的设置后，必须调用本方法才能让界面显示生效
+
+!designerObj.DefaultAction = 指定是否按默认方式执行控件工具栏对应的动作。\n此属性只能进行赋值操作(只写)，在控件的事件响应函数上使用，事件触发时属性值始终为TRUE，如果将属性值改为FALSE，可以屏蔽控件本身的默认行为，开发者可以在事件中实现自己的任务。对应的事件有：OpenReport、SaveReport、BeforeDoAction。\n只写
+!designerObj.AsDetailGridWidth = 设计面板宽度是否与明细网格列的总宽度保持一致。\n可读写,默认值true\n当此属性值为 true，且明细网格列的总宽度大于大于纸张的显示宽度(即纸张去掉左右边距后的宽度)时，设计面板宽度的将保持与明细网格列的总宽度保持一致；反之设计面板宽度的为纸张的显示宽度。\n此属性仅对设计器处于普通视图下有效。
+!designerObj.AsFormUI = 指示是否按页面模式显示报表布局窗口。\n可读写,默认值false\n当本属性值为TRUE时，按页面模式显示报表布局窗口；当本属性值为FALSE时，按普通分节模式显示报表布局窗口。
+!designerObj.AsNativeUI = 指示设计器是否显示为全中文界面。\n可读写,默认值true
+!designerObj.AutoSaveOnView = 当进入预览视图或查询视图时，是否自动保存报表模板。\n可读写,默认值false
+!designerObj.DataURL = 仅适用于WEB报表插件\n可读写,默认值true\n指定插件要展现的报表数据来源 URL 值，当进入预览视图与查询视图时从此 URL 载入 XML 或 JSON 格式的报表数据。
+!designerObj.DesignEdgeColor = 指定表示部件框设计边界的框线颜色。\n当一个部件框的边框不显示时，用此属性指定的颜色来显示其边界。
+!designerObj.DesignEdgeColor = 指定设计器的设计删格点颜色。
+!designerObj.DesigningSubReportName = 获取进入设计状态中的子报表部件框的名称。\n只读，仅运行时可用
+!designerObj.Dirty = 指示设计器中的数据是否已修改并未保存的标志。\n可读写，仅运行时可用
+!designerObj.DisplayViewer = 获取查询视图对应的查询显示器对象。\n只读\n!displayObj.
+!designerObj.EnableQuickEdit = 指定是否允许即时编辑。\n可读写，默认值true
+!designerObj.IsBlank = 指示当前设计的报表是否进行了定义。\n只读
+!designerObj.IsInsertingControl = 指示设计器是否正在插入部件框状态下。\n只读，仅运行时可用
+!designerObj.LoadReportURL = 仅适用于WEB报表插件\n可读写\n指定插件要设计报表的报表模板所处的 URL 值，在运行时从此 URL 载入报表模板数据。
+!designerObj.OnlyLayout = 指示设计器只能进行改变位置大小的操作。\n可读写，默认值false\n当将OnlyLayout属性设为真时，属性编辑窗口只能查看数据，而不能修改数据；在报表布局窗口中只能改变节、部件框、单元格的位置与大小；整个设计器不能新增报表元素，不能删除报表元素。
+!designerObj.Options = 指定定制报表设计器的选项值。\n可读写\n选项值由选定控制项所对应的 GRDesignerOption 枚举项目的值按位组合。
+!designerObj.PrintViewer = 获取打印视图对应的打印显示器对象。\n只读\n!printObj.
+!designerObj.Published = 指定要公开的属性类别组合值。\n可读写\n本属性值由选定属性类别项所对应的 GRDesignerOption 枚举项目的值按位组合。只有属于公开的属性类别的属性才会在属性编辑窗口中显示。
+!designerObj.SaveReportURL = 仅适用于WEB报表插件\n可读写\n指定插件设计的报表模板数据提交保存的 URL 地址，由此 URL 网页服务完成报表模板的保存。
+!designerObj.SerialNo = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册序列号。
+!designerObj.ShowExplorer = 是否显示对象浏览器窗口标志。\n可读写,默认值true
+!designerObj.ShowInspector = 是否显示属性编辑窗口标志。\n可读写,默认值true
+!designerObj.ShowToolbar = 指定是否显示控件内建的工具栏。\n可读写,默认值true
+!designerObj.UserName = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册用户名。
+!designerObj.ViewFloatSection = 指示当前是否在设计浮动节状态下。\n可读写，默认值false
+!designerObj.ViewMode = 获取或设置设计器运行的视图模式。\n可读写 参数为int值\n普通视图：1\n页面视图：2\n预览视图：3\n查询视图：4
+!designerObj.ViewStyle = 获取或设置设计器显示的视图组合模式。\n可读写 参数为int值\n仅显示普通视图：1\n仅显示页面视图：2\n显示普通视图与页面视图：3\n显示普通视图与预览视图：5\n显示页面视图与预览视图：6\n显示普通视图、页面视图、预览视图：7\n显示普通视图、预览视图与查询视图:13\n显示页面视图、预览视图与查询视图:14\n显示全部视图:15
+!designerObj.WindowLayout = 指示报表布局窗口在整个控件中的停靠位置。\n可读写 参数为int值\n停靠在左边：1\n停靠在右边：2
+!designerObj.ZoomPercent = 指定设计面板的缩放比例。\n可读写，默认值100
+
+!designerObj.OpenReport() = @.OpenReport = function(){
+	/*当执行设计器工具栏中的打开按钮时触发本事件。*/
+	__
+}
+!designerObj.SaveReport() = @.SaveReport = function(){
+	/*当执行设计器工具栏中的保存按钮时触发本事件。*/
+	__
+}
+!designerObj.BeforeDoAction() = @.BeforeDoAction = function(Action){
+	/*在报表执行每个任务动作前触发本事件，任务动作对应DoAction方法所能执行的任务。用法参考IGRDesigner.BeforeDoAction 事件*/
+	__
+}
+!designerObj.DataChange() = @.DataChange = function(){
+	/*当修改了报表定义时触发本事件*/
+	__
+}
+!designerObj.ExplorerContextMenu() = @.ExplorerContextMenu = function(){
+	/*当在对象浏览窗口中执行打开关联弹出式菜单时触发本事件。*/
+	__
+}
+!designerObj.InspectorChange() = @.InspectorChange = function(){
+	/*当属性侦测窗口的数据发生变化时触发本事件。*/
+	__
+}
+!designerObj.InspectorContextMenu() = @.InspectorContextMenu = function(){
+	/*当在属性编辑窗口中执行打开关联弹出式菜单时触发本事件。*/
+	__
+}
+!designerObj.LayoutPanelContextMenu() = @.LayoutPanelContextMenu = function(){
+	/*当在报表布局窗口中执行打开关联弹出式菜单时触发本事件。*/
+	__
+}
+!designerObj.RequestData() = @.RequestData = function(Report){
+	/*当进入报表设计器的查询视图或预览视图时，会触发本事件来请求生成报表的数据。参数Report：需要写入数据的报表对象*/
+	__
+}
+
+end intellisense**/

@@ -1,0 +1,224 @@
+﻿//printView 打印显示器
+
+/************************************/
+/*  2017-04 daheian daheian@qq.com  */
+/************************************/
+
+namespace reportRl;
+
+class printView{
+	ctor( winform ){
+		
+		var print,err = winform.tryCreateEmbed("gregn.GRPrintViewer.6") or winform.tryCreateEmbed("grpro.GRPrintViewer.6");
+
+		if(!print){
+			return null,"报表打印显示组件加载失败！"++'\r\n'++err; 
+		}
+		else {
+			this = print._object;
+			
+			//关联事件接口
+			this.eventTab = {};
+			..com.Connect(this, this.eventTab);
+			
+			this.eventTab.Click = function(){
+				if(this.Click){
+					return this.Click();
+				}
+			}
+			this.eventTab.CloseButtonClick = function(){
+				if(this.CloseButtonClick){
+					return this.CloseButtonClick();
+				}
+			}
+			this.eventTab.CustomButtonClick = function(BtnID){
+				if(this.CustomButtonClick){
+					return this.CustomButtonClick(BtnID);
+				}
+			}
+			this.eventTab.DblClick = function(){
+				if(this.DblClick){
+					return this.DblClick();
+				}
+			}
+			this.eventTab.KeyDown = function(Shift,Key){
+				if(this.KeyDown){
+					return this.KeyDown(Shift,Key);
+				}
+			}
+			this.eventTab.KeyPress = function(Key){
+				if(this.KeyPress){
+					return this.KeyPress(Key);
+				}
+			}
+			this.eventTab.KeyUp = function(Shift,Key){
+				if(this.KeyUp){
+					return this.KeyUp(Shift,Key);
+				}
+			}
+			this.eventTab.MouseDown = function(Butotn,Shift,xPos,yPos){
+				if(this.MouseDown){
+					return this.MouseDown(Butotn,Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.MouseMove = function(Shift,xPos,yPos){
+				if(this.MouseMove){
+					return this.MouseMove(Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.MouseUp = function(Butotn,Shift,xPos,yPos){
+				if(this.MouseUp){
+					return this.MouseUp(Butotn,Shift,xPos,yPos);
+				}
+			}
+			this.eventTab.PageClick = function(){
+				if(this.PageClick){
+					return this.PageClick();
+				}
+			}
+			this.eventTab.PageDblClick = function(){
+				if(this.PageDblClick){
+					return this.PageDblClick();
+				}
+			}
+			this.eventTab.RulerClick = function(){
+				if(this.RulerClick){
+					return this.RulerClick();
+				}
+			}
+			this.eventTab.RulerDblClick = function(){
+				if(this.RulerDblClick){
+					return this.RulerDblClick();
+				}
+			}
+			this.eventTab.StatusChange = function(){
+				if(this.StatusChange){
+					return this.StatusChange();
+				}
+			}
+		}
+		
+		winform.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		if(winform.parent){
+			winform.parent.modifyStyle(, 0x2000000/*_WS_CLIPCHILDREN*/ );//防闪烁消失
+		}
+	};
+	
+}
+
+namespace printView{
+	import reportRl;
+}
+
+/**intellisense()
+reportRl.printView = 锐浪报表打印预览查看器。
+reportRl.printView(__) = 创建报表打印预览查看器嵌入对象。\n参数：要嵌入的窗体对象
+reportRl.printView() = !printObj.
+!printObj.Report = 获取或设置关联报表主对象的接口引用。可读写
+!printObj.Start() = 开始获取报表数据，生成报表打印页面数据，并按打印预览的方式把报表展现出来。\n执行此方法后，报表数据生成过程中的相关事件将被触发，打印数据生成过程中的相关事件将被触发。
+!printObj.Stop() = 停止报表运行，结束打印预览查看。\n执行本方法后，打印查看所占用的资源将被释放掉。
+!printObj.AddToolbarControl(__) = 向工具栏中增加一个指定的操作界面元素。\n参数ControlType 指定操作界面元素的类型\n在对工具栏中的操作界面元素调整完之后，应调用 UpdateToolbar 方法更新界面显示。
+!printObj.AddToolbarCustomButton(__,,) = 在工具栏上增加一个自定义按钮。\n参数1：int BtnID 指定按钮的标识值，有效值从100到200。\参数2：string BtnFileName 指定按钮的图像文件名，或网络URL。\n参数3：string TooltipText 指定按钮的提示文字。
+!printObj.DoToolbarCommand(__) = 向工具栏中增加一个指定的操作界面元素。\n参数GRToolControlType 对应的工具栏按钮或菜单项\n说明：调用此方法不会触发工具栏命令被执行事件，即 CustomButtonClick 事件。如果没有显示控件本身的工具栏，而是在控件外围添加操作界面，可以调用此方法完成对应的任务。
+!printObj.FirstPage() = 移动至首页。
+!printObj.LastPage() = 移动至最后一页。
+!printObj.LoadFromDocumentFile(__) = 载入指定的 Grid++Report 文档文件并在打印查看器中显示。\n参数string PathFile 指定文件的路径与名称
+!printObj.NextPage() = 显示下一页打印页面
+!printObj.Print(__) = 载入指定的 Grid++Report 文档文件并在打印查看器中显示。\n参数bool ShowPrintDialog 指示是否显示打印对话框
+!printObj.PriorPage() = 显示上一页打印页面。
+!printObj.QuickRefresh() = 快速刷新显示报表。
+!printObj.Refresh() = 重新生成打印数据，并更新显示。
+!printObj.RemoveToolbarControl(__) = 从工具栏中移除一个指定的操作按钮或其它功能项界面元素。\n参数ControlType 指定操作界面元素的类型 指定操作界面元素的类型\n在对工具栏中的操作界面元素调整完之后，应调用 UpdateToolbar 方法更新界面显示
+!printObj.ResetToolbarContent() = 清除工具栏中的全部操作界面元素。\n在对工具栏中的操作界面元素调整完之后，应调用 UpdateToolbar 方法更新界面显示
+!printObj.UpdateLanguage() = 在重新设置报表界面语言后，调用本方法更新界面显示。
+!printObj.UpdateToolbar() = 更新工具栏的显示。
+!printObj.ZoomIn() = 增大显示比例。\n注意：此方法只在单页查看模式与连续查看模式下有效。
+!printObj.ZoomOut() = 缩小显示比例。\n注意：此方法只在单页查看模式与连续查看模式下有效。
+!printObj.ZoomToFit() = 缩放页面显示比例到刚好在查看区域中完整显示出来。\n注意：此方法只在单页查看模式与连续查看模式下有效。
+!printObj.ZoomToHeight() = 缩放页面显示比例到刚好使其高度在查看区域中完整显示出来。\n注意：此方法只在单页查看模式与连续查看模式下有效。
+!printObj.ZoomToWidth() = 缩放页面显示比例到刚好使其宽度在查看区域中完整显示出来。\n注意：此方法只在单页查看模式与连续查看模式下有效。
+
+!printObj.AutoRun = 仅适用于WEB报表插件\n可读写,默认值true\n指示本控件在显示之后是否自动启动运行报表。
+!printObj.ColPages = 获取或设置关联报表主对象的接口引用。\n可读写,默认值3\n值范围为1到20。
+!printObj.CurPageNo = 当前显示页的页号。页号从一开始计数。\n可读写\n仅运行时可用。
+!printObj.DataParam = 仅适用于WEB报表插件\n可读写\n指定向服务器提供的参数。
+!printObj.DataURL = 仅适用于WEB报表插件\n可读写\n指定插件要展现的报表数据来源 URL 值，在运行时从此 URL 载入 XML 或 JSON 格式的报表明细记录集数据。
+!printObj.DefaultToolbarCommand = 获取或设置关联报表主对象的接口引用。\n只写\n此属性只能在 CustomButtonClick 事件响应函数中使用，默认是 true，即在事件响应后再执行命令对应的任务，如打印命令在事件后继续执行弹出打印对话框，然后再进行打印的任务。\n如果在事件响应函数中将此属性设置为 false，则命令对应的任务在事件后就不会执行。
+!printObj.EditMode = 指定报表文字在预览时的即时编辑模式，默认为不可编辑。\n可读写 默认值grpemDisable
+!printObj.FireToolbarCommandEvent = 指定是否触发工具栏命令被执行事件。\n可读写 默认值false\n如果设置本属性为 true，在执行工具栏按钮或菜单项时，CustomButtonClick 事件将会被触发，反之则不会。
+!printObj.GenerateStyle = 指定打印数据的生成方式。\n可读写 默认值grpgsAll
+!printObj.PageCount = 报表的总页数\n只读 仅运行时可用
+!printObj.ReportURL = 仅适用于WEB报表插件\n可读写\n指定插件要展现报表的报表模板文件或数据的 URL 值，在运行时从此 URL 载入报表模板数据。
+!printObj.RowPages = 指定是否触发工具栏命令被执行事件。\n可读写 默认值2\n值范围为1到16。
+!printObj.Running = 获取本控件是否在运行状态中。\n只读 仅运行时可用。
+!printObj.SerialNo = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册序列号
+!printObj.ShowBookmark = 指定是否显示书签导航窗口。\n可读写 默认值false
+!printObj.ShowMarginCorner = 指示是否显示页边距的拐角指示线。\n可读写 默认值true
+!printObj.ShowPrintDlg = 指定在执行打印任务时是否显示打印对话框。\n可读写 默认值true
+!printObj.ShowRuler = 是否显示标尺标志。\n可读写 默认值true
+!printObj.ShowToolbar = 是否显示工具条标志。\n可读写 默认值true
+!printObj.UserName = 仅适用于WEB报表插件\n可读写\n指定报表插件的注册用户名
+!printObj.ViewMode = 报表的总页数\n可读写 默认值grpvmSinglePage
+!printObj.ZoomPercent = 打印页面的查看显示百分比例\n可读写 默认值100
+
+!printObj.Click() = @.Click = function(){
+	/*当鼠标在打印查看器上点击时触发。*/
+	__
+}
+!printObj.CloseButtonClick() = @.CloseButtonClick = function(){
+	/*当工具栏上的关闭按钮被点击时触发本事件。*/
+	__
+}
+!printObj.CustomButtonClick() = @.CustomButtonClick = function(BtnID){
+	/*当点击工具栏上的自定义按钮时触发本事件。*/
+	__
+}
+!printObj.DblClick() = @.DblClick = function(){
+	/*当鼠标在打印查看器上双击时触发。*/
+	__
+}
+!printObj.KeyDown() = @.KeyDown = function(Shift,Key){
+	/*当打印查看器拥有输入焦点时，某个键盘健按下时触发。*/
+	__
+}
+!printObj.KeyPress() = @.KeyPress = function(Key){
+	/*当打印查看器拥有输入焦点时，某个键盘健按下时触发。*/
+	__
+}
+!printObj.KeyUp() = @.KeyUp = function(Shift,Key){
+	/*当打印查看器拥有输入焦点时，某个键盘健按下再释放时触发。*/
+	__
+}
+!printObj.MouseDown() = @.MouseDown = function(Butotn,Shift,xPos,yPos){
+	/*在打印查看器上鼠标按钮按下时触发。*/
+	__
+}
+!printObj.MouseMove() = @.MouseMove = function(Shift,xPos,yPos){
+	/*在打印查看器上鼠标移动时触发。*/
+	__
+}
+!printObj.MouseUp() = @.MouseUp = function(Butotn,Shift,xPos,yPos){
+	/*在打印查看器上鼠标按钮按下之后再释放时触发。*/
+	__
+}
+!printObj.PageClick() = @.PageClick = function(){
+	/*当鼠标在页面的显示区域上点击时触发。*/
+	__
+}
+!printObj.PageDblClick() = @.PageDblClick = function(){
+	/*当鼠标在页面的显示区域上双击时触发。*/
+	__
+}
+!printObj.RulerClick() = @.RulerClick = function(){
+	/*当鼠标在标尺上点击时触发。*/
+	__
+}
+!printObj.RulerDblClick() = @.RulerDblClick = function(){
+	/*当鼠标在标尺上双击时触发。*/
+	__
+}
+!printObj.StatusChange() = @.StatusChange = function(){
+	/*当打印查看器的状态信息改变时触发。*/
+	__
+}
+end intellisense**/

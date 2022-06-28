@@ -1,0 +1,96 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="music demo";right=374;bottom=666;bgcolor=16711422;border="none";max=false;min=false;mode="popup";sysmenu=false;title=false)
+winform.add(
+Formclose={cls="plus";text='\uF00D';left=23;top=23;right=39;bottom=41;color=14737632;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=2};
+bk={cls="bk";left=0;top=571;right=375;bottom=667;bgcolor=16711422;z=6};
+listbox={cls="listbox";left=0;top=107;right=375;bottom=568;items={};ownerDraw=1;z=5};
+open={cls="plus";text='\uF144';left=331;top=22;right=359;bottom=48;color=14737632;font=LOGFONT(h=-21;name='FontAwesome');notify=1;z=3};
+plus={cls="plus";left=16;top=587;right=80;bottom=651;background="\img\pic2.png";z=9};
+plus2={cls="plus";left=286;top=587;right=318;bottom=619;background="\img\left4.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=16777215;notify=1;z=12};
+plus3={cls="plus";left=327;top=587;right=359;bottom=619;background="\img\left5.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=16777215;z=13};
+plus8={cls="plus";left=244;top=587;right=276;bottom=619;background="\img\left3.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=16777215;iconStyle={align="left";font=LOGFONT(h=-40;name='FontAwesome');padding={left=26}};z=11};
+progress={cls="plus";left=88;top=646;right=359;bottom=650;bgcolor=14803425;forecolor=12015585;z=10};
+static={cls="static";text="Queue";left=0;top=0;right=375;bottom=64;align="center";center=1;color=4473665;font=LOGFONT(h=-24;name='Sofia Pro Semi Bold Condensed');notify=1;transparent=1;z=1};
+static2={cls="static";text="Up Next";left=16;top=70;right=164;bottom=102;center=1;color=4473665;font=LOGFONT(h=-32;name='Sofia Pro Semi Bold Condensed');notify=1;transparent=1;z=4};
+static3={cls="static";text="This Girl";left=88;top=587;right=186;bottom=613;center=1;color=4473665;font=LOGFONT(h=-27;name='Sofia Pro Semi Bold Condensed');transparent=1;z=7};
+static4={cls="static";text="Kung";left=88;top=612;right=161;bottom=636;center=1;color=11775914;font=LOGFONT(h=-19;name='Sofia Pro Semi Bold Condensed');transparent=1;z=8}
+)
+/*}}*/
+
+//按钮皮肤
+var bskin = {
+	color={
+		default=0xFFE0E0E0;
+		hover=0xFFB757E1;
+		active=0xFFB757E1;
+	};
+	//选中状态
+	checked = {
+		color={
+			default=0xFFB757E1;
+		};
+	}
+}
+//应用皮肤
+winform.Formclose.setParent(winform.static);
+winform.open.setParent(winform.static);
+winform.Formclose.skin(bskin);
+winform.open.skin(bskin);
+//头部拖动
+winform.static.wndproc = function(hwnd,message,wParam,lParam){
+	if(message == 0x201/*_WM_LBUTTONDOWN*/){
+		winform.hitCaption()
+	}
+}
+
+//设置进度区间，可自动切换到进度条显示模式
+winform.progress.setProgressRange(1,100);
+winform.progress.progressPos = 10;
+//模拟进度再走动
+winform.progress.startProgress(500,3);
+
+//导入listbox扩展自绘库
+import listboxExx;
+//应用自绘
+var libox = listboxExx(winform.listbox,64,0xFEFEFE,0xF2F2F2,0xEBEBEB);
+//模拟初始数据
+var i = 1;
+for(j=1;15;1){	
+    var sstab = {};
+    table.mixin(sstab,{ iImage = "\img\d"++math.random(1,7)++".jpg"; text = "star boy"++i; size = "The week day,daft ring!" });
+    winform.listbox.add(table.tostring(sstab))
+    i++;
+}
+//创建弹出菜单
+var menuFile = win.ui.popmenu(winform);
+menuFile.add(
+	"打开",
+	function(id){
+			winform.msgbox("打开音乐")
+	} 
+)
+
+//调用扩展库自定义的功能
+libox.clickFunc = function(index){
+	menuFile.popup();
+}
+
+//窗体关闭
+winform.Formclose.onMouseClick = function(wParam,lParam){
+    winform.progress.stopProgress();
+    if(winform.parent){
+    	mainForm.close();	
+    }else {
+    	winform.close();
+    }  
+}
+//模拟切换到左侧
+winform.open.oncommand = function(id,event){
+	publish("切换左",)
+}
+
+winform.show();
+win.loopMessage();
+return winform;

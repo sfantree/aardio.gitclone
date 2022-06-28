@@ -1,0 +1,156 @@
+﻿import win;
+namespace hge;
+var engineInstance;
+createEngine = function (winform) {
+   var engineInstance = ..hge.interFace.engine(winform)
+    with engineInstance {
+    	var rect = winform.getClientRect();
+        screenWidth = rect.width();
+        screenHeight = rect.height();
+        showSplash = false;
+        useSound = false;
+        fps = 0;
+        systemSetStateBool(2 /*_HGE_ZBUFFER*/ , true);
+        systemSetStateBool(5 /*_HGE_DONTSUSPEND*/ , true)
+        windowed();
+        init(screenWidth,screenHeight)
+    }
+
+    return engineInstance;
+}
+
+
+
+self["null"] = {
+    @{
+        _get = function (k) {
+            return function () {}
+        }
+    };
+	_type = null;
+}
+
+
+delyTimes = {};
+ONECE = {}
+
+delyTime = function (flag, time, f) {
+    delyTimes[flag] := 0;
+    delyTimes[flag] += 1;
+    if (delyTimes[flag] >= time/15) {
+        delyTimes[flag] = 0
+        f(delyTimes[flag], flag)
+    }
+}
+runOnece = function (flag, f) {
+    if ONECE[flag]
+    return false;
+    f()
+    ONECE[flag] = true
+}
+runOneceDel = function (flag) {
+    if (flag = "*") {
+        ONECE = {}
+    }
+
+    ONECE[flag] = null
+}
+
+existOnece = function (flag) {
+    return ONECE[flag];
+}
+
+setTimer = function (time) {
+    var tid = ..win.timer(, time)
+    tid.enable()
+    return tid;
+}
+
+setTimerOut = function (time, func) {
+    var tid = ..win.timer(, time)
+    tid.enable()
+    tid.onTimer = function (hwnd, msg, id, tick) {
+        owner.disable()
+        func()
+        return false;
+    }
+}
+caller = function(f,...)if f return f(...);
+each = function(obj,f) for(i=1;#obj;1) caller(f,obj[i]);
+utf2asc = function(str){//VERSION >=10
+	if(_AARDIO_VERSION >=10){
+		str = ..string.fromto(str,65001,0);
+	}
+	return str; 
+}
+    // HGE Vertex structure
+vertex = class {
+    float x;
+    float y; // screen position 
+    float z; // Z-buffer depth 0..1
+    INT col; // color
+    float tx;
+    float ty; // texture coordinates
+}
+
+// HGE Triple structure
+triple = class {
+    struct v[3] = {..hge.vertex();..hge.vertex();..hge.vertex()
+    };
+    pointer tex;
+    int blend;
+}
+
+// HGE Quad structure
+quad = class {
+    struct v[4] = {..hge.vertex();..hge.vertex();..hge.vertex();..hge.vertex()
+    };
+    pointer tex;
+    int blend;
+}
+
+// HGE Input Event structure
+inputEvent = class {
+    int type; // event type
+    int key; // key code
+    int flags; // event flags
+    int chr; // character code
+    int wheel; // wheel shift
+    float x; // mouse cursor x-coordinate
+    float y; // mouse cursor y-coordinate
+}
+
+
+import hge.interFace.engine;
+import hge.interFace.texture;
+import hge.interFace.sprite;
+import hge.interFace.gdiFont;
+import hge.interFace.gdiCanvas;
+import hge.interFace.color;
+import hge.interFace.slice9;
+import hge.interFace.gdiFont;
+import hge.interFace.base;
+import hge.interFace.spriteAnimation;
+import hge.interFace.button;
+import hge.interFace.checkBox;
+import hge.interFace.animation;
+import hge.interFace.textInput;
+import hge.interFace.alg;
+
+
+
+
+/**intellisense()
+hge.createEngine() = 成功返回引擎对象,失败返回空\n!hgeEngine.
+hge.null = 空对象;将精灵置空会在一定周期内释放。
+hge.delyTime(.(标识,延时毫秒,匿名函数) = 延时调用函数。在循环中调用
+hge.runOnece(.(标识,匿名函数) = 在循环中只执行一次。
+hge.runOneceDel(.(标识) = 删除标识,可用*删除全部
+hge.existOnece(.(标识) = 标识是否已存在,已运行
+hge.quad() = 
+hge.triple() = 
+hge.inputEvent() = 
+hge.vertex() = 
+hge.setTimer = 
+hge.setTimerOut = 
+end intellisense**/

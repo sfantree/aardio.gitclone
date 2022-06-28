@@ -1,0 +1,288 @@
+//grid 网格控件
+namespace web.sciter.behavior.grid;
+
+isMultiple = function(scOwner) {
+    return scOwner.getAttribute ("multiple") ;
+}
+
+onColumnClick = function(scOwner, eleHeaderCell ){ 
+    scOwner.postEvent( "onTableHeaderClick", eleHeaderCell.index(), eleHeaderCell); 
+}
+
+getCurrentRow = function( elTable ){
+    for(i,eleChild in elTable.eachChild() ){
+    	if( eleChild.state.current )
+    		return  eleChild; 
+    } 
+}
+
+setCurrentRow = function( elTable, elRow,altState,dblClick,smooth,isRightClick)  {
+	var  prev = getCurrentRow( elTable );
+	
+	var newRowChecked = 0x40/*_HL_STATE_CHECKED*/ | 0x20/*_HL_STATE_CURRENT*/;
+	var oldRowChecked = 0x40/*_HL_STATE_CHECKED*/;
+	
+	if( isMultiple(elTable) ) { 
+		if( ( !dblClick ) && isRightClick ){
+			if( elRow.state.checked ){
+				oldRowChecked = 0; 
+			}
+		}
+		else{
+			if( altState & 2/*_HL_SHIFT_KEY_PRESSED*/ ) { 
+				checkAll(elTable, false);
+				checkRange(elTable,elRow.index(),true); // from current to new
+				oldRowChecked = 0;
+			} 
+			else{
+				if (altState & 1/*_HL_CONTROL_KEY_PRESSED*/) { 
+ 					setCheckedRow (elTable,elRow, true); // toggle
+ 					newRowChecked = 0;
+				}
+				else{
+ 					checkAll(elTable, false);
+					setAnchor(elTable,elRow.index() );
+				}
+				oldRowChecked = 0;
+			}
+		}
+	}
+	
+	if( prev ) {
+		if( prev != elRow ) 
+			prev.modifyState( ,0x20/*_HL_STATE_CURRENT*/ | oldRowChecked ); // drop state flags
+	}
+	
+	elRow.modifyState( newRowChecked ); // set state flags 
+	elRow.scrollToView( false,smooth );
+	
+	elTable.postEvent( dblClick? 0x83/*_HL_TABLE_ROW_DBL_CLICK*/ : 0x82/*_HL_TABLE_ROW_CLICK*/, elRow.index(), elRow);
+	elTable.postEvent( "onSelectSelectionChanged" );
+}
+
+targetRow = function( elTable, scTarget)  {
+    if( !scTarget || scTarget.parent() == elTable)
+        return scTarget;
+    
+    return targetRow(elTable,scTarget.parent());
+}
+
+targetHeader = function(  eleHeaderRow, scTarget ) {
+	if( !scTarget || scTarget.parent() == eleHeaderRow)
+   		return scTarget;
+   	return targetHeader(eleHeaderRow,scTarget.parent());
+}
+
+fixedRows = function( elTable ) { 
+	return ( tonumber( elTable.fixedrows ) : 0 ) + 1;
+}
+
+setCheckedRow = function( elTable,elRow,toggle  ) {
+	if( toggle ){
+		elRow.state.checked = !elRow.state.checked;
+		elRow.state.current = elRow.state.checked;
+	}
+	else
+		elRow.state.checked  = false;
+}
+
+getAnchor = function(elTable) {
+    var elRow = elTable.querySelector("tr:anchor");
+    if( elRow ) return elRow.index();
+    return 0;
+}
+
+setAnchor = function(elTable,idx)  {
+	var elRow = elTable.querySelector("tr:anchor");
+	if( elRow ) elRow.state.anchor = false;
+	
+	elRow = elTable.child(idx);
+	if( elRow )
+		elRow.modifyState(0x4000/*_HL_STATE_ANCHOR*/,0,false);
+}
+ 
+checkRange = function(elTable,idx,check){
+	if ( !isMultiple(elTable) ) return;
+
+	var start  = getAnchor(elTable);
+	var startIdx = ..math.min(start,idx );
+	var endIdx = ..math.max(start,idx );
+	
+	var fRows  = fixedRows(elTable);
+	if( startIdx < fRows ) startIdx = fRows; 
+	for(i=endIdx;startIdx;-1){
+		var  elRow = elTable.child(i);
+		if( !! elRow.isVisible() ){ 
+			elRow.state.checked = check;
+		}
+	} 
+} 
+
+checkAll = function( elTable,onOff ) { 
+	if( !isMultiple(elTable) ) return;
+	
+	var fRows  = fixedRows(elTable);
+	if(onOff){
+		elTable.enumQuery(
+			function(scEle){
+			 	if( !scEle.state.checked && scEle.index() >= fRows )
+			 		scEle.state.checked = true;
+			},"tr"
+		)
+	}
+	else {
+		elTable.enumQuery(
+			function(scEle){
+			 	if( scEle.state.checked && scEle.index() >= fRows )
+			 		scEle.state.checked = false;
+			},"tr:checked"
+		)
+	} 
+	elTable.postEvent( "onSelectSelectionChanged" );
+}
+ 
+onMouseDblClick = function (scTarget,elTable, x,y,mouseParams,isMouseDown) {
+	var elRow = targetRow(elTable,scTarget );
+	
+	if( elRow ) {
+		if( elRow.index() <  fixedRows(elTable) ) {
+  			// click on the header cell
+  			var headerCell = targetHeader(elRow,scTarget);
+  			
+  			if( headerCell )  
+      			owner.onColumnClick(elTable, headerCell);//使用owner对象调用成员函数,使之支持派生的sortableGrid.onColumnClick
+
+  			return mouseParams.button_state == 1/*_HL_MAIN_MOUSE_BUTTON*/;
+		}
+		
+		setCurrentRow(elTable, elRow, mouseParams.alt_state ,!isMouseDown,,mouseParams.button_state == 2/*_HL_PROP_MOUSE_BUTTON*/); 
+		elTable.updateWindow();
+	} 
+	else {
+		if( elTable == scTarget ){
+			checkAll(elTable, false );
+			var  prev = getCurrentRow( elTable );
+			if(prev){
+				prev.state.current = false; 
+				prev.state.checked = false; 
+			} 
+			elTable.postEvent( !isMouseDown ? 0x83/*_HL_TABLE_ROW_DBL_CLICK*/ : 0x82/*_HL_TABLE_ROW_CLICK*/, 0 );
+			elTable.postEvent( "onSelectSelectionChanged" );
+		}
+	} 
+}
+
+var grid = self;
+namespace sinking {
+	//鼠标以SINKING(捕获模式)向下传递下,使用sinking名字空间响应事件
+	onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {
+		return grid.onMouseDblClick(scTarget,scOwner, x,y,mouseParams,true)
+	}
+}
+
+
+var keyHandle = {
+
+	[0x28/*_VK_DOWN*/] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		var c = getCurrentRow( scOwner );
+		var idx = c? (c.index() + 1):fixedRows(scOwner); 
+		
+		for(i,elRow in scOwner.eachChild(idx) ){
+			if( elRow.isVisible() ) {
+				setCurrentRow(scOwner, elRow, altState); 
+				return true;
+			};
+		} 
+		
+		return true;
+	};
+	[0x26/*_VK_UP*/] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		 var  c = getCurrentRow( scOwner );
+         var idx = c? (c.index() - 1):(scOwner.childCount() - 1);
+         var fRows = fixedRows(scOwner);
+         
+         if (idx < fRows) return true;
+         for(i,elRow in scOwner.eachChild(idx,fRows) ){
+         	if( elRow.isVisible()) {
+				setCurrentRow(scOwner, elRow, altState); 
+				return true;
+			};
+         } 
+	};
+	[0x21/*_VK_PRIOR*/] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		var trc = scOwner.getRect(1/*_HL_ROOT_RELATIVE*/ | 0x60/*_HL_SCROLLABLE_AREA*/);
+		var y = trc.top - (trc.bottom - trc.top);
+		var first = fixedRows(scOwner);
+		var r;
+		 
+		for(i,nr in scOwner.eachChild( scOwner.childCount(),first) ){
+         	if( nr.style.display != "none" ){ 
+         	
+         		var  pr = r;
+   				r = nr;  
+   				if( r.getRect(1/*_HL_ROOT_RELATIVE*/ | 0x20/*_HL_BORDER_BOX*/).top < y ) {
+      				// row found
+      				if(pr) r = pr; // to last fully visible
+      				break;
+   				}
+         	}
+        } 
+          
+		setCurrentRow(scOwner, r, altState, false, true); 
+		return true;
+	};
+	[0x22/*_VK_NEXT*/] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		var trc = scOwner.getRect( 1/*_HL_ROOT_RELATIVE*/ | 0x60/*_HL_SCROLLABLE_AREA*/);
+		var y = trc.bottom + (trc.bottom - trc.top); 
+		var r; 
+		
+		var fRows = fixedRows(scOwner)
+		for( i,nr in scOwner.eachChild( fRows ) ){ 
+			if( nr.style.display != "none" ) {
+   				var  pr = r;
+   				r = nr;
+   				if( r.getRect( 1/*_HL_ROOT_RELATIVE*/ | 0x20/*_HL_BORDER_BOX*/).bottom > y ) {
+      				// row found
+      				if(pr) r = pr; // to last fully visible
+      				break;
+   				}
+   			}
+		}
+		
+		setCurrentRow(scOwner, r, altState, false, true);	
+		return true;
+	};
+	[0x24/*_VK_HOME*/] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		var idx = fixedRows(scOwner); 
+		if( idx == 1) idx = 2;
+		 
+		for( i,eleRow in scOwner.eachChild( idx ) ){  
+			if( eleRow.isVisible() ){
+				setCurrentRow(scOwner, eleRow, altState, false, true);  
+				return true;
+			}
+		}
+		return true;
+	};
+	[0x23/*_VK_END*/] = function(scTarget,scOwner,keyCode, altState, keyParams){ 
+		for( i,row in scOwner.eachChild( scOwner.childCount(),fixedRows(scOwner) ) ){  
+			if( row.isVisible() ){
+				setCurrentRow(scOwner, row, altState, false, true); 
+				return true;
+			}
+		} 
+		return true;
+	};
+	['A'#] = function(scTarget,scOwner,keyCode, altState, keyParams){
+		if( isMultiple(scOwner) && (altState & 1/*_HL_CONTROL_KEY_PRESSED*/) != 0 ) {
+              checkAll(scOwner, true);
+              scOwner.postEvent( "onSelectSelectionChanged" );
+              return true;
+         }
+	};
+}
+onKeyDown = function (scTarget,scOwner,keyCode, altState, keyParams) {
+	var handle = keyHandle[keyCode];
+	if( handle )
+		return handle(scTarget,scOwner,keyCode, altState, keyParams)
+}

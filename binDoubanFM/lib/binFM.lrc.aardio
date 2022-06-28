@@ -1,0 +1,295 @@
+﻿//lrc 歌词相关
+namespace binFM.lrc{
+	import web.json;
+	import web.msxml;
+
+
+	/*
+ 	 * 搜索歌词
+ 	 */	
+	get = function(title,artist,sid,response,source) {
+
+		import inet.url;
+
+		recorded = false;
+		..binFM.monitor.info("歌词","lrcGot","source","gettingLrc");
+		..binFM.monitor.info("歌词",..lrcGot,source,..gettingLrc);
+		if(!response) {
+			var nowPlaying = ..binFM.song();
+			if(..gettingLrc || ..lrcGot || !sid || sid!=nowPlaying["sid"]) return;
+			..lrcGot = false;
+			..binFM.monitor.info("获取歌词sid:",sid);	
+			var lrc = ""; var offset_; var genre = "";
+			..gettingLrc = true;
+			
+			lrc,offset_,..songCname = ..binFM.db.recordSong(sid,-1); // 检索历史记录中的歌词 或 添加历史记录
+			offset_ = tonumber(offset_);
+			if(offset_ && offset_!=0) ..offset["sid_" ++ tostring(sid)] = offset_;
+			if(lrc && lrc!='') {
+				..binFM.monitor.info("从数据库中取出歌词sid:"++tostring(sid));
+				recorded = true;
+				afterGot(sid,lrc,"database");
+			}
+			else {
+				var url;
+				// 去掉标题、歌手中的其他字符
+				if(!title || ..string.trim(title)=='' || !artist || ..string.trim(artist)=='') return false;
+				title, artist = ..binFM.string.doTitleArtist(title, artist);			
+				
+				// 开始查找歌词
+				..binFM.monitor.info("从百度&qq音乐查找歌词");
+				// -- 豆瓣
+				..binFM.douban.getSongDetail(sid);
+				// -- 百度(step1)
+				url = "http://box.zhangmen.baidu.com/x?op=12&count=1&title=" ++ ..inet.url.encode(..binFM.string.toUTF8(title) ++ "$$") ++ ..inet.url.encode(..binFM.string.toUTF8(artist) ++ "$$$$");
+				..binFM.wget2(url,,"lrc.get",sid,"baidu-1");
+				// -- qq音乐(step1)
+				url = "http://qqmusic.qq.com/fcgi-bin/qm_getLyricId.fcg?name=" ++ ..inet.url.encode(title) ++ "&singer=" ++ ..inet.url.encode(artist) ++ "&from=qqplayer";
+				..binFM.wget2(url,,"lrc.get",sid,"qq-1");
+			}
+		}
+		else if(response && source && !..lrcGot) {
+			//..binFM.monitor.info(response);
+			if(source=="douban") afterGot(sid,response,source);
+			if(source=="baidu-1") {
+				var xmlDoc = web.msxml();
+				try {
+					xmlDoc.loadXml(response);
+				}
+				response = null;
+				if(xmlDoc) {
+					var qNodes = xmlDoc.queryNodes(tagName="lrcid");
+					xmlDoc = null;
+					if(qNodes.text && qNodes.text!="0") {
+						var lrcId = qNodes.text;
+						if(!lrcId || ..string.trim(lrcId)=='') return false;		
+						qNodes = null;
+						url = "http://box.zhangmen.baidu.com/bdlrc/" ++ tostring(..math.floor(tonumber(lrcId) / 100)) ++ "/" ++ lrcId ++ ".lrc";
+						..binFM.wget2(url,,"lrc.get",sid,"baidu-2");
+					}
+				}
+			}
+			if(source=="baidu-2" &&  not ..string.find(response,"您的访问出错了")) {
+				response = ..string.replace(response,'@@<?xml version=\"1.0\" encoding=\"GB2312\" ?><lyric><![CDATA[',"");
+				afterGot(sid,response,source);
+			}
+			if(source=="qq-1" && not ..string.find(response,"没有找到")) {
+				var xmlDoc = ..web.msxml();
+				try {
+					xmlDoc.loadXml(response);
+				}
+				response = null;
+				if(xmlDoc) {
+					var qNodes = xmlDoc.queryNodes(tagName="songinfo");
+					xmlDoc = null;
+					if(qNodes) {
+						var lrcId = "";
+						try {
+							lrcId = qNodes.attributes(0).nodeValue;
+						}
+						qNodes = null;
+						if(lrcId && ..string.trim(lrcId)!=''){;
+							url = "http://music.qq.com/miniportal/static/lyric/" ++ tostring(tonumber(lrcId) % 100) ++ "/" ++ lrcId ++ ".xml";
+							..binFM.wget2(url,,"lrc.get",sid,"qq-2");
+						}
+					}
+				}			
+			}
+			if(source=="qq-2" && ..string.find(response,"@@lyric")) {
+				response = ..string.replace(response,'@@<?xml version=\"1.0\" encoding=\"gb2312\" ?><lyric><![CDATA[','');
+				response = ..string.replace(response,'@@<?xml version=\"1.0\" encoding=\"GB2312\" ?><lyric><![CDATA[','');
+				response = ..string.replace(response,"@@]]></lyric>",'');
+				afterGot(sid,response,source);
+			}
+		}
+		return;
+	}
+
+
+	/*
+ 	 * 获取歌词后续处理
+ 	 * -- 歌词存入数据库、准备解析歌词、告知用户等
+ 	 */
+ 	afterGot = function(sid,lrc,source) {
+ 		var nowPlaying = ..binFM.song();
+		if(!sid || sid!=nowPlaying["sid"] || !lrc || lrc=="") {
+			..lrcGot = false;
+			..binFM.ui.$("#showLrc").title="未找到歌词";
+			return false;
+ 		}
+ 		else {
+ 			..lrcGot = true;
+ 			..binFM.monitor.info("找到歌词-" ++ source,..string.sub(lrc,1,30,true));
+ 			if(!recorded && source!="database") {
+				..binFM.db.recordSong(sid,-1,lrc);
+				recorded = true;
+			}
+			..lrc_list = parse(lrc,sid);
+			..binFM.monitor.info("已解析歌词",#..lrc_list);
+			..binFM.ui.$("#showLrc").title="已找到歌词";
+			if(..lrcShowing) ..binFM.ui.css("#showLrc","foreground-image","url(/res/images/lrc_1_on.png");
+			else ..binFM.ui.css("#showLrc","foreground-image","url(/res/images/lrc_1_off.png");
+ 		}
+ 		collectgarbage("collect"); // 内存回收
+		return; 		
+ 	}
+ 	
+ 	 
+	/*
+ 	 * 解析歌词
+ 	 */
+	parse = function(lrc,sid) {
+		..binFM.monitor.info("解析歌词");
+		var line,line_,t,words;
+		var t1,t2,t3;
+		var array = {};
+		..lrc_last = 1;
+		lrc = ..string.replace(lrc,"@@[",'\r\n[');
+		lrc = ..string.replace(lrc,"\]\r\n\[",'\]\[');
+		var offset_ = ..string.match(lrc ,"\[offset\:([\d-]+)\]"); //歌词时间补偿
+		// 如果数据库中有offset，则用数据库中的替换当前值offset_
+		if(!..offset["sid_" ++ tostring(sid)]) {
+			if(offset_ && offset_!="0" && offset_!="") ..offset["sid_" ++ tostring(sid)] = tonumber(offset_);
+		}
+		
+		//解析歌词列表 存放于数组
+		var line,words,t,t1,t2,t3;
+		for line in ..string.gmatch(lrc,"(.*?)[\r\n]") {
+			if(line && ..string.trim(line)!='') {
+				line = ..string.trim(line);
+				line = ..string.replace(line,"\[(\d{2})\:(\d{2})\]","[\1:\2.00]");
+				//if(..string.replace(line,"\[\d{2}\:\d{2}\.*\d*\]","")=="") line+="~ music ~";
+				words = ..string.replace(line,"\[.*?\]","");
+				if(words) words = ..string.trim(words);
+				while(1) {
+					t = "";
+					t = ..string.match(line, "\[\d{2}\:\d{2}\.*\d*\]");
+					if(t) t = ..string.trim(t);
+					else break;
+					if(t && t!='') {
+						line = ..string.replace(line,"@@"++t,"");
+					}
+					if(words && words!='' && t && t!="") {
+						line_ = t ++ words;
+						t1,t2,t3 = ..string.match(line_,"\[(\d{2})\:(\d{2})\.*(\d*)\]");
+						t1 = ..string.replace(t1,"0(\d)","\1"); //替换类似"08"为"8"
+						t2 = ..string.replace(t2,"0(\d)","\1");
+						t3 = ..string.replace(t3,"0(\d)","\1");
+						..table.push(array,{time=tonumber(t1)* 60 * 1000 + tonumber(t2) * 1000 + tonumber(t3);text=words});
+						//offset在显示歌词时引用，方便后期实现自定义歌词补偿时间
+					}
+				}
+			}
+		}
+		
+		//数组排序
+		..table.sort(array, function (b) {
+    		if(b) return tonumber(owner["time"]) <= tonumber(b["time"]);
+		});
+		..table.sort(array, function (b) {
+    		if(b) return tonumber(owner["time"]) <= tonumber(b["time"]);
+		});
+		..table.push(array,{time=999999999;text="End - " ++ .._app});
+		// 一次排序不准确，需两次排序，不知道什么原因
+		//binFM.monitor.info(table.tostring(array));
+		
+		collectgarbage("collect"); // 内存回收
+		return array;
+	}
+	
+
+	/*
+	 * 显示歌词
+	 * -- 在..timer.onTimer()中调用
+	 */
+	show = function(sid) {
+		if(..lrcGot) {
+			var offset_ = tonumber(..offset["sid_" ++ tostring(sid)]);
+			if(!offset_) offset_ = 0;
+			var t = ..bass.getPosition();
+			if(t){
+				for(i=..lrc_last; #(..lrc_list)-1; 1){
+					if((t>=tonumber(..lrc_list[i]["time"])+offset_) && (t<tonumber(..lrc_list[i+1]["time"])+offset_)) { 
+						if(..lrc_list[i]["text"]!=..line1 && ..lrc_list[i+1]["text"]!=..line2) {
+							if(..lrcShowing) {
+								/*var nowPlaying = ..binFM.song();
+								if(..lrc_list[i]["text"]=="~ music ~" && nowPlaying) ..drawText(nowPlaying["artist"]++" - "++nowPlaying["title"],"~ music ~"); 
+								else*/ 
+								..drawText(..lrc_list[i]["text"], ..lrc_list[i+1]["text"]);	
+							}
+							..line1 = ..lrc_list[i]["text"];
+							..line2 = ..lrc_list[i+1]["text"];	
+						}
+						..lrc_last = i;
+						break ;
+					}
+				}   
+			}	
+		}
+	}
+	
+		
+	/* 
+ 	* 保存歌词
+ 	*/
+	save = function(todo,saveFile,notOpen,name) {
+		if(notOpen && !..isWithLrc) return ;
+		import win.clip;
+		import fsys.dlg;
+		import process;
+		if(!..lrcGot || #..lrc_list<=1) {
+			if(!notOpen) win.msgboxTimeout("亲，没有找到歌词哦~",.._app,3000);
+			return false;
+		}
+		var strResult = '';
+		var strResult_text = '';
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) {
+			if(name && ..binFM.string.doTitleArtist(nowPlaying["title"])!=name) return false;
+			strResult += "[ti:" ++ nowPlaying["title"] ++ "]" ++ '\r\n';
+			strResult += "[ar:" ++ nowPlaying["artist"] ++ "]" ++ '\r\n';
+			strResult += "[al:" ++ nowPlaying["albumtitle"] ++ "]" ++ '\r\n';
+			strResult_text += nowPlaying["title"] ++ '\r\n';
+			strResult_text += nowPlaying["artist"] ++ '\r\n';
+			strResult_text += nowPlaying["albumtitle"] ++ '\r\n\r\n';		
+		}
+		else return false;
+		strResult += "[by:" ++ .._app ++ "]" ++ '\r\n\r\n';
+		//if(..offset!=0) strResult += "[offset:" ++ tostring(..offset) ++ "]" ++ '\r\n';
+		var t,t1,t2,t3;
+		for(i=1;..table.count(..lrc_list)-1;1) {
+			t = tonumber(..lrc_list[i]["time"]);
+			t3 = t % 1000;
+			t2 = ((t - t3)/1000) % 60;
+			t1 = ..math.floor(((t - t3)/1000) / 60);
+	
+			t1 = ..string.format("%02d",t1 );
+			t2 = ..string.format("%02d",t2 );
+			t3 = ..string.format("%02d",t3 );
+			
+			strResult += "[" ++ tostring(t1) ++ ":" ++ tostring(t2) ++ "." ++ tostring(t3) ++ "]" ++ ..lrc_list[i]["text"] ++ '\r\n';
+			strResult_text += ..lrc_list[i]["text"] ++ '\r\n';
+		}
+		strResult_text += '\r\n' ++ .._app ++ '\r\nhttp://wubin.in/doubanFM.html';
+	
+		if(todo=="copy") ..win.clip.write(strResult);
+		if(todo=="copyText") ..win.clip.write(strResult_text);
+		if(todo=="file") {
+			musicTitle = ..binFM.string.doTitleArtist(nowPlaying["title"], "");
+	
+			if(saveFile && saveFile!="") saveFile = ..string.replace(saveFile,"@@.mp3",".lrc");
+			else saveFile = ..fsys.dlg.save(,"保存歌词",..saveFolder,,,musicTitle ++ ".lrc");
+			if(saveFile && saveFile!="") {
+				var lrcFile = ..io.open(saveFile,"w+");
+				lrcFile.write(strResult);
+				lrcFile.close();
+				var selectedPath = ..io.splitpath(saveFile);
+				..saveFolder = selectedPath.dir;
+				if(!..downForm) ..downForm = ..mainForm.loadForm("\forms\downForm.aau",..mainForm);
+				..downForm.displayFolder.text = ..saveFolder;
+				..binFM.db.set("saveFolder",..saveFolder);
+				if(!notOpen) ..process.execute("notepad.exe",saveFile);
+			}
+		} 
+	}
+}

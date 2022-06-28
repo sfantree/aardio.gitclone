@@ -1,0 +1,24 @@
+import console; 
+
+_path = "D:\users\CCL100100\Carrier Corporation\SAP数据整理 - 开利研发部\";
+_remote_path = "\\ccnqia05\kaifa-\01 QHC产品资料汇总\3 SAP 数据整理\";
+
+var deepSearchFile = function(path,filter = "*.*"){
+	import fsys;
+	var arr = {};
+	fsys.enum( path, filter,
+		function(dirname,filename,fullpath,findData){ 
+			if(filename){ 
+           		//console.log("发现文件："+filename, /*"完整路径："+fullpath*/)
+           		table.push(arr, fullpath);
+			}
+		} 
+		,/*如果此参数为false则忽略子目录*/
+	);
+	if #arr return arr;
+}
+
+console.log(time())
+console.dump(deepSearchFile(_path,"*默认*.xlsx"))
+console.log(time())
+console.pause(true);

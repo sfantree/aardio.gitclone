@@ -1,0 +1,34 @@
+//修改manifest文件实现锐浪报表免注册
+import ide;
+import fsys;
+import fsys.res;
+import reportRl;
+
+var projectPath = ide.getProjectPath();
+var projectFileName = io.splitpath(projectPath).name;
+var manifestPath = ..fsys.joinpath(ide.getProjectDir(),".build\" + projectFileName + ".Manifest.xml" );
+var manifestData = ..string.load( manifestPath ); 
+
+if(!..string.find(manifestData,"c5a16330-a084-48c9-bc0f-0d0b37a14123")){
+	manifestData = ..string.replace(manifestData,"\<\/assembly\>",`  <file name="grdes6.dll">
+    <typelib tlbid="{c5a16330-a084-48c9-bc0f-0d0b37a14123}" version="6.0" helpdir="" resourceid="0" flags="HASDISKIMAGE" />
+    <comClass clsid="{6edd80cb-9f08-4c71-b406-479e5cb80fce}" threadingModel="Apartment" tlbid="{c5a16330-a084-48c9-bc0f-0d0b37a14123}" progid="grdes.GRDesigner.6" description="Grid++Report Designer 6" />
+  </file>
+  <file name="gregn6.dll">
+    <typelib tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" version="6.0" helpdir="" resourceid="0" flags="HASDISKIMAGE" />
+    <comClass clsid="{f9364159-6aed-4f9c-8baf-d7c7ed6160a8}" threadingModel="Apartment" tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" progid="gregn.GridppReport.6" description="GridppReport Class" />
+    <comClass clsid="{1b5ea181-a38d-4f42-88b2-6af74cf6d6c0}" threadingModel="Apartment" tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" progid="gregn.GRDisplayViewer.6" description="Grid++Report DisplayViewer 6" />
+    <comClass clsid="{7fd5dc62-ded0-4138-9c48-55f0a0fe7b66}" threadingModel="Apartment" tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" progid="gregn.GRDisplayViewerProps.6" description="GRDisplayViewerProps Class" />
+    <comClass clsid="{44cbb5de-5afb-4c3d-8f3f-0f70ca5372ad}" threadingModel="Apartment" tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" progid="gregn.GRPrintViewer.6" description="Grid++Report PrintViewer 6" />
+    <comClass clsid="{6ca58cb2-2ad1-4ad0-b3cc-5f5c000bbdee}" threadingModel="Apartment" tlbid="{4018f953-1bfe-441e-8a04-dc8ba1ff060e}" progid="gregn.GRPrintViewerProps.6" description="GRPrintViewerProps Class" />
+  </file>
+</assembly>`);
+}
+
+..string.save(manifestPath,manifestData )
+
+var publishFile = ide.getPublishPath();
+
+var resFile = fsys.res.open( publishFile )
+resFile.update(24,1,manifestData,0 ) 
+resFile.close();

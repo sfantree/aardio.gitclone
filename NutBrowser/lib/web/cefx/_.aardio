@@ -1,0 +1,1268 @@
+import com.activeX;
+import util.metaProperty;
+import web.json;
+
+namespace web; 
+class cefx{
+	ctor( winform,settings,... ){
+		winform.createEmbed("{FFF36428-F7BC-4B9B-81D5-FB0957A2EB1C}",this); 
+		if( winform.isForm ? winform.onEraseBkgnd === null ){
+			winform.onEraseBkgnd  = function(hwnd,message,wParam,lParam){
+    			return 0;
+			}
+		}
+		this._form = winform;
+		
+		if(...) this.commandLineSwitches = {...};
+		this.OnCreate = function(cefSettings,commandLineSwitches){
+    		cefSettings.locale = "zh-CN";
+    		cefSettings.local_storage = true;
+    		
+    		var cachePath = ..fsys.appdata("NutBrowser/.cache");
+    		cefSettings.cache_path = ..io.createDir(cachePath);
+    		cefSettings.application_cache = ..io.joinpath(cachePath,".appCache");
+    		cefSettings.persist_session_cookies = 1;
+    		cefSettings.persist_user_preferences = 1;
+    		cefSettings.webgl = 1;
+    		cefSettings.plugins = true;
+    		
+    		//webkitx提供的方法有bug，必须增加下面的参数才能真正启用flash插件
+    		//commandLineSwitches = commandLineSwitches + ` --disable-bundled-ppapi-flash --ppapi-flash-version=30.0.0.113 --register-pepper-plugins="pepflashplayer32_30_0_0_113.dll;application/x-shockwave-flash"`;
+    		//cefSettings.flash_player_dll_path = "pepflashplayer32_30_0_0_113.dll";
+    		
+    		if(settings){
+    			table.mixin(cefSettings,settings);
+    		}
+    		
+    		if(this.commandLineSwitches) commandLineSwitches = commandLineSwitches + " " + ..string.join(this.commandLineSwitches," ");
+    		if( this.onCreate ) {
+    			commandLineSwitches =  this.onCreate(cefSettings,commandLineSwitches) : commandLineSwitches; 
+    		}
+    		if( this.onCreate2 ) {
+    			commandLineSwitches =  this.onCreate2(cefSettings,commandLineSwitches) : commandLineSwitches; 
+    		}
+    		
+    		return commandLineSwitches;
+		}
+		
+		this.OnBrowserReady = function(){
+    		//允许下载脚本(编辑模式下默认是禁止下载的),不加上下面这句调试工具打不开
+    		this.downloadScripts = true;
+    	}
+    	
+    	this.script ={
+    		@{
+    			_get = function(k,ownerCall){
+    				if( type(k) == type.string ) {
+    					if(ownerCall){
+    						return function(...){
+    							return this.eval("window." +k + "( ...( " + ..web.json.stringify({...}) + " ) )")
+    						} 
+    					}
+    					return this.eval(k);
+    				}
+    			};
+    			_set = function(k,v){
+    				if( type(k) == type.string ) this.doScript( "window."+k+" = " + ..web.json.stringify(v) );
+    			}; 
+    		}
+    	}
+    	
+    	this._cacheExportObjects = { }
+	}; 
+	@_metaProperty;
+}
+
+import fsys;
+import web.cefx.element;
+namespace cefx {
+    if !((..win.guid.toProgId("{FFF36428-F7BC-4B9B-81D5-FB0957A2EB1C}"))&&(..io.exist(..fsys.appdata("NutBrowser/webkitx3/4.0.0.12863")))) {
+		if( !_WIN7_LATER ){
+			error("web.cefx 组件到少要求Win7/Win2008 R2或之后的操作系统",2)
+		}
+
+		import win.reg;
+		var reg = win.reg("HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x86");
+		var installed = reg.queryValue("Installed")  
+		if( !  (installed && reg.queryValue("Minor")>13) ){
+			import inet.downBox;
+			var downBox = inet.downBox(,"正在下载 VC++ 2017 支持组件",1)
+			if(downBox.download("https://aka.ms/vs/16/release/vc_redist.x86.exe","/download/vc_redist.x86.exe")){
+				import process;
+				process("/download/vc_redist.x86.exe",`/install  /log "%temp%\Install_vc_redist_2017_x86.log"`);
+			}
+			
+			if( !  (installed && reg.queryValue("Minor")>13) ){
+		  		reg.close();
+		  		error("请选安装 VC++ 2017 支持组件",2)
+			};
+		}
+		reg.close();
+	
+    	var webkitxPath = ..fsys.appdata("NutBrowser/webkitx3/4.0.0.12863"); 
+    	if(!..io.exist(webkitxPath)){
+    		/*
+    		if( ..io.exist( "~\lib\web\cefx\.dll\WebKitXCEF3.ocx" ) ){
+				..fsys.copy("~\lib\web\cefx\.dll\*.*",webkitxPath)
+			}
+			elseif( ..io.exist( "\lib\web\cefx\.dll\WebKitXCEF3.ocx" ) ){
+				..fsys.copy("\lib\web\cefx\.dll\*.*",webkitxPath)
+			}
+			*/
+    		if( ..io.exist( "~\lib\WebKitXCEF3.ocx" ) ){
+				..fsys.copy("~\lib\*.*",webkitxPath)
+			}
+			elseif( ..io.exist( "\lib\WebKitXCEF3.ocx" ) ){
+				..fsys.copy("\lib\*.*",webkitxPath)
+			}
+			elseif(_STUDIO_INVOKED){
+				..fsys.copy("\lib\web\cefx\.dll\*.*",webkitxPath)
+			}
+    	}
+    	..win.setenv("ComSpec",..fsys.appdata("NutBrowser/webkitx3/cmdbug.exe",""));
+		..com.activeX.regsvr32(..io.joinpath(webkitxPath,"WebKitXCEF3.ocx"),true);
+	}
+	
+	_metaProperty = ..util.metaProperty( 
+		create = function(){
+			owner._object.Create(); ;
+		};
+		activate = function(email,key){
+			owner._object.Activate(email,key); ;
+		};
+		waitBrowser = function(){
+			if(!owner.browserReady){
+				owner.create();
+			}
+			
+			var hwnd = owner._form.hwnd;
+			while( ..win.delay(200) &&..win.isWindow(hwnd) ){
+		  		if(owner.browserReady){
+		  			..win.delay(200);
+		  			return true;
+				}
+			}
+		};
+		go = function(url){ 
+			if( owner.waitBrowser() ) return owner._object.Open(url);
+		};
+		loadScript = function(url){
+			owner._object.loadScript(url); ;
+		}; 
+		doScript = function(js){
+			owner._object.AddCode(js); ;
+		}; 
+		eval = function(js,...){
+			if(...!==null) js = ..string.format(js,... );
+			var json = owner._object.Eval( ..string.format(`JSON.stringify(%s)`,js) );
+			if(#json) return ..web.json.parse(json);
+		};
+		replaceText = function(find,replace,ignoreCase){
+			owner._object.ReplaceText(find,replace,ignoreCase); ;
+		};
+		tidyHTML = function(html,options){
+			owner._object.TidyHTML(html,options); ;
+		};
+		edit = function(){
+			owner._object.Edit(); ;
+		};
+		preview = function(){
+			owner._object.Preview(); ;
+		};
+		saveHTML = function(fileName){
+			owner._object.SaveHTML(..io.fullpath(fileName)); ;
+		}; 
+		savePdf = function(fileName,landScape){
+			owner._object.SavePDF(..io.fullpath(fileName),landScape); ;
+		};
+		showDevTools = function(hwnd){
+			owner.waitBrowser();
+			owner._object.ShowDevTools(hwnd : hwnd[[hwnd]]);
+		};
+		print = function(){
+			owner._object.Print(); ;
+		};
+		goBack = function(){ 
+			owner._object.NavigateBack()
+		}; 
+		goForward = function(){ 
+			owner._object.NavigateForward()
+		}; 
+		stop = function(){ 
+			owner._object.StopLoading()
+		}; 
+		refresh = function(){
+			owner._object.Repaint(); ;
+		};
+		reload = function(){
+			owner._object.Repaint(); ;
+		};
+		getPreference = function(name){
+			return owner._object.GetPreference(name);
+		};
+		setPreference = function(name,value){
+			owner._object.SetPreference(urlname,value);
+		};
+		deselect = function(){
+			owner._object.Deselect(); ;
+		};
+		selCollapseToEnd = function(){
+			owner._object.SelCollapseToEnd(); ;
+		};
+		selCollapseToStart = function(){
+			owner._object.SelCollapseToStart(); ;
+		};
+		selDelete = function(){
+			owner._object.selDelete(); ;
+		};
+		selEmpty = function(){
+			owner._object.SelEmpty(); ;
+		};
+		selAllChildren = function(){
+			owner._object.SelAllChildren();
+		}; 
+  		window = {
+    		_get = function(){
+    			return owner._object.Window;
+    		}
+		};
+		document = {
+    		_get = function(){
+    			return owner._object.Window;
+    		}
+		};
+		setSelection = function(offset,length){
+			owner._object.SetSelection(offset,length); ;
+		};
+		querySelectorEx = function(selector){
+			return owner._object.QuerySelector(selector);
+		};
+		querySelector = function(selector){
+			return ..web.cefx.element(owner,selector);
+		};
+		xcallSync = function(name,...){
+			var arr = ..com.SafeArrayV({...});//VB数组，元素类型为VT_VARIANT
+			return owner._object.JSCallback(name,arr,true);
+		};
+		xcall = function(name,...){
+			var arr = ..com.SafeArrayV({...});//VB数组，元素类型为VT_VARIANT
+			return owner._object.JSCallback(name,arr,false);
+		};
+		wait = function(url,timeout){ 
+			var this = owner;
+			var location;
+			var delay = ..win.delay;
+			var hwnd = this._form.hwnd;
+			isWnd = ..win.isWindow;
+			
+			while( delay(200) && ( (!hwnd) || isWnd(hwnd) ) ){
+		  		if(this.browserReady){  
+		  			if(!this.eval(`document.readyState=="complete"`)) continue;
+		  			if(#url){
+		  				var location = owner.location;
+		  				if( ! ( location ?  ..string.find( location,url) ) ){
+		  					delay(200); 
+		  					continue; 
+		  				};
+		  			} 
+		  			
+		  			delay(1000); 
+		  			return true;
+				}		
+					
+				if( timeout ) {
+					tk+=201;
+					if( tk>timeout ){ 
+						return null,"Timeout!"  
+					}
+				}; 
+			}  	
+		};
+		getEle = function( id ){
+        	if( type(id) == "table" ) return id;
+        	if( type(id) != "string" ) error("参数@1必须使用字符串指定id",2)
+        	return owner.querySelector("#" + id)
+    	};
+    	waitEle = function(id,timeout){
+			var wb = owner;
+			wb.wait();
+			return ( ..win.wait(
+				function(){ 
+					var ele = wb.getEle(id);
+					if ( ele.valid() ) return ele;
+				},owner._form.hwnd,timeout,200
+			) ); 
+		};
+		waitQuerySelectorEx = function(selector,timeout){
+			var wb = owner;
+			wb.wait();
+			return ( ..win.wait(
+				function(){ 
+					var ele = wb.querySelectorEx(selector);
+					if ( ele ) return ele;
+				},owner._form.hwnd,timeout,200
+			) ); 
+		};
+		waitQuerySelector = function(selector,timeout){
+			var wb = owner;
+			wb.wait();
+			return ( ..win.wait(
+				function(){ 
+					var ele = wb.querySelector(selector);
+					if ( ele.valid() ) return ele;
+				},owner._form.hwnd,timeout,200
+			) ); 
+		};
+		browserReady = {
+    		_get = function(){
+    			return owner._object.BrowserReady;
+    		}
+		};
+		modified = {
+    		_get = function(){
+    			return owner._object.Modified;
+    		}
+    		_set = function( value ){
+    			owner._object.setModified(value);
+    		} 	
+		};
+		events = {
+    		_get = function(){
+    			return owner._object.Events;
+    		}
+    		_set = function( value ){
+    			owner._object.setEvents(value);
+    		} 	
+		}; 
+		fireOnEventForAllEvents = {
+    		_get = function(){
+    			return owner._object.FireOnEventForAllEvents;
+    		}
+    		_set = function( value ){
+    			owner._object.setFireOnEventForAllEvents(value);
+    		} 	
+		};
+		html = {
+    		_get = function(){
+    			return owner._object.HTML;
+    		}
+    		_set = function( value ){
+    			if(owner.waitBrowser()){
+					owner._object.setHTML(value);
+				} 
+    		} 	
+		};
+		url = {
+    		_get = function(){
+    			return owner._object.URL;
+    		}
+    		_set = function( value ){
+    			owner._object.setURL(value);
+    		} 	
+		};
+		baseUrl = {
+    		_get = function(){
+    			return owner._object.BaseURL;
+    		}
+    		_set = function( value ){
+    			owner._object.setBaseURL(value);
+    		} 	
+		};
+		location = {
+    		_get = function(){
+    			return owner._object.CurrentURL;
+    		}
+    		_set = function( value ){
+    			owner._object.setCurrentURL(value);
+    		} 	
+		};
+		hwnd = {
+    		_get = function(){
+    			return owner._object.hWnd;
+    		} 
+		};
+		hwndBrowser = {
+    		_get = function(){
+    			return owner._object.hWndBrowser;
+    		} 
+		}; 
+		activeElement = {
+    		_get = function(){
+    			return owner._object.ActiveElement;
+    		} 
+    		_set = function( value ){
+    			owner._object.setActiveElement(value);
+    		} 
+		}; 
+		selAnchorElement = {
+    		_get = function(){
+    			return owner._object.SelAnchorElement;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelAnchorElement(value);
+    		} 
+		}; 	
+		selFocusElement = {
+    		_get = function(){
+    			return owner._object.SelFocusElement;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFocusElement(value);
+    		} 
+		}; 
+		selHTML = {
+    		_get = function(){
+    			return owner._object.SelHTML;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelHTML(value);
+    		} 
+		}; 
+		selFontName = {
+    		_get = function(){
+    			return owner._object.SelFontName;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontName(value);
+    		} 
+		};
+		selFontSize = {
+    		_get = function(){
+    			return owner._object.SelFontSize;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontSize(value);
+    		} 
+		};
+		selFontColor = {
+    		_get = function(){
+    			return owner._object.SelFontColor;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontColor(value);
+    		} 
+		};
+		selFontBackColor = {
+    		_get = function(){
+    			return owner._object.SelFontBackColor;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontBackColor(value);
+    		} 
+		};
+		selText = {
+    		_get = function(){
+    			return owner._object.SelText;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelText(value);
+    		} 
+		};			
+		selType = {
+    		_get = function(){
+    			return owner._object.SelType;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelType(value);
+    		} 
+		};	
+		selCollapsed = {
+    		_get = function(){
+    			return owner._object.SelCollapsed;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelCollapsed(value);
+    		} 
+		};	
+		selFontBold = {
+    		_get = function(){
+    			return owner._object.SelFontBold;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontBold(value);
+    		} 
+		};	 
+		selFontItalic = {
+    		_get = function(){
+    			return owner._object.SelFontItalic;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontItalic(value);
+    		} 
+		};
+		selStrikeThrough = {
+    		_get = function(){
+    			return owner._object.SelStrikeThrough;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelStrikeThrough(value);
+    		} 
+		};
+		selFontUnderline = {
+    		_get = function(){
+    			return owner._object.SelFontUnderline;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSelFontUnderline(value);
+    		} 
+		};
+		execCommandSetFocus = {
+    		_get = function(){
+    			return owner._object.ExecCommandSetFocus;
+    		} 
+    		_set = function( value ){
+    			owner._object.setExecCommandSetFocus(value);
+    		} 
+		};
+		spellChecking = {
+    		_get = function(){
+    			return owner._object.SpellChecking;
+    		} 
+    		_set = function( value ){
+    			owner._object.setSpellChecking(value);
+    		} 
+		};
+		formatUsingInternalSelectionApi = {
+    		_get = function(){
+    			return owner._object.FormatUsingInternalSelectionAPI;
+    		} 
+    		_set = function( value ){
+    			owner._object.setFormatUsingInternalSelectionAPI(value);
+    		} 
+		};
+		dataSource = {
+    		_get = function(){
+    			return owner._object.DataSource;
+    		} 
+    		_set = function( value ){
+    			owner._object.setDataSource(value);
+    		} 
+		};
+		dataMember = {
+    		_get = function(){
+    			return owner._object.DataMember;
+    		} 
+    		_set = function( value ){
+    			owner._object.setDataMember(value);
+    		} 
+		};
+		dataField = {
+    		_get = function(){
+    			return owner._object.DataField;
+    		} 
+    		_set = function( value ){
+    			owner._object.setDataField(value);
+    		} 
+		};		
+		undoEnabled = {
+    		_get = function(){
+    			return owner._object.UndoEnabled;
+    		} 
+    		_set = function( value ){
+    			owner._object.setUndoEnabled(value);
+    		} 
+		};		
+		undoSize = {
+    		_get = function(){
+    			return owner._object.UndoSize;
+    		} 
+		};		
+		canUndo = {
+    		_get = function(){
+    			return owner._object.CanUndo;
+    		} 
+    		_set = function( value ){
+    			owner._object.setCanUndo(value);
+    		} 
+		};	
+		canRedo = {
+    		_get = function(){
+    			return owner._object.CanRedo;
+    		}
+		};	
+		redoSize = {
+    		_get = function(){
+    			return owner._object.RedoSize;
+    		} 
+		};
+		zoom = {
+    		_get = function(){
+    			return owner._object.Zoom;
+    		} 
+    		_set = function( value ){
+    			owner._object.Zoom = value;
+    		} 
+		};
+		hideInspector = function(enable){
+			return owner._object.HideInspector(enable);
+		};
+		enableHighDpiSupport = function(){
+			return owner._object.EnableHighDPISupport();
+		};
+		setAutoResize = function(enable){
+			return owner._object.SetAutoResize(enable);
+		};
+		printPdf = function(fileName,printerName){
+			return owner._object.PrintPDF(fileName,printerName);
+		};
+		setDownloadPath = function(id,path,fileName,Cancel){
+			return owner._object.SetDownloadPath(id,path,fileName,Cancel);
+		};
+		jsonToXml = function(json){
+			return owner._object.JSONtoXML(json);
+		};
+		execDevToolsCommand = function(method,params,blocking){
+			return owner._object.ExecDevToolsCommand(method,params,blocking);
+		};
+		httpStatus = {
+    		_get = function(){
+    			return owner._object.HTTPStatus;
+    		} 
+		};
+ 		httpRequest = function(url,payload,contentType,method){
+ 			if(!method){
+ 				method = payload? "POST" : "GET"
+ 			}
+			return owner._object.HTTP(ethod,url,contentType:"application/json",payload);
+		};
+		export = function(name,obj){
+			error("暂未实现",2);
+			
+			if(!obj){
+				owner._object.ReleaseObject(name)
+				this._cacheExportObjects[name] = null;
+				return;
+			}
+			
+			if(type(obj)!=type.table){ error("参数只能是对象",2) } 
+			if(!..com.IsObject(obj)){
+				obj = ..com.ImplInterface(obj);
+			}
+			
+			owner._object.AddObject(name,obj)
+			this._cacheExportObjects[name] = obj; 
+		}  
+		undoObserverEnabled = {
+    		_get = function(){
+    			return owner._object.UndoObserverEnabled;
+    		} 
+    		_set = function( value ){
+    			owner._object.setUndoObserverEnabled(value);
+    		} 
+		};
+		downloadScripts = {
+    		_get = function(){
+    			return owner._object.DownloadScripts;
+    		} 
+    		_set = function( value ){
+    			owner._object.setDownloadScripts(value);
+    		} 
+		};
+		onBrowserReady = {
+    		_get = function(){
+    			return owner[["OnBrowserReady"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnBrowserReady"]] = value;
+    		} 	
+    	};
+    	onLoadStart = {
+    		_get = function(){
+    			return owner[["OnLoadStart"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnLoadStart"]] = value;
+    		} 	
+    	};
+    	onLoadEnd = {
+    		_get = function(){
+    			return owner[["OnLoadEnd"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnLoadEnd"]] = value;
+    		} 	
+    	};
+    	onLoadError = {
+    		_get = function(){
+    			return owner[["OnLoadError"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnLoadError"]] = value;
+    		} 	
+    	};
+    	onLoadingStateChange = {
+    		_get = function(){
+    			return owner[["OnLoadingStateChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnLoadingStateChange"]] = value;
+    		} 	
+    	};
+    	onAddressChange = {
+    		_get = function(){
+    			return owner[["OnAddressChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnAddressChange"]] = value;
+    		} 	
+    	};
+    	onTitleChange = {
+    		_get = function(){
+    			return owner[["OnTitleChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnTitleChange"]] = value;
+    		} 	
+    	};
+    	onStatusChange = {
+    		_get = function(){
+    			return owner[["OnStatusChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnStatusChange"]] = value;
+    		} 	
+    	};
+    	onConsoleMessage = {
+    		_get = function(){
+    			return owner[["OnConsoleMessage"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnConsoleMessage"]] = value;
+    		} 	
+    	};
+    	onTooltip = {
+    		_get = function(){
+    			return owner[["OnTooltip"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnTooltip"]] = value;
+    		} 	
+    	};
+    	onFullscreenModeChange = {
+    		_get = function(){
+    			return owner[["OnFullscreenModeChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnFullscreenModeChange"]] = value;
+    		} 	
+    	};
+    	onEvent = {
+    		_get = function(){
+    			return owner[["OnEvent"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnEvent"]] = value;
+    		} 	
+    	};
+    	onDeselect = {
+    		_get = function(){
+    			return owner[["OnDeselect"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnDeselect"]] = value;
+    		} 	
+    	};
+    	onUndo = {
+    		_get = function(){
+    			return owner[["OnUndo"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnUndo"]] = value;
+    		} 	
+    	};
+    	onRedo = {
+    		_get = function(){
+    			return owner[["OnRedo"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnRedo"]] = value;
+    		} 	
+    	};
+    	onUndoSave = {
+    		_get = function(){
+    			return owner[["OnUndoSave"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnUndoSave"]] = value;
+    		} 	
+    	};
+    	onScriptResourceCancelled = {
+    		_get = function(){
+    			return owner[["OnScriptResourceCancelled"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnScriptResourceCancelled"]] = value;
+    		} 	
+    	};
+    	onContextMenu = {
+    		_get = function(){
+    			return owner[["OnContextMenu"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnContextMenu"]] = value;
+    		} 	
+    	};
+    	onComPostMessage = {
+    		_get = function(){
+    			return owner[["OnComPostMessage"]];
+    		}
+    		_set = function( value ){
+    			var this = owner;
+    			this[["OnComPostMessage"]] = function(param){
+    				this._form.setTimeout(
+    					function(){
+    						return invoke(value,this,param);
+    					},0
+    				);	
+    			}; 
+    		} 	
+    	};
+    	onBeforeNavigate = {
+    		_get = function(){
+    			return owner[["OnBeforeNavigate"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnBeforeNavigate"]] = value;
+    		} 	
+    	};
+    	onBeforeDownload   = {
+    		_get = function(){
+    			return owner[["OnBeforeDownload"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnBeforeDownload"]] = value;
+    		} 	
+    	};
+    	onDownloadUpdated  = {
+    		_get = function(){
+    			return owner[["OnDownloadUpdated"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnDownloadUpdated"]] = value;
+    		} 	
+    	};
+    	onPageLoadStart  = {
+    		_get = function(){
+    			return owner[["OnPageLoadStart"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnPageLoadStart"]] = value;
+    		} 	
+    	};
+    	onPageLoadEnd  = {
+    		_get = function(){
+    			return owner[["OnPageLoadEnd"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnPageLoadEnd"]] = value;
+    		} 	
+    	};
+    	onDocumentComplete  = {
+    		_get = function(){
+    			return owner[["OnPageComplete"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnPageComplete"]] = value;
+    		} 	
+    	};
+    	onWindowStatusChange  = {
+    		_get = function(){
+    			return owner[["OnWindowStatusChange"]];
+    		}
+    		_set = function( value ){
+    			owner[["OnWindowStatusChange"]] = value;
+    		} 	
+    	};
+	)  
+}   					 
+
+/*
+WebKitX试用版唯一的限制是会不定时的弹对话框，但是在功能上没有作任何限制
+为了方便测试代码，所以加了下面的API钩子暂时去除，正式使用前请移除这里的API钩子并购买WebKitX正版。
+*/
+import thread.apiHook;
+var createWindowExHookProc = function ( exstryle,cls,...) {
+    import win;
+  	var hwnd = owner.callApi( exstryle,cls,...)
+    if(..win.getClass(hwnd)=="CNotifyWnd") {
+    	..win.close(hwnd);
+    }
+	return hwnd;
+}
+
+createWindowExHook = thread.apiHook(
+    "User32.dll", "CreateWindowExW", "int(INT exStyle,ustring className,ptr windowName
+    		,INT style,int x,int y,int width,int height,addr hwndParent,addr hMenu
+    		,pointer hlnstance,ptr lpParam)",
+     createWindowExHookProc).install(); 
+
+/*
+about WebKitX;
+https://www.webkitx.com/
+
+CEF3 binaries
+http://opensource.spotify.com/cefbuilds/index.html#windows32_builds
+*/
+
+/***intellisense()
+web.cefx =  CEF3浏览器组件(Chromium内核)，基于WebKitX\n可自行替换CEF3,需要安装VC2017运行库、不支持XP系统
+web.cefx(.(winform,cefSettings) = 创建Chromium网页控件窗口\n可选在参数@2中用一个表指定默认onCreate事件中的cefSettings参数,\n可选增加任意个cef启动命令行参数
+web.cefx() = !webkitxcef.
+end intellisense**/
+
+/***intellisense(!webkitxcef)
+wait( = 等待页面加载完成
+wait(.(url,timeout) = 等待页面加载完成\n可选使用参数@1指定要等待的页面网址,支持模式匹配\n可选使用参数@2指定超时，以毫秒为单位
+waitBrowser() = 等待浏览器创建成功\n如果浏览器尚未创建则先调用create函数
+create() = 创建浏览器控件,会触发在这之前定义的onCreate事件\n调用显示窗口的show函数也会自动触发此事件
+activate(email,key) = 设置许可证
+go(__) = 打开网址,参数指定网址\n资源文件请使用 wsock.tcp.simpleHttpServer获取网址\n\n如果浏览器控件未准备就绪,\n此函数会自动创建浏览器窗口，并等待其准备就绪
+xcall(.("JS函数名",调用参数,是否异步) = 调用JS函数\nJS中调用 window.register(name, callback, this)注册允许被调用的函数
+loadScript(__) = 载入js脚本文件,参数指定网址
+doScript(__) =  执行JS脚本
+eval(__) = 运算JS表达式并返回值 
+edit() = 编辑
+preview() = 预览
+replaceText(.(find,replace,ignoreCase) = 查找替换
+tidyHTML(.(html,options) = 格式化HTML
+saveHTML(.(fileName) = 保存HTML到文件
+savePdf(.(fileName,landscape) = 保存HTML到文件,\n参数@2指定纵横比是否使用模向宽屏模式,该模式宽度会大一些,高度会小一些
+showDevTools(.(hwnd) = 打开网页调试工具,\n可选在参数中指定显示devtools的窗口句柄
+print() = 打印
+goBack() = 后退
+goForward() = 前进
+stop() =  停止
+refresh() = 刷新
+getPreference(.(name) = 获取CEF3参数\n[CEF3参数]( https://src.chromium.org/viewvc/chrome/trunk/src/chrome/common/pref_names.cc?view=markup )
+setPreference(.(name,value) = 修改CEF3参数\n调用这个函数会导致CEF3重新创建控件并浪费不必要的时间\n应当优先使用控件提供的属性修改设置
+deselect() = 取消选择
+selCollapseToEnd() =  选区起点移动到终点 
+selCollapseToStart() = 选区终点移动到起点
+selDelete() = 删除选区
+selEmpty() = 清空选区
+selAllChildren() = 选择所有子元素
+setSelection(.(offset,length) = 设置选区
+querySelectorEx("__/*CSS选择器*/") = 查询节点并返回节点对象，返回值为COM对象，\n这个函数返回的是原生JS对象，但不支持成员函数，\n此对象的成员字段智能提示仅供参考,\n实际字段可用 com.DumpTypeInfo 查看或参考webkitx文档以及MDN
+querySelector("__/*CSS选择器*/") = 查询节点\n注意输入任何CSS选择器都会返回节点对象\n必须调用valid函数才能检查节点是否存在
+waitQuerySelector("__/*CSS选择器*/") = 查询并等待节点\n可选在参数@2中指定超时
+waitQuerySelectorEx("__/*CSS选择器*/") = 查询并等待节点，返回值为COM对象，\n这个函数返回的是原生JS对象，但不支持成员函数，\n可选在参数@2中指定超时
+querySelector() = !webcefxelement.
+querySelectorEx() = !ele.
+waitQuerySelectorEx() = !ele.
+window = js中的window对象\n此对象的成员字段智能提示仅供参考,\n实际字段可用 com.DumpTypeInfo 查看或参考webkitx文档以及MDN\n!jsGlobal.
+document = js中的document对象\n此对象的成员字段智能提示仅供参考,\n实际字段可用 com.DumpTypeInfo 查看或参考webkitx文档以及MDN\ndocument.
+waitEle(.("ID或名称",,超时值) = 返回一个节点对象,除参数一以外,其他能数可选\n第三个参数指定超时值(单位为毫秒)\n参数@2必须为空
+getEle(.("ID或名称") = 返回一个节点对象
+waitEle() = !webcefxelement.
+getEle() = !webcefxelement.
+waitQuerySelector() = !webcefxelement.
+browserReady = 浏览器是否准备就绪
+modified = 内容是否已修改
+events = 指定允许触发的事件
+fireOnEventForAllEvents = 是否触发所有事件
+script = 使用eval以及json并模拟js中的window对象\n可用于获取或设置部分js变量值,或者调用部分JS函数\n!jsGlobal.
+html = @.html = /**\n<!doctype html>\n<html>\n<head>\n    <meta charset="utf-8">\n    <style type="text/css">\n    html,body{ height:100%; margin:0; } \n    </style>\n    <script type="text/javascript">\n    \n    function callback(a,b){\n        \n        //对aardio代码发送消息 cef3.onComPostMessage = function(params){}\n        window.postComMessage(123,456,"你好");\n        \n        return a+b\n    }\n    \n    //注册允许aardio中使用xcall调用的函数 cef3.xcall("test",12,2);\n    window.register("test", callback) \n   \n    //aardio调用：cef3.querySelectorEx("body").dispatchEvent("my_event")\n    window.onload = function(){\n        document.body.addEventListener("my_event",function(e){\n            alert( "my_event fired:" + JSON.stringify(e) );\n        });\n    }\n    </script>\n</head>\n<body></body>\n</html>\n**/
+url = 网址
+baseUrl = 默认基础网址
+location = 当前网址
+hwnd = 句柄
+hwndBrowser = 浏览器控件句柄
+activeElement = 激活元素,字符串值
+selAnchorElement = 选区锚点元素，字符串值
+selFocusElement = 选区焦点元素，字符串值
+selHTML = 选区HTML
+selFontName = 选区字体名
+selFontSize = 选区字体大小
+selFontColor = 选区字体颜色
+selFontBackColor = 选区文字背景色
+selText = 选区文本	
+selType = 选区类型
+selCollapsed = 选区折叠
+selFontBold = 选区粗体字
+selFontItalic = 选区斜体字
+selStrikeThrough = 选区字体加删除线
+selFontUnderline = 选区字体加下划线
+execCommandSetFocus = 命令执行后焦点是否恢复到浏览器控件
+spellChecking = 拼写检查
+formatUsingInternalSelectionApi = 使用CEF3内核提供的格式化API
+dataSource = 数据源，字符串值
+dataMember = 数据名，字符串值
+dataField = 数据字段	
+undoEnabled = 允许撤消
+undoSize = 撤消队列大小	
+canUndo = 当前是否可以撤消操作
+canRedo = 当前是否可以重做操作
+redoSize = 重做队列大小
+undoObserverEnabled = 允许撤消事件
+downloadScripts = 允许下载执行脚本
+hideInspector() = 隐藏检查选框
+enableHighDpiSupport() = 启用高DPI支持
+setAutoResize() = 允许自动调节页面大小
+printPdf(.(fileName,printerName) = 打印到PDF
+setDownloadPath(.(id,path,fileName,Cancel) = 设置下载路径，仅用于onBeforeDownload事件内部
+jsonToXml(.(json) = JSON转XML
+execDevToolsCommand(.(method,params,blocking) = 执行devtools指令\nhttps://chromedevtools.github.io/devtools-protocol/\nmethod参数为文本，params参数为JSON文本，blocking指定是否阻塞
+httpRequest(.(url,payload,contentType,method) = 发送HTTP请求，除url外所有参数可选\npayload可用于指定POST数据
+export(.(name,obj) = 导出aardio对象到javascript内，\n如果obj为null时在javascript中移除该对象
+onBrowserReady = @.onBrowserReady = function(){
+    __/*浏览器准备就绪触发*/
+}
+onLoadStart = @.onLoadStart = function(){
+    __/*加载开始触发*/
+}
+onLoadEnd = @.onLoadEnd = function(){
+    __/*加载完成触发*/
+}
+onLoadError = @.onLoadError = function(errorCode,errorMessage,failedUrl){
+    __/*载入出错触发*/
+}
+onLoadingStateChange = @.onLoadingStateChange = function(isLoading,canGoBack,canGoForward){
+    __/*载入状态变更触发*/
+}
+onAddressChange = @.onAddressChange = function(url){
+    __/*地址变更触发*/
+}
+onTitleChange = @.onTitleChange = function(title){
+    __/*标题变更触发*/
+}
+onStatusChange = @.onStatusChange = function(statusText){
+    __/*状态栏消息触发*/
+}
+onConsoleMessage = @.onConsoleMessage = function(consoleMessage,source,line){
+    __/*控制台消息触发*/
+}	
+onTooltip = @.onTooltip = function(tip){
+    __/*弹出提示触发*/
+}
+onFullscreenModeChange = @.onFullscreenModeChange = function(mode){
+    __/*全屏模式变更时触发*/
+}
+onEvent = @.onEvent = function(eventType,eventSelector,targetSelector,targetPath,jsonEventData){
+    __/*事件触发*/
+}
+onDeselect = @.onDeselect = function(){
+    __/*取消选区触发*/
+}				
+onUndo = @.onUndo = function(html){
+    __/*撤消操作触发*/
+}
+onRedo = @.onRedo = function(html){
+    __/*重做操作触发*/
+}				
+onUndoSave = @.onUndoSave = function(){
+    __/*撤消保存触发*/
+}
+onScriptResourceCancelled = @.onScriptResourceCancelled = function(url){
+    __/*脚本资源取消触发*/
+}
+onContextMenu = @.onContextMenu = function(){
+    __/*右键菜单弹出触发*/
+}	
+onComPostMessage = @.onComPostMessage = function(params){
+    __/*JS中调用postComPostMessage发送消息触发\n发送时的任意个数参数在这里被转换为字符串数组*/
+}			
+onCreate = @.onCreate = function(cefSettings,commandLineSwitches){
+    __/*浏览器控件创建后触发\n调用create函数或者显示窗口的show函数都会触发此事件\n注意不能在创建或显示窗口后再添加这个事件\n可选通过修改commandLineSwitches修改cef启动命令行参数*/
+	return commandLineSwitches;
+}
+onBeforeNavigate = @.onBeforeNavigate = function(id,browserId,frameId,frameName,isRedirect,resType,transitionType,method,referrer,url,newUrl,cancel){
+    if( url !="https://bbs.aardio.com/" ){
+    	return "https://bbs.aardio.com/",false
+    	__/*打开网址前触发\n可以通过返回值修改输出参数newUrl,cancel\n返回新网址时仍然会触发onBeforeNavigate\n所以这里有个坑要判断一下避免死循环*/
+    }
+}
+onBeforeDownload = @.onBeforeDownload = function(id,url,originalUrl,mimeType,fullPath,suggestedFileName,totalBytes,receivedBytes,percentComplete,currentSpeed,cancel){
+    __/*下载前触发,输出参数有3个,cancel返回true取消下载*/
+    return  fullPath,suggestedFileName,true
+}	
+onDownloadUpdated = @.onDownloadUpdated = function(id,url,originalUrl,mimeType,fullPath,suggestedFileName,totalBytes,receivedBytes,percentComplete,currentSpeed,cancel){
+    __/*下载进度更新后触发,返回true取消下载*/
+    return true;
+}
+onPageLoadStart = @.onPageLoadStart = function(frameId,frameName,url,transitionType){
+    __/*开始下载网页*/
+}
+onPageLoadEnd = @.onPageLoadStart = function(frameId,frameName,url,httpStatusCode){
+    __/*完成下载网页*/
+}
+onDocumentComplete = @.onDocumentComplete = function(url){
+    __/*网页所有内容以及下层框架页都已下载完成并完成解析准备就绪\n保证主窗口框架和所有子框架都具有document.readyState = complete*/
+}
+onWindowStatusChange = @.onWindowStatusChange = function(statusText){
+    __/*这是模仿IE状态栏状态文本变更的事件*/
+}			
+end intellisense***/
+  
+/**intellisense()
+cefSettings.accept_language_list = accept_language_list
+cefSettings.cache_path = cache_path
+cefSettings.framework_dir_path = framework_dir_path 
+cefSettings.javascript_flags = javascript_flags
+cefSettings.locale = locale
+cefSettings.locales_dir_path = locales_dir_path
+cefSettings.log_file = log_file
+cefSettings.resources_dir_path = resources_dir_path
+cefSettings.default_download_path = 默认下载地址
+cefSettings.user_agent = user_agent
+cefSettings.user_data_path = user_data_path
+cefSettings.command_line_args_disabled = command_line_args_disabled
+cefSettings.enable_net_security_expiration = enable_net_security_expiration
+cefSettings.ignore_certificate_errors = ignore_certificate_errors
+cefSettings.persist_session_cookies = persist_session_cookies
+cefSettings.persist_user_preferences = persist_user_preferences
+cefSettings.remote_debugging_port = remote_debugging_port
+cefSettings.uncaught_exception_stack_size = uncaught_exception_stack_size
+cefSettings.application_cache = application_cache
+cefSettings.cursive_font_family = cursive_font_family
+cefSettings.default_encoding = default_encoding
+cefSettings.fantasy_font_family = fantasy_font_family
+cefSettings.fixed_font_family = fixed_font_family
+cefSettings.sans_serif_font_family = sans_serif_font_family
+cefSettings.serif_font_family = serif_font_family
+cefSettings.standard_font_family = standard_font_family
+cefSettings.default_fixed_font_size = default_fixed_font_size
+cefSettings.default_font_size = default_font_size
+cefSettings.minimum_font_size = minimum_font_size
+cefSettings.minimum_logical_font_size = minimum_logical_font_size
+cefSettings.databases = atabases
+cefSettings.file_access_from_file_urls = file_access_from_file_urls
+cefSettings.image_loading = image_loading 
+cefSettings.image_shrink_standalone_to_fit = image_shrink_standalone_to_fit
+cefSettings.javascript = javascript
+cefSettings.javascript_access_clipboard = javascript_access_clipboard
+cefSettings.javascript_close_windows = javascript_close_windows
+cefSettings.javascript_dom_paste = javascript_dom_paste
+cefSettings.local_storage = local_storage
+cefSettings.plugins = plugins
+cefSettings.remote_fonts =  remote_fonts
+cefSettings.tab_to_links = tab_to_links
+cefSettings.text_area_resize = text_area_resize
+cefSettings.universal_access_from_file_urls = universal_access_from_file_urls
+cefSettings.web_security = web_security
+cefSettings.webgl = webgl
+
+_DOM_EVENT_KEY_UP=@0x80/*_DOM_EVENT_KEY_UP*/
+_DOM_EVENT_KEY_DOWN=@0x20/*_DOM_EVENT_KEY_DOWN*/
+_DOM_EVENT_SELECTION_CHANGE=@0x2000/*_DOM_EVENT_SELECTION_CHANGE*/
+_DOM_EVENT_EDITABLE_ELEMENT_CHANGED=@0x400000/*_DOM_EVENT_EDITABLE_ELEMENT_CHANGED*/
+_DOM_EVENT_PASTE=@0x400/*_DOM_EVENT_PASTE*/
+_DOM_EVENT_DOMNODEREMOVED=@0x20000/*_DOM_EVENT_DOMNODEREMOVED*/
+_DOM_EVENT_NONE=@0/*_DOM_EVENT_NONE*/
+_DOM_EVENT_COPY=@0x200/*_DOM_EVENT_COPY*/
+_DOM_EVENT_DOMNODEINSERTEDINTODOCUMENT=@0x40000/*_DOM_EVENT_DOMNODEINSERTEDINTODOCUMENT*/
+_DOM_EVENT_DOMCHARACTERDATAMODIFIED=@0x200000/*_DOM_EVENT_DOMCHARACTERDATAMODIFIED*/
+_DOM_EVENT_DOMFOCUSOUT=@0x8000/*_DOM_EVENT_DOMFOCUSOUT*/
+_DOM_EVENT_DOMNODEINSERTED=@0x10000/*_DOM_EVENT_DOMNODEINSERTED*/
+_DOM_EVENT_KEY_PRESS=@0x40/*_DOM_EVENT_KEY_PRESS*/
+_DOM_EVENT_MOUSE_UP=@0x10/*_DOM_EVENT_MOUSE_UP*/
+_DOM_EVENT_DOMFOCUSIN=@0x4000/*_DOM_EVENT_DOMFOCUSIN*/
+_DOM_EVENT_SELECT=@0x800/*_DOM_EVENT_SELECT*/
+_DOM_EVENT_CUT=@0x100/*_DOM_EVENT_CUT*/
+_DOM_EVENT_SELECTSTART=@0x1000/*_DOM_EVENT_SELECTSTART*/
+_DOM_EVENT_DBLCLICK=@2/*_DOM_EVENT_DBLCLICK*/
+_DOM_EVENT_CLICK=@1/*_DOM_EVENT_CLICK*/
+_DOM_EVENT_MOUSE_DOWN=@4/*_DOM_EVENT_MOUSE_DOWN*/
+_DOM_EVENT_MOUSE_MOVE=@8/*_DOM_EVENT_MOUSE_MOVE*/
+_DOM_EVENT_DOMNODEREMOVEDFROMDOCUMENT=@0x80000/*_DOM_EVENT_DOMNODEREMOVEDFROMDOCUMENT*/
+_DOM_EVENT_DOMSUBTREEMODIFIED=@0x100000/*_DOM_EVENT_DOMSUBTREEMODIFIED*/
+_DOM_NODE_TYPE_ELEMENT=@1/*_DOM_NODE_TYPE_ELEMENT*/
+_DOM_NODE_TYPE_DOCUMENT_TYPE=@8/*_DOM_NODE_TYPE_DOCUMENT_TYPE*/
+_DOM_NODE_TYPE_UNSUPPORTED=@0/*_DOM_NODE_TYPE_UNSUPPORTED*/
+_DOM_NODE_TYPE_COMMENT=@6/*_DOM_NODE_TYPE_COMMENT*/
+_DOM_NODE_TYPE_DOCUMENT_FRAGMENT=@9/*_DOM_NODE_TYPE_DOCUMENT_FRAGMENT*/
+_DOM_NODE_TYPE_ATTRIBUTE=@2/*_DOM_NODE_TYPE_ATTRIBUTE*/
+_DOM_NODE_TYPE_TEXT=@3/*_DOM_NODE_TYPE_TEXT*/
+_DOM_NODE_TYPE_PROCESSING_INSTRUCTIONS=@5/*_DOM_NODE_TYPE_PROCESSING_INSTRUCTIONS*/
+_DOM_NODE_TYPE_CDATA_SECTION=@4/*_DOM_NODE_TYPE_CDATA_SECTION*/
+_DOM_NODE_TYPE_DOCUMENT=@7/*_DOM_NODE_TYPE_DOCUMENT*//
+_DOM_NODE_TYPE_DOCUMENT_FRAGMENT=@9/*_DOM_NODE_TYPE_DOCUMENT_FTTRIBUTE=@2/*_DOM_NODE_TYPE_ATTRIBUTE*/
+_DOM_NODE_TYPE_TEXT=@3/*_DOM_NODE_TYPE_TEXT*/
+_DOM_NODE_TYPE_PROCESSING_INSTRUCTIONS=@5/*_DOM_NODE_TYPE_PROCESSING_INSTRUCTIONS*/
+_DOM_NODE_TYPE_CDATA_SECTION=@4/*_DOM_NODE_TYPE_CDATA_SECTION*
+_EDIT_CMD_SELECTALL=@0x24/*_EDIT_CMD_SELECTALL*/
+_EDIT_CMD_SUPERSCRIPT=@0x27/*_EDIT_CMD_SUPERSCRIPT*/
+_EDIT_CMD_SEL_COLLAPSE_TO_END=@0x4F/*_EDIT_CMD_SEL_COLLAPSE_TO_END*/
+_EDIT_CMD_SEL_COLLAPSE_TO_START=@0x50/*_EDIT_CMD_SEL_COLLAPSE_TO_START*/
+_EDIT_CMD_TABLE_SPLIT_VERT=@0x36/*_EDIT_CMD_TABLE_SPLIT_VERT*/
+_EDIT_CMD_SEL_GET_FONT_STYLE=@0x42/*_EDIT_CMD_SEL_GET_FONT_STYLE*/
+_EDIT_CMD_CREATELINK=@4/*_EDIT_CMD_CREATELINK*/
+_EDIT_CMD_TABLE_SPLIT_HORIZ=@0x35/*_EDIT_CMD_TABLE_SPLIT_HORIZ*/
+_EDIT_CMD_USECSS=@0x2C/*_EDIT_CMD_USECSS*/
+_EDIT_CMD_JUSTIFYLEFT=@0x1E/*_EDIT_CMD_JUSTIFYLEFT*/
+_EDIT_CMD_SEL_DELETE=@0x51/*_EDIT_CMD_SEL_DELETE*/
+_EDIT_CMD_UNSELECT=@0x2B/*_EDIT_CMD_UNSELECT*/
+_EDIT_CMD_TABLE_INSERT=@0x2E/*_EDIT_CMD_TABLE_INSERT*/
+_EDIT_CMD_SEL_EXTEND=@0x53/*_EDIT_CMD_SEL_EXTEND*/
+_EDIT_CMD_FORMATBLOCK=@0xD/*_EDIT_CMD_FORMATBLOCK*/
+_EDIT_CMD_CONTENTREADONLY=@2/*_EDIT_CMD_CONTENTREADONLY*/
+_EDIT_CMD_SEL_GET_TEXT=@0x3C/*_EDIT_CMD_SEL_GET_TEXT*/
+_EDIT_CMD_SEL_GET_FONT_BOLD=@0x43/*_EDIT_CMD_SEL_GET_FONT_BOLD*/
+_EDIT_CMD_UNDERLINE=@0x28/*_EDIT_CMD_UNDERLINE*/
+_EDIT_CMD_ITALIC=@0x1B/*_EDIT_CMD_ITALIC*/
+_EDIT_CMD_INSERTTEXT=@0x1A/*_EDIT_CMD_INSERTTEXT*/
+_EDIT_CMD_SEL_SET_FONT_COLOR=@0x49/*_EDIT_CMD_SEL_SET_FONT_COLOR*/
+_EDIT_CMD_INSERTHORIZONTALRULE=@0x14/*_EDIT_CMD_INSERTHORIZONTALRULE*/
+_EDIT_CMD_UNLINK=@0x2A/*_EDIT_CMD_UNLINK*/
+_EDIT_CMD_STRIKETHROUGH=@0x25/*_EDIT_CMD_STRIKETHROUGH*/
+_EDIT_CMD_SEL_GET_CONTAINS_NODE=@0x39/*_EDIT_CMD_SEL_GET_CONTAINS_NODE*/
+_EDIT_CMD_REMOVEFORMAT=@0x23/*_EDIT_CMD_REMOVEFORMAT*/
+_EDIT_CMD_SEL_GET_FONT_ITALIC=@0x44/*_EDIT_CMD_SEL_GET_FONT_ITALIC*/
+_EDIT_CMD_TABLE_REMOVE_ROW=@0x32/*_EDIT_CMD_TABLE_REMOVE_ROW*/
+_EDIT_CMD_SEL_GET_FONT_COLOR=@0x40/*_EDIT_CMD_SEL_GET_FONT_COLOR*/
+_EDIT_CMD_SEL_GET_TYPE=@0x37/*_EDIT_CMD_SEL_GET_TYPE*/
+_EDIT_CMD_ENABLEINLINETABLEEDITING=@8/*_EDIT_CMD_ENABLEINLINETABLEEDITING*/
+_EDIT_CMD_TABLE_MERGE=@0x34/*_EDIT_CMD_TABLE_MERGE*/
+_EDIT_CMD_SEL_SET_TEXT=@0x3D/*_EDIT_CMD_SEL_SET_TEXT*/
+_EDIT_CMD_INSERTHTML=@0x15/*_EDIT_CMD_INSERTHTML*/
+_EDIT_CMD_INSERTIMAGE=@0x16/*_EDIT_CMD_INSERTIMAGE*/
+_EDIT_CMD_SEL_GET_FONT_STRIKETHROUGH=@0x46/*_EDIT_CMD_SEL_GET_FONT_STRIKETHROUGH*/
+_EDIT_CMD_FORECOLOR=@0xC/*_EDIT_CMD_FORECOLOR*/
+_EDIT_CMD_INCREASEFONTSIZE=@0x11/*_EDIT_CMD_INCREASEFONTSIZE*/
+_EDIT_CMD_GET_URL=@0x55/*_EDIT_CMD_GET_URL*/
+_EDIT_CMD_SEL_EMPTY=@0x52/*_EDIT_CMD_SEL_EMPTY*/
+_EDIT_CMD_JUSTIFYFULL=@0x1D/*_EDIT_CMD_JUSTIFYFULL*/
+_EDIT_CMD_HILITECOLOR=@0x10/*_EDIT_CMD_HILITECOLOR*/
+_EDIT_CMD_UNDO=@0x29/*_EDIT_CMD_UNDO*/
+_EDIT_CMD_INSERTORDEREDLIST=@0x17/*_EDIT_CMD_INSERTORDEREDLIST*/
+_EDIT_CMD_SEL_ALL_CHILDREN=@0x54/*_EDIT_CMD_SEL_ALL_CHILDREN*/
+_EDIT_CMD_BACKCOLOR=@0/*_EDIT_CMD_BACKCOLOR*/
+_EDIT_CMD_SEL_GET_FONT_UNDERLINE=@0x45/*_EDIT_CMD_SEL_GET_FONT_UNDERLINE*/
+_EDIT_CMD_SEL_SET_FONT_BACK_COLOR=@0x4A/*_EDIT_CMD_SEL_SET_FONT_BACK_COLOR*/
+_EDIT_CMD_SEL_GET_COLLAPSED=@0x38/*_EDIT_CMD_SEL_GET_COLLAPSED*/
+_EDIT_CMD_SEL_GET_FONT_BACK_COLOR=@0x41/*_EDIT_CMD_SEL_GET_FONT_BACK_COLOR*/
+_EDIT_CMD_FORWARDDELETE=@0xE/*_EDIT_CMD_FORWARDDELETE*/
+_EDIT_CMD_BOLD=@1/*_EDIT_CMD_BOLD*/
+_EDIT_CMD_INSERTUNORDEREDLIST=@0x18/*_EDIT_CMD_INSERTUNORDEREDLIST*/
+_EDIT_CMD_STYLEWITHCSS=@0x2D/*_EDIT_CMD_STYLEWITHCSS*/
+_EDIT_CMD_SEL_SET_HTML=@0x3B/*_EDIT_CMD_SEL_SET_HTML*/
+_EDIT_CMD_COPY=@3/*_EDIT_CMD_COPY*/
+_EDIT_CMD_SUBSCRIPT=@0x26/*_EDIT_CMD_SUBSCRIPT*/
+_EDIT_CMD_CUT=@5/*_EDIT_CMD_CUT*/
+_EDIT_CMD_SEL_GET_FONT_SIZE=@0x3F/*_EDIT_CMD_SEL_GET_FONT_SIZE*/
+_EDIT_CMD_DELETE=@7/*_EDIT_CMD_DELETE*/
+_EDIT_CMD_JUSTIFYCENTER=@0x1C/*_EDIT_CMD_JUSTIFYCENTER*/
+_EDIT_CMD_PASTE=@0x21/*_EDIT_CMD_PASTE*/
+_EDIT_CMD_TABLE_REMOVE_COL=@0x33/*_EDIT_CMD_TABLE_REMOVE_COL*/
+_EDIT_CMD_ENABLEOBJECTRESIZING=@9/*_EDIT_CMD_ENABLEOBJECTRESIZING*/
+_EDIT_CMD_SEL_SET_FONT_ITALIC=@0x4C/*_EDIT_CMD_SEL_SET_FONT_ITALIC*/
+_EDIT_CMD_FONTSIZE=@0xB/*_EDIT_CMD_FONTSIZE*/
+_EDIT_CMD_HEADING=@0xF/*_EDIT_CMD_HEADING*/
+_EDIT_CMD_SEL_GET_FONT_NAME=@0x3E/*_EDIT_CMD_SEL_GET_FONT_NAME*/
+_EDIT_CMD_TABLE_INSERT_ROW=@0x30/*_EDIT_CMD_TABLE_INSERT_ROW*/
+_EDIT_CMD_FONTNAME=@0xA/*_EDIT_CMD_FONTNAME*/
+_EDIT_CMD_SEL_GET_HTML=@0x3A/*_EDIT_CMD_SEL_GET_HTML*/
+_EDIT_CMD_SEL_SET_FONT_NAME=@0x47/*_EDIT_CMD_SEL_SET_FONT_NAME*/
+_EDIT_CMD_INSERTPARAGRAPH=@0x19/*_EDIT_CMD_INSERTPARAGRAPH*/
+_EDIT_CMD_TABLE_INSERT_COL=@0x31/*_EDIT_CMD_TABLE_INSERT_COL*/
+_EDIT_CMD_SEL_SET_FONT_BOLD=@0x4B/*_EDIT_CMD_SEL_SET_FONT_BOLD*/
+_EDIT_CMD_SEL_SET_FONT_STRIKETHROUGH=@0x4E/*_EDIT_CMD_SEL_SET_FONT_STRIKETHROUGH*/
+_EDIT_CMD_REDO=@0x22/*_EDIT_CMD_REDO*/
+_EDIT_CMD_JUSTIFYRIGHT=@0x1F/*_EDIT_CMD_JUSTIFYRIGHT*/
+_EDIT_CMD_OUTDENT=@0x20/*_EDIT_CMD_OUTDENT*/
+_EDIT_CMD_INDENT=@0x12/*_EDIT_CMD_INDENT*/
+_EDIT_CMD_DECREASEFONTSIZE=@6/*_EDIT_CMD_DECREASEFONTSIZE*/
+_EDIT_CMD_SEL_SET_FONT_SIZE=@0x48/*_EDIT_CMD_SEL_SET_FONT_SIZE*/
+_EDIT_CMD_TABLE_DELETE=@0x2F/*_EDIT_CMD_TABLE_DELETE*/
+_EDIT_CMD_INSERTBRONRETURN=@0x13/*_EDIT_CMD_INSERTBRONRETURN*/
+_EDIT_CMD_SEL_SET_FONT_UNDERLINE=@0x4D/*_EDIT_CMD_SEL_SET_FONT_UNDERLINE*/
+end intellisense**/

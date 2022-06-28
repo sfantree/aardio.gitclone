@@ -1,0 +1,147 @@
+if(_ARGV.github){	
+	loadcodex("\forms\main\tools\github.aardio");
+	return;
+}
+elseif(_ARGV.updateTime){
+	import time.ntp;
+	time.ntp.updateSystemTime();
+	return;
+}
+
+import fonts.fontAwesome;
+import win.ui.atom;
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="win2ray";right=1019;bottom=679;bgcolor=15793151;border="none")
+mainForm.add(
+caption={cls="bkplus";text="win2ray 2.9.1";left=67;top=9;right=727;bottom=27;align="left";color=6052956;dl=1;dt=1;font=LOGFONT(h=-14);z=7};
+custom={cls="custom";left=83;top=40;right=1022;bottom=679;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;z=4};
+logo={cls="bkplus";text='\uF1D9';left=35;top=7;right=64;bottom=32;color=3054125;dl=1;dt=1;font=LOGFONT(h=-18;name='FontAwesome');z=6};
+navBar={cls="bkplus";left=0;top=37;right=83;bottom=681;bgcolor=3442175;db=1;dl=1;dt=1;z=1};
+navJsonConfig={cls="plus";text="配置";left=0;top=132;right=85;bottom=212;bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;border={color=-65536};color=16777215;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={font=LOGFONT(h=-37;name='FontAwesome');padding={bottom=20}};iconText='\uF0F6';notify=1;textPadding={bottom=10};valign="bottom";x=0.5;y=0.2;z=5};
+navStart={cls="plus";text="首页";left=0;top=48;right=85;bottom=128;bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;border={color=-65536};color=16777215;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={font=LOGFONT(h=-37;name='FontAwesome');padding={bottom=20}};iconText='\uF015';notify=1;textPadding={bottom=10};valign="bottom";x=0.5;y=0.2;z=3};
+navTools={cls="plus";text="工具";left=0;top=216;right=85;bottom=296;bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;border={color=-65536};color=16777215;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={font=LOGFONT(h=-37;name='FontAwesome');padding={bottom=20}};iconText='\uF0AD';notify=1;textPadding={bottom=10};valign="bottom";x=0.5;y=0.2;z=8};
+titleBar={cls="bkplus";left=0;top=0;right=1022;bottom=38;bgcolor=8036607;dl=1;dr=1;dt=1;forecolor=16777215;linearGradient=180;z=2}
+)
+/*}}*/
+
+var atom,hwnd = mainForm.atom("DFA5667E-1D8C-49C0-8918-C6FEC2DECCF8");
+if(!atom){
+	win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+
+import v2ray.core;
+if(!v2ray.core.getPath()) {
+	mainForm.close();
+	return;
+}
+
+import win.ui.simpleWindow;
+win.ui.simpleWindow( mainForm );
+
+import win.dlg.message;
+win.dlg.message.install();
+
+import win.ui.tabs;
+var tbs = win.ui.tabs( 
+	mainForm.navStart,
+	mainForm.navJsonConfig,
+	mainForm.navTools
+);
+
+tbs.skin({
+	background={
+		active=0xFFFFFFFF;
+		default=0x00FFFFFF;
+		hover=0x38FFFFFF
+	};
+	color={
+		default=0xFFFFFFFF; 
+	};
+	checked={
+		background={default=0xFFFFFFFF;};
+		color={default=0xff86a543;};
+	}
+})
+
+tbs.loadForm(1,"\forms\main\v2ray.aardio" );
+tbs.loadForm(2,"\forms\main\config\jsonConfig.aardio" );
+tbs.loadForm(3,"\forms\main\tools\tools.aardio");
+
+tbs.selIndex = 1;
+
+import win.util.tray;
+mainForm.onMinimize = function(lParam){
+	mainForm.tray = win.util.tray(mainForm)
+	mainForm.show(false); 
+	return true; 
+}
+
+import inet.conn;
+mainForm.onDestroy = function(){
+	mainForm.tray.delete(); 
+	inet.conn.setProxy();
+}
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+	mainForm.onMinimize();
+	return true; 
+}
+
+import win.ui.menu;
+mainForm.wndproc = {
+	[0xACCF/*_WM_TRAYMESSAGE*/ ] = function(hwnd,message,wParam,lParam){
+		if( lParam = 0x205/*_WM_RBUTTONUP*/ ){
+			win.setForeground(mainForm.hwnd)
+			mainForm.popmenu = win.ui.popmenu(mainForm);
+			mainForm.popmenu.add('自动切换到最快的服务器',function(id){ 
+				publish("v2ray.core.reload",)
+			});
+			mainForm.popmenu.add();
+			
+			import inet.conn;
+			import v2ray.core;
+			var id = mainForm.popmenu.add('使用PAC自动代理',function(id){ 
+				config.proxy.mode = "pac";
+				inet.conn.setProxyAutoConfig(,v2ray.core.getPacUrl() );
+				publish("config.proxy.mode.changed");	
+			});
+			mainForm.popmenu.check(id,config.proxy.mode=="pac",0/*_MF_BYCOMMAND*/);
+			
+			var id = mainForm.popmenu.add('使用全局代理',function(id){ 
+				config.proxy.mode = "proxy";
+				inet.conn.setProxy(,"SOCKS=127.0.0.1:"+v2ray.core.getPort());
+				publish("config.proxy.mode.changed");	
+			});
+			mainForm.popmenu.check(id,config.proxy.mode=="proxy",0/*_MF_BYCOMMAND*/);
+			
+			var id = mainForm.popmenu.add('不使用代理',function(id){ 
+				config.proxy.mode = "direct";
+				inet.conn.setProxy();
+				publish("config.proxy.mode.changed");
+			});
+			mainForm.popmenu.check(id,config.proxy.mode=="direct",0/*_MF_BYCOMMAND*/);
+			mainForm.popmenu.add();
+			
+			mainForm.popmenu.add('退出',function(id){ 
+				mainForm.onClose = null;
+				mainForm.close()
+			});
+		
+			var pt = ::POINT();
+			::User32.GetCursorPos(pt);
+			mainForm.popmenu.popup(pt.x,pt.y,true)
+		}
+		elseif( lParam = 0x203/*_WM_LBUTTONDBLCLK*/) {
+			mainForm.show();
+			win.setForeground(mainForm.hwnd);
+		} 	
+	}
+}
+
+mainForm.enableDpiScaling();
+
+mainForm.show();
+return win.loopMessage(); 

@@ -1,0 +1,301 @@
+//combobox 下拉框
+import win.ui.ctrl.edit;
+import win.ui.ctrl.listbox;
+import win.ui.ctrl.metaProperty;
+namespace win.ui.ctrl;  
+
+class combobox{
+    ctor(parent,tParam){
+       if(tParam) {
+       		if( (!tParam.mode) || ( tParam.mode == "dropdown" ) ){
+       			tParam.bottom += 100;
+				tParam.style |= 0x2/*_CBS_DROPDOWN*/
+				this.onCreated = function(){
+					this._hwndEdit = ..win.findEx(this.hwnd,0,"Edit");
+					::SendMessageInt(owner.hwnd, 0x14E/*_CB_SETCURSEL*/,0,0);
+				};
+				this._adjust = function( cx,cy,wParam ) {
+					if( owner._hwndEdit != ..win.getFocus() ) ::SendMessageInt(owner._hwndEdit,0xB1/*_EM_SETSEL*/,-1 ,-1);
+				}
+       		}
+       		elseif( tParam.mode == "dropdownlist" ) {
+				tParam.bottom += 100;
+				tParam.style |= 0x3/*_CBS_DROPDOWNLIST*/
+			}
+			elseif( tParam.mode == "simple" ){
+				tParam.style |= 0x1/*_CBS_SIMPLE*/              
+			} 	 
+			
+			 if(tParam.ownerDraw) {
+			 	tParam.style |= 0x220/*_CBS_OWNERDRAWVARIABLE | _CBS_HASSTRINGS*/;
+			 }; 
+			 
+	        if(tParam.edge) tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/; 
+	        
+	        if( tParam.hscroll )
+	        	tParam.style |= 0x40/*_CBS_AUTOHSCROLL*/;
+	        	
+	        this._commandFuncnames = {
+	        	[1/*_CBN_SELENDOK*/]="onOk";
+	        	[0xA/*_CBN_SELENDCANCEL*/]="onCancel";
+	        	[5/*_CBN_EDITCHANGE*/]="onEditChange";
+	        	[9/*_CBN_SELCHANGE*/]="onListChange";
+	        	[7/*_CBN_DROPDOWN*/]="onDropDown";
+	        }
+       } 
+    };
+	@_metaProperty
+} 
+ 
+combobox._metaProperty = metaProperty(
+	info = function(){
+		var info = {
+  			INT cbSize = 52;
+  			struct rcItem = ::RECT();
+  			struct rcButton = ::RECT();
+  			INT stateButton;
+  			addr hwndCombo;
+  			addr hwndItem;
+  			addr hwndList;
+		} 
+		if( ::User32.SendMessage(owner.hwnd,0x0164/*CB_GETCOMBOBOXINFO*/,null, info) ){
+			return info;
+		}
+	};
+	listBox = {
+		_get = function(){ 
+			if( owner.__listbox__  ) return owner.__listbox__; 
+			var hwndList = owner.info()[["hwndList"]]
+			if(hwndList){
+				owner.__listbox__ = ..win.ui.ctrl.listbox();
+				owner.__listbox__.hwnd = hwndList;
+				return owner.__listbox__;	
+			} 
+		}
+	};
+	editBox = {
+		_get = function(){
+			if(!owner._hwndEdit) return;
+			if( owner.__editbox__  ) return owner.__editbox__; 
+			owner.__editbox__ = ..win.ui.ctrl.edit();
+			owner.__editbox__.hwnd = owner._hwndEdit;
+			return owner.__editbox__;
+		}
+	};
+	setCueBannerText = function(s,f){
+		owner.selIndex = null;
+		if(owner.editBox) owner.editBox.setCueBannerText(s,f);
+	};
+	dir = function(path,flag){
+		return ::User32.SendMessage(owner.hwnd, 0x145/*_CB_DIR*/,flag:0,..io.fullpath(path:"/*"))  
+	};
+	count = {
+		_get = function(){ 
+			return ::SendMessage(owner.hwnd, 0x146/*_CB_GETCOUNT*/, null,null) 
+		} 	
+	};
+	limit = { 
+		_set = function( v ){ 
+     		::SendMessageInt(owner[["hwnd"]], 0x141/*_CB_LIMITTEXT*/, v , 0)
+		} 	
+	};
+	selIndex = {
+		_get = function(){ 
+			return ::SendMessage(owner.hwnd, 0x147/*_CB_GETCURSEL*/) + 1;
+		}
+		_set = function( v ){
+		 	::User32.SendMessage(owner.hwnd, 0x14E/*_CB_SETCURSEL*/,(v:0)-1,0)  
+	    }
+	}; 
+	selText = {
+		_get = function(){ 
+			var sel =  ::SendMessage(owner.hwnd, 0x147/*_CB_GETCURSEL*/ )
+     		var len = ::SendMessage(owner.hwnd, 0x149/*_CB_GETLBTEXTLEN*/, topointer(sel)); 
+     		var re ,text = ::SendMessageByStr(owner.hwnd, 0x148/*_CB_GETLBTEXT*/,sel,len+1);
+     		return text:"";
+		} 
+		_set = function(v){
+			var ind = ::User32.SendMessage(owner.hwnd , 0x158/*_CB_FINDSTRINGEXACT*/, , v ) ;
+			if( ind != -1){
+				::SendMessageInt(owner.hwnd, 0x14E/*_CB_SETCURSEL*/,ind,0);
+			} 
+		}
+	};  
+	add = function( str ){
+        ::User32.SendMessage(owner.hwnd  , 0x143/*_CB_ADDSTRING*/, ,str)
+    }; 
+    insert = function( str,i){
+    	if( i ? i>0 ) i--;
+        ::User32.SendMessage(owner.hwnd  , 0x14A/*_CB_INSERTSTRING*/,i,str)
+    };
+    clear = function(){
+       ::SendMessage(owner.hwnd , 0x14B/*_CB_RESETCONTENT*/ )
+    };
+    delete = function(ind){
+       if(!ind) ind=owner.selIndex;
+       ::User32.SendMessage(owner.hwnd , 0x144/*_CB_DELETESTRING*/,ind-1,0)
+    };
+    find = function(v){
+    	var ind = ::User32.SendMessage(owner.hwnd ,  0x14C/*_CB_FINDSTRING*/,  ,v);  
+    	return ind!=-1/*_CB_ERR*/?ind+1:0 
+    };  
+	findEx = function( str ){
+		var ind = ::User32.SendMessage(owner.hwnd , 0x158/*_CB_FINDSTRINGEXACT*/, , str ) ;
+		return ind!=-1/*_CB_ERR*/?ind+1:0
+	};
+	selectString = function(v,indexStart){
+		::User32.SendMessage(owner.hwnd, 0x14D/*_CB_SELECTSTRING*/,(indexStart:0)-1,v);
+	}; 
+	showDropDown = function(d){ 
+		::SendMessageInt(owner.hwnd, 0x14F/*_CB_SHOWDROPDOWN*/,(d||d===null)?1:0,0);
+	};
+	autoComplete = function(items,selIndex){
+        if(!owner.editBox) error("此函数仅适用于dropdown模式",2);
+        if(!#items) {
+            owner.listBox.items = {};
+            owner.showDropDown(false); 
+        	return;
+        }
+        
+    	var s = owner.editBox.text;
+		owner.listBox.items = items;
+		owner.listBox.selIndex = (selIndex:1);
+		
+		var this = owner;
+    	this.setTimeout(
+        	function(){
+        		this.showDropDown(); 
+        		this.editBox.text = s; 
+            	this.editBox.setFocus();
+        	}
+    	)  	
+	};
+	items = {
+		_get = function(){ 
+			var count = ::SendMessage(owner.hwnd, 0x146/*_CB_GETCOUNT*/);
+			var tab = {};
+			for(i=0;count-1;1){ 
+				var len = ::SendMessageInt(owner.hwnd, 0x149/*_CB_GETLBTEXTLEN*/, i,0) ;  
+				var ret,text  =  ::SendMessageByStr(owner.hwnd , 0x148/*_CB_GETLBTEXT*/,i,len+1);
+
+               	..table.push(tab,text)
+            }
+            
+			return tab;
+		}
+		_set = function( v ){  
+			::SendMessage(owner.hwnd , 0x14B/*_CB_RESETCONTENT*/ );
+			::SendMessageInt(owner.hwnd, 0x14F/*_CB_SHOWDROPDOWN*/,0,0);
+			
+			if( type(v) == "table" ) { 
+				var hwnd = owner.hwnd;
+				for( i=1;#(v) ){
+					::User32.SendMessage(hwnd,0x143/*_CB_ADDSTRING*/,,tostring(v[i]));  
+				} 
+			} 		
+		} 	
+	}
+)
+
+/***intellisense(!combobox)
+editBox = 返回下拉控件编辑框\n!edit.
+listBox = 返回下拉控件列表框\n!listbox.
+showDropDown(.(true) = 显示下拉列表\n参数为false隐藏下拉列表
+autoComplete( = 用于onEditChange事件内部显示自动完成列表\n此函数会在显示列表后保持输入文本与光标不变\n仅适用于dropdown模式
+autoComplete(.(items,selIndex) = @items参数使用一个字符串数组指定要显示的列表项，\n@selIndex指定选项索引,不指定时默认为1
+setCueBannerText(.("提示文本") = 指定文本框文本为空时的显示的默认提示文本,\n此函数会取消当前选中项,\nXP系统不支持此函数、但调用不报错
+info() = 返回COMBOBOXINFO结构体,\n关于此结构体请查阅MSDN
+dir(.("目录路径",_DDL_->->->) = 类似dir命令,列出指定目录下匹配的文件,支持通配符\n参数@2可指定选项,默认为 _DDL_READWRITE
+cls = 设计时类名
+className = 运行时类名
+find(__/*请输入文本*/) = 查找列表项
+findEx(__/*请输入文本*/) = 精确查找指定的项\n找不到返回0 
+items = 获取或设置组合框列表，属性值为字符串数组，\n\n仅在属性面板设置初始化items属性时初始化selIndex为1，\n代码中动态修改items后请自行指定selIndex，\n\n如果自动指定了你不想要的selIndex，这会增加不必要的重绘。
+limit = 只写属性,修改最大允许输入的文本长度,\n如果设为0,则设定为默认长度0x7FFFFFFE,\n必须在控件初始化属性中启用横向滚动条,该属性才能生效
+selText = 读取或设置组合框当前选中文本\n在onOk事件回调中获取最新值应当使用selText而不是text属性	
+text = 组合框当前输入文本\n在onOk事件回调中获取最新值应当使用selText而不是text属性	
+count = 列表项数目
+selIndex = 获取或指定当前选中的项索引,属性值为数值,\n设为null取消选项
+selText = 获取或指定当前选中的文本,精确匹配
+selectString(.("文本前缀",开始索引) = 按文本前缀查找并选中项目,\n自开始索引后面开始查找,默认值为0也就是开始处搜索
+add(.("文本") = 添加到组合框,\n支持0x100/*_CBS_SORT*/排序
+insert(.("文本",插入位置) = 默认添加到开始处,\n-1表示添加到尾部\n不支持0x100/*_CBS_SORT*/排序
+clear() = 清除组合框所有内容
+delete() = 删除当前选中项
+hwnd = 控件句柄
+id = 控件ID
+_parentForm = 控件所在的父窗口(指win.form对象)\n!winform.
+getParent() = 返回父窗口\n!static.
+setParent(__/*控件对象*/) = 改变父窗口 
+hide = 控件是否隐藏
+disabled = 是否禁用
+left = 左侧坐标
+right = 右侧坐标
+top = 顶部坐标
+bottom = 底部坐标
+width = 宽度
+height = 高度
+redraw() = 刷新
+show(true__) = 显示控件
+getRect() = 控件区块位置(::RECT结构体)
+getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+setRect(rc) = 设置控件区块位置(::RECT结构体)  
+setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)
+getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+setFont(混入字体属性) = @.setFont(point=10;name="宋体"); 
+theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+capture = 是否捕获全局鼠标消息
+close() = 关闭控件窗口
+invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+update() = 重绘invalidate函数指定的区块
+setFocus() = 设置焦点 
+tabNext(.(移动焦点,是否反向) = 获取下一个支持tab控制焦点的控件\n参数@1为true会自动移动焦点到该控件\n参数@2为true则获取上一个控件,否则获取下一个控件
+tabNext() = !static.
+setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+threadCallable() = 开启此控件的跨线程调用功能
+orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效\n此控件不建议指定参数
+sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+_defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+oncommand(id,event) = @.oncommand= function(id,event){
+    var text = owner.selText;
+	__/*响应事件，event比较常用的值：\n_CBN_SELCHANGE表示正在改变当前项,但下拉框还没有关闭\n_CBN_SELENDOK表示已改变选项且下拉框即将关闭\n注意事件中要用selText属性取新的值*/
+}
+onOk() = @.onOk= function(){ 
+	__/*响应事件，已改变选项,\n注意事件中要用selText属性取新的值\n使用代码修改selIndex是不会触发*/
+}
+onCancel() = @.onCancel= function(){ 
+	__/*响应事件，用户未确认选项且且下拉框即将关闭\n例如用户点击其他控件关闭下拉列表或直接关闭窗口*/
+}
+onListChange() = @.onListChange= function(){ 
+	__/*响应事件，已改变选项,\n注意事件中要用selText属性取新的值\n使用代码修改selIndex是不会触发*/
+}
+onEditChange() = @.onEditChange= function(){ 
+	__/*响应事件，输入框中的文本已变更,\n只有用户输入时才会触发,\n切换选项或使用代码修改text属性不会触发\n注意使用text属性取最新值*/
+}
+onDropDown() = @.onDropDown= function(){ 
+	__/*弹出下拉列表前触发此事件*/
+}  
+end intellisense***/
+
+/**intellisense()
+?win.ui.ctrl.combobox  = !combobox.
+win.ui.ctrl.combobox() = 下拉框控件\n!combobox.
+
+_CBN_CLOSEUP=@8/*_CBN_CLOSEUP*/
+_CBN_DBLCLK=@2/*_CBN_DBLCLK*/
+_CBN_DROPDOWN=@7/*_CBN_DROPDOWN*/
+_CBN_EDITCHANGE=@5/*_CBN_EDITCHANGE*/
+_CBN_EDITUPDATE=@6/*_CBN_EDITUPDATE*/
+_CBN_KILLFOCUS=@4/*_CBN_KILLFOCUS*/
+_CBN_SELCHANGE=@1/*_CBN_SELCHANGE*/
+_CBN_SELENDCANCEL=@0xA/*_CBN_SELENDCANCEL*/
+_CBN_SELENDOK=@9/*_CBN_SELENDOK*/
+_CBN_SETFOCUS=@3/*_CBN_SETFOCUS*/
+end intellisense**/

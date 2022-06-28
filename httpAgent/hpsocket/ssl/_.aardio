@@ -1,0 +1,14 @@
+﻿
+namespace hpsocket.ssl;
+
+
+if(!::HPSocket)
+	::HPSocket = ..raw.loadDll("~\lib\hpsocket\ssl\.dll\HPSocket4C-SSL_U.dll")
+
+removeThreadLocalState = function(threadId){
+	::HPSocket.HP_SSL_RemoveThreadLocalState(threadId);
+}
+
+/**intellisense(hpsocket.ssl) 
+removeThreadLocalState(.(线程ID) = 清理线程SSL环境\n不需要调用此函数
+end intellisense**/

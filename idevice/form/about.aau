@@ -1,0 +1,23 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="aardio form";right=449;bottom=185;border="none";parent=...)
+winform.add()
+/*}}*/
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.windowSizer;
+import web.layout.behavior.about.link;
+ 
+var wbLayout = web.layout( winform )
+wbLayout.go("/res/about.html") ;
+import win.ui.shadow;
+win.ui.shadow(winform);
+winform.show() 
+return winform;

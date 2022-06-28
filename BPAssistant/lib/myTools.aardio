@@ -1,0 +1,104 @@
+﻿
+namespace myTools{
+	
+	//搜索定位到指定稿号的稿件
+	findGJ = function(num,查询稿件句柄){
+		
+		plusClick(查询稿件句柄,71,18,"稿件查询");
+		
+		查询主窗口句柄 = ..winex.find("TfmGaoJianCXnew","稿件查询" );
+		选项控件句柄 = ..winex.findEx(查询主窗口句柄,1,"TDBEdit" );
+		选项文本 = ..winex.getText(选项控件句柄);
+		if(选项文本 != "稿号"){
+			..winex.setText(选项控件句柄,"稿号");
+			..key.send("1301000")
+			..key.press("ENTER")
+			..key.press("ENTER")
+			plusClick(查询稿件句柄,71,18,"稿件查询");
+		}
+		..winex.waitActive( "稿件查询",,"TfmGaoJianCXnew","TPanel" )
+		..key.send(num)
+		..key.press("ENTER")
+		..key.press("ENTER")
+		..win.delay(1000)
+		//等待稿件列表出现
+		//..winex.findExists( "Cleaner！ ",,"TMainform","TdxDBGrid" )
+		..winex.findExists( "★实用医学杂志★ ",,"TMainform","TdxDBGrid" )
+		
+	}
+	
+	//自动提交、发送增刊通知
+	autoPost = function(提交句柄,user){
+	
+		..win.delay(1000)
+		plusClick(提交句柄,306,27,"稿件阶段处理");
+					
+		//等待“稿件阶段处理”的窗口创建及激活
+		//..winex.waitActive( "稿件阶段处理",,"TfmSongShen","TPageControl" )
+
+		select(user) {
+			case "陈兵" {
+				
+			}
+			case "黄月薪" {
+				for(i=1;8;1){..key.press("DOWN")}
+			}
+			case "杜冠辉" {
+				for(i=1;3;1){..key.press("DOWN")}
+			}
+		}
+    	//点击“右向”箭头
+		..mouse.click(653,328,true)
+		..win.delay(500);
+		
+		
+		//点击“提交”按钮
+		..mouse.click(888,845,true)
+
+	}
+	
+	//发送邮件
+	sendMail= function(){
+	
+		//等待发送邮件的窗口创建及激活
+		..winex.waitActive( "发送邮件",,"TFmEmailDialog","TPanel" )
+		
+		//删除附件
+		..mouse.click(434,727,true)
+		..win.delay(500);
+		..mouse.rb.click(434,727,true)
+		..win.delay(300);
+		..key.press("z");  
+		
+		//点击“发送”，发送邮件
+		..mouse.click(329,284,true)
+		
+		//查找确定按钮并激活
+		..winex.findActivate( "科技类杂志社稿件采编系统","OK","TMessageForm","TButton")
+		
+		//等待确定按钮出现并点击
+		..winex.waitActive( "科技类杂志社稿件采编系统","OK","TMessageForm","TButton" )
+		..mouse.click(639,538,true)
+		..win.delay(1000)
+	}
+	
+	//增强点击函数
+	plusClick = function(待点击的控件句柄,x,y,期待出现的窗口特征){
+		do{
+			 ..winex.mouse.click(待点击的控件句柄,x,y)
+			..win.delay(500)
+			..winex.findActivate( 期待出现的窗口特征 )
+			//..win.delay(500)
+			//..winex.findActivate( 期待出现的窗口特征 )
+			//..win.delay(500)
+			hwnd = ..winex.findActivate( 期待出现的窗口特征 )
+			
+		}while(!hwnd)
+	}
+}
+
+
+/**intellisense(myTools)
+findGJ(.(篇数，查询稿件句柄) = 查询指定稿号的稿件
+autoPost(.(提交句柄) = 自动提交稿件阶段并发送通知
+end intellisense**/

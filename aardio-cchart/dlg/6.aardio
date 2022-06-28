@@ -1,0 +1,71 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="动起来";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+button2={cls="button";text="暂停";left=134;top=440;right=253;bottom=470;db=1;dl=1;z=3};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+SetGridLine = dll.api("?SetGridLine@Classless@@YAX_N000H@Z", "void(bool,bool,bool,bool,int)");
+SetBkgndColor = dll.api("?SetBkgndColor@Classless@@YAXKH@Z", "void(INT,int)");
+
+//
+AddPoint2D = dll.api("?AddPoint2D@Classless@@YAHNNHH@Z", "int(double,double,int,int)");
+
+
+CreateChart();
+Attach(winform.static.hwnd,0);//kTypeXY=0 折线图
+
+//设置显示网格
+SetGridLine(true,true,true,true,0);
+//设置背景色
+SetBkgndColor(0xFFE6C2,0);
+ReDraw();
+
+var timeid;
+var index = 0;
+winform.button.oncommand = function(id,event){
+    //开定时器
+	timeid = winform.setInterval(
+	300,function(){
+		AddPoint2D(index, math.random(0,50) ,0,0);
+		ReDraw();
+		index++;
+	}
+);
+}
+winform.button2.oncommand = function(id,event){
+    if(timeid){
+        //暂停定时器
+    	winform.changeInterval(timeid,-1);	
+    }
+	
+}
+
+//防止闪烁
+winform.static.onEraseBkgnd  = function(hwnd,message,wParam,lParam){
+    return 0;//禁止擦除背景
+};
+
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    Detach(winform.static.hwnd);
+    DestroyChart();
+}
+
+
+
+winform.show();
+win.loopMessage();
+return winform;

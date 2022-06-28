@@ -1,0 +1,32 @@
+﻿import hpsocket.ssl;
+import hpsocket.socket.tcpPullClient;
+import hpsocket.listen.client;
+
+namespace hpsocket.ssl;
+
+class tcpPullClient{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_TcpPullClientListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_SSLPullClient(pListener) );
+			this = ..hpsocket.listen.client(pListener,"ssl.tcpPullClient"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.tcpPullClient(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_SSLPullClient(this.pSocket);
+			::HPSocket.Destroy_HP_TcpPullClientListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}	
+}
+
+/**intellisense()
+hpsocket.ssl.tcpPullClient() = 创建 TCP Pull 客户端\n!hpTcpPullClient.
+end intellisense**/

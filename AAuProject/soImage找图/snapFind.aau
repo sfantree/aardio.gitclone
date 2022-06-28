@@ -1,0 +1,14 @@
+import mouse;
+import soImage;
+
+var img = soImage(); //创建图像
+img.fromClipBD(); //获取剪贴板图像
+
+var imgScreen = soImage();//创建图像 
+imgScreen.capture(); //抓屏
+
+相似度,x,y = img.findImage(imgScreen) //返回值x,y 为找到的坐标 
+if( 相似度 ){
+    //相似度，为0到100之间的值，100为完全相似,0为完全不相似
+    mouse.moveTo(x,y,true);
+}

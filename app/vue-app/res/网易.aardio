@@ -1,0 +1,194 @@
+import win.ui;
+/*DSG{{*/
+winform = win.form(text="aardio工程25";right=759;bottom=469;border="none";mode="popup")
+winform.add()
+/*}}*/
+
+import console;
+import web.json;
+import process;
+import web.script;
+import inet.whttp;
+import web.blink.form;
+var wb = web.blink.form(winform);
+wb.go("/html/course.html");
+
+
+var whttp = inet.whttp();
+
+// 正则
+var fields= {"chapterId";"description";"duration";"id";"videoTime"}
+var reg =  "s\d+.###=(.*?);.*?";
+var regex="";
+for i=1;#fields{
+	regex += string.replace(reg,"###",fields[i]);
+}
+console.log(regex)
+
+// 列表抓取 
+//var html = string.load("C:\Users\tm01510\Desktop\zzzzz.txt");
+
+// 列表解析
+function dealLessonList(html){
+	html = string.replace(html,"\\","%")
+	html = web.script().Run("unescape",html);
+	var rlt = string.matches(html,regex);
+	console.log("size",#rlt);
+	var lessonList = {};
+	for i=1; #rlt{
+		var o = rlt[i];
+		var lesson = {id=o[4];name=string.sub(o[2],2,#(o[2])-1);time=tonumber(o[5]);}
+		console.log(i,o[2],o[4])
+		table.push(lessonList,lesson);
+	}
+	return lessonList;
+}
+
+//console.dump(courseList)
+
+// 课程ID
+var courseId = "";
+// 一节课程
+var lessonId = "";
+
+function getHtml(url, data){
+	var html,err = whttp.post(url, data);
+	if(err){
+		console.log(err)
+	}
+	return html,err;
+}
+// 获取课程列表
+function getLessonList(courseId){
+	var url ="https://study.163.com/dwr/call/plaincall/PlanNewBean.getPlanCourseDetail.dwr?1556252309400";
+	var postData = buildPostData("PlanNewBean","getPlanCourseDetail",courseId, 0);
+	postData["c0-param2"]="null:null";
+	var html,err = getHtml(url, postData);
+	// 解析
+	return dealLessonList(html);
+}
+
+// 获取一节课的信息
+function getLessonVideoInfo(courseId,lessonId){
+	var url ="https://study.163.com/dwr/call/plaincall/LessonLearnBean.getVideoLearnInfo.dwr?1556260845745";
+	var postData = buildPostData("LessonLearnBean","getVideoLearnInfo",lessonId, courseId);
+	var html,err = getHtml(url, postData);
+	if(!err){
+		var reg = 'signature="(.*?)";.*?s1.videoId=(.*?);'
+		var rlt = string.matches(html,reg);
+		if(!rlt[1]){
+			console.log("未获取到videoId")
+		}
+		
+		return rlt[1];
+	}
+}
+
+// 获取视频地址
+function getVideo(videoId, signature){
+	var url = string.format("https://vod.study.163.com/eds/api/v1/vod/video?videoId=%s&signature=%s&clientType=1", videoId, signature);
+	var html,err = getHtml(url,{});
+	var rlt = web.json.parse(html);
+	if("ok"==rlt.message){
+		var videos = rlt.result.videos;
+		return videos[1].videoUrl
+	}else{
+		console.log(rlt.message)
+	}
+	
+}
+
+function buildPostData(method,script,param0,param1){
+	var postData ={
+		callCount=1;
+		scriptSessionId="${scriptSessionId}190";
+		httpSessionId="011582044dfa45828822c91f260c331b";
+		batchId="1556252308494";
+	}
+	postData["c0-scriptName"]=method;
+	postData["c0-methodName"]=script;
+	postData["c0-id"]="0";
+	postData["c0-param0"]="string:"++param0;
+	postData["c0-param1"]="string:"++param1;
+	return postData;
+}
+
+
+courseId = "1004461012";
+lessonId = "1048874013";
+
+//var lessonList = getLessonList(courseId);
+//if(lessonList && #lessonList>0){
+//}
+//var info = getLessonVideoInfo(courseId,lessonId);
+//console.dump(info)	
+//getVideo(info[2],info[1])
+
+//var videoPath=string.format("https://study.163.com/course/courseLearn.htm?courseId=%s#/learn/video?lessonId=%s&courseId=%s",courseId,lessonId,courseId )
+//import process;
+
+
+wb.external = {};
+wb.external.getList = function(path){
+   winform.setTimeout(function(){
+   	 	var rlt = string.matches(path, "\d{10,}")
+   		if(!rlt[1]){
+       		sendMsg("error","地址不对")
+       		return;
+   		}
+   		courseId = rlt[1][1];
+   		console.log(courseId)
+   		var lessonList = getLessonList(courseId);
+   		var data  = {data=lessonList;}
+   		data.type="table";
+   		sendData(data);
+   },100);
+  
+}
+wb.external.watch=function(lesson, inbrowser){
+    lessonId = lesson.id;
+   	var info = getLessonVideoInfo(courseId,lessonId);
+   	if(!info){
+   		sendMsg("error","未获取到视频信息")
+   		return;
+   	}
+   	var path = getVideo(info[2],info[1])
+   	if(inbrowser){
+   	 	process.execute(path);
+   	}else{
+		var frmChild = winform.loadForm("\res\播放器.aardio");
+		frmChild.show();
+		console.log(lesson.name, path)
+		frmChild.setUrl(lesson.name,path)
+   	}
+  
+   	
+}
+
+
+/*基本{{*/
+
+wb.external.hitCaption = function(){winform.hitCaption();};
+wb.external.close = function(){winform.close();};
+   
+
+function sendData(data){
+    var json =web.json.stringify(data);
+   // console.log(json)
+	wb.doScript("onDataChange("+json+")")
+}
+function sendMsg(typex, msg){
+    //console.log(msg)
+	wb.doScript(string.format("onMsg('%s','%s')", typex, msg))
+}
+//添加阴影
+import win.ui.shadow;
+win.ui.shadow(winform);
+
+//限定最大化范围
+import win.ui.minmax;
+win.ui.minmax(winform);
+/*}}*/
+
+winform.show();
+win.loopMessage();

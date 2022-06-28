@@ -1,0 +1,25 @@
+namespace win.ole;  
+
+::Ole32 := ..raw.loadDll("Ole32.dll")
+::OleAut32  := ..raw.loadDll("OleAut32.dll")
+
+ /*intellisense(::)*/
+::CreateStreamOnHGlobal = Ole32.api("CreateStreamOnHGlobal","int(pointer hGlobal,bool deleteOnRelease,pointer &ppstm)")
+::GetHGlobalFromStream = Ole32.api("GetHGlobalFromStream","int(pointer ppstm,pointer &hGlobal)")
+::SysAllocString = OleAut32.api("SysAllocString","pointer(ustring psz)") 
+::SysFreeString = OleAut32.api("SysFreeString","pointer(pointer bstr)")  
+::CoTaskMemFree := Ole32.api("CoTaskMemFree","void(POINTER hMem)" ) 
+/*end intellisense*/
+
+fromSysString = function(bstr){
+    if(type(bstr)==="pointer"){
+    	var s = ..string.fromUnicode(bstr,,::OleAut32.SysStringLen(bstr)); 
+		::SysFreeString(bstr)
+		return s;
+    }	
+} 
+
+/**intellisense()
+win.ole = Ole32.dll,OleAut32.dll接口函数
+win.ole.fromSysString(__) = 参数传入bstr指针，返回普通UTF8字符串,\n如果传入参数类型不是指针,返回null,\n此函数会调用::SysFreeString释放传入的bstr指针
+end intellisense**/

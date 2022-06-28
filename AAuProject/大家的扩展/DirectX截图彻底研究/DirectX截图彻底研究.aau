@@ -1,0 +1,77 @@
+import win.ui;
+import soImage.directX;
+import string
+import win.clip;
+import com.picture
+/*DSG{{*/
+var winform = ..win.form( bottom=411;parent=...;right=634;text="DirectX截图彻底研究" )
+winform.add( 
+button2={ bottom=113.5;text="截取全屏到剪切板";left=471;top=71.5;z=3;right=612;cls="button" };
+button5={ bgcolor=255;bottom=335.5;color=255;right=612;left=471;top=293.5;font=LOGFONT( weight=700 );z=6;text="显示剪切板截图";cls="button" };
+button6={ bottom=391;text="保存剪切板图片到文件";left=471;top=349;z=7;right=612;cls="button" };
+button7={ bottom=280;text="区域截图";left=471;top=238;z=8;right=612;cls="button" };
+button={ bottom=58;text="截取全屏并保存到文件";left=471;top=16;z=2;right=612;cls="button" };
+picturebox={ top=28;bottom=380;z=1;right=453;left=29;cls="picturebox" };
+button4={ bottom=224.5;text="截取窗口到剪切板";left=471;top=182.5;z=5;right=612;cls="button" };
+button3={ bottom=169;text="截取窗口并保存到文件";left=471;top=127;z=4;right=612;cls="button" }
+)
+/*}}*/
+
+winform.button5.oncommand = function(id,event){
+	//显示剪切板截图
+	winform.picturebox.setImage( win.clip.readBitmap() );
+	winform.text = "显示剪切板截图已完成";
+}
+
+
+dxSnap = soImage.directX();
+
+winform.button6.oncommand = function(id,event){
+	//保存剪切板图片
+	com.picture.fromBitmap(win.clip.readBitmap()).Save("/保存剪切板图片.jpg")
+	winform.text = "保存剪切板图片已完成";
+	
+}
+
+
+winform.button7.oncommand = function(id,event){
+	//区域截图
+	dxSnap.capture("/区域截图.jpg", ::RECT(0,0,220,200))
+	var imgdata = dxSnap.captureToString("jpg", ::RECT(0,0,220,200));
+	win.clip.writeBitmap( topointer( com.picture.load(imgdata).Handle ) ); 
+	winform.picturebox.setImage( topointer( com.picture.load(imgdata).Handle ) );
+	winform.text = "区域截图已完成";	
+}
+
+
+winform.button4.oncommand = function(id,event){
+	//截取窗口到剪切板
+	var imgdata = dxSnap.captureWindowToString("jpg", winform.hwnd)
+	win.clip.writeBitmap( topointer( com.picture.load(imgdata).Handle ) );
+	winform.text = "截取窗口到剪切板已完成";
+}
+
+
+winform.button3.oncommand = function(id,event){
+	//截取窗口并保存到文件
+	dxSnap.captureWindow("/截取窗口并保存到文件.jpg", winform.hwnd)
+	winform.text = "截取窗口并保存到文件已完成";
+	
+}
+
+
+winform.button2.oncommand = function(id,event){
+	//截取全屏到剪切板
+	imgdata = dxSnap.captureToString("jpg");
+	win.clip.writeBitmap( topointer( com.picture.load(imgdata).Handle ) );
+	winform.text = "截取全屏到剪切板已完成";
+}
+
+winform.button.oncommand = function(id,event){
+	//截取全屏并保持到文件
+	dxSnap.capture("/截取全屏并保存到文件.jpg")
+	winform.text = "截取全屏并保存到文件已完成";
+}
+
+winform.show() 
+win.loopMessage();

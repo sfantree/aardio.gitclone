@@ -1,0 +1,14 @@
+﻿import aaz.libhpsocket.ssl.listener.httpClient;
+import aaz.libhpsocket.ssl.component.httpClient;
+import aaz.libhpsocket.app.simpleWebsocketClient.base;
+
+namespace aaz.libhpsocket.app.simpleWebsocketClient;
+class wss{
+	ctor(){
+		this = ..aaz.libhpsocket.app.simpleWebsocketClient.base();
+		this.listener = ..aaz.libhpsocket.ssl.listener.httpClient();
+		this.component = ..aaz.libhpsocket.ssl.component.httpClient(this.listener);
+		this.component.sslCipherList = "DEFAULT:!aNULL:!eNULL:!SSLv2";
+		this.component.setupSSLContext(0);
+	}
+}

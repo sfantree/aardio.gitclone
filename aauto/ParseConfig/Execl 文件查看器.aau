@@ -1,0 +1,98 @@
+﻿import win.ui;
+/*DSG{{*/
+mainForm = ..win.form( text="Execl 文件查看器";bottom=400;max=false;right=600;parent=...)
+mainForm.add( 
+listview={ bgcolor=16777215;bottom=393;right=595;left=148;fullRow=1;top=38;z=2;gridLines=1;edge=1;cls="listview" };
+edit={ readonly=1;bottom=30;right=528;left=72;top=8;acceptfiles=1;z=4;edge=1;cls="edit" };
+button={ bottom=30;text="打开";left=532;top=7;z=5;right=596;cls="button" };
+treeview={ bgcolor=16777215;bottom=393;right=141;left=8;top=38;asel=false;z=1;edge=1;cls="treeview" };
+static={ bottom=25;right=84;left=9;text="Excel 文件：";top=10;z=3;transparent=1;cls="static" }
+)
+/*}}*/
+
+import fsys.dlg;
+ mainForm.button.oncommand = function(id,event){
+     mainForm.edit.text = fsys.dlg.open('Excel 文件|*.xls|');
+     OpenExecl(mainForm.edit.text);
+ }
+ 
+mainForm.edit.wndproc = function(hwnd,message,wParam,lParam){
+     select(message) { 
+        case 0x233/*_WM_DROPFILES*/{ 
+            mainForm.edit.text = win.getDropFile(wParam )[1]; 
+            OpenExecl(mainForm.edit.text);  
+         } 
+    }
+ }
+ 
+OpenExecl = function(file){
+     import com;
+     mainForm.treeview.clear();
+     var fname = io.splitpath(mainForm.edit.text); 
+     var hItem = mainForm.treeview.insertItem(fname.name);
+     conn = com.CreateObject("adodb.connection");
+     conn.ConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;
+                          Persist Security Info=False;
+                          Data Source=" ++ io.fullpath(file)++";
+                          Extended Properties='Excel 8.0;HDR=Yes'";//HDR ( HeaDer Row )设置 若指定值为Yes，代表 Excel 档中的工作表第一行是标题栏 若指定值为 No，代表 Excel 档中的工作表第一行就是数据了，沒有标题栏
+     conn.Open();
+     
+    //取出数据库中所有的表名称
+     rs = conn.OpenSchema(20);
+     while(not rs.eof){
+         var str = rs(2).value; 
+        mainForm.treeview.insertItem(string.left(str,string.len(str)-1,true),hItem);
+         rs.MoveNext();
+     }
+     rs.Close();
+     mainForm.treeview.expand(hItem);
+ }
+ 
+mainForm.treeview.onnotify = function(id,code,ptr){
+     if( code == 0xFFFFFFFE/*_NM_CLICK*/ ){  
+         var hItem = mainForm.treeview.hitTest();
+         if(hItem){ 
+            tName = mainForm.treeview.getItemText(hItem)++"$";
+             showData(tName);
+         }
+     }
+ }
+ 
+showData = function(tName){
+     mainForm.listview.clear();
+         for(i=mainForm.listview.columnCount;0;-1){
+         mainForm.listview.delColumn(i);
+     }
+     
+    var rs = com.CreateObject("ADODB.RecordSet");
+     var sql = "select * from ["++tName++"]";
+     rs.Open(sql,conn,3,3);
+     
+    //取出表中的所有字段名称
+     for(i=0;rs.fields.count-1;1){
+         mainForm.listview.insertColumn(rs.fields(i).name,60);
+     }
+ ;
+     while(not rs.eof){
+         var hItem = mainForm.listview.addItem()
+         for(i=0;mainForm.listview.columnCount-1;1){
+             mainForm.listview.setItemText(rs(rs.fields(i).name).Value,hItem,i+1);
+         }
+         rs.MoveNext();
+     }
+     rs.Close(); 
+}
+ 
+
+/***
+ import config;
+ mainForm.bindConfig( config.mainForm,{
+     edit = "text"; //绑定edit控件的text属性值到配置文件
+     radiobutton = "checked";
+     checkbox = "checked";
+     combobox = "selIndex";
+ } );
+ ***/
+ 
+mainForm.show() 
+win.loopMessage(); 

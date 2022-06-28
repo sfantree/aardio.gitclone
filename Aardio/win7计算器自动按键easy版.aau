@@ -1,0 +1,36 @@
+﻿import win
+import winex
+
+//win7下的计算机自动化
+
+//找到计算器句柄
+var hf = win.find('CalcFrame','计算器')
+if(!hf) return
+win.center(hf) //居中
+win.setForeground(hf) //显示到最前
+var hwnd = win.findEx(hf,0,'CalcFrame') //找到计算器界面句柄
+
+//各按钮句柄顺序
+var btnIndex = { [0]=6;[1]=5;[2]=11;[3]=16;[4]=4;
+	[5]=10;[6]=15;[7]=3;[8]=9;[9]=14;["."]=17;
+	["+"]=23;["-"]=22;["*"]=21;["/"]=20;["="]=28;
+	["%"]=26;["1/X"]=27;["SQRT"]=25;["+-"]=19;
+	["BACK"]=2;["CE"]=8;["C"]=13;["MC"]=1;["MR"]=7;
+	["MS"]=12;["M+"]=18;["M-"]=24 }
+
+//自动点击方法
+function keydown(key) {
+	winex.click( winex.findEx(hwnd,btnIndex[key],'Button') )
+}
+
+//调用测试
+keydown(7)
+keydown(3)
+keydown(4)
+keydown(5)
+keydown('*')
+keydown(1)
+keydown(2)
+keydown(3)
+keydown(4)
+keydown('=')

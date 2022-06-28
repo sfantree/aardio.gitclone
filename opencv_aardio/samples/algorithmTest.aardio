@@ -1,0 +1,78 @@
+import win.ui;
+import cv2;
+import win.clip;
+import gdip;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=647;bottom=737)
+winform.add(
+button={cls="button";text="取剪贴板图像";left=533;top=14;right=638;bottom=49;z=1};
+button2={cls="button";text="阈值二值化";left=536;top=62;right=636;bottom=101;z=2};
+plus={cls="plus";left=31;top=26;right=470;bottom=285;db=1;dl=1;dr=1;dt=1;edge=1;repeat="scale";transparent=1;z=4};
+plus2={cls="plus";left=32;top=322;right=471;bottom=581;db=1;dl=1;dr=1;dt=1;edge=1;notify=1;repeat="scale";transparent=1;z=5};
+trackbar={cls="trackbar";left=493;top=120;right=638;bottom=150;max=100;min=0;z=3}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+	var hBmp = win.clip.readBitmap();
+	if(hBmp) {
+		winform.plus.background = gdip.bitmap(hBmp);
+	}
+}
+
+winform.button2.oncommand = function(id,event){
+	var oBitmap = winform.plus.background;
+	var buffer = oBitmap.saveToBuffer("*.bmp");
+	
+	//winform.plus2.background = oBitmap;
+	
+	//var img = cv2.imdecode(buffer, 1/*_CV2_IMREAD_COLOR*/)
+	//img = cv2.threshold(img,175,255,cv2.THRESH_BINARY)
+	
+	var img = cv2.imdecode(buffer,  1/*_CV2_IMREAD_COLOR*/);
+	
+	img = cv2.cvtColor(img, 7);
+	
+	//img = cv2.threshold(img, 125);
+	//img = cv2.threshold(
+	
+	//cv2.threshold(img,
+	
+	var threshold = winform.trackbar.pos;
+	
+	var ret,img = cv2.threshold( img,threshold,255,0x0/*_CV2_THRESH_BINARY*/ | 0x10/*_CV_THRESH_TRIANGLE*/ )
+	
+	
+/**
+	import cv2
+	img = cv2.imread("./assets/images/Lena.jpg",0/*_CV2_IMREAD_GRAYSCALE*/)
+	var ret,img = cv2.threshold( img,100,255,0x0/*_CV2_THRESH_BINARY*/ | 0x10/*_CV_THRESH_TRIANGLE*/ )
+	cv2.imshow("threshold",img)
+**/
+
+	
+	
+	
+	//img = cv2.medianBlur(img,5)
+	//img = cv2.GaussianBlur( img,::SIZE(5,5))
+	//cv2.imshow( "窗口标题",img )
+	//cv2.imwrite("./assets/images/result.jpg",img,{1/*_CV2_IMWRITE_JPEG_QUALITY*/,80}) 
+	//cv2.waitKey(0)
+	
+	buffer = cv2.imencode("*.jpg", img, {1/*_CV2_IMWRITE_JPEG_QUALITY*/, 100});
+	
+	//cv2.imwrite("result.jpg",img,{1/*_CV2_IMWRITE_JPEG_QUALITY*/,80}) 
+	
+	winform.plus2.background = gdip.bitmap(buffer);
+	
+}
+
+
+
+winform.plus2.oncommand = function(id,event){
+	
+}
+
+winform.show();
+win.loopMessage();
+return winform;

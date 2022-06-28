@@ -1,0 +1,136 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="时间修改";right=222;bottom=51;border="thin")
+winform.add(
+btn_add={cls="button";text="+1";left=60;top=29;right=104;bottom=48;dl=1;dt=1;z=3};
+btn_close={cls="button";text="关闭";left=164;top=28;right=208;bottom=47;dl=1;dt=1;z=5};
+btn_open={cls="button";text="打开";left=115;top=29;right=159;bottom=48;dl=1;dt=1;z=4};
+btn_reset={cls="button";text="重置";left=6;top=29;right=50;bottom=48;dl=1;dt=1;z=2};
+btn_url={cls="button";text="速盘";left=165;top=1;right=209;bottom=20;dl=1;dt=1;z=6};
+s_time={cls="static";left=4;top=1;right=208;bottom=17;db=1;dl=1;dr=1;dt=1;transparent=1;z=1}
+)
+/*}}*/
+
+import inet.http
+import console;
+import web.json;
+import time.ole;
+import process;
+import fsys.ini;
+
+var config = fsys.ini("my.ini")
+var sec = config.getSection("speedpan")
+
+var softPath =sec.path || "E:\软件\SpeedPan1.97\SpeedPanX1.5.7\SpeedPanX\SpeedPanX.exe";
+
+/*
+可以在窗口属性中设置接受拖放，
+也可以用DragAcceptFiles动态控制是否接受拖放
+*/
+::Shell32.DragAcceptFiles(winform.hwnd,true);
+
+//拖放会触发onDropFiles事件
+winform.onDropFiles = function(files){
+	var path = files[1] || "";
+	var tmp = string.lower(path);
+	if(tmp && string.endWith(tmp,".exe")){
+		var i = string.lastIndexOf(tmp,"\");
+		if(string.indexOf(tmp,"speedpan",i)){
+			sec.path = path;
+			softPath = path;
+			sec.save();
+			win.msgboxTimeout("文件路径已变更","",500);
+		}
+	}
+}
+
+win.setTopmost(winform.hwnd);
+winform.transparent(180)
+
+
+/*时间{{*/
+
+function getTime(){
+    inet.clearCookie()
+	var html,err = inet.http().get("http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp")
+	if(err){
+		win.msgboxErr(err);
+	}else{
+		var obj = web.json.parse(html);
+		var t = obj.data.t;
+		var tm = time(t/1000);
+		winform.s_time.text = tostring(tm);
+		return tm,t;
+		
+	}
+}
+
+function setTime(tm,t){
+    //SetSystemTime = ::Kernel32.api("SetLocalTime","int(struct lpSystemTime)")
+
+	//SetSystemTime = ::Kernel32.api("SetSystemTime","int(struct& lpSystemTime)")
+	//修改系统时间
+	SetLocalTime = ::Kernel32.api("SetLocalTime","int(struct& lpSystemTime)")
+	//修改系统时间
+	SetLocalTime(tm)
+	winform.s_time.text = tostring(tm);
+}
+
+/*}}*/
+
+winform.btn_open.oncommand = function(id,event){
+	process.execute(softPath);
+	import winex
+	import mouse;
+	import winex.mouse;
+
+	var hwnd = winex.waitVisible("速盘 ",,"TFrmMain")
+	win.setPos(hwnd,0,0);
+	win.delay(100)
+	mouse.click(332,68,true)
+	win.delay(100)
+	
+	mouse.click(744,118,true)
+	win.delay(10)
+	
+	win.show(hwnd,0x6/*_SW_MINIMIZE*/) 
+	
+	winform.setTimeout(function(){
+		winform.btn_add.oncommand();
+		winform.btn_close.oncommand();
+		winform.btn_open.oncommand();
+	},65000,)
+}
+
+winform.btn_add.oncommand = function(id,event){
+	
+	var tm = time.now();
+	tm.addday(1);
+	setTime(tm);
+}
+
+winform.btn_reset.oncommand = function(id,event){
+	var tm = getTime();
+	if(!tm){
+    	return;
+    }
+	setTime(tm);
+}
+
+winform.btn_close.oncommand = function(id,event){
+	process.kill("SpeedPanX.exe")
+	win.msgboxTimeout("关闭成功","",200)
+}
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    winform.btn_reset.oncommand();
+}
+
+winform.btn_url.oncommand = function(id,event){
+	process.execute("https://www.speedpan.com/");
+}
+
+getTime();
+
+winform.show() 
+win.loopMessage();

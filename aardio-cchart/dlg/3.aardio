@@ -1,0 +1,61 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="第一个示例";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+
+AddCurve = dll.api("?AddCurve@Classless@@YAHPAN0HH@Z", "int(struct,struct,int,int)");//int __cdecl AddCurve(double* ,double*,int,int); 
+AddAxis = dll.api("?AddAxis@Classless@@YAXHH@Z", "void(int, int)");//void __cdecl AddAxis(int,int)
+SetLegendShow = dll.api("?SetLegendShow@Classless@@YAX_NH@Z", "void(bool,int)");
+SetDataTitle = dll.api("?SetDataTitle@Classless@@YAXPB_WHH@Z", "void(ustring,int,int)");
+SetAxisTitle = dll.api("?SetAxisTitle@Classless@@YAXPB_WHH@Z", "void(ustring,int,int)");
+SetGridLine = dll.api("?SetGridLine@Classless@@YAX_N000H@Z", "void(bool,bool,bool,bool,int)");
+SetBkgndColor = dll.api("?SetBkgndColor@Classless@@YAXKH@Z", "void(INT,int)");
+
+
+CreateChart();
+Attach(winform.static.hwnd,0);//kTypeXY=0 折线图
+
+var x = { double arr[200] = {0} };
+var y = { double arr[200] = {0} };
+for(i=1;200;1){
+	x.arr[i] = i ;
+	y.arr[i] = 5.0*math.sin(i*2.0*3.14/360.0*3.0) ;
+}
+
+AddCurve(x,y,200,0);
+//显示图例
+SetLegendShow(true,0)
+//设置图例名称
+SetDataTitle("aardio王菲",0,0)
+//设置轴名,左坐标轴为0，下坐标轴为1，右坐标轴为2，上坐标轴为3
+SetAxisTitle("左边轴名",0,0);
+SetAxisTitle("下边轴名",1,0);
+//设置显示网格
+SetGridLine(true,true,true,true,0);
+//设置背景色
+SetBkgndColor(0xFFE6C2,0);
+ReDraw();
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+    Detach(winform.static.hwnd);
+    DestroyChart();
+}
+
+
+winform.show();
+win.loopMessage();
+return winform;

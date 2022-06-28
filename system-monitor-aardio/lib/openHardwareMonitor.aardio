@@ -1,0 +1,35 @@
+﻿
+namespace openHardwareMonitor{
+	import dotNet;
+	var clr = dotNet.clr(); 
+	var app = clr.createAppDomain();
+	var dll = app.loadFile($"\res\OpenHardwareMonitorLib.dll");
+	var computer = dll.createInstance("OpenHardwareMonitor.Hardware.Computer");
+	computer.CPUEnabled = true;
+	computer.Open();
+	
+	/*
+import console
+for(k,v in computer.Hardware[1].Sensors){
+	console.dump(v.SensorType, v.Name, v.Value)
+}
+*/
+	
+	// 更新并获取 cpu 的使用率
+	getAndUpdateCpuUsage = function(){
+		// 查找 cpu 信息
+		var cpuHardwareIndex = ..table.find(computer.Hardware, function(v){
+			return v.HardwareType == 2;
+		})
+		// 更新
+		computer.Hardware[cpuHardwareIndex].Update()
+		// 获取 cpu 负载指标
+		var cpuLoadSensors = ..table.filter(computer.Hardware[cpuHardwareIndex].Sensors,function(v,index){
+			return v.SensorType == 3; 
+		})
+		var cpuTotalIndex = ..table.find(cpuLoadSensors, function(v){
+			return v.Name == 'CPU Total';
+		})
+		return ..math.round(cpuLoadSensors[cpuTotalIndex].Value, 2)
+	};
+}

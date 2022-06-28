@@ -1,0 +1,428 @@
+﻿import util.metaProperty;
+
+namespace libxl;
+
+var libxl32 = _dll;
+
+class Format{
+	ctor( hwnd,p_shformat ){
+		if !hwnd return null,"请指定格式句柄"; 
+		this.hwnd	= hwnd; 
+		this.p_shformat = p_shformat;
+	};
+	@_metaProperty;
+}
+
+namespace Format{
+	_metaProperty = ..util.metaProperty(
+		font = {
+			_get = function(){   
+				var hwnd = Font(owner.hwnd)
+				if !hwnd return hwnd; 
+				var s_font = owner.p_shformat.Fonts(hwnd);
+				return s_font; 
+			};
+			_set = function( fonts ){
+				var hFont = fonts;
+				if type(fonts) == type.table hFont = fonts.hwnd
+				if !owner.p_shformat.Fonts[tonumber(hFont)]{
+					hFont = owner.p_shformat.book.addFont(hFont).hwnd
+				}	
+				return SetFont(owner.hwnd,hFont); 
+			};
+		};
+		numStyle = {
+			_get = function(){   
+		    	return (NumFormat(owner.hwnd)+1);
+			};
+			_set = function( v ){
+				SetNumFormat(owner.hwnd,v - 1); 
+			};
+		};
+		alignH = {
+			_get = function(){   
+		    	return AlignH(owner.hwnd);
+			};
+			_set = function( v ){
+				SetAlignH(owner.hwnd,v); 
+			};
+		};
+		alignV = {
+			_get = function(){   
+		    	return AlignV(owner.hwnd);
+			};
+			_set = function( v ){
+				SetAlignV(owner.hwnd,v); 
+			};
+		};
+		wrap = {
+			_get = function(){   
+		    	return Wrap(owner.hwnd);
+			};
+			_set = function( v ){
+				SetWrap(owner.hwnd,tonumber(v)); 
+			};
+		};
+		rotation = {
+			_get = function(){   
+		    	return Rotation(owner.hwnd);
+			};
+			_set = function( v ){
+				return SetRotation(owner.hwnd,v); 
+			};
+		};
+		indent = {
+			_get = function(){   
+		    	return Indent(owner.hwnd);
+			};
+			_set = function( v ){
+				return SetIndent(owner.hwnd,v); 
+			};
+		};
+		fit = {
+			_get = function(){   
+		    	return ShrinkToFit(owner.hwnd);
+			};
+			_set = function( v ){
+				return SetShrinkToFit(owner.hwnd,tonumber(v)); 
+			};
+		};
+		shrinkToFit = {
+			_get = function(){   
+		    	return ShrinkToFit(owner.hwnd);
+			};
+			_set = function( v ){
+				return SetShrinkToFit(owner.hwnd,tonumber(v)); 
+			};
+		};
+		borderStyle = {
+			_get = function(){   
+		    	return null;
+			};
+			_set = function(v){
+				SetBorder(owner.hwnd,v); 
+			};
+		};
+		borderColor = {
+			_get = function(){   
+		    	return null;
+			};
+			_set = function( v ){
+				SetBorderColor(owner.hwnd,v); 
+			};
+		};
+		borderLeft = {
+			_get = function(){   
+		    	return BorderLeft(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderLeft(owner.hwnd,v); 
+			};
+		};
+		borderRight = {
+			_get = function(){   
+		    	return BorderRight(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderRight(owner.hwnd,v); 
+			};
+		};
+		borderTop = {
+			_get = function(){   
+		    	return BorderTop(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderTop(owner.hwnd,v); 
+			};
+		};
+		borderBottom = {
+			_get = function(){   
+		    	return BorderBottom(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderBottom(owner.hwnd,v); 
+			};
+		};
+		borderLeftColor = {
+			_get = function(){   
+		    	return BorderLeftColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderLeftColor(owner.hwnd,v); 
+			};
+		};
+		borderRightColor = {
+			_get = function(){   
+		    	return BorderRightColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderRightColor(owner.hwnd,v); 
+			};
+		};
+		borderTopColor = {
+			_get = function(){   
+		    	return BorderTopColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderTopColor(owner.hwnd,v); 
+			};
+		};
+		borderBottomColor = {
+			_get = function(){   
+		    	return BorderBottomColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderBottomColor(owner.hwnd,v); 
+			};
+		};
+		borderDiagonal = {
+			_get = function(){   
+		    	return BorderDiagonal(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderDiagonal(owner.hwnd,v); 
+			};
+		};
+		borderDiagonalStyle = {
+			_get = function(){   
+		    	return BorderDiagonalStyle(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderDiagonalStyle(owner.hwnd,v); 
+			};
+		};
+		borderDiagonalColor = {
+			_get = function(){   
+		    	return BorderDiagonalColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBorderDiagonalColor(owner.hwnd,v); 
+			};
+		};
+		pattern = {
+			_get = function(){   
+		    	return FillPattern(owner.hwnd);
+			};
+			_set = function( v ){
+				SetFillPattern(owner.hwnd,v); 
+			};
+		};
+		patternForeColor = {
+			_get = function(){   
+		    	return PatternForegroundColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPatternForegroundColor(owner.hwnd,v); 
+			};
+		};
+		patternBackColor = {
+			_get = function(){   
+		    	return PatternBackgroundColor(owner.hwnd);
+			};
+			_set = function( v ){
+				SetPatternBackgroundColor(owner.hwnd,v); 
+			};
+		};
+		lock = {
+			_get = function(){   
+		    	return Locked(owner.hwnd);
+			};
+			_set = function( v ){
+				SetLocked(owner.hwnd,tonumber(v)); 
+			};
+		};
+		hidden = {
+			_get = function(){   
+		    	return Hidden(owner.hwnd);
+			};
+			_set = function( v ){
+				SetHidden(owner.hwnd,tonumber(v)); 
+			};
+		};
+	)
+
+
+	Font			= libxl32.api("xlFormatFont","ptr(ptr FormatHandle)")//FontHandle
+	SetFont			= libxl32.api("xlFormatSetFont","int(ptr FormatHandle, ptr ))")
+	
+	NumFormat		= libxl32.api("xlFormatNumFormat","int(ptr FormatHandle)")
+	SetNumFormat	= libxl32.api("xlFormatSetNumFormat","void(ptr FormatHandle, int numFormat)")
+	
+	AlignH			= libxl32.api("xlFormatAlignH","int(ptr FormatHandle)")
+	SetAlignH		= libxl32.api("xlFormatSetAlignH","void(ptr FormatHandle, int align)")
+	AlignV			= libxl32.api("xlFormatAlignV","int(ptr FormatHandle)")
+	SetAlignV		= libxl32.api("xlFormatSetAlignV","void(ptr FormatHandle, int align)")
+	
+	Wrap			= libxl32.api("xlFormatWrap","int(ptr FormatHandle)")
+	SetWrap			= libxl32.api("xlFormatSetWrap","void(ptr FormatHandle, int wrap)")
+	
+	Rotation		= libxl32.api("xlFormatRotation","int(ptr FormatHandle)")
+	SetRotation		= libxl32.api("xlFormatSetRotation","int(ptr FormatHandle, int rotation)")
+	
+	Indent			= libxl32.api("xlFormatIndent","int(ptr FormatHandle)")
+	SetIndent		= libxl32.api("xlFormatSetIndent","void(ptr FormatHandle, int indent)")
+	
+	ShrinkToFit		= libxl32.api("xlFormatShrinkToFit","int(ptr FormatHandle)")
+	SetShrinkToFit	= libxl32.api("xlFormatSetShrinkToFit","void(ptr FormatHandle, int shrinkToFit)")
+	
+	SetBorder		= libxl32.api("xlFormatSetBorder","void(ptr FormatHandle, int style)")
+	SetBorderColor	= libxl32.api("xlFormatSetBorderColor","void(ptr FormatHandle, int color)")
+	BorderLeft		= libxl32.api("xlFormatBorderLeft","int(ptr FormatHandle)")
+	SetBorderLeft	= libxl32.api("xlFormatSetBorderLeft","void(ptr FormatHandle, int style)")
+	BorderRight		= libxl32.api("xlFormatBorderRight","int(ptr FormatHandle)")
+	SetBorderRight	= libxl32.api("xlFormatSetBorderRight","void(ptr FormatHandle, int style)")
+	BorderTop		= libxl32.api("xlFormatBorderTop","int(ptr FormatHandle)")
+	SetBorderTop	= libxl32.api("xlFormatSetBorderTop","void(ptr FormatHandle, int style)")
+	BorderBottom	= libxl32.api("xlFormatBorderBottom","int(ptr FormatHandle)")
+	SetBorderBottom	= libxl32.api("xlFormatSetBorderBottom","void(ptr FormatHandle, int style)")
+	
+	BorderLeftColor			= libxl32.api("xlFormatBorderLeftColor","int(ptr FormatHandle)")
+	SetBorderLeftColor		= libxl32.api("xlFormatSetBorderLeftColor","void(ptr FormatHandle, int color)")
+	BorderRightColor		= libxl32.api("xlFormatBorderRightColor","int(ptr FormatHandle)")
+	SetBorderRightColor		= libxl32.api("xlFormatSetBorderRightColor","void(ptr FormatHandle, int color)")
+	BorderTopColor			= libxl32.api("xlFormatBorderTopColor","int(ptr FormatHandle)")
+	SetBorderTopColor		= libxl32.api("xlFormatSetBorderTopColor","void(ptr FormatHandle, int color)")
+	BorderBottomColor		= libxl32.api("xlFormatBorderBottomColor","int(ptr FormatHandle)")
+	SetBorderBottomColor	= libxl32.api("xlFormatSetBorderBottomColor","void(ptr FormatHandle, int color)")
+	
+	BorderDiagonal			= libxl32.api("xlFormatBorderDiagonal","int(ptr FormatHandle)")
+	SetBorderDiagonal		= libxl32.api("xlFormatSetBorderDiagonal","void(ptr FormatHandle, int border)")
+	BorderDiagonalStyle		= libxl32.api("xlFormatBorderDiagonalStyle","int(ptr FormatHandle)")
+	SetBorderDiagonalStyle	= libxl32.api("xlFormatSetBorderDiagonalStyle","void(ptr FormatHandle, int style)")
+	BorderDiagonalColor		= libxl32.api("xlFormatBorderDiagonalColor","int(ptr FormatHandle)")
+	SetBorderDiagonalColor	= libxl32.api("xlFormatSetBorderDiagonalColor","void(ptr FormatHandle, int color)")
+	
+	FillPattern				= libxl32.api("xlFormatFillPattern","int(ptr FormatHandle)")
+	SetFillPattern			= libxl32.api("xlFormatSetFillPattern","void(ptr FormatHandle, int pattern)")
+	PatternForegroundColor	= libxl32.api("xlFormatPatternForegroundColor","int(ptr FormatHandle)")
+	SetPatternForegroundColor	= libxl32.api("xlFormatSetPatternForegroundColor","void(ptr FormatHandle, int color)")
+	PatternBackgroundColor		= libxl32.api("xlFormatPatternBackgroundColor","int(ptr FormatHandle)")
+	SetPatternBackgroundColor	= libxl32.api("xlFormatSetPatternBackgroundColor","void(ptr FormatHandle, int color)")
+	
+	Locked			= libxl32.api("xlFormatLocked","int(ptr FormatHandle)")
+	SetLocked		= libxl32.api("xlFormatSetLocked","void(ptr FormatHandle, int locked)")
+	
+	Hidden			= libxl32.api("xlFormatHidden","int(ptr FormatHandle)")
+	SetHidden		= libxl32.api("xlFormatSetHidden","void(ptr FormatHandle, int hidden)")
+	
+}
+
+/**intellisense()
+libxl.Format() = !xlFormat.
+!libxl.Format() = !xlFormat.
+!libxl.addFormat() = !xlFormat.
+!xlFormat.font = 字体
+!xlFormat.font = !xlFont.
+!xlFormat.numStyle = 数字格式,_NUMFORMAT_
+!xlFormat.alignH = 水平对齐样式,_ALIGNH_
+!xlFormat.alignV = 垂直对齐样式,_ALIGNV
+!xlFormat.wrap = 环绕
+!xlFormat.rotation = 旋转角度，默认255
+!xlFormat.indent = 凹陷程度，小于等于15
+!xlFormat.fit = 自适应宽度
+!xlFormat.shrinkToFit = 自适应宽度
+!xlFormat.borderStyle = 边框样式,_BORDERSTYLE_
+!xlFormat.borderColor = 边框颜色
+!xlFormat.borderLeft = 左边框样式
+!xlFormat.borderRight = 右边框样式
+!xlFormat.borderTop = 上边框样式
+!xlFormat.borderBottom = 下边框样式
+!xlFormat.borderLeftColor = 左边框颜色
+!xlFormat.borderRightColor = 右边框颜色
+!xlFormat.borderTopColor = 上边框颜色
+!xlFormat.borderBottomColor = 下边框颜色
+!xlFormat.borderDiagonal = 对角线边框,_BORDERDIAGONAL_
+!xlFormat.borderDiagonalStyle = 对角线边框样式
+!xlFormat.borderDiagonalColor = 对角线边框颜色
+!xlFormat.pattern = 填充样式,_FILLPATTERN_
+!xlFormat.patternForeColor = 样式前景色
+!xlFormat.patternBackColor = 样式背景色
+!xlFormat.lock = 锁定单元格
+!xlFormat.hidden = 隐藏单元格
+_NUMFORMAT_GENERAL=@1/*_NUMFORMAT_GENERAL*/
+_NUMFORMAT_NUMBER=@2/*_NUMFORMAT_NUMBER*/
+_NUMFORMAT_NUMBER_D2=@3/*_NUMFORMAT_NUMBER_D2*/
+_NUMFORMAT_NUMBER_SEP=@4/*_NUMFORMAT_NUMBER_SEP*/
+_NUMFORMAT_NUMBER_SEP_D2=@5/*_NUMFORMAT_NUMBER_SEP_D2*/
+_NUMFORMAT_CURRENCY_NEGBRA=@6/*_NUMFORMAT_CURRENCY_NEGBRA*/
+_NUMFORMAT_CURRENCY_NEGBRARED=@7/*_NUMFORMAT_CURRENCY_NEGBRARED*/
+_NUMFORMAT_CURRENCY_D2_NEGBRA=@8/*_NUMFORMAT_CURRENCY_D2_NEGBRA*/
+_NUMFORMAT_CURRENCY_D2_NEGBRARED=@9/*_NUMFORMAT_CURRENCY_D2_NEGBRARED*/
+_NUMFORMAT_PERCENT=@10/*_NUMFORMAT_PERCENT*/
+_NUMFORMAT_PERCENT_D2=@11/*_NUMFORMAT_PERCENT_D2*/
+_NUMFORMAT_SCIENTIFIC_D2=@12/*_NUMFORMAT_SCIENTIFIC_D2*/
+_NUMFORMAT_FRACTION_ONEDIG=@13/*_NUMFORMAT_FRACTION_ONEDIG*/
+_NUMFORMAT_FRACTION_TWODIG=@14/*_NUMFORMAT_FRACTION_TWODIG*/
+_NUMFORMAT_DATE=@15/*_NUMFORMAT_DATE*/
+_NUMFORMAT_CUSTOM_D_MON_YY=@16/*_NUMFORMAT_CUSTOM_D_MON_YY*/
+_NUMFORMAT_CUSTOM_D_MON=@17/*_NUMFORMAT_CUSTOM_D_MON*/
+_NUMFORMAT_CUSTOM_MON_YY=@18/*_NUMFORMAT_CUSTOM_MON_YY*/
+_NUMFORMAT_CUSTOM_HMM_AM=@19/*_NUMFORMAT_CUSTOM_HMM_AM*/
+_NUMFORMAT_CUSTOM_HMMSS_AM=@20/*_NUMFORMAT_CUSTOM_HMMSS_AM*/
+_NUMFORMAT_CUSTOM_HMM=@21/*_NUMFORMAT_CUSTOM_HMM*/
+_NUMFORMAT_CUSTOM_HMMSS=@22/*_NUMFORMAT_CUSTOM_HMMSS*/
+_NUMFORMAT_CUSTOM_MDYYYY_HMM=@23/*_NUMFORMAT_CUSTOM_MDYYYY_HMM*/
+_NUMFORMAT_NUMBER_SEP_NEGBRA=@24/*_NUMFORMAT_NUMBER_SEP_NEGBRA*/
+_NUMFORMAT_NUMBER_SEP_NEGBRARED=@25/*_NUMFORMAT_NUMBER_SEP_NEGBRARED*/
+_NUMFORMAT_NUMBER_D2_SEP_NEGBRA=@26/*_NUMFORMAT_NUMBER_D2_SEP_NEGBRA*/
+_NUMFORMAT_NUMBER_D2_SEP_NEGBRARED=@27/*_NUMFORMAT_NUMBER_D2_SEP_NEGBRARED*/
+_NUMFORMAT_ACCOUNT=@28/*_NUMFORMAT_ACCOUNT*/
+_NUMFORMAT_ACCOUNTCUR=@29/*_NUMFORMAT_ACCOUNTCUR*/
+_NUMFORMAT_ACCOUNT_D2=@30/*_NUMFORMAT_ACCOUNT_D2*/
+_NUMFORMAT_ACCOUNT_D2_CUR=@31/*_NUMFORMAT_ACCOUNT_D2_CUR*/
+_NUMFORMAT_CUSTOM_MMSS=@32/*_NUMFORMAT_CUSTOM_MMSS*/
+_NUMFORMAT_CUSTOM_H0MMSS=@33/*_NUMFORMAT_CUSTOM_H0MMSS*/
+_NUMFORMAT_CUSTOM_MMSS0=@34/*_NUMFORMAT_CUSTOM_MMSS0*/
+_NUMFORMAT_CUSTOM_000P0E_PLUS0=@35/*_NUMFORMAT_CUSTOM_000P0E_PLUS0*/
+_NUMFORMAT_TEXT=@36/*_NUMFORMAT_TEXT*/
+_ALIGNH_GENERAL=@0/*ALIGNH_GENERAL*/
+_ALIGNH_LEFT=@1/*ALIGNH_LEFT*/
+_ALIGNH_CENTER=@2/*ALIGNH_CENTER*/
+_ALIGNH_RIGHT=@3/*ALIGNH_RIGHT*/
+_ALIGNH_FILL=@4/*ALIGNH_FILL*/
+_ALIGNH_JUSTIFY=@5/*ALIGNH_JUSTIFY*/
+_ALIGNH_MERGE=@6/*ALIGNH_MERGE*/
+_ALIGNH_DISTRIBUTED=@7/*ALIGNH_DISTRIBUTED*/
+_ALIGNV_TOP=@0/*ALIGNV_TOP*/
+_ALIGNV_CENTER=@1/*ALIGNV_CENTER*/
+_ALIGNV_BOTTOM=@2/*ALIGNV_BOTTOM*/
+_ALIGNV_JUSTIFY=@3/*ALIGNV_JUSTIFY*/
+_ALIGNV_DISTRIBUTED=@4/*ALIGNV_DISTRIBUTED*/
+_BORDERSTYLE_NONE=@0/*BORDERSTYLE_NONE*/
+_BORDERSTYLE_THIN=@1/*BORDERSTYLE_THIN*/
+_BORDERSTYLE_MEDIUM=@2/*BORDERSTYLE_MEDIUM*/
+_BORDERSTYLE_DASHED=@3/*BORDERSTYLE_DASHED*/
+_BORDERSTYLE_DOTTED=@4/*BORDERSTYLE_DOTTED*/
+_BORDERSTYLE_THICK=@5/*BORDERSTYLE_THICK*/
+_BORDERSTYLE_DOUBLE=@6/*BORDERSTYLE_DOUBLE*/
+_BORDERSTYLE_HAIR=@7/*BORDERSTYLE_HAIR*/
+_BORDERSTYLE_MEDIUMDASHED=@8/*BORDERSTYLE_MEDIUMDASHED*/
+_BORDERSTYLE_DASHDOT=@9/*BORDERSTYLE_DASHDOT*/
+_BORDERSTYLE_MEDIUMDASHDOT=@10/*BORDERSTYLE_MEDIUMDASHDOT*/
+_BORDERSTYLE_DASHDOTDOT=@11/*BORDERSTYLE_DASHDOTDOT*/
+_BORDERSTYLE_MEDIUMDASHDOTDOT=@12/*BORDERSTYLE_MEDIUMDASHDOTDOT*/
+_BORDERSTYLE_SLANTDASHDOT=@13/*BORDERSTYLE_SLANTDASHDOT*/
+_BORDERDIAGONAL_NONE=@0/*BORDERDIAGONAL_NONE*/
+_BORDERDIAGONAL_DOWN=@1/*BORDERDIAGONAL_DOWN*/
+_BORDERDIAGONAL_UP=@2/*BORDERDIAGONAL_UP*/
+_BORDERDIAGONAL_BOTH=@3/*BORDERDIAGONAL_BOTH*/
+_FILLPATTERN_NONE=@0/*FILLPATTERN_NONE*/
+_FILLPATTERN_SOLID=@1/*FILLPATTERN_SOLID*/
+_FILLPATTERN_GRAY50=@2/*FILLPATTERN_GRAY50*/
+_FILLPATTERN_GRAY75=@3/*FILLPATTERN_GRAY75*/
+_FILLPATTERN_GRAY25=@4/*FILLPATTERN_GRAY25*/
+_FILLPATTERN_HORSTRIPE=@5/*FILLPATTERN_HORSTRIPE*/
+_FILLPATTERN_VERSTRIPE=@6/*FILLPATTERN_VERSTRIPE*/
+_FILLPATTERN_REVDIAGSTRIPE=@7/*FILLPATTERN_REVDIAGSTRIPE*/
+_FILLPATTERN_DIAGSTRIPE=@8/*FILLPATTERN_DIAGSTRIPE*/
+_FILLPATTERN_DIAGCROSSHATCH=@9/*FILLPATTERN_DIAGCROSSHATCH*/
+_FILLPATTERN_THICKDIAGCROSSHATCH=@10/*FILLPATTERN_THICKDIAGCROSSHATCH*/
+_FILLPATTERN_THINHORSTRIPE=@11/*FILLPATTERN_THINHORSTRIPE*/
+_FILLPATTERN_THINVERSTRIPE=@12/*FILLPATTERN_THINVERSTRIPE*/
+_FILLPATTERN_THINREVDIAGSTRIPE=@13/*FILLPATTERN_THINREVDIAGSTRIPE*/
+_FILLPATTERN_THINDIAGSTRIPE=@14/*FILLPATTERN_THINDIAGSTRIPE*/
+_FILLPATTERN_THINHORCROSSHATCH=@15/*FILLPATTERN_THINHORCROSSHATCH*/
+_FILLPATTERN_THINDIAGCROSSHATCH=@16/*FILLPATTERN_THINDIAGCROSSHATCH*/
+_FILLPATTERN_GRAY12P5=@17/*FILLPATTERN_GRAY12P5*/
+_FILLPATTERN_GRAY6P25=@18/*FILLPATTERN_GRAY6P25*/
+end intellisense**/

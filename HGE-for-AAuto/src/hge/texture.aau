@@ -1,0 +1,61 @@
+//texture 纹理
+namespace hge;
+
+var engine = ..hge.createEngine();
+
+class texture{
+	ctor( hTexture ){
+		this.hTexture = hTexture;  
+		_texture_caches[this] = hTexture; 
+		
+		..table.add_gc(this,"free");
+	};
+	@_meta;
+} 
+
+namespace texture{
+
+	_texture_caches = { @{_weak="kv"} }; 
+	clear = function(){
+		for(texture,hTexture in _texture_caches ){
+			texture.free(); 
+		} 
+	}
+	
+	_meta = {
+		_get = {
+			free = function(){ 
+				if( owner.hTexture ){
+					engine.textureFree(owner.hTexture);
+					_texture_caches[owner] = null;
+					owner.hTexture = null;
+				}
+			}
+			width = function(original){
+				return engine.textureGetWidth(owner.hTexture,original); 
+			}
+			height = function(original){
+				return engine.textureGetHeight(owner.hTexture,original); 
+			}
+			lock = function(readOnly=true,x=0,y=0,w=0,h=0){
+				return engine.textureLock(owner.hTexture,readOnly,x,y,w,h); 
+			}
+			unLock = function(){
+				engine.textureUnlock(owner.hTexture); 
+			}
+		} 
+		_topointer = function(){
+			return owner.hTexture;
+		}
+	}
+}
+
+/**intellisense()
+!hge_texture.free() = 释放纹理对象,\n该函数可交由系统自动调用
+!hge_texture.width() = 返回显存中的纹理宽度
+!hge_texture.width(true) = 返回原图像的纹理宽度
+!hge_texture.height() = 返回显存中的纹理高度
+!hge_texture.height(true) = 返回原图像的纹理高度
+!hge_texture.lock(.(解锁后是否禁止更新,x坐标,y坐标,宽度,高度) = 锁定纹理,所有参数可选,\n成功返回指针
+!hge_texture.unLock(true) = 解锁纹理
+end intellisense**/  

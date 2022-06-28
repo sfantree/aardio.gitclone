@@ -1,0 +1,108 @@
+﻿namespace hosts;
+
+import fsys;
+import fsys.hosts;
+import fsys.table;
+import inet.http;
+
+
+fsys.hosts.ownCacls(); // hosts夺权，修正一些系统hosts无法编辑
+
+path = "~/";
+backupFileName = 'system.bak';
+
+// 配置文件
+config = fsys.table("~/config.hosts");
+config.load();
+
+// 获取完整保存文件路径
+getSavePath = function(name){
+    if(!name) return null,false,'请输入文件名';
+	var pathDir = ..io.fullpath(path);
+	return pathDir ++ name,true,"";
+}
+
+// 判断文件是否存在
+isExistFile = function(name){
+	return !!..io.exist(path++name);
+}
+
+/**
+ * 获取系统Hosts
+ **/
+getSystemHosts = function(){
+	return fsys.hosts.loadText();
+}
+
+/**
+ * 保存到系统Hosts
+ * @param {string} content
+ **/
+saveSystemHosts = function(content){
+	return ..fsys.hosts.saveText(content);
+}
+
+/**
+ * 刷新DNS缓存
+ **/
+clearDnsCache = function(){
+	fsys.hosts.flushDns();
+	return true;
+}
+
+/**
+ * 发送请求获取网络Hosts
+ * @param {string} url
+ * @param {Object} proxy
+ **/
+requestHosts = function(url, proxy){
+	if(!proxy) proxy = {}
+	var http = inet.http(proxy.ua, proxy.host);
+	if(proxy.user && proxy.password) http.setProxyAuth(proxy.user, proxy.password);
+	var html,err,errCode = http.get(url);
+	if(html) return { code = 0, message = 'success', html = html }
+	else {
+		if(http.statusCode) return { code = http.statusCode, message = http.lastResponse() }
+		else return { code = errCode || 9, message = err }
+	}
+}
+
+/**
+ * 备份系统文件
+ * @param {boolean} coverage 是否强制覆盖
+ **/
+backupLocalHosts = function(coverage = false){
+    var path,status,errMsg = getSavePath(backupFileName)
+    if(!status) return status
+    if(isExistFile(backupFileName) && !coverage) return status;
+	return ..string.save(path, getSystemHosts());
+}
+
+/**
+ * 获取所有数据
+ * @param {table} data 所有数据
+ **/
+getConfigData = function(){
+	return config;
+}
+
+/**
+ * 保存所有数据
+ * @param {table} data 所有数据
+ **/
+saveConfigData = function(data){
+	config.main = data;
+	config.time = ..time.now();
+	return config.save();
+}
+
+
+/**intellisense(hosts)
+clearDnsCache() = 刷新DNS缓存
+requestHosts() = 从url获取Hosts信息
+getSystemHosts() = 获取系统的Hosts信息
+saveSystemHosts() = 保存到系统的Hosts
+backupLocalHosts() = 备份系统文件
+getConfigData() = 获取所有数据
+saveConfigData() = 保存所有数据
+end intellisense**/

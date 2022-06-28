@@ -1,0 +1,50 @@
+/*
+ * 简单的命令行朗读工具，主要用在 bat 中扩展提供朗读功能。
+ * m message		需要播报的信息	默认为无
+ * r rate			语速			默认为 0
+ * v volume 		音量			默认为 100
+ *TODO
+ *	没有对命令行参数进行严谨的检查
+ *	没有实现 f 朗读文本的功能
+ *	受到系统的限制，暂不支持切换语音
+ */
+import console;							// 主控台
+import com.sapi.voice;					// 语音组件
+
+
+var voice = com.sapi.voice(); 			//创建语音对象
+
+voice.volume = 100;						// 默认音量设置为 100
+voice.rate = 0;							// 默认语速设置为 0
+voice.setVoiceByIndex(1);				// 默认语音库
+
+say = function (str) {
+    	voice.speakAsync(str);			// 异步非阻塞朗读
+	    voice.waitOne();				// 等待朗读结束
+}
+
+if (_ARGV.h != null) {
+    console.log("version 1.0");
+    console.log("say -r rate -v volume -m message");
+    console.log("rate		0-10");
+    console.log("volume		0-100");
+    console.log("message	dont be too long");
+    return;
+}
+
+var arg_r = tonumber(_ARGV.r);
+if (arg_r != null) {
+	voice.rate = arg_r;
+}
+
+var arg_v = tonumber(_ARGV.v);
+if (arg_v != null) {
+	voice.volume = arg_v;
+}
+
+       
+if (_ARGV.m != null){
+	say(_ARGV.m);
+}
+
+

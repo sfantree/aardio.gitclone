@@ -1,0 +1,56 @@
+import process;
+import winex;
+import mouse;
+import key;
+
+//地址是在我的xp机器上找到的,不知道一不一样~~~~
+/*
+MOD:
+    模式
+    0:call模式
+    1:鼠标模拟模式
+*/
+var MOD = 1
+var CALLADDR = 0x010037E1   //call地址
+var DATABASE = 0x1005340    //棋盘基址
+var SETBASE = 0x01005330    //设置基址+0:雷点个数 +4:棋盘宽 +8:棋盘高
+var XYBASE = 0x01005118     //call参数:XYBASE:x   XYBASE+4:y
+
+
+var prc = process("magnify.exe") //创建扫雷进程
+
+var act,hwnd;
+
+if(MOD){  //鼠标模式
+    hwnd = winex.waitVisible("扫雷");  //获取窗口句柄
+    win.getActive(hwnd);                //激活窗口
+    x,y,cx,cy=win.getPos(hwnd);         //获取窗口坐标
+}else{  //call模式
+    act = prc.remoteApi("void()", CALLADDR);  //获取远程call
+}
+
+var width = prc.readNumber(SETBASE+4,"INT")
+var height = prc.readNumber(SETBASE+8,"INT")
+for(j=1;height)
+for(i=1;width)
+{
+    n = prc.readNumber(DATABASE+i+32*j,"byte")  //棋盘基址+x+y*32=棋盘点的值
+    /*
+        n:棋盘点的值
+        未点击时:无雷:0f;;;有雷,8f (有用)
+        点击后:无雷:4x,x=周围雷的个数;;;有雷8x
+    */
+    if(n==0x0f)  
+    {
+        if(MOD){
+            mouse.move(x+4+16*i,y+96+16*j,true);  //移动到坐标点
+            mouse.click();                      //点击
+            //sleep(500)  
+        }else{
+            prc.writeNumber(XYBASE,i,"INT")  //写X坐标
+            prc.writeNumber(XYBASE+4,j,"INT")  //写Y坐标
+            act();                              //点击函数
+        }
+    }
+}
+prc.free();         //释放句柄

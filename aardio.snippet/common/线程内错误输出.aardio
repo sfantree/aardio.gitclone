@@ -1,0 +1,44 @@
+// @Author  : popy32
+// @Contact : 74o5o27o8#qq.com
+// @File    : errorinthread.aardio
+// @Comment : 线程内错误输出
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=223;bottom=151)
+winform.add(
+button={cls="button";text="线程内异常";left=56;top=40;right=168;bottom=72;z=1}
+)
+/*}}*/
+
+// aardio默认线程内异常是没有弹窗
+global.onError = function( err,over ){ 
+    import io;
+    import fsys;
+    import fsys.log;
+    import process;
+    if(!over){
+        import debug;
+        var stack = debug.traceback(,"调用栈",3);
+    }
+    fsys.log.print( ..string.replace(err,"![\r\n]\n",'\r\n')  );
+    
+    if( _STUDIO_INVOKED ) {
+        fsys.log.print(fsys.log.path);
+        var path = ..thread.get("fsys.log.default.path"):"/config/app$.log";
+        var openPath = fsys.getParentDir(..io.fullpath(path))
+        ..process.explore(openPath);
+        //return err; 
+    }
+}
+
+winform.button.oncommand = function(id,event){
+    thread.invoke(
+        function(){
+            error("thread");
+        }
+    )
+}
+
+winform.show();
+win.loopMessage();

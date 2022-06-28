@@ -1,0 +1,32 @@
+﻿import hpsocket.ssl;
+import hpsocket.socket.httpAgent;
+import hpsocket.listen.httpAgent;
+namespace hpsocket.ssl;
+
+class httpAgent{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_HttpAgentListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_HttpsAgent(pListener) );
+			this = ..hpsocket.listen.httpAgent(pListener,"ssl.httpAgent"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.httpAgent(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else ..table.gc(this,"destroy");
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_HttpsAgent(this.pSocket);
+			::HPSocket.Destroy_HP_HttpAgentListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.ssl.httpAgent() = 创建HTTP Agent组件\n!hpHttpAgent.
+end intellisense**/

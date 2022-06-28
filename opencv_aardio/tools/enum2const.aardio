@@ -1,0 +1,80 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="全局常量优化工具";right=685;bottom=440;parent=...)
+winform.add(
+btnConv={cls="button";text="将常量声明转换为智能提示";left=337;top=28;right=588;bottom=60;z=3};
+static={cls="static";text="本程序转换标准常量(下划线开始的大写标识符)为智能提示模板格式,
+有优化aardio性能、缩小程序体积的作用";left=40;top=9;right=407;bottom=50;transparent=1;z=2};
+txtCode={cls="edit";text='_GLOBAL_CONST_AAA=123;\r\n_GLOBAL__CONST_BBB=123;\r\n_GLOBAL__CONST_CCC=123;\r\n';left=25;top=64;right=662;bottom=411;edge=1;hscroll=1;multiline=1;vscroll=1;z=1}
+)
+/*}}*/
+
+winform.txtCode.limit = 0xFFFFFF
+
+winform.txtCode.text = /*
+enum _CV2_HersheyFonts {
+    FONT_HERSHEY_SIMPLEX        = 0, //!< normal size sans-serif font
+    FONT_HERSHEY_PLAIN          = 1, //!< small size sans-serif font
+    FONT_HERSHEY_DUPLEX         = 2, //!< normal size sans-serif font (more complex than FONT_HERSHEY_SIMPLEX)
+    FONT_HERSHEY_COMPLEX        = 3, //!< normal size serif font
+    FONT_HERSHEY_TRIPLEX        = 4, //!< normal size serif font (more complex than FONT_HERSHEY_COMPLEX)
+    FONT_HERSHEY_COMPLEX_SMALL  = 5, //!< smaller version of FONT_HERSHEY_COMPLEX
+    FONT_HERSHEY_SCRIPT_SIMPLEX = 6, //!< hand-writing style font
+    FONT_HERSHEY_SCRIPT_COMPLEX = 7, //!< more complex variant of FONT_HERSHEY_SCRIPT_SIMPLEX
+    FONT_ITALIC                 = 16 //!< flag for italic font
+};
+*/
+
+winform.btnConv.oncommand = function(id,event){
+	var str = winform.txtCode.text ;
+	
+	//记录常量
+	var tconst ={}
+	self@ = { //指定元表
+		_set = function(k,v){
+			if( (k[1]=='_'#) ){ //是下划线开头,并是大写
+	    		if( type(v)==type.number) {
+	    			if( v > 9 )
+	        			table.push(tconst,string.format("%s=@0x%X/*%s*/",k,v,k ) ) 
+	        		else {
+	        			table.push(tconst,string.format("%s=@%d/*%s*/",k,v,k ) ) 
+	        		}
+	        		
+	    		}
+	    		elseif(type(v)==type.string) {
+	        		table.push(tconst,string.format("%s=@""%s""",k,v,k ) )
+	    		}
+	        	
+			}
+			global[[k]] = v; //这里要用[[ ]] 操作符,不然会再次递归调用_set元方法
+		}
+		_float = true; //指定元表可修改
+	}
+	
+	var prefix = string.match(str,"\s*enum\s+(\S+)\s*{")
+	str = string.replace(str,'//.*?\n','\n')
+	str = string.replace( str, "\/\*.*?\*/","" )
+	str = string.replace(str, "\s*enum\s+(\S+)\s*{","")
+	str = string.replace(str, "}.*","")
+	str = string.replace(str,",",";")
+	str = string.replace(str,"#define\s+(\S+)","_\1=");
+	str = string.replace(str,"!\wWM_USER!\W","0x400/*_WM_USER*/");
+	if(prefix){
+		str = string.replace( str,"(\S+)\s*=",prefix + "_\1=" )
+	}
+	winform.txtCode.text = str;
+	
+	//加载并运行代码
+	assert( loadcode(str) ) ();
+	 
+	//停止记录常量
+	self@ = null 
+	
+	winform.txtCode.text = ' /**intellisense()\r\n' + string.join(tconst,'\r\n') + '\r\nend intellisense**/' ;
+
+}//endproc
+
+winform.enableDpiScaling();
+winform.show(true) 
+win.loopMessage();
+return winform;

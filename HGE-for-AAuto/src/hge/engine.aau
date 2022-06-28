@@ -1,0 +1,315 @@
+//engine 游戏引擎
+import web;
+import raw.interface;
+import util.metaProperty;
+  
+namespace hge;
+
+class engine{
+	ctor (){ 
+		var base = ..raw.interface( hgeCreate(0x180) , _IHge);  
+		..table.mixin( this,base );
+		
+		this._stateFunctions = {};
+		
+		..table.add_gc(this,"release" );
+	};
+	release = function(){
+		if( base ){
+			base.release();
+			base = null;
+		}
+	};
+	textureLoad = function (filename, size = 0, bMipmap = false ) {
+		var t = base.textureLoad(..io.localpath(filename) : filename, size, bMipmap);
+		if( t ) return ..hge.texture(t);
+	};
+	textureCreate = function(w=0,h=0,z){
+		var t = base.textureCreate(w,h,z);
+		if( t ) return ..hge.texture(t);
+	};
+	systemSetState = function (state, v ) {
+		var f = this[_setStateFunctions[type(v)]];
+		if(!f)error("参数类型错误",2);
+		f( state, v);
+	};
+	systemSetStateFunc  = function(state,v){
+		var callback = ..raw.tostdcall(v, "bool()");
+		this._stateFunctions[state] = callback;
+		return base.systemSetStateFunc(state, callback );
+	};
+	setOption = function(opts){
+		var f;
+		for (state, v in opts){
+			state = _optionStates[state]
+			if(!state)error("参数类型错误",2);
+			
+			var f = this[_setStateFunctions[type(v)]];
+			if(!f)error("参数类型错误",2);
+			f( state, v);  
+		}
+	};
+	loadSoundDll  = function(bassDll){
+		..raw.loadDll(bassDll)
+		base.systemSetStateBool(4/*_HGE_USESOUND*/,true) ;
+	};
+	frame = function(f){
+		this.systemSetStateFunc(8/*_HGE_FRAMEFUNC*/, f); 
+	};
+	render = function(f){ 
+		this.systemSetStateFunc(9/*_HGE_RENDERFUNC*/, f);
+	};
+	init = function(f){
+		if( ! this._stateFunctions[8/*_HGE_FRAMEFUNC*/] )
+			error("请先调用frame()函数 设定帧回调函数",2);
+		
+		if( ! this._stateFunctions[9/*_HGE_RENDERFUNC*/] )
+			error("请先调用render()函数 设定绘图回调函数",2);
+				
+		if (!this.systemInitiate()) 
+			return false;
+			
+		if( type(f) == type.function ){ 
+			if( f( this.systemGetStateHwnd( 0xF/*_HGE_HWND*/ ) ) ) return false; //可通过返回true终止游戏
+		}
+		
+		return base.systemStart(); 
+	};
+	shutdown = function(f){ 
+		if( type(f) == type.function )
+			f();
+
+		..hge.texture.clear();
+		return base.systemShutdown(); 
+	};
+	focusLost = function(f){
+		this.systemSetStateFunc(0xA/*_HGE_FOCUSLOSTFUNC*/, f);
+	};
+	focus = function(f){
+		this.systemSetStateFunc(0xB/*_HGE_FOCUSGAINFUNC*/, f);
+	};
+	beforeExit = function(f){
+		this.systemSetStateFunc(0xD/*_HGE_EXITFUNC*/, f);
+	};
+	snapshot = function(path){
+		base.systemSnapshot( ..io.fullpath(path) );
+	};
+	launch = function(url){
+		base.systemLaunch( ..web.mapurl(url) );
+	}; 
+	windowed = function(w=640,h=480){
+		base.systemSetStateBool(1/*_HGE_WINDOWED*/, true );
+		base.systemSetStateInt(0x11/*_HGE_SCREENWIDTH*/,w );
+		base.systemSetStateInt(0x12/*_HGE_SCREENHEIGHT*/,h );
+	};
+	@_metaProperty;
+}
+
+namespace engine {
+
+	_metaProperty = ..util.metaProperty(
+		textureFilter = {
+			_get = function(){ 
+				return owner.systemGetStateBool( 3/*_HGE_TEXTUREFILTER*/ );
+			}
+			_set = function( v ){
+				 owner.systemSetStateBool(3/*_HGE_TEXTUREFILTER*/, v );
+			} 	
+		};
+		fps = {
+			_get = function(){ 
+				return owner.systemGetStateInt(0x18/*_HGE_FPS*/ );
+			}
+			_set = function( v ){
+				owner.systemSetStateInt(0x18/*_HGE_FPS*/, v );
+			} 	
+		}; 
+		fullScreen = {
+			_get = function(){ 
+				return !owner.systemGetStateBool( 1/*_HGE_WINDOWED*/ );
+			}
+			_set = function( v ){
+				 owner.systemSetStateBool(1/*_HGE_WINDOWED*/, !v );
+			} 	
+		}; 
+		title = {
+			_get = function(){ 
+				return owner.systemGetStateString( 0x1B/*_HGE_TITLE*/ );
+			}
+			_set = function( v ){
+				 owner.systemSetStateString(0x1B/*_HGE_TITLE*/, v );
+			} 	
+		}; 
+		hwndParent = {
+			_get = function(){ 
+				return owner.systemGetStateHwnd( 0x10/*_HGE_HWNDPARENT*/ );
+			}
+			_set = function( v ){
+				owner.systemSetStateHwnd(0x10/*_HGE_HWNDPARENT*/, v );
+			} 	
+		}; 
+	)
+	
+	dll = ..raw.loadDll($"~\lib\hge\.res\hge.dll");
+	hgeCreate = dll.api("hgeCreate","pointer(int ver)");
+	
+	_setStateFunctions = {
+		[type.boolean] = "systemSetStateBool";
+		[type.number] = "systemSetStateInt";
+		[type.string] = "systemSetStateString";
+		[type.function] = "systemSetStateFunc";
+	}
+	
+	_optionStates = {
+		windowed = 1/*_HGE_WINDOWED*/;
+		zBuffer = 2/*_HGE_ZBUFFER*/;
+		textureFilter = 3/*_HGE_TEXTUREFILTER*/; 
+		dontSuspend = 5/*_HGE_DONTSUSPEND*/;
+		hideMouse = 6/*_HGE_HIDEMOUSE*/;
+		showSplash = 7/*_HGE_SHOWSPLASH*/; 
+		screenWidth = 0x11/*_HGE_SCREENWIDTH*/;
+		screenHeight = 0x12/*_HGE_SCREENHEIGHT*/;
+		screenBpp = 0x13/*_HGE_SCREENBPP*/;
+		screenSampleRate = 0x14/*_HGE_SAMPLERATE*/;
+		fxVolume = 0x15/*_HGE_FXVOLUME*/;
+		musVolume = 0x16/*_HGE_MUSVOLUME*/;
+		streamVolume = 0x17/*_HGE_STREAMVOLUME*/;
+		fps = 0x18/*_HGE_FPS*/;
+		icon = 0x1A/*_HGE_ICON*/;
+		title = 0x1B/*_HGE_TITLE*/;
+		iniFile = 0x1C/*_HGE_INIFILE*/;
+		logFile = 0x1D/*_HGE_LOGFILE*/;
+	}
+	
+	class _IHge {
+		pointer release = "void()";
+		pointer systemInitiate = "bool()";
+		pointer systemShutdown = "void()";
+		pointer systemStart = "bool()";
+		pointer systemGetErrorMessage = "string()";
+		pointer systemLog;
+		pointer systemLaunch = "bool(string url)";
+		pointer systemSnapshot = "void(string filename)";
+		pointer systemSetStateBool = "void(int state, bool value)";
+		pointer systemSetStateFunc = "void(int state, pointer value)";
+		pointer systemSetStateHwnd = "void(int state, addr value)";
+		pointer systemSetStateInt = "void(int state, int value)";
+		pointer systemSetStateString = "void(int state, string value)";
+		pointer systemGetStateBool = "bool (int state)";
+		pointer systemGetStateFunc = "pointer(int state)";
+		pointer systemGetStateHwnd = "addr(int state)";
+		pointer systemGetStateInt = "int(int state)";
+		pointer systemGetStateString = "string(int state)";
+		pointer resourceLoad = "pointer(string filename,INT & size)";
+		pointer resourceFree = "void(pointer res)";
+		pointer resourceAttachPack = "bool (string filename, string password)";
+		pointer resourceRemovePack = "void(string filename)";
+		pointer resourceRemoveAllPacks = "void()";
+		pointer resourceMakePath = "string(string filename)";
+		pointer resourceEnumFiles = "string(string wildcard)";
+		pointer resourceEnumFolders = "string(string wildcard)";
+		pointer iniSetInt = "void(string section, string name, int value)";
+		pointer iniGetInt = "int(string section, string name, int def_val)";
+		pointer iniSetFloat = "void(string section, string name, float value)";
+		pointer iniGetFloat = "float(string section, string name, float def_val)";
+		pointer iniSetString = "void(string section, string name, string value)";
+		pointer iniGetString = "string(string section, string name, string def_val)";
+		pointer randomSeed = "void(int seed)";
+		pointer randomInt = "int(int min, int max)";
+		pointer randomFloat = "float(float min, float max)";
+		pointer timerGetTime = "float()";
+		pointer timerGetDelta = "float()";
+		pointer timerGetFPS = "int()";
+		pointer effectLoad = "pointer(string filename, INT size)";
+		pointer effectFree = "void(pointer eff)";
+		pointer effectPlay = "pointer(pointer eff)";
+		pointer effectPlayEx = "pointer(pointer eff, int volume, int pan, float pitch=1.0f, bool  loop)";
+		pointer musicLoad = "pointer(string filename, INT size)";
+		pointer musicFree = "void(pointer mus)";
+		pointer musicPlay = "pointer(pointer mus, bool  loop, int volume, int order = -1, int row = -1)";
+		pointer musicSetAmplification = "void(pointer music, int ampl)";
+		pointer musicGetAmplification = "int(pointer music)";
+		pointer musicGetLength = "int(pointer music)";
+		pointer musicSetPos = "void(pointer music, int order, int row)";
+		pointer musicGetPos = "bool (pointer music, int &order, int &row)";
+		pointer musicSetInstrVolume = "void(pointer music, int instr, int volume)";
+		pointer musicGetInstrVolume = "int(pointer music, int instr)";
+		pointer musicSetChannelVolume = "void(pointer music, int channel, int volume)";
+		pointer musicGetChannelVolume = "int(pointer music, int channel)";
+		pointer streamLoad = "pointer(string filename, INT size)";
+		pointer streamFree = "void(pointer stream)";
+		pointer streamPlay = "pointer(pointer stream, bool  loop, int volume)";
+		pointer channelSetPanning = "void(pointer chn, int pan)";
+		pointer channelSetVolume = "void(pointer chn, int volume)";
+		pointer channelSetPitch = "void(pointer chn, float pitch)";
+		pointer channelPause = "void(pointer chn)";
+		pointer channelResume = "void(pointer chn)";
+		pointer channelStop = "void(pointer chn)";
+		pointer channelPauseAll = "void()";
+		pointer channelResumeAll = "void()";
+		pointer channelStopAll = "void()";
+		pointer channelIsPlaying = "bool (pointer chn)";
+		pointer channelGetLength = "float(pointer chn)";
+		pointer channelGetPos = "float(pointer chn)";
+		pointer channelSetPos = "void(pointer chn, float fSeconds)";
+		pointer channelSlideTo = "void(pointer channel, float time, int volume, int pan = -101, float pitch = -1)";
+		pointer channelIsSliding = "bool (pointer channel)";
+		pointer inputGetMousePos = "void(float &x, float &y)";
+		pointer inputSetMousePos = "void(float x, float y)";
+		pointer inputGetMouseWheel = "int()";
+		pointer inputIsMouseOver = "bool()";
+		pointer inputKeyDown = "bool(int key)";
+		pointer inputKeyUp = "bool (int key)";
+		pointer inputGetKeyState = "bool (int key)";
+		pointer inputGetKeyName = "string(int key)";
+		pointer inputGetKey = "int()";
+		pointer inputGetChar = "int()";
+		pointer inputGetEvent = "bool (struct &event)";
+		pointer gfxBeginScene = "bool (pointer target)";
+		pointer gfxEndScene = "void()";
+		pointer gfxClear = "void(INT color)";
+		pointer gfxRenderLine = "void(float x1, float y1, float x2, float y2, INT color, float z.5f)";
+		pointer gfxRenderTriple = "void(struct triple)";
+		pointer gfxRenderQuad = "void(struct quad)";
+		pointer gfxStartBatch = "pointer(int prim_type, pointer tex, int blend, int &max_prim)";
+		pointer gfxFinishBatch = "void(int nprim)";
+		pointer gfxSetClipping = "void(int x, int y, int w, int h)";
+		pointer gfxSetTransform = "void(float x, float y, float dx, float dy, float rot, float hscale, float vscale); ";
+		pointer targetCreate = "pointer(int width, int height, bool  zbuffer)";
+		pointer targetFree = "void(pointer target)";
+		pointer targetGetTexture = "pointer(pointer target)";
+		pointer textureCreate = "pointer(int width, int height)";
+		pointer textureLoad = "pointer(string filename, INT size, bool bMipmap)";
+		pointer textureFree = "void(POINTER tex)";
+		pointer textureGetWidth = "int(POINTER tex, bool  bOriginal)";
+		pointer textureGetHeight = "int(POINTER tex, bool bOriginal)";
+		pointer textureLock = "pointer(POINTER tex, bool bReadOnly, int left, int top, int width, int height)";
+		pointer textureUnlock = "void(POINTER tex)";
+	} 
+}
+
+/**intellisense() 
+!hgeEngine.loadSoundDll("/dll/bass->dll") = 加载音效组件
+!hgeEngine.setOption = @.setOption(\n	screenWidth = 640;\n	screenHeight = 480;\n	title = "我的游戏";\n	windowed = true;\n);
+!hgeEngine.frame = @.frame( \n	function () { \n		__/*帧回调函数*/\n		return false;\n	} \n)
+!hgeEngine.frame = @.render( \n	function () { \n		__/*绘图回调函数*/\n		return false;\n	} \n)
+!hgeEngine.init = @.render( \n	function ( hwndEngine ) { \n		__/*启动游戏回调函数*/ \n	} \n)
+!hgeEngine.shutdown = @.render( \n	function () { \n		__/*关闭游戏回调函数*/ \n	} \n)
+!hgeEngine.focusLost = @.focusLost(\n	function () { \n		__/*游戏程序失去焦点时调用*/\n	} \n)
+!hgeEngine.focus = @.focus( \n	function () { \n		__/*游戏程序获得焦点时被调用*/\n	} \n)
+!hgeEngine.beforeExit = @.beforeExit(\n	function () { \n		return true;__/*返回true退出程序,返回false禁止关闭*/\n	} \n)
+!hgeEngine.snapshot("snap->jpg__") = 抓屏
+!hgeEngine.launch(.("网址或文件路径") = 使用默认程序打开网页或文件
+!hgeEngine.textureFilter = 是否使用纹理过滤\n渲染一个块地图时，临时禁止掉纹理过滤可避免\n一些视频卡导致不正确的块交叉的错误
+!hgeEngine.fps = 以帧为单位定义帧函数每秒的被调用率 
+!hgeEngine.fullScreen = 程序是否全屏
+!hgeEngine.hwndParent = 获取,或设置父窗口句柄
+!hgeEngine.title = 窗口标题
+!hgeEngine.windowed() = 切换到窗口模式,可选指定宽高
+
+!hgeEngine.textureLoad(.(文件名,大小,创建MIP映射层) = 载入纹理,除文件名以外其他参数可选
+!hgeEngine.textureCreate(.(宽度,高度,是否支持Z序) = 创建纹理
+!hgeEngine.textureLoad() = !hge_texture.
+!hgeEngine.textureCreate() = !hge_texture.
+end intellisense**/
+ 

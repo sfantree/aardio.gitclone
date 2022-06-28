@@ -1,0 +1,26 @@
+import cv2
+
+//调整大小
+img = cv2.imread("./assets/images/Lena.jpg",1/*_CV2_IMREAD_COLOR*/)
+img = cv2.resize( img,::SIZE(500,500) )
+cv2.imshow("调整大小",img)
+//cv2.waitKey()
+img = cv2.flip(img,-1)
+cv2.imshow( "flip",img )
+//转换颜色空间
+img = cv2.cvtColor(img,6/*_CV2_COLOR_BGR2GRAY*/)
+cv2.imshow( "转换颜色空间",img )
+//cv2.waitKey()
+
+path = ..io.fullpath("./images/Lena.jpg")
+//调整大小
+img = cv2.imread(path,1/*_CV2_IMREAD_COLOR*/)
+img = cv2.copyMakeBorder(img,20,20,20,20,0/*_CV2_BORDER_CONSTANT*/,::Scalar(127,0,0))
+cv2.imshow( "copyMakeBorder",img )
+
+img = cv2.bitwise_not(img)
+cv2.imshow( "bitwise_not",img )
+
+cv2.waitKey()
+
+cv2.copyMakeBorder(

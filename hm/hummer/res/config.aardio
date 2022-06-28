@@ -1,0 +1,57 @@
+﻿totalWidth		= 1500;		//画布宽度，不要小于窗口宽度
+totalHeight		= 1000;		//画布高度，不要小于窗口高度
+formWidth		= 1000;		//窗口宽度，实际的绘图区域会比该值略小点
+formHeight		= 700;		//窗口高度，实际的绘图区域会比该值略小点
+edit = {
+   text  	= 50;
+}
+autoPos = {
+	minX	= 50;
+	maxX	= 1450;
+	minY	= 50;
+	maxY	= 950;
+	spaceX	= 150;			//不能是0，不要乱改
+	spaceY	= 150;			//不能是0，不要乱改
+	waveX	= 20;			//不要设置为负数，不要太大（不要大于圆的直径）
+	waveY	= 20;			//不要设置为负数，不要太大（不要大于圆的直径）
+}
+
+bgColor	= 0xFF66CC66;		//背景颜色
+rotation = false;			//文字是否沿线方向绘制，小文字在旋转后绘制，会变得不清晰
+network_links_args = {		//网络链路配置
+	penColor		= 0x99FF0066;
+	textBrushColor	= 0xFF0000FF;
+	fontName		= "MS Shell Dlg";
+	fontH			= -12;
+}
+consumer_links_args = {		//与消费节点相连的链路的配置
+	penColor		= 0x99FF66FF;
+	textBrushColor	= 0xFFE61AD1;
+	fontName		= "MS Shell Dlg";
+	fontH			= -12;
+}
+
+consumer_nodes_args = {		//消费节点配置
+	penColor		= 0x990000FF;
+	brushColor		= 0xDDFFFF00;
+	textBrushColor	= 0xFF0000FF;
+	fontName		= "MS Shell Dlg";
+	fontH			= -12;
+	r				= 25;
+}
+network_nodes_args = {		//网络节点配置
+	penColor		= 0x99FFFFFF;
+	brushColor		= 0xDD990066;//EB3F2F
+	textBrushColor	= 0xFFFFFFFF;
+	fontName		= "MS Shell Dlg";
+	fontH			= -12;
+	r				= 30;
+}
+server_nodes_args = {		//放置服务器的网络节点的配置
+	penColor		= 0x99FFFFFF;
+	brushColor		= 0xDD003CFF;
+	textBrushColor	= 0xFFFFFFFF;
+	fontName		= "MS Shell Dlg";
+	fontH			= -14;
+	r				= 35;
+}

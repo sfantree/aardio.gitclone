@@ -1,0 +1,17 @@
+﻿//checkBox 复选框
+namespace hge.interFace;
+checkBox = class {
+	ctor(  game , tex  ){
+		this = game.button(tex);
+		this.checked = false;
+	};
+	(function(){
+		this.on(11/*_hge_event_mouseleave*/,function(){
+			this.state = this.checked?1:0;
+		},"onMouseLeave")
+		this.on(6/*_hge_event_mousedown*/,function(){
+			this.checked = !this.checked;
+		})
+	}
+	)()
+}

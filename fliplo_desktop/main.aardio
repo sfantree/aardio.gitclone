@@ -1,0 +1,144 @@
+import wallpaper;
+import winex; 
+import electron.app;
+/*DSG{{*/
+var winform = win.form(text="fliplo desktop";right=269;bottom=329)
+winform.add(
+removewindow={cls="button";text="移除并关闭";left=35;top=175;right=235;bottom=277;z=1};
+static={cls="static";text="Fliplo Desktop";left=50;top=43;right=222;bottom=97;align="center";center=1;font=LOGFONT(h=-16;name='Consolas');notify=1;transparent=1;z=2}
+)
+/*}}*/
+
+var hwnd;
+var theApp = electron.app("Fliplo Desktop")
+
+// 在JS中require('aardio')就可以使用下面的external对象
+/**
+theApp.external = {  
+    
+    // 如果函数名第一个字符是$，则第一个回调参数$用于表示当前RPC客户端,可作为xcall的参数使用
+    $onWebViewDomReady = function($,url){ 
+       if( string.indexOf(url,"&q=") ) return;
+       
+       var js = /*
+       	var webview = document.getElementById("view");
+       	webview.executeJavaScript(`
+       		document.querySelector("#input").value = "https://electronjs.org/docs/api/webview-tag";
+       		document.querySelector("#search-button").click();
+       	`)
+       */
+       
+       // electron当前页面执行js脚本
+       theApp.doScript($,js); 
+       
+       // 也可以这样调用js中使用aardio.on注册的事件函数
+       /*
+       theApp.xcall($,"executeJavaScript",`
+       		document.querySelector("#input").value = "https://electronjs.org/docs/api/webview-tag";
+       		document.querySelector("#search-button").click();
+       `);
+       */
+    }  
+    
+    exploreMainJs = function(){
+    	process.exploreSelect(theApp.appPath);
+    }
+}
+**/
+
+// 调用JS函数时返回时触发theApp.callback定义的回调函数，用于接收JS函数返回值
+/*
+theApp.callback("main.hello",function(hSocket,result,err){
+	
+})
+*/
+
+// electron窗口准备就绪会触发这个函数
+theApp.ready(
+	function(hwndChrome){
+		hwnd = hwndChrome;
+		wallpaper = wallpaper();
+		winex.sendString("预览壁纸",hwnd);
+		wallpaper.setWindow(hwnd);
+		winform.removewindow.disabled =  false;
+	} 
+)
+
+// WebSocke/RPC中遇到的错误都会触发这个函数,可以在这里自定义错误处理方式
+/*
+theApp.onError = function(hSocket,err){
+	errput(err,"electron/rpc error");//当然也可以在 global.onError 里自定义全部的错误信息怎么显示
+}
+*/
+
+theApp.start({
+    /* 指定首页地址,必须指定,
+    * 如果作为参数传入io.localpath(indexUrl)会返回true,则表示相对于应用程序根目录的路径，支持嵌入资源
+    * 如果路径以".\"或"./"开始则表示相对于主进程根目录的路径
+    */
+    indexUrl = "/res/index.aardio";
+    
+    // 可以自定义要加载的chrome扩展,扩展需要解压并放在工程资源目录下（目录名最好不要与别人冲突）
+    // extensions = { "\some-chrome-extension" };
+    
+    /* 创建窗口参数,可以不指定 */
+    browserWindow = {
+/*
+        width = 1024;
+        height = 768;
+        minWidth = 800;
+        minHeight = 600;
+*/
+		//添加全屏
+		fullscreen = true;
+        frame = false;
+        webPreferences = {
+        	nodeIntegration = false
+        };
+    };
+    
+    /* 启动参数,可以不指定 */
+    args = {
+        
+    };
+}) 
+
+winform.removewindow.disabled = true;
+winform.removewindow.oncommand = function(id,event){
+	//关闭窗口
+	wallpaper.removeWindow(hwnd);
+	winform.removewindow.disabled =  true;
+	win.close(theApp.hwndChrome);
+}
+
+winform.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {
+            //最小化到托盘
+        case( 0x112/*_WM_SYSCOMMAND*/ ){ //系统命令消息
+            if( wparam == 0xF020/*_SC_MINIMIZE*/ ){ //用户点击了最小化按钮
+            	import win.util.tray;
+                tray = win.util.tray(winform)
+                winform.show(false);
+                tray.message = 0x400+9981/*_WM_TRAYMESSAGE*/ //设置托盘图标回调消息
+                return true;//阻击默认消息传递，取消最小化过程
+            }
+        }
+        //托盘点击事件
+        case (0x400+9981/*_WM_TRAYMESSAGE*/){
+            if(lparam=0x0202){
+                winform.show(true)
+                tray.delete()
+            }
+        }
+    }
+}
+
+winform.static.oncommand = function(id,event){
+	
+}
+
+winform.show();
+winform.wndproc(winform.hwnd,0x112,0xF020);
+
+//网页中可以调用 aardio.quit() 退出,也可以直接关闭chrome窗口退出
+win.loopMessage();

@@ -1,0 +1,196 @@
+<!DOCTYPE <html>
+<head>
+	<title>admin</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<style type="text/css">
+		body {
+		}
+		header {
+			background-color: rgba(0,0,0,.2);
+		}
+		#content {
+			height: 90%;
+		}
+		footer {
+			text-align: center;
+		}
+		aside {
+			margin-top: 2%;
+			float: left;
+			margin-left: 5%;
+			background-color: rgba(0,255,0,.1);
+			height: 90%;
+			width: 25%;
+			margin-top: 2%;
+		}
+		section {
+			width: 60%;
+			float: right;
+			margin-right: 5%;
+			height: 90%;
+		}
+		.container {
+
+		}
+		.container > ul{
+			margin-left: 80%;
+		}
+
+		.mypane {
+			width: 100%;
+			height: 85%;
+			background-color: rgba(0,0,255,.3);
+		}
+		#info2 {
+			margin-top: 2%;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(255,255,0,.2);
+		}
+		
+		#index {
+			float:left;
+			margin-top:.5%;
+			margin-left:10%;
+			display:block;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<div id="index">
+			<a href="index.aardio">首页
+			</a>
+		</div>
+		<div class="container">
+			<ul class="nav nav-tabs">
+				<li><a href="#">管理员：
+				<?
+				if(request.cookies["username"]){
+				?>
+					<?=request.cookies["username"]?>
+				<?	
+				}
+				else {
+				?>
+				<?=response.cookies["username"].value?>
+				<?					
+				}
+				?>
+				</a></li>
+			</ul>
+		</div>
+	</header>
+	<div id="content">
+		<aside>
+			<img src="images/lightsmile.png">
+		</aside>
+		<section>
+			<div class="info" id="info2">
+				<ul class="nav nav-tabs">
+					<li class="active"><a href="#A" data-toggle="tab">会员信息管理</a></li>
+					<li><a href="#B" data-toggle="tab">商品信息管理</a></li>
+					<li><a href="#C" data-toggle="tab">订单信息管理</a></li>
+				</ul>
+				<br/>
+				<div class="tab-content">
+					<div class="tab-pane active mypane" id="A">
+						<table class ="table">
+							<thead>
+								<tr>
+									<th>会员ID</th>
+									<th>会员用户名</th>
+									<th>会员密码</th>
+									<th>会员邮箱</th>
+									<th>会员地址</th>
+									<th>会员电话</th>
+									<th>会员账户余额</th>
+								</tr>
+							</thead>
+						<?
+						import dblink;
+						var userInfo = dblink.userInfo();
+						for(i=1;#userInfo;1){
+						?>
+							<tr>
+								<td><?=userInfo[i].id?></td>
+								<td><?=userInfo[i].username?></td>
+								<td><?=userInfo[i].password?></td>
+								<td><?=userInfo[i].email?></td>
+								<td><?=userInfo[i].address?></td>
+								<td><?=userInfo[i].phonenum?></td>
+								<td><?=userInfo[i].count?></td>
+							</tr>
+							<?
+							}	
+							?>
+						</table>
+					</div>
+					<div class="tab-pane mypane" id="B">
+						<table class ="table">
+							<thead>
+								<tr>
+									<th>商品ID</th>
+									<th>商品类型</th>
+									<th>商品名称</th>
+									<th>剩余数量</th>
+									<th>商品价格（¥）</th>
+									<th>商品描述</th>
+								</tr>
+							</thead>
+						<?
+						import dblink;
+						var goodInfo = dblink.goodInfo();
+						for(i=1;#goodInfo;1){
+						?>
+							<tr>
+								<td><?=goodInfo[i].id?></td>
+								<td><?=goodInfo[i].type?></td>
+								<td><?=goodInfo[i].goodname?></td>
+								<td><?=goodInfo[i].leftnum?></td>
+								<td><?=goodInfo[i].price?></td>
+								<td><?=goodInfo[i].description?></td>
+							</tr>
+						<?
+						}	
+						?>
+						</table>	
+					</div>
+					<div class="tab-pane mypane" id="C">
+					<table class ="table">
+							<thead>
+								<tr>
+									<th>订单ID</th>
+									<th>用户名</th>
+									<th>商品名</th>
+									<th>购买数量</th>
+								</tr>
+							</thead>
+						<?
+						import dblink;
+						var orderInfo = dblink.orderInfo();
+						for(i=1;#orderInfo;1){
+						?>
+							<tr>
+								<td><?=orderInfo[i].id?></td>
+								<td><?=orderInfo[i].userid?></td>
+								<td><?=orderInfo[i].goodid?></td>
+								<td><?=orderInfo[i].num?></td>
+							</tr>
+						<?
+						}	
+						?>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+	</div>
+	<footer>
+		<p>Writen by lightsmile</p>
+	</footer>
+	<script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+import win;
+import win.ui;
+import win.ui.menu;
+import fsys.dlg;
+import fsys;
+import fsys.file;
+import win.clip;
+import win.ui.tooltip; 
+import process;
+import win.ui.atom;
+import crypt;
+import crypt.hmac;
+import console;
+import fsys.lnk;
+/*DSG{{*/
+mainForm = win.form(text="文件哈希校验 v0.7   by bituplink.com";right=567;bottom=294;acceptfiles=1;border="dialog frame";max=false)
+mainForm.add(
+btnAddFile={cls="button";text="添加文件";left=0;top=1;right=104;bottom=34;z=2};
+btnCopyResult={cls="button";text="复制结果";left=104;top=1;right=208;bottom=34;z=3};
+btnSaveResult={cls="button";text="保存结果";left=208;top=1;right=312;bottom=34;flat=1;z=4};
+buttonClear={cls="button";text="清空记录";left=312;top=1;right=416;bottom=34;flat=1;z=16};
+checkboxCrc={cls="checkbox";text="CRC32值";left=472;top=253;right=549;bottom=270;z=11};
+checkboxMd5={cls="checkbox";text="MD5值";left=472;top=122;right=553;bottom=141;checked=1;z=6};
+checkboxModTime={cls="checkbox";text="修改时间";left=472;top=97;right=553;bottom=115;checked=1;z=13};
+checkboxSha1={cls="checkbox";text="SHA1值";left=472;top=149;right=553;bottom=168;checked=1;z=7};
+checkboxSha256={cls="checkbox";text="SHA256值";left=472;top=175;right=553;bottom=194;checked=1;z=12};
+checkboxSha384={cls="checkbox";text="SHA384值";left=472;top=201;right=553;bottom=220;z=14};
+checkboxSha512={cls="checkbox";text="SHA512值";left=472;top=227;right=553;bottom=246;z=15};
+checkboxShowName={cls="checkbox";text="文件名称";left=472;top=47;right=553;bottom=65;checked=1;z=8};
+checkboxShowSize={cls="checkbox";text="文件大小";left=472;top=72;right=553;bottom=90;checked=1;z=5};
+editShowZone={cls="edit";text='鼠标拖拽文件到这里，或者点击上方"添加文件"按钮';left=1;top=35;right=463;bottom=293;bgcolor=16777215;edge=1;font=LOGFONT(name='宋体');hscroll=1;multiline=1;readonly=1;z=1};
+plusDonate={cls="plus";left=469;top=7;right=495;bottom=33;foreRepeat="center";foreground="\res\donate.png";notify=1;repeat="center";z=9};
+plusHelpInfo={cls="plus";left=501;top=7;right=527;bottom=33;foreRepeat="center";foreground="\res\info.png";notify=1;repeat="center";z=10};
+plusShortcut={cls="plus";left=533;top=7;right=559;bottom=33;foreRepeat="center";foreground="\res\shortcut.png";notify=1;repeat="center";z=18};
+static_top={cls="static";text="窗口置顶";left=417;top=9;right=468;bottom=27;notify=1;transparent=1;z=17}
+)
+/*}}*/
+
+// 单实例运行功能
+var atom,hwndConflict = mainForm.atom("C90B636F-54A5-4DC2-98A7-62FF5276F411");   
+if(!atom){  
+    /*为窗口设置原子值可以避免一个程序重复运行多个实例*/  
+    win.quitMessage();//程序退出  
+    return;  
+};
+
+// 增加用户设置项配置能力
+import config;
+mainForm.bindConfig( config.mainForm,{
+    checkboxShowName = "checked";
+    checkboxShowSize = "checked";
+    checkboxModTime = "checked";
+    checkboxMd5 = "checked";
+    checkboxSha1 = "checked";
+    checkboxSha256 = "checked";
+    checkboxSha384 = "checked";
+    checkboxSha512 = "checked";
+    checkboxCrc = "checked";
+    
+} );
+
+// 在窗口上创建tooltip对象, mainForm是界面主窗口的名称，可以改变，但是需要保持一致
+var toolTipObj = win.ui.tooltip(mainForm);
+
+// 给控件添加悬停提示, btnAddFile是之前创建的按键控件的名称， 0x10/*_TTF_SUBCLASS*/参数表示默认提示
+toolTipObj.addTool(mainForm.btnAddFile, "点击打开选择文件对话框，选择需要校验的文件", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.btnCopyResult, "拷贝校验结果到剪切板", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.btnSaveResult, "将校验结果另存到指定位置和名称的文件", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.buttonClear, "清空显示的校验结果", 0x10/*_TTF_SUBCLASS*/ );
+
+toolTipObj.addTool(mainForm.plusDonate, "捐助支持我", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.plusHelpInfo, "访问官网获取更多信息", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.static_top, "点击切换窗口置顶状态", 0x10/*_TTF_SUBCLASS*/ );
+toolTipObj.addTool(mainForm.plusShortcut, "生成桌面快捷方式", 0x10/*_TTF_SUBCLASS*/ );
+
+
+// 拖放会触发onDropFiles事件
+mainForm.onDropFiles = function(files){
+	// 软件只接受单文件的校验，不处理文件列表，只取一个文件
+	getAndCheckFile(files[1]);
+}
+
+mainForm.btnAddFile.oncommand = function(id,event){
+	var fileAddedInfo = fsys.dlg.open("所有文件|*.*|");
+	
+    getAndCheckFile(fileAddedInfo);	
+}
+
+mainForm.btnCopyResult.oncommand = function(id,event){
+	win.clip.write(mainForm.editShowZone.text)
+}
+
+mainForm.btnSaveResult.oncommand = function(id,event){
+
+    // 如果没有内容也不保存到文件,通过获取内容的长度进行判断
+	if(!#mainForm.editShowZone.text){
+		mainForm.msgbox("还没有哈希校验结果无法保存，请先进行校验！")
+		return;
+	}
+	
+	fileOutputInfo = fsys.dlg.save("文本文件|*.txt|", "另存为", dir, mainForm.hwnd, , "文件哈希校验结果.txt")
+    
+    // 如果取消选择，需要先判断文件路径是否存在,不存在则不执行下面的文件
+	if(fileOutputInfo == null){
+		return;
+	}
+	
+	string.save(fileOutputInfo, mainForm.editShowZone.text);
+}
+
+function getAndCheckFile(fileAdded){
+    
+    // 清空上一次的数值，确保一次只保留一份校验结果
+	mainForm.editShowZone.text = "";
+	
+	//如果取消选择，需要先判断文件路径是否存在,不存在则不执行下面的文件
+	if(fileAdded == null){
+		return;
+	}
+	
+	// 根据文件路径加载文件，获取文件名
+	var fileAddedName = io.splitpath(fileAdded).file;
+	
+	if(mainForm.checkboxShowName.checked){
+		mainForm.editShowZone.appendText("文件名称: " ,fileAddedName, '\r\n');
+	}
+	
+	// 获取文件的大小，默认单位byte
+	fileAddedObj = fsys.file(fileAdded);
+	var fileAddedSize64 = fileAddedObj.size64();
+	
+	var file_size_bytes = tonumber(fileAddedSize64);
+	var file_size_string = "";
+	
+	if(mainForm.checkboxShowSize.checked){
+		
+		if(file_size_bytes <= 1024){
+			file_size_string = file_size_bytes + " bytes";
+		}
+		elseif(file_size_bytes > 1024 && file_size_bytes < 1048576){
+			file_size_string = string.format("%.2f", (file_size_bytes / 1024)) + " KB ";
+			file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}
+		elseif(file_size_bytes = 1048576){
+		    file_size_string = "1 MB ";
+		    file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}
+		elseif(file_size_bytes > 1048576 && file_size_bytes < 1073741824){
+		    file_size_string = string.format("%.2f",(file_size_bytes / (1024 * 1024))) + " MB ";
+		    file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}
+		elseif(file_size_bytes = 1073741824){
+		    file_size_string = "1 GB ";
+		    file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}
+		elseif(file_size_bytes > 1073741824 && file_size_bytes < 1099511627776){
+		    file_size_string = string.format("%.2f", (file_size_bytes / (1024 * 1024 * 1024))) + " GB ";
+		    file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}
+		else {
+		    file_size_string = "文件超过1TB ";
+		    file_size_string = file_size_string + "(" + file_size_bytes + " bytes" + ")";
+		}	
+		
+		mainForm.editShowZone.appendText("文件大小: " ,file_size_string, '\r\n');
+	}
+	
+	
+	// 获取最后一次修改时间
+	fileTime = fileAddedObj.getTime();
+	fileLastModifyTime = fileTime.write.local(true)
+	fileLastModifyTime.format = "%Y-%m-%d %H:%M:%S"
+	
+	if(mainForm.checkboxModTime.checked){
+		mainForm.editShowZone.appendText("修改时间: ",tostring(fileLastModifyTime) , '\r\n');
+	}
+		
+	//
+	var md5 = crypt().createHashByMd5();
+	var sha1 = crypt().createHashBySha1();
+	var crc32;
+	var sha256 = crypt(,0x18/*_PROV_RSA_AES*/).createHash(0x800C/*_CALG_SHA_256*/);
+	var sha384 = crypt(,0x18/*_PROV_RSA_AES*/).createHash(0x800D/*_CALG_SHA_384*/);
+	var sha512 = crypt(,0x18/*_PROV_RSA_AES*/).createHash(0x800E/*_CALG_SHA_512*/);
+		
+	var fileAdded,err =  io.open(fileAdded, "rbR");//R 随机优化
+	if(!fileAdded) {
+		mainForm.editShowZone.appendText( "打开文件失败: " , path , '\n',err , '\n' );
+		return;
+	}
+   	
+   	var bufSize = 0xA00000
+	while ( 
+		var buffer,readSize = raw.buffer( bufSize );
+	    readSize = fileAdded.readBuffer(buffer); //读文件
+	    readSize
+	  ){
+	  	md5.hashBuffer(buffer,readSize);
+		sha1.hashBuffer(buffer,readSize);
+		crc32 = string.crc32(buffer,crc32,readSize);
+		sha256.hashBuffer(buffer,readSize);
+		sha384.hashBuffer(buffer,readSize);
+		sha512.hashBuffer(buffer,readSize);
+	 }   				
+	
+	fileAdded.close();
+
+	if(mainForm.checkboxMd5.checked){
+		mainForm.editShowZone.appendText("MD5值:    " , md5.getHexValue(), '\r\n');
+	}
+	
+	if(mainForm.checkboxSha1.checked){
+		mainForm.editShowZone.appendText("SHA1值:   " , sha1.getHexValue(), '\r\n');
+	}
+	
+	if(mainForm.checkboxSha256.checked){
+		mainForm.editShowZone.appendText("SHA256值: " , sha256.getHexValue(), '\r\n');
+	}
+
+	if(mainForm.checkboxSha384.checked){
+		mainForm.editShowZone.appendText("SHA384值: " , sha384.getHexValue(), '\r\n');
+	}
+	
+	if(mainForm.checkboxSha512.checked){
+		mainForm.editShowZone.appendText("SHA512值: " , sha512.getHexValue(), '\r\n');
+	}
+	
+	if(mainForm.checkboxCrc.checked){
+		mainForm.editShowZone.printf('CRC32值:  %X', crc32 ); 
+	}
+	
+}
+
+mainForm.plusDonate.oncommand = function(id,event){
+	process.execute("http://www.bituplink.com/donate");
+}
+
+mainForm.plusHelpInfo.oncommand = function(id,event){
+	process.execute("http://www.bituplink.com/windows_checkfilehash.html");
+}
+
+mainForm.buttonClear.oncommand = function(id,event){
+	// 清空上一次的数值
+	mainForm.editShowZone.text = "";
+}
+
+mainForm.static_top.oncommand = function(id,event){
+	if(mainForm.static_top.text = "窗口置顶"){
+		win.setTopmost(mainForm.hwnd,true)
+		mainForm.static_top.text = "取消置顶"
+	}else{
+		win.setTopmost(mainForm.hwnd,false)
+		mainForm.static_top.text = "窗口置顶"
+	}
+}
+
+mainForm.plusShortcut.skin(
+	background = { 
+		hover = "/res/images/btn-hover.png";
+		focus = "/res/images/btn-focus.jpg";
+		active = "/res/images/btn-active.png";
+		disabled = "/res/images/btn-disabled.png"; 
+	}
+)
+
+mainForm.plusShortcut.oncommand = function(id,event){
+	//创建桌面快捷方式
+	lnk = fsys.lnk(); 
+    lnk.description = "checkFileHash快捷方式"  
+
+	lnk.path = io._exepath //设置目标路径
+	lnk.setIcon(io._exepath, 0); //设置图标
+
+	lnk.save(fsys.joinpath(fsys.getSpecial(0x0010 /*_CSIDL_DESKTOPDIRECTORY*/ ) ,"checkFileHash.lnk" )) 
+}
+
+mainForm.enableDpiScaling();
+mainForm.show();
+
+return win.loopMessage();

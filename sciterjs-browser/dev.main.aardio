@@ -1,0 +1,70 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(cls="sciterjs";text="view";right=761;bottom=554;border="none")
+mainForm.add(
+custom={cls="custom";text="view-cotent";left=0;top=0;right=762;bottom=555;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;z=1}
+)
+/*}}*/
+
+hwnd = _ARGV[1]
+parent = _ARGV[2]
+url = _ARGV[3]
+
+if(!hwnd || !url) return null;
+
+import web.sciter;
+import web.sciter.debug;
+
+var wbSciter = web.sciter( mainForm.custom );
+wbSciter.go(url);
+wbSciter.enableDebug()
+wbSciter.attachEventHandler( web.sciter.debug );
+
+win.setParent(mainForm.hwnd,parent)
+var x,y,w,h = win.getPos(parent)
+
+win.setPos(mainForm.hwnd,x,y - 10,w - 240,h - 132)
+
+namespace web.sciter.behavior.customEvent {
+    
+    reload = function(ltOwner){
+		import winex
+		winex.click(..hwnd)
+    }
+
+	testJs = function(ltOwner,...){ 
+		..mainForm.msgbox(...)
+	}
+}
+
+var loop = true
+
+thread.invoke(
+    function(mainForm,parent,loop){
+        
+        import win
+        var px,py,pw,ph = win.getPos(parent)
+        while(loop){
+           
+            var x,y,w,h = win.getPos(parent)
+            if(px == x && py == y && pw == w && ph == h){
+            
+            }else{
+        		win.setPos(mainForm.hwnd,0,0,w,h)
+        		px = x
+        		py = y
+        		pw = w
+        		ph = h
+            }
+        	
+        	sleep(1000)
+        }
+    },mainForm,parent,loop
+)
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    loop = false
+}
+
+mainForm.show();
+return win.loopMessage();

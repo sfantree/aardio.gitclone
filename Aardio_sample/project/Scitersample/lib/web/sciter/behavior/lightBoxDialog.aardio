@@ -1,0 +1,76 @@
+//lightBoxDialog 高亮对话框效果
+namespace web.sciter.behavior;
+
+class lightBoxDialog{
+
+	ctor( scOwner,wbSciter ){
+		var savedParent;
+		var savedIdx;
+		var focusUid;
+	};
+	show = function( scOwner ) {
+		if( savedParent )
+			return; // already shown
+
+		savedParent = scOwner.parent();
+		savedIdx  = scOwner.index();
+		var root = scOwner.root();//root <html> element
+
+		// saving focus
+		var focus = root.querySelector(":focus");
+		if( focus )
+			focusUid = focus.uid;
+
+		var shim = ..web.sciter.createEle("div");//create shim
+		shim.setAttribute("class", "shim");
+		root.append(shim);//adding shim to DOM
+
+		shim.insert(scOwner, 1);//make dialog a child of the shim
+ 
+		scOwner.style.display = "block";	//make it visible
+ 
+		var body = root.querySelector("body");
+		body.state.disabled = true; // disable body. 
+	}
+	hide = function( scOwner ) {
+		if( !savedParent ) 
+			return; // already hidden
+ 
+		savedParent.insert(scOwner,savedIdx); //move it back to original position in the DOM
+
+		var root = scOwner.root(); //root <html> element
+		var shim = root.querySelector("div.shim"); //get shim
+		shim.detach();//detaching shim from DOM
+		
+		scOwner.style.display = null  //clearing display set in showDialog()
+ 
+		var body = root.querySelector("body");
+		body.state.disabled = false; //enable it again
+  
+		var focus = root.getElementByUid(focusUid) 
+		savedParent = null;
+		savedIdx = null;
+	} 
+ 	onKeyDown = function (scTarget,scOwner, keyCode, altState, keyParams) { 
+  		select( code ) {
+    		case 0xD/*_VK_RETURN*/ {
+				var default = scOwner.querySelector("[role='ok-button']");
+				if( default ) {
+					return default.click(); 
+				}
+            }
+    		case 0x1B/*_VK_ESCAPE*/ {
+    			var default = scOwner.querySelector("[role='cancel-button']");
+				if( default ) {
+					return default.click(); 
+				}
+    		} 
+  		}
+  		return false; 
+	}   
+	onButtonClick = function (scTarget,scOwner,reason,behaviorParams) {
+		if( scTarget.test("[role=""ok-button""]") || scTarget.test("[role=""cancel-button""]") )
+			this.hide(scOwner); 
+	} 
+} 
+

@@ -1,0 +1,17 @@
+
+//数据库操作层,sql语句请写在本层
+import dbase.mysql;
+
+var tableName = "default";
+var tableKeyId = "defaultId";
+var tableKeyIdIsAuto = false;//主键是否自增
+
+var database = ..dbase.mysql(tableName, tableKeyId, tableKeyIdIsAuto);
+dbase.mysql.defaultDB = database;
+
+namespace dbase.mysql.defaultDB
+
+string = ..string;
+table = ..table;
+
+//在这自定义数据库操作函数

@@ -1,0 +1,147 @@
+﻿//自绘列表
+//listbox自绘
+import win.imageList;
+import gdi;
+import fonts.fontAwesome;
+import com.picture;
+class listboxExx{
+    ctor( winform,Iheight=51,backColor=0xFFFFFF,activedColor=0xFFF5E2,hoverColor=0xEEB7FF ){
+        //先设置行高(自绘用)
+        winform.onMeasureItem = function(measureItem){
+            measureItem.itemHeight = Iheight;  
+        };
+        //在行间开始自绘 
+        winform.onDrawItem = function(drawItem){
+           ..gdi.selectBrush(
+                function(hdc,pen,brush){
+                    //获取并分解需要显示的数据（字符串转表）
+                    var str = winform.getItemText(drawItem.itemID + 1);
+                    if(!str){
+                        return;
+                    }
+                    var strTab = eval(str)
+                    var rc = drawItem.rcItem;
+                    ..gdi.fillRect(hdc,backColor,rc);
+             
+                    if (drawItem.itemState & 1/*_ODS_SELECTED*/) {  
+                            ..gdi.fillRect(hdc,activedColor,rc); 
+                    }else {
+                            if(listboxsel == (drawItem.itemID+1)){
+                                ..gdi.fillRect(hdc,hoverColor,rc);
+                            }             
+                    }
+                                    
+                    //删除文件
+                    if(colorsel){
+                        var x,y = ..win.getMessagePos();  
+                        var item = winform.hitTest(x,y,true);
+ 
+                        if((drawItem.itemID+1) == item){
+                            font = ::LOGFONT(weight=500;color=0x6112FF;name='FontAwesome';h=-20); 
+                            ..gdi.textOut(hdc,font,'\uF141',/*rc.width()/2+345*/rc.right-40, rc.top+Iheight/2);
+                        }else {
+                            font = ::LOGFONT(weight=500;color=0x9C9C9C;name='FontAwesome';h=-20); 
+                            ..gdi.textOut(hdc,font,'\uF141',/*rc.width()/2+345*/rc.right-40, rc.top+Iheight/2);
+                        }
+                    }else {
+                            font = ::LOGFONT(weight=500;color=0x9C9C9C;name='FontAwesome';h=-20); 
+                            ..gdi.textOut(hdc,font,'\uF141',/*rc.width()/2+345*/rc.right-40, rc.top+Iheight/2);
+                    }
+                    
+        
+                    //文件图标
+                    //..win.imageList.shell( 0/*_SHIL_LARGE*/ ).draw(strTab.iImage,hdc,rc.left+20,rc.top+10);
+                    //九宫格贴图
+                    var bitmap = ..com.picture.loadBitmap(strTab.iImage)
+                    var bmpRC = ..table.clone(rc);
+                    bmpRC.left = bmpRC.left+16;
+                    bmpRC.top = bmpRC.top+8;
+                    bmpRC.right = bmpRC.left+48;
+                    bmpRC.bottom = bmpRC.bottom-8;
+    				..gdi.drawBitmap(hdc,bitmap,bmpRC,0,0,0,0);
+    				//::DeleteObject(bitmap)
+                    //文件名
+                    font = ::LOGFONT(weight=400;color=0x000000);
+                    ..gdi.textOut(hdc,font,strTab.text,bmpRC.right+10, rc.top+10);
+                    //文件大小
+                    font = ::LOGFONT(weight=300;color=0xB0B0B0); 
+                    ..gdi.textOut(hdc,font,strTab.size,bmpRC.right+10, rc.top+30); 
+                     
+            },drawItem.hDC,0xF5FDFF/*背景色*/,0xEEEEEE/*画笔色*/)
+        };
+        winform.wndproc = function(hwnd,message,wParam,lParam){
+            select(message) {
+                case 0x200/*_WM_MOUSEMOVE*/ {
+                    	var x,y = ..win.getMessagePos();  
+                    	var item = winform.hitTest(x,y,true);
+                    	if(item == null){
+                        	return ; 
+                    	}
+                       
+                    	if(listboxsel == item){   /* 若鼠标在同一行item内游动 */
+                            	x,y = ..win.toClient(winform.hwnd,x,y);
+	
+                            	var delrc = winform.getItemRect(item);
+                            	delrc.left = delrc.right-40;
+                            	delrc.top = delrc.top+20;
+                            	delrc.bottom = delrc.bottom-20 ;
+                            	//判断鼠标游动的区间是不是在[删除]按钮范围
+                            	if( ::PtInRect(delrc,x,y) ){
+                                	if(colorsel == false){    //鼠标从[删除]按钮外部移动到内部区域
+                                    	colorsel = true;
+                                    	//设置更新区,并更新
+                                    	winform.invalidate(winform.getItemRect(item))
+                                    	winform.update();
+                                	}
+                            	}else {
+                                	if(colorsel == true){ //鼠标从内到外
+                                    	colorsel = false;
+                                    	//设置更新区,并更新
+                                    	winform.invalidate(winform.getItemRect(item))
+                                    	winform.update();
+                                	}
+                            	}
+                    	}else {
+                    			colorsel = false;
+                            	//设置hover效果
+                            	listboxsel = item;
+                            	if(beforesel == null){        //第一次执行,初始化
+                                    	beforesel = listboxsel;
+                                    	
+                            	}else {
+                                    	//先关闭上次绘制区域
+                                    	if(beforesel){
+                                            	winform.invalidate(winform.getItemRect(beforesel),0)        
+                                    	}
+                                    	beforesel = listboxsel;
+                            	}
+                            	//绘制当前区域
+                            	winform.invalidate(winform.getItemRect(item));
+                            	winform.update();
+                    	}
+                    }
+                    case 0x202/*_WM_LBUTTONUP*/ {
+                            //删除功能
+                            if(colorsel){        /* 若鼠标在删除按钮区域内单击了 */
+                                if(this.clickFunc){
+                                    this.clickFunc(winform.selIndex);
+                                }
+                                return ; 
+                            };
+                    }
+                    case 0x20A/*_WM_MOUSEWHEEL*/{  //滚轮消息
+                        var wheelDelta = ..raw.convert({int wParam=wParam },{word vk;word delta}).delta;
+                        if( wheelDelta > 0 ){
+                            ::SendMessageInt(winform.hwnd, 0x115/*_WM_VSCROLL*/, 0, 0);
+                        }else {
+                            ::SendMessageInt(winform.hwnd, 0x115/*_WM_VSCROLL*/, 1, 0); 
+                        }
+                        return 0;
+                    };
+                    else { 
+                    }
+            }
+        }
+        return this;
+    };
+}

@@ -1,0 +1,323 @@
+﻿//listbox 列表框
+namespace win.ui.ctrl; 
+import win.ui.ctrl.metaProperty;//导入控件属性元表支持
+
+class listbox{
+    ctor(parent,tParam){ 
+    	if( tParam ){
+    		tParam.style |= 0x1/*_LBS_NOTIFY*/;
+    		if(tParam.sort) tParam.style |= 0x2/*_LBS_SORT*/;
+    		
+    		if(tParam.msel){
+    			tParam.style |= 0x8/*_LBS_MULTIPLESEL*/
+    			tParam.style |= 0x800/*_LBS_EXTENDEDSEL*/;
+    		}
+    		
+			if(tParam.edge) tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/;
+			if(tParam.integralHeight!==null && !tParam.integralHeight){
+				tParam.style |= 0x100/*_LBS_NOINTEGRALHEIGHT*/
+			}
+			
+			if(tParam.ownerDraw) 
+				tParam.style |= ( 0x20/*_LBS_OWNERDRAWVARIABLE*/|0x40/*_LBS_HASSTRINGS*/ )
+				
+			this._commandFuncnames = {
+	        	[1/*_LBN_SELCHANGE*/]="onSelChange";
+	        	[0x3/*_LBN_SELCANCEL*/]="onSelCancel";
+	        	[0x5/*_LBN_KILLFOCUS*/]="onKillFocus";
+	        	[0x4/*_LBN_SETFOCUS*/]="onSetFocus";
+	        	[0x2/*_LBN_DBLCLK*/]="onDoubleClickItem";
+	        }
+		}
+    }; 
+	@_metaProperty;
+} 
+
+namespace listbox{
+ 	_metaProperty = ..win.ui.ctrl.metaProperty( 
+		count = {
+			_get = function(){ 
+				return ::SendMessage(owner.hwnd, 0x18B/*_LB_GETCOUNT*/ )  
+			}
+			_set = function( v ){
+				::User32.SendMessage(owner.hwnd, 0x1A7/*_LB_SETCOUNT*/,v,0  )
+			} 	
+		};
+		selIndex = {
+			_get = function(){ 
+				return ::SendMessage(owner.hwnd, 0x188/*_LB_GETCURSEL*/) +1 
+			}
+			_set = function( v ){ 
+				::User32.SendMessage(owner.hwnd,0x186/*_LB_SETCURSEL*/,(v:0)-1,0);
+			} 	
+		}; 
+    	selectRange = function( first=2,last=1){//指定选择的范围
+			::SendMessageInt( owner.hwnd , 0x183/*_LB_SELITEMRANGEEX*/,first-1,last-1 ) 
+		}; 
+		setSelected = function (ind, selected=true) {
+			::SendMessageInt(owner.hwnd,0x185/*_LB_SETSEL*/,selected?1:0,ind-1);
+		};
+		getSelected = function(ind){
+			return ::SendMessageInt(owner.hwnd,0x187/*_LB_GETSEL*/,ind-1,0);
+		};  
+		selText = {
+			_get = function(){ 
+				var sel = ::SendMessage(owner.hwnd, 0x188/*_LB_GETCURSEL*/) ; 
+				if(sel>-1){
+     				var len = ::User32.SendMessage(owner.hwnd, 0x18A/*_LB_GETTEXTLEN*/,sel,0) ;   
+     				var ret,text  =  ::SendMessageByStr(owner.hwnd, 0x189/*_LB_GETTEXT*/,sel,len+1);   
+     				return ret ? text;
+     			}
+			}
+			_set = function( v ){ 
+				::User32.SendMessage(owner.hwnd, 0x18C/*_LB_SELECTSTRING*/, ,v); 
+			} 	
+		};
+		items = {
+			_get = function(){ 
+				var count = ::SendMessage(owner.hwnd, 0x18B/*_LB_GETCOUNT*/, null);
+				var tab = {};
+				var push = ..table.push;
+				for(i=1;count) push(tab,owner.getItemText(i) );
+				return tab;
+			}
+			_set = function( v ){
+				::SendMessage(owner.hwnd , 0x184/*_LB_RESETCONTENT*/);
+				for(i=1;#v) ::SendMessage(owner.hwnd , 0x180/*_LB_ADDSTRING*/, null,..string.toUnicode(v[i])); 
+			}
+		};
+		selected = {
+			_get = function(){  
+				var count = ::SendMessage(owner.hwnd, 0x18B/*_LB_GETCOUNT*/, null);
+				var tab = {};
+				var push = ..table.push;
+				for(i=1;count){
+					if(::SendMessageInt(owner.hwnd,0x187/*_LB_GETSEL*/,i-1,0)) push(tab,i);
+				}
+				return tab;
+			};
+			_set = function(c){ 
+				var s = owner.selected;
+				for(i=1;#s) owner.setSelected(s[i],false) 
+				for(i=1;#c) owner.setSelected(c[i],true);
+			} 	
+		};
+		eachSelected = function(col){
+			var items = owner.selected;
+			..table.reverse(items);
+			
+			var i,v;
+			return function(){ 
+				i,v = ..table.next(items,i,v);
+				if(i) return v,owner.getItemText(v);
+			},owner
+		};
+		ensureVisible = function (row) {
+			::SendMessageInt(owner.hwnd, 0x197/*_LB_SETTOPINDEX*/, (row : owner.selIndex) - 1, 0);
+		};
+		clear = function(){
+       		::SendMessage(owner.hwnd,0x184/*_LB_RESETCONTENT*/)
+    	};
+    	delete = function(i){
+    		if (!i) i = owner.selIndex;
+       		::SendMessageInt(owner.hwnd , 0x182/*_LB_DELETESTRING*/,i-1,0)
+    	};
+    	add = function( str,ind=-1){
+    		if(ind<0) ind = owner.count + ind +1;
+    		else ind--;
+    		
+    		if(!str) error("参数不能为空",2); 
+        	::User32.SendMessage(owner.hwnd,0x181/*_LB_INSERTSTRING*/,ind,tostring(str));
+    	};
+		addfile = function( str){
+			::User32.SendMessage(owner.hwnd, 0x196/*_LB_ADDFILE*/, ,str)
+		};
+		find = function( str ){
+			return ::User32.SendMessage(owner.hwnd , 0x18F/*_LB_FINDSTRING*/,owner.selIndex-1, str ) + 1; 
+		};
+		findEx = function( str ){
+			return ::User32.SendMessage(owner.hwnd , 0x1A2/*_LB_FINDSTRINGEXACT*/, , str ) + 1;
+		};
+		getItemRect = function(ind,rc){ 
+			rc := ::RECT();
+			var ret = ::SendMessageByStruct(owner.hwnd,0x198/*_LB_GETITEMRECT*/,ind-1,rc); 
+			return rc;
+		};
+		getItemText = function(ind){ 
+			var len = ::User32.SendMessage(owner.hwnd, 0x18A/*_LB_GETTEXTLEN*/, ind-1,0) ; 
+			var ret,text = ::SendMessageByStr(owner.hwnd , 0x189/*_LB_GETTEXT*/,ind-1,len+1);  
+			return text;
+		};
+		hitTest = function(x,y,screen){
+			if(!screen)x,y = ..win.toScreen(owner.hwnd,x,y);
+			return 1 + ::Comctl32.LBItemFromPt(owner.hwnd,x,y,0); 
+		}; 
+	);
+	
+	namespace _metaProperty{ 
+		getAt = hitTest;//@Deprecated
+	};
+}
+
+/***intellisense()
+?win.ui.ctrl.listbox =!listbox.
+win.ui.ctrl.listbox() = 列表框\nlistbox 默认会自动调整高度以对齐项目行高,\n在创建参数中添加 integralHeight = false 可禁止此特性\n!listbox.
+!listbox.cls = 设计时类名
+!listbox.className = 运行时类名
+!listbox.clear() = 清除列表框所有内容
+!listbox.delete() = 删除当前选中项
+!listbox.delete(__) = 删除指定项
+!listbox.getItemText(__/*项索引*/) = 获取指定项文本
+!listbox.getItemRect(__/*项索引*/) = 获取指定项区块位置\n返回::RECT() 结构体
+!listbox.hitTest(x,y) = 返回指定客户区坐标所在的项索引.
+!listbox.add(__/*请输入文本*/) = 添加列表项到尾部
+!listbox.add(__/*请输入文本*/,-1) = 添加列表项到尾部
+!listbox.add(__/*请输入文本*/,1) = 添加列表项到头部
+!listbox.selIndex = 获取或设置列表框当前选中项\n仅在单选模式下有效,多选模式下请使用 selected 获取所有获中项
+!listbox.selText = 获取当前选项的文本\n或根据指定的文本查找并改变选项
+!listbox.hwnd = 控件句柄
+!listbox.id = 控件ID
+!listbox._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!listbox.getParent() = 返回父窗口\n!static.
+!listbox.setParent(__/*控件对象*/) = 改变父窗口 
+!listbox.addCtrl = @.addCtrl(\n\n	edit ={ cls="edit";left=0;top=0;right=50;bottom=50;autoResize=false ;hide=1;edge=1;  }\n)
+!listbox.disabled = 是否禁用
+!listbox.left = 左侧坐标
+!listbox.right = 右侧坐标
+!listbox.top = 顶部坐标
+!listbox.bottom = 底部坐标\n注意listbox的实际高度受行高的影响\n只有自绘时才能设置行高
+!listbox.width = 宽度
+!listbox.height = 高度\nlistbox 默认会自动调整高度以对齐项目行高,\n在创建参数中添加 integralHeight = false 可禁止此特性
+!listbox.count = 列表项数目
+!listbox.hitTest(.(x坐标,y坐标,是否屏幕坐标) = 该函数返回指定坐标的句柄,参数三可省略,默认为false.\n如果不指定任何参数,则自动获取当前消息坐标
+!listbox.selectRange(1,__) = 选中指定范围\n如果不指定任何参数,取消选区
+!listbox.setSelected(1__/*项索引*/) = 选中指定项,索引为0则选定全部\n该函数仅在开启控件多选模式下有效\n单选模式下请使用selIndex属性替代
+!listbox.setSelected(1__/*项索引*/,false) = 取消选中指定项,索引为0则取消全选
+!listbox.getSelected(1__/*项索引*/) = 是否选中 
+!listbox.findEx(__/*请输入文本*/) = 精确查找指定的项\n找不到返回0
+!listbox.find(__/*请输入文本*/) = 在列表框里查找指定的项\n找不到返回0
+!listbox.addfile(__/*请输入路径*/) = 向列表框里增加一个文件(包括目录)
+!listbox.redraw() = 刷新
+!listbox.items = 列表项集合\ntable对象
+!listbox.show(true__) = 显示控件
+!listbox.getRect() = 控件区块位置(::RECT结构体)
+!listbox.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!listbox.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!listbox.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)
+!listbox.getClientRect() =  控件客户区块位置(::RECT结构体)\n!rect.
+!listbox.getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+!listbox.setFont(__/*指定字体*/) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!listbox.setFont(混入字体属性) = @.setFont(point=10;name="宋体");
+!listbox.clientRect =  获取控件客户区块位置(::RECT结构体)
+!listbox.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!listbox.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!listbox.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!listbox.ensureVisible(__) = 滚动视图以确定可以显示参数指定行序号的项,\n不指定参数则设置当前选中焦点项
+!listbox.close() = 关闭控件窗
+!listbox.capture = 是否捕获全局鼠标消息
+!listbox.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!listbox.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!listbox.update() = 重绘invalidate函数指定的区块 
+!listbox.setFocus() = 设置焦点 
+!listbox.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置，同时指定宽高则改变大小，\n指定插入位置（句柄或_HWND前缀常量）则调整Z序\n\nlistbox 默认会自动调整高度以对齐项目行高,\n在创建参数中添加 integralHeight = false 可禁止此特性
+!listbox.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd) 
+!listbox.orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效\n此控件不建议指定参数
+!listbox.threadCallable() = 开启此控件的跨线程调用功能
+!listbox.selected = 所有选中项目索引的数组,\n设为 null 或空表清除所有选中项
+!listbox.eachSelected() = @for index,text in ??.eachSelected(){
+	__/*从后向前倒序遍历所有选中项,\n迭代变量 index 为选中项序号,\n迭代变量 text 当前行文本值*/
+}
+!listbox.onMeasureItem(measureItem,dpiScaleX,dpiScaleY) = @.onMeasureItem = function(measureItem){
+	measureItem.itemHeight = 61 * dpiScaleY;  
+	__/*控件属性里指定 ownerDraw 为 true 触发此事件\n在这里配置自绘控件项参数*/
+} 
+!listbox.onDrawItem(drawItem) = @.onDrawItem = function(drawItem){
+	__/*控件属性里指定 ownerDraw 为 true 触发此事件\n在这里自绘控件项*/	
+} 
+!listbox.onSelChange() = @.onSelChange = function(){
+	__/*改变当前选项时触发此事件*/
+}
+!listbox.onSelCancel() = @.onSelCancel = function(){
+	__/*取消选项时触发此事件*/
+}
+!listbox.onSetFocus() = @.onSetFocus = function(){
+	__/*获得焦点触发此事件*/
+}
+!listbox.onKillFocus() = @.onKillFocus = function(){
+	__/*失去焦点触发此事件*/
+}
+!listbox.onDoubleClickItem() = @.onDoubleClickItem = function(){
+	__/*双击列表项触发此事件,\n使使用 selIndex 获取双击的项*/
+} 
+!listbox.adjust = @.adjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放时会自动触发此函数。\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 参数请参考 _WM_SIZE 消息参数说明,一般不用管。\n\n所有 win.form 创建的窗体和控件都支持此事件,\n重复赋值只会追加而不会覆盖此事件。\n一般不建议添加一个 wndproc 仅仅是为了处理  _WM_SIZE 消息，\n定义 adjust 事件是更好的选择。\n\n可主动调用此事件,省略参数时 cx,cy 参数默认设为窗口大小*/  \n}; 
+!listbox.onDestroy = @.onDestroy = function(){\n	__/*窗口销毁前触发*/\n}
+!listbox.onnotify = @.onnotify = function(id,code,ptr){\n	__/*通知事件触发*/\n}
+!listbox.oncommand = @.oncommand = function(id,event){\n	__/*命令事件触发*/\n}
+!listbox.wndproc = @.wndproc = function(hwnd,message,wParam,lParam){\n	__/*窗口消息回调，返回任意非null值阻止默认回调\nwndproc重复赋值时追加函数而不是覆盖之前的回调\n设为null添除所有消息回调函数\nwndproc也可以是一个表,键要为处理的消息,值为对应的消息回调函数*/	\n}
+!listbox.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!listbox.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!listbox._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+end intellisense***/
+
+/**intellisense()
+_LBN_DBLCLK=@0x2/*_LBN_DBLCLK*/
+_LBN_KILLFOCUS=@0x5/*_LBN_KILLFOCUS*/
+_LBN_SELCANCEL=@0x3/*_LBN_SELCANCEL*/
+_LBN_SELCHANGE=@0x1/*_LBN_SELCHANGE*/
+_LBN_SETFOCUS=@0x4/*_LBN_SETFOCUS*/
+_LBS_DISABLENOSCROLL=@0x1000/*_LBS_DISABLENOSCROLL*/
+_LBS_EXTENDEDSEL=@0x800/*_LBS_EXTENDEDSEL*/
+_LBS_HASSTRINGS=@0x40/*_LBS_HASSTRINGS*/
+_LBS_MULTICOLUMN=@0x200/*_LBS_MULTICOLUMN*/
+_LBS_MULTIPLESEL=@0x8/*_LBS_MULTIPLESEL*/
+_LBS_NODATA=@0x2000/*_LBS_NODATA*/
+_LBS_NOINTEGRALHEIGHT=@0x100/*_LBS_NOINTEGRALHEIGHT*/
+_LBS_NOREDRAW=@0x4/*_LBS_NOREDRAW*/
+_LBS_NOTIFY=@0x1/*_LBS_NOTIFY*/
+_LBS_OWNERDRAWFIXED=@0x10/*_LBS_OWNERDRAWFIXED*/
+_LBS_OWNERDRAWVARIABLE=@0x20/*_LBS_OWNERDRAWVARIABLE*/
+_LBS_SORT=@0x2/*_LBS_SORT*/
+_LBS_USETABSTOPS=@0x80/*_LBS_USETABSTOPS*/
+_LBS_WANTKEYBOARDINPUT=@0x400/*_LBS_WANTKEYBOARDINPUT*/
+_LB_ADDFILE=@0x196/*_LB_ADDFILE*/
+_LB_ADDSTRING=@0x180/*_LB_ADDSTRING*/
+_LB_CTLCODE=@0x0/*_LB_CTLCODE*/
+_LB_DELETESTRING=@0x182/*_LB_DELETESTRING*/
+_LB_DIR=@0x18D/*_LB_DIR*/
+_LB_FINDSTRING=@0x18F/*_LB_FINDSTRING*/
+_LB_FINDSTRINGEXACT=@0x1A2/*_LB_FINDSTRINGEXACT*/
+_LB_GETANCHORINDEX=@0x19D/*_LB_GETANCHORINDEX*/
+_LB_GETCARETINDEX=@0x19F/*_LB_GETCARETINDEX*/
+_LB_GETCOUNT=@0x18B/*_LB_GETCOUNT*/
+_LB_GETCURSEL=@0x188/*_LB_GETCURSEL*/
+_LB_GETHORIZONTALEXTENT=@0x193/*_LB_GETHORIZONTALEXTENT*/
+_LB_GETITEMDATA=@0x199/*_LB_GETITEMDATA*/
+_LB_GETITEMHEIGHT=@0x1A1/*_LB_GETITEMHEIGHT*/
+_LB_GETITEMRECT=@0x198/*_LB_GETITEMRECT*/
+_LB_GETLOCALE=@0x1A6/*_LB_GETLOCALE*/
+_LB_GETSEL=@0x187/*_LB_GETSEL*/
+_LB_GETSELCOUNT=@0x190/*_LB_GETSELCOUNT*/
+_LB_GETSELITEMS=@0x191/*_LB_GETSELITEMS*/
+_LB_GETTEXT=@0x189/*_LB_GETTEXT*/
+_LB_GETTEXTLEN=@0x18A/*_LB_GETTEXTLEN*/
+_LB_GETTOPINDEX=@0x18E/*_LB_GETTOPINDEX*/
+_LB_INSERTSTRING=@0x181/*_LB_INSERTSTRING*/
+_LB_MSGMAX=@0x1A8/*_LB_MSGMAX*/
+_LB_OKAY=@0x0/*_LB_OKAY*/
+_LB_RESETCONTENT=@0x184/*_LB_RESETCONTENT*/
+_LB_SELECTSTRING=@0x18C/*_LB_SELECTSTRING*/
+_LB_SELITEMRANGE=@0x19B/*_LB_SELITEMRANGE*/
+_LB_SELITEMRANGEEX=@0x183/*_LB_SELITEMRANGEEX*/
+_LB_SETANCHORINDEX=@0x19C/*_LB_SETANCHORINDEX*/
+_LB_SETCARETINDEX=@0x19E/*_LB_SETCARETINDEX*/
+_LB_SETCOLUMNWIDTH=@0x195/*_LB_SETCOLUMNWIDTH*/
+_LB_SETCOUNT=@0x1A7/*_LB_SETCOUNT*/
+_LB_SETCURSEL=@0x186/*_LB_SETCURSEL*/
+_LB_SETHORIZONTALEXTENT=@0x194/*_LB_SETHORIZONTALEXTENT*/
+_LB_SETITEMDATA=@0x19A/*_LB_SETITEMDATA*/
+_LB_SETITEMHEIGHT=@0x1A0/*_LB_SETITEMHEIGHT*/
+_LB_SETLOCALE=@0x1A5/*_LB_SETLOCALE*/
+_LB_SETSEL=@0x185/*_LB_SETSEL*/
+_LB_SETTABSTOPS=@0x192/*_LB_SETTABSTOPS*/
+_LB_SETTOPINDEX=@0x197/*_LB_SETTOPINDEX*/
+end intellisense**/

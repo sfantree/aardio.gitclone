@@ -1,0 +1,37 @@
+﻿//path 获取目录
+
+/************************************/
+/*  2017-04 daheian daheian@qq.com  */
+/************************************/
+/**********************************************************************************************
+ 本库需配合aardio锐浪报表例程放在锐浪报表安装目录\Samples\aardio下才会起作用，在其他地方用不到
+**********************************************************************************************/
+namespace reportRl.path{
+
+	templatePath = function(){
+		var path = ..io.fullpath("/");
+		var t = ..string.split(path,"<aardio\>")
+		path = t[1] ++ "Reports\";
+		return path; 
+	}
+	dataPath = function(){
+		var path = ..io.fullpath("/");
+		var t = ..string.split(path,"<aardio\>")
+		path = t[1] ++ "Data\";
+		return path; 
+	}
+	dataPicPath = function(){
+		var path = ..io.fullpath("/");
+		var t = ..string.split(path,"<aardio\>")
+		path = t[1] ++ "Data\Picture\";
+		return path; 
+	}
+	
+}
+
+/**intellisense()
+reportRl.path = 获取锐浪报表例程相关目录
+reportRl.path.templatePath() = 返回锐浪报表aardio例程报表模版目录
+reportRl.path.dataPath() = 返回锐浪报表aardio例程数据文件目录
+reportRl.path.dataPicPath() = 返回锐浪报表aardio例程数据图片目录
+end intellisense**/

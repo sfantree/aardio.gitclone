@@ -1,0 +1,21 @@
+﻿namespace help
+{
+	import fsys.file
+	
+	function readFile(fileName)
+	{
+		var myfile=..fsys.file(fileName)
+		if(myfile==null)
+		{
+			error("未找到入口文件")
+			return null
+		}
+		var contect=myfile.readAll()
+		myfile.close()
+		return contect	
+	}
+	
+	function deleteLast(str)
+	{return string.sub(1,string.len(str)-1)}
+	
+}

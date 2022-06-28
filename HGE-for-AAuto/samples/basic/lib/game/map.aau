@@ -1,0 +1,44 @@
+namespace game;
+
+map = class {
+	ctor (spr, data) {
+		this.spr = spr;
+		this.data = data;
+		this.block = {};
+		this.z = ..table.array(#this.data, 15, {});
+		
+		for (x = 1; 20) {
+			this.block[x] = {};
+			for (y = 1; 15) {
+				this.block[x][y] = false;
+				for (z = 1; #this.data) {
+					if (this.data[z][y] === null || this.data[z][y][x] === null) continue;
+					if (..game.config.mapSettings.block[this.data[z][y][x] + 1])
+						this.block[x][y] = true;
+					this.z[z][y][x] = 1 - ..game.config.mapSettings.pri[this.data[z][y][x] + 1] / 10;
+					data[z][y][x] = ::POINT(this.data[z][y][x] % 8 * 32, ..math.floor(this.data[z][y][x] / 8) * 32);
+				}
+			}
+		}
+	}
+	
+	draw = function () {
+		for (x = 1; 20) {
+			for (y = 1; 15) {
+				for (z = 1; #this.data) {
+					if (!this.data[z][y] || !this.data[z][y][x]) continue;
+					
+					this.spr.setZ(this.z[z][y][x]);
+					this.spr.setTextureRect(this.data[z][y][x].x, this.data[z][y][x].y, 32, 32);
+					this.spr.render((x - 1) * 32, (y - 1) * 32);
+				}
+			}
+		}
+	}
+	
+	isBlocked = function (x, y) {
+		if (x < 0 || x > 19 || y < 0 || y > 14)
+			return true;
+		return this.block[x + 1][y + 1];
+	}
+}

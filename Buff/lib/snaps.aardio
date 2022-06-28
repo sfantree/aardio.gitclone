@@ -1,0 +1,27 @@
+
+class snaps{
+	ctor( parent ){
+/*DSG{{*/
+this = win.form(text="aardio form";right=100;bottom=100;border="none";exmode="toolwindow";max=false;min=false;mode="popup";parent=parent;sysmenu=false;title=false)
+this.add()
+/*}}*/
+
+		
+		//win.setTopmost( this.hwnd );
+		//win.setForeground( this.hwnd );
+		
+		this.base_doModal = this.doModal; 
+		this.doModal = function(...){
+			var drawer = drawHelper( this );
+			drawer.doWork();
+			return this.base_doModal(...);
+		}
+		
+	};
+}
+
+namespace snaps{
+	import win.ui;
+	import drawHelper;
+	
+}

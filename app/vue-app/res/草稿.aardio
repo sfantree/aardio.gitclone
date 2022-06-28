@@ -1,0 +1,24 @@
+import console;
+
+import process.popen;
+
+
+console.log("xxx")
+var cmdCall = function(cmd){
+    console.log(cmd)
+	var prcs = process.popen("cmd.exe");
+	prcs.write(cmd)
+	result = prcs.peekTo(">");
+	
+prcs.write('exit\n')
+
+	
+	prcs.close();
+	console.log(result)
+}
+//cmdCall("netsh interface portproxy add v4tov4 listenport=80 connectaddress=127.0.0.1 connectport=8888 listenaddress=127.0.0.1 protocol=tcp")
+//cmdCall("netsh interface portproxy /?");
+
+//cmdCall("netsh interface portproxy show all");
+cmdCall("ipconfig");
+console.pause(true);

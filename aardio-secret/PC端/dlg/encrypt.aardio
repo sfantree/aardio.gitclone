@@ -1,0 +1,113 @@
+import fonts.fontAwesome;
+import win.ui;
+import win.dlg.message;
+import win.clip;
+import crypt.bin;
+import soImage;
+import qrencode.bitmap;
+/*DSG{{*/
+var winform = win.form(text="加密";right=599;bottom=439;bgcolor=16777215)
+winform.add(
+btnCopyCipherText={cls="plus";text='\uF0C5   复制密文';left=229;top=357;right=370;bottom=393;bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;tabstop=1;z=8};
+btnCopyQrcode={cls="plus";text='\uF0EA   复制二维码';left=30;top=357;right=171;bottom=393;bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;tabstop=1;z=2};
+btnGenerate={cls="plus";text='\uF022   生成密文';left=428;top=357;right=569;bottom=393;bgcolor=11580047;db=1;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;tabstop=1;z=1};
+edtAccount={cls="edit";left=387;top=32;right=570;bottom=71;edge=1;font=LOGFONT(h=-20);multiline=1;z=10};
+edtCipherText={cls="edit";left=387;top=183;right=570;bottom=296;autohscroll=false;edge=1;multiline=1;z=6};
+edtPassword={cls="edit";left=387;top=107;right=570;bottom=146;edge=1;font=LOGFONT(h=-20);multiline=1;z=9};
+plus={cls="plus";left=30;top=41;right=278;bottom=286;background="\res\copyright.png";z=3};
+static={cls="static";text="帐户";left=317;top=46;right=367;bottom=72;font=LOGFONT(h=-16);transparent=1;z=4};
+static2={cls="static";text="密码";left=317;top=116;right=367;bottom=142;font=LOGFONT(h=-16);transparent=1;z=5};
+sttCipherText={cls="static";text="密文";left=317;top=225;right=367;bottom=251;font=LOGFONT(h=-16);transparent=1;z=7}
+)
+/*}}*/
+
+import style;
+winform.btnCopyQrcode.skin(style.button);
+winform.btnCopyCipherText.skin(style.button);
+winform.btnGenerate.skin(style.button);
+winform.edtPassword.passwordChar = "*";
+
+winform.edtAccount.setCueBannerText("填写帐户");
+winform.edtPassword.setCueBannerText("填写密码");
+
+winform.edtPassword.wndproc = function(hwnd,message,wParam,lParam){
+	if(message=7/*_WM_SETFOCUS*/){//获取焦点
+        winform.edtPassword.passwordChar = null;        
+	}
+	if(message=8/*_WM_KILLFOCUS*/){//失去焦点
+        winform.edtPassword.passwordChar = "*";
+	}
+}
+
+winform.edtCipherText.wndproc = function(hwnd,message,wParam,lParam){
+	if(message=8/*_WM_KILLFOCUS*/){//失去焦点
+        var CipherText = string.trim(winform.edtCipherText.text);
+        if(#CipherText == 0){
+        	winform.plus.setBackground("/res/copyright.png")
+        }
+	}
+}
+
+math.randomize();
+var passport_encrypt = function(str,key="BOB"){
+	var encrypt_key = string.random(32,"0123456789abcdef");
+	var j=1;
+	var tmp = "";
+	for(i=1;#str;1){
+		j = j%32:32;
+		tmp ++= string.split(encrypt_key)[j]++string.pack(string.unpack(string.split(str)[i])^string.unpack(string.split(encrypt_key)[j]));
+		j++;
+	}
+	return crypt.bin.encodeUrlBase64(mainForm.passport_key(tmp,key));
+}
+
+winform.btnGenerate.oncommand = function(id,event){
+    var account = string.trim(winform.edtAccount.text);
+    if(!#account){
+    	winform.msgWarn("帐户未填写",500);
+    	return ; 
+    }
+    
+    var password = string.trim(winform.edtPassword.text);
+    if(!#password){
+    	winform.msgWarn("密码未填写",500);
+    	return ;     	
+    }
+	
+	var newAccount = passport_encrypt(account);
+    var newPwd = mainForm.rpc.aescode(passport_encrypt(password),"ENCODE");
+    winform.edtCipherText.text = mainForm.rpc.authcode(newPwd++"|"++newAccount,"ENCODE");    
+    
+    winform.plus.hide = true;
+    var CipherText = string.trim(winform.edtCipherText.text);
+    if(#CipherText){
+    	var qrBmp = qrencode.bitmap(CipherText,1,1 );
+    	winform.plus.setBackground(qrBmp.copyBitmap(winform.plus.width));  
+    	winform.plus.hide = false;
+    	winform.plus.redraw();
+    }
+}
+
+winform.btnCopyCipherText.oncommand = function(id,event){
+    var cipherText = string.trim(winform.edtCipherText.text);
+    if(!#cipherText){
+    	winform.msgWarn("暂未生成密文",500);
+    	return ; 
+    }
+    win.clip.write(cipherText);
+}
+
+winform.btnCopyQrcode.oncommand = function(id,event){
+	var imgScreen = soImage();
+	
+	if(winform.plus.getBackground()){
+		imgScreen.capture(winform.plus.hwnd);
+		imgScreen.toClipBD();
+		winform.msgSmile("复制完成",300);	
+	} else {
+		winform.msgFrown("未生成有效二维码",300);	
+	}
+}
+
+winform.show();
+return winform;

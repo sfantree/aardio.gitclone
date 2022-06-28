@@ -1,0 +1,175 @@
+﻿
+namespace transaction{
+    //import console;
+    import win;
+    import fsys.config;
+    import thread;
+    
+	function getConfig(){
+		
+		var config=fsys.config();
+		if(config.setting.anap) return config;
+		return resetConfig(); 
+	};
+	function resetConfig(){
+		var config=fsys.config();
+		config.setting.anap={};
+		config.setting.anap.userd=true;
+		config.setting.anap.free_m=20;
+		config.setting.anap.time_s=40;
+		
+		config.setting.rest={};
+		config.setting.rest.userd=true;
+		config.setting.rest.free_m=null;
+		config.setting.rest.mode="anap";
+		config.setting.rest.free_anap=2;
+		config.setting.rest.time_m=5;
+		
+		config.setting.late={};
+		config.setting.late.anap=true;
+		config.setting.late.rest=false;
+		
+		config.setting.pass={};
+		config.setting.pass.anap=true;
+		config.setting.pass.rest=false;
+		
+		config.saveAll();
+		return config;; 
+	};
+	function start(){
+		thread.invoke( 
+			main
+		)
+		
+	};
+	function stop(){
+		var timeEvent = thread.event("time_s GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+		var stopEvent = thread.event("stopEvent GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+		stopEvent.set();
+		timeEvent.set();
+	};
+	
+	function main(){
+		import win;
+		import table;
+		import thread;
+		import thread.command;
+		import thread.table;
+		import fsys.config;
+		import sys.monitor;
+		import thread.event;
+		//import console;
+		
+		
+		var frmChildenArr={};
+		for( hMonitor,monitorInfo in sys.monitor.eachInfo() ){
+			//console.log("for")
+			
+			var frmChild = win.loadForm("\dlg\child.aardio");
+			win.setRect(frmChild.hwnd,monitorInfo.rcMonitor);
+			table.push(frmChildenArr,frmChild)
+			//console.log("for end")
+		}
+		
+		var timeEvent = thread.event("time_s GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+		var stopEvent = thread.event("stopEvent GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+		timeEvent.reset();
+		stopEvent.reset();
+		
+		var shareT = thread.table("shareT");
+		shareT.lateNum=0;
+		
+		var config=fsys.config();
+		var freeTime=config.setting.anap.free_m*60*1000;
+		var freeAnapNum=tonumber(config.setting.rest.free_anap);
+		var anapNum=0;
+		
+		//-30000是为弹出pop
+		while(!stopEvent.wait(freeTime-30000)){
+						anapNum+=1;
+						//console.log(anapNum,freeAnapNum)
+						if(anapNum>freeAnapNum&&config.setting.rest.userd){
+							//间隔AnapNum个小憩后，执行休息时间
+							anapNum=0;
+							shareT.showTime=config.setting.rest.time_m*60*1000;
+							shareT.hasLate=config.setting.late.rest;
+							shareT.hasPass=config.setting.pass.rest;
+							shareT.modeName="rest";
+							//console.log("休息")
+							thread.command.showCountdownPop(shareT.modeName,30000);
+							if(timeEvent.wait(30000))break;
+						}else {
+							shareT.showTime=config.setting.anap.time_s*1000;
+							shareT.hasLate=config.setting.late.anap;
+							shareT.hasPass=config.setting.pass.anap;
+							shareT.modeName="anap";
+							//console.log("小憩")
+							if(timeEvent.wait(20000))break;
+							thread.command.showCountdownPop(shareT.modeName,10000);
+							if(timeEvent.wait(10000))break;
+						}
+						
+						for(index,frmChild in frmChildenArr){
+							frmChild.show();
+							//win.setRect(frmChild.hwnd,monitorInfo.rcMonitor);
+							//console.log("win.show",shareT.hasLate,shareT.lateNum,shareT.showTime);
+						}
+						
+						
+						//创建工作线程防止wait阻塞
+						win.invoke(
+						function(shareT,frmChildenArr){
+							import win;
+							import thread.command;
+							import thread.event;
+							var timeEvent = thread.event("time_s GUID:3CDA0FC7-A96D-4850-9A28-DA1DD4464B44")
+							while(timeEvent.wait(shareT.showTime)&&shareT.hasLate){
+								if(shareT.lateNum<2){//可以稍等2次
+									shareT.lateNum+=1;
+									for(index,frmChild in frmChildenArr){
+										frmChild.show(false);
+									}
+									//sleep(10000)
+									//如果触发暂停
+									if(timeEvent.wait(10000))break;
+									thread.command.showCountdownPop(shareT.modeName,10000);
+									//sleep(10000)
+									if(timeEvent.wait(10000))break;
+									for(index,frmChild in frmChildenArr){
+										frmChild.show();
+									}
+								
+								}else {
+									shareT.lateNum=0;
+									break;
+								}
+							}
+							shareT.lateNum=0;
+						} 
+						,shareT,frmChildenArr);
+						
+						
+						
+						for(index,frmChild in frmChildenArr){
+							frmChild.show(false);
+						}
+						
+						
+		}
+		
+		
+
+	};
+	
+	
+	function rest(){
+		
+		var frmChild = ..mainForm.loadForm("\dlg\child.aardio");
+		frmChild.show();
+
+	};
+	
+	
+	
+	
+}

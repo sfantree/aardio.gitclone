@@ -1,0 +1,86 @@
+﻿//texture 纹理
+import hge.interFace.renderSuface;
+namespace hge.interFace;
+class texture{
+	ctor( game,hTexture ){
+		this["_game"] = game;
+		this.hTexture = hTexture;  
+		..table.add_gc(this,"free");
+	};
+	_type = "texture";
+	@_meta;
+} 
+
+namespace texture{
+	_meta = {
+		_get = {
+			free = function(){ 
+				if( owner.hTexture ){
+					owner["_game"].textureFree(owner.hTexture);
+					owner.hTexture = null;
+				}
+			}
+			width = function(original = false){
+				return owner["_game"].textureGetWidth(owner.hTexture,original); 
+			}
+			height = function(original = false){
+				return owner["_game"].textureGetHeight(owner.hTexture,original); 
+			}
+			lock = function(readOnly=false,x=0,y=0,w=0,h=0){
+				var pLock = owner["_game"].textureLock(owner.hTexture,readOnly,x,y,w,h);
+				return pLock;
+			}
+			getLockData = function(pLock){
+				var w,h = owner.width(false),owner.height(false);
+				return ..raw.convertArray(pLock,w*h,"int");
+			}
+			fillColor = function(c = -1,x=0,y=0,w=0,h=0){
+				var size = owner.width(false,x,y,w,h)*owner.height(false)*4;
+				::CopyMemoryByStruct( owner.lock(false),..raw.toarray(..table.array(size,c),"int"),size)
+				owner.unLock();
+			}
+			
+			unLock = function(){
+				owner["_game"].textureUnlock(owner.hTexture); 
+			}
+			getSurfaceLevel = function(leve = 0){
+				var pD3dSurface = owner["_game"].textureGetSurfaceLevel(owner.hTexture,leve); 
+				return owner["_game"].renderSuface(pD3dSurface);
+			}
+			
+		} 
+		_topointer = function(){
+			return owner.hTexture;
+		}
+	}
+}
+
+/*
+//从hdc画到纹理
+IDirect3DSurface9* pSurface = NULL;
+    this->mTexture->GetSurfaceLevel(0, &pSurface);
+    if (NULL != pSurface)
+    {
+        HDC hdcTexture;
+        HRESULT hr = pSurface->GetDC(&hdcTexture);
+        if(FAILED(hr)) return;
+        ::SetMapMode(hdcTexture, MM_TEXT);
+        ::OleDraw(pBrowser, DVASPECT_CONTENT, hdcTexture, &rect);
+        pSurface->ReleaseDC(hdcTexture);
+        pSurface->Release();
+    }
+
+*/
+
+/**intellisense()
+!hge_texture.free() = 释放纹理对象,\n该函数可交由系统自动调用
+!hge_texture.width() = 返回显存中的纹理宽度
+!hge_texture.width(true) = 返回原图像的纹理宽度
+!hge_texture.height() = 返回显存中的纹理高度
+!hge_texture.height(true) = 返回原图像的纹理高度
+!hge_texture.fillColor(.(颜色,x,y,w,h) = 填充颜色
+!hge_texture.lock(.(解锁后是否禁止更新,x坐标,y坐标,宽度,高度) = 锁定纹理,所有参数可选,\n成功返回指针。
+!hge_texture.getLockData(.(纹理锁定指针) = 从指针中取出像素数组修改数组需要解锁纹理unLock 后才会应用。
+!hge_texture.unLock() = 解锁纹理
+!hge_texture.getSurfaceLevel(mimap)
+end intellisense**/  

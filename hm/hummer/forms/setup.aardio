@@ -1,0 +1,17 @@
+//简单数据视图 
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="简单数据视图 - 双击编辑单元格(可指定只读列)";right=1031;bottom=712;bgcolor=16777215;border="dialog frame")
+winform.add(
+checkboxECard={cls="checkbox";text="电子卡";left=36;top=122;right=117;bottom=148;z=4};
+checkboxECoupon={cls="checkbox";text="电子券";left=129;top=123;right=215;bottom=152;z=5};
+checkboxLeakCollection={cls="checkbox";text="捡漏";left=41;top=174;right=123;bottom=211;z=6};
+edit={cls="edit";text="Edit";left=111;top=71;right=203;bottom=98;edge=1;z=3};
+groupbox={cls="groupbox";text="设置";left=4;top=30;right=992;bottom=460;edge=1;z=1};
+static={cls="static";text="捡漏频率:";left=32;top=76;right=100;bottom=104;transparent=1;z=2}
+)
+/*}}*/
+
+winform.show();
+win.loopMessage();
+return groupbox;

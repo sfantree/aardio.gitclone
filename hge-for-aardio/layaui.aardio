@@ -1,0 +1,213 @@
+﻿//layaui 调用layabox的界面设计器
+namespace hge;
+import string.xml;
+import hge.interFace.base;
+import util.metaProperty;
+layaui= class {
+	ctor( game , xmlData ,zip ){
+		this = game.base();	
+		this.type = "layaui";
+		var data = ..string.xml(xmlData);
+		var textureLoad = zip?game.textureLoadByZip : game.textureLoad;
+		var fontAlign = {
+			left = 0;
+			center = 1;
+			right = 2;
+		}
+		
+		data.enumNodes( 
+			function(parentElement,index,tagName,childCount,xNode){ 
+				var x = ..math.round( xNode.x?tonumber(xNode.x)  : 0 );
+				var y = ..math.round( xNode.y?tonumber(xNode.y) : 0 );
+				select(tagName) {	
+					case "Box" {
+						var t = game.base();
+						t.x = x;
+						t.y = y;
+						if(xNode.var){
+							this[xNode.var] = t;
+						}
+						if(xNode.visible){
+							
+							
+							
+						}
+						
+						
+						
+					
+					}
+					case "Image" { //精灵
+						if(!#xNode.skin) return ; 
+						var tex = textureLoad( xNode.skin );
+						var w = xNode.width?tonumber(xNode.width) : null;
+						var h = xNode.height?tonumber(xNode.height) : null;
+						var spr = game.sprite(tex,0,0,w,h);
+						spr.x = x;
+						spr.y = y;
+						if(xNode.alpha){
+							spr.alpha = tonumber(xNode.alpha) *255;
+						}
+						spr.var = xNode.var;
+						if(xNode.var){
+							this[xNode.var] = spr;
+						}
+						this.addChild(spr)
+					}
+					case "Text","Label" { //文字
+						var width = xNode.width?tonumber(xNode.width) : 250;
+						var height = xNode.height?tonumber(xNode.height) : 50;
+						var text  = xNode.text?xNode.text : "请填写文字";
+						var align = xNode.align?xNode.align;
+						var colors,alpha,strokeColor;
+						if(xNode.color){
+							colors = { ..string.match( xNode.color,"#(..)(..)(..)") };
+						}
+						if(xNode.strokeColor){
+							strokeColor = { ..string.match( xNode.strokeColor,"#(..)(..)(..)") };
+						}
+						if(xNode.alpha){
+							alpha = tonumber(xNode.alpha) *255 ;
+						}
+						
+						var font = game.gdiFont(width,height);
+						if(#colors){
+							font.setColor(..ARGB(alpha:255 ,  ( tonumber( colors[1] ,16) )  ,  ( tonumber( colors[2],16 ) ) , ( tonumber( colors[3] ,16) )))
+						}
+						if(#strokeColor){
+							font.outLineColor = ..ARGB(alpha:255 ,  ( tonumber( strokeColor[1] ,16) )  ,  ( tonumber( strokeColor[2],16 ) ) , ( tonumber( strokeColor[3] ,16) ))
+						}
+						font.font.align = xNode.align? fontAlign[xNode.align] : 0;	
+						var valign = 0;
+						select(xNode.valign) {
+							case "top"{
+								valign = 0;
+							}
+							case "middle" {
+								valign = 1
+							}
+							case "bottom" {
+								valign = 2
+							}
+						}
+						font.font.lineAlign = valign;
+						font.text = text;
+						font.var = xNode.var;
+						if(xNode.var){
+							this[xNode.var] = font;
+						}
+	
+						font.x = x;
+						font.y = y;
+						this.addChild(font)
+					}
+					
+					case "Button" { //按钮
+						var tex = textureLoad( xNode.skin );
+						var button = game.button(tex);
+						button.x = x;
+						button.y = y;
+						button.stateNum = tonumber(xNode.stateNum) : 3;
+						button.var = xNode.var;
+						if(xNode.alpha){
+							button.alpha = tonumber(xNode.alpha) *255;
+						}
+						if(xNode.var){
+							this[xNode.var] = button;
+						}
+						this.addChild(button)
+					}
+					
+					case "CheckBox" { //复选框
+						var tex = textureLoad( xNode.skin );
+						var button = game.checkBox(tex);
+						button.x = x;
+						button.y = y;
+						button.stateNum = tonumber(xNode.stateNum) : 3;
+						button.var = xNode.var;
+						if(xNode.alpha){
+							button.alpha = tonumber(xNode.alpha) *255;
+						}
+						if(xNode.var){
+							this[xNode.var] = button;
+						}
+						this.addChild(button)
+					}
+					case "RaidoBox" { //复选框
+/*
+						var tex = textureLoad( xNode.skin );
+						var button = game.checkBox(tex);
+						button.x = x;
+						button.y = y;
+						button.stateNum = tonumber(xNode.stateNum) : 3;
+						button.var = xNode.var;
+						if(xNode.alpha){
+							button.alpha = tonumber(xNode.alpha) *255;
+						}
+						if(xNode.var){
+							this[xNode.var] = button;
+						}
+						this.addChild(button)
+*/
+					}
+					
+					
+					
+					case "TextInput" { //输入框
+						var width = xNode.width?tonumber(xNode.width) : 250;
+						var height = xNode.height?tonumber(xNode.height) : 50;
+						var mode = 0;
+						select(xNode.type) {
+							case "password" {
+								mode = 1;
+							}
+						}
+						var textInput = game.textInput(width,height,mode);
+						textInput.x = x;
+						textInput.y = y;
+						textInput.var = xNode.var;
+						if(xNode.alpha){
+							textInput.alpha = tonumber(xNode.alpha) *255;
+						}
+						var valign = 0;
+						select(xNode.valign) {
+							case "top"{
+								valign = 0;
+							}
+							case "middle" {
+								valign = 1
+							}
+							case "bottom" {
+								valign = 2
+							}
+						}
+						textInput.font.lineAlign = valign;
+						if(xNode.color){
+							colors = { ..string.match( xNode.color,"#(..)(..)(..)") };
+						}
+						if(xNode.strokeColor){
+							strokeColor = { ..string.match( xNode.strokeColor,"#(..)(..)(..)") };
+						}
+						
+						if(#colors){
+							textInput.setColor(..ARGB(alpha:255 ,  ( tonumber( colors[1] ,16) )  ,  ( tonumber( colors[2],16 ) ) , ( tonumber( colors[3] ,16) )))
+						}
+						
+						if(#strokeColor){
+							textInput.outLineColor = ..ARGB(alpha:255 ,  ( tonumber( strokeColor[1] ,16) )  ,  ( tonumber( strokeColor[2],16 ) ) , ( tonumber( strokeColor[3] ,16) ))
+						}
+						if(xNode.var){
+							this[xNode.var] = textInput;
+						}
+						this.outLineColor = 0;
+						this.addChild(textInput)
+					}
+
+				}
+
+			},
+		)
+	};
+
+	
+}

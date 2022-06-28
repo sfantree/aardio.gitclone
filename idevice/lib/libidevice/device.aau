@@ -1,0 +1,347 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+ 
+namespace libidevice.device{
+
+	import libidevice;
+	import thread.command;
+	
+	var iudid   = null;
+	var istatus = false;
+	var idevice = libidevice.idevice();
+	
+	var idevice_cur_fsys_path = "";
+	
+	init = function(deviceList) {	
+		..wbLayout.getEle("loadingDeviceTip").setAttribute("class","animate");
+		..mainForm.setTimeout(function(){..wbLayout.getEle("loadingDeviceTip").setAttribute("class","")},700);
+		var devListUl  = ..wbLayout.getEle("deviceListUl");
+		devListUl.innerHTML = "";
+		if(type(deviceList) !== type.table || #deviceList < 1) {			
+			iudid   = null;
+			istatus = false;
+			var devListUl    = ..wbLayout.getEle("deviceListUl");
+			var contentFrame = ..wbLayout.getEle("contentFrame");
+			var html = '<li selected="selected">请连接设备！</li>';
+			devListUl.insertAdjacentHTML("beforeEnd",html);
+			if(contentFrame.src != "/res/index.html") {
+				contentFrame.src = "/res/index.html";
+				contentFrame.xcall("load","/res/index.html");
+			}
+			return;
+		}	
+		var isListCurrent = false;
+		for(i = 1;#deviceList;1) {
+			var icon = "/res/styles/images/device.png";
+			var html = '<li udid="'+deviceList[i].udid+'"><img src="'+icon+'"/><label>'+..string.fromto(deviceList[i].name)+'</label></li>';
+			if(!isListCurrent && iudid && iudid == deviceList[i].udid) {
+				isListCurrent = true;
+				html = '<li selected="selected" udid="'+deviceList[i].udid+'"><img src="'+icon+'"/><label>'+..string.fromto(deviceList[i].name)+'</label></li>';
+			}	
+			devListUl.insertAdjacentHTML("beforeEnd",html);	
+		}
+		if(!istatus || !isListCurrent) {
+			var udid = deviceList[1].udid;
+			if(0 == idevice.connect(udid)) {
+				istatus = true;
+				iudid   = udid;	
+				devListUl.child(1).setAttribute("selected","selected");					
+				var deviceInfo = idevice.getDeviceInfo();
+				if(type(deviceInfo) == type.table && deviceInfo.device_name) {
+					showDeviceInfo(deviceInfo);									
+				}
+			}	
+		}		
+	};
+	
+	formateDiskSize = function(bytes) {
+		
+		bytes = tonumber(bytes);
+		if(bytes>1024*1024*1024) {
+			return ..math.round(bytes/(1024*1024*1024),2)+"G";
+		}
+		if(bytes>1024*1024) {
+			return ..math.round(bytes/(1024*1024),2)+"M";
+		}
+		return ..math.round(bytes/1024,2)+"K";
+	}
+	
+	formateDatetime = function(timespan) {
+	 
+		return tostring(..time(tonumber(timespan)/1000000000,"%Y/%m/%d %H:%M:%S"));
+	}
+	
+	switchDevice = function(udid) {
+	
+		istatus = false;
+		iudid   = udid;
+		if(0 != idevice.connect(iudid)) {		
+			return false;
+		}
+		istatus = true;			
+		var deviceInfo = idevice.getDeviceInfo();
+		if(#deviceInfo) {			
+			showDeviceInfo(deviceInfo);				
+		}
+	};
+	
+	getStatus = function() {
+	
+		return istatus;
+	};
+	
+	getUDID = function() {
+	
+		return iudid;
+	};
+	
+	getCurFsysPath = function() {
+		
+		return ..string.trim(idevice_cur_fsys_path);
+	};
+	
+	getDeviceInfo = function() {
+	
+		return idevice.getDeviceInfo();
+	};
+	
+	getAppDetail = function(bundleId) {
+
+		if(!bundleId) {
+			return;
+		}
+		import fsys;
+		var dst = ..fsys.getSpecial(0x1a /*_CSIDL_APPDATA*/) + "\iphonetools\app\";
+		if(..io.exist(dst+bundleId+".jpg")) {
+			return;
+		}		
+		if(!..fsys.isDir(dst)) {
+			if(!..fsys.createDir(dst,false)) return;
+		}	
+		import web.rest.jsonLiteClient;
+		var rest      = web.rest.jsonLiteClient();
+		var lookupUri = "https://itunes.apple.com/lookup?limit=1&bundleId="+bundleId;
+		var detail = rest.declareApi(lookupUri).get();
+		if(type(detail) !== type.table || detail.resultCount < 1 || type(detail.results) !== type.table) {
+			return;
+		}
+		detail = detail.results[1];
+		var iconUri = detail.artworkUrl60;
+		if(!iconUri) {
+			return;
+		}
+		import inet.whttp;
+		var icon = inet.whttp().get(iconUri);
+		if(!icon) return;
+		dst += bundleId+".jpg";
+		..string.save(dst,icon);
+		import thread.command;
+		thread.command.updateAppIcon(dst,bundleId);
+	}
+	
+	thread.command.instance().updateAppIcon = function(dst,bundleId) {
+		
+		try{
+			var frame = ..wbLayout.getEle("contentFrame");
+			var imgTag = frame.querySelector('#listcontent div span img[appid="'+bundleId+'"]');
+			if(imgTag) {
+				imgTag.src = dst;
+			}	
+		}
+		catch(e){
+			
+		}
+	};
+	
+	showDeviceInfo = function(deviceInfo) {
+	
+		var frame = ..wbLayout.getEle("contentFrame");
+		frame.src = "/res/deviceInfo.html";
+		frame.xcall("load","/res/deviceInfo.html");
+		var iconImg    = frame.querySelector("#icon");
+		var contentDiv = frame.querySelector("#content");
+		var diskInfoDiv = frame.querySelector("#diskInfoShow");
+		var deviceType  = ..string.lower(..string.trim(deviceInfo.device_class));
+		var icon        = ..string.indexOf("iphone,ipad,ipod",deviceType) ? deviceType : "iphone3";
+		if(icon == "iphone") {
+			var deviceModel = ..string.split(deviceInfo.model,",");
+			icon = ..string.lower(..string.trim(deviceModel[1]));
+			icon = ..string.sub(icon,1,7);	
+			if(..string.indexOf("iphone4,iphone5,iphone6",icon)) {
+				var color = ..string.lower(deviceInfo.device_color);	
+				if(color == "black" || color == "space gray") {
+					icon += "_black";
+				}
+			} else {
+				icon = ..string.cmp("iphone6",icon,7) < 0 ? "iphone6" : "iphone3";
+			}			
+		}
+		iconImg.src = "/res/styles/images/device/"+icon+".png";
+		var html = "";
+		html += "<div><label>设备名称：</label><span>"+..string.fromto(deviceInfo.device_name)+"</span>";
+		html += "<div><label>设备类型：</label><span>"+deviceInfo.model+"</span>";
+		html += "<div><label>颜色：</label><span>"+deviceInfo.device_color+"</span>";
+		html += "<div><label>版本：</label><span>"+deviceInfo.product_version+"</span>";
+		html += "<div><label>序列号：</label><span>"+deviceInfo.serial_number+"</span>";
+		if(deviceInfo.phone_number) {
+			html += "<div><label>电话号码：</label><span>"+deviceInfo.phone_number+"</span>";
+		}
+		contentDiv.innerHTML = html;
+		var totalSize = tonumber(deviceInfo.fs_totalbytes);
+		var freeSize  = tonumber(deviceInfo.fs_freebytes);
+		var usepercent  = (totalSize-freeSize)/totalSize*100;
+		var freepercent = 100 - usepercent;
+		html = '<div id="diskTotal"><div id="diskUse" style="width:'+usepercent+'%">'+formateDiskSize((totalSize-freeSize))+'</div>';
+		html += '<div id="diskFree" style="width:'+freepercent+'%">'+formateDiskSize(freeSize)+'</div></div>';
+		diskInfoDiv.innerHTML = html; 
+	};
+	
+	showAppList = function(appList) {
+			
+		var frame = ..wbLayout.getEle("contentFrame");
+		frame.xcall("load","/res/appList.html");
+		frame.src = "/res/applist.html";
+		var listDiv = frame.querySelector("#listcontent");
+		listDiv.innerHTML = "";
+		var appList = idevice.getAppList();
+		if(!#appList) {
+			return false;
+		}		
+		import thread.works;
+		var downIconTask = thread.works( 5,getAppDetail,1000);
+		var appDataPath  = ..fsys.getSpecial(0x1a /*_CSIDL_APPDATA*/) + "\iphonetools\app\";		
+		for(i=1;#appList) {	
+			if(!appList[i].s_appid || !appList[i].s_name) {
+				continue;
+			}
+			var appid = appList[i].s_appid;
+			var icon  = "/res/styles/images/default_app.png";
+			var exist = ..io.exist(appDataPath+appid+".jpg");
+			icon = exist ? exist : icon;
+			var appName = ..string.fromto(appList[i].s_name);				
+			var html = '<div><span class="cellname"><img appid="'+appid+'" src="'+icon+'"/>'+appName+'</span>';
+			html += '<span>'+appList[i].s_version+'</span>';
+			html += '<span><button appid="'+appid+'" class="btn-uninstall"></button></span></div>';
+			listDiv.insertAdjacentHTML("beforeEnd",html);
+			if(!exist) {
+				downIconTask.push(appid);
+			}				
+		}
+		downIconTask.waitClose();	
+		return true;
+	};
+	
+	showPicList = function(path) {
+		
+		var frame = ..wbLayout.getEle("contentFrame");
+		frame.xcall("load","/res/picList.html");
+		frame.src = "/res/piclist.html";
+		var listDiv = frame.querySelector("#listcontent");
+		listDiv.innerHTML = "";
+		var path = !path ? "/DCIM/100APPLE/" : path;
+		idevice_cur_fsys_path = path;
+		var picList = idevice.ls(path);
+		if(!#picList) {
+			return false;
+		}		
+		for(i=1;#picList) {
+			var name     = picList[i].name;
+			var st_nlink = picList[i].st_nlink;
+			var st_ifmt  = picList[i].st_ifmt;
+			var st_mtime = formateDatetime(picList[i].st_mtime);
+			var st_birthtime = formateDatetime(picList[i].st_birthtime);
+			var icon = "/res/styles/images/folder.png";
+			var xpath = path+name;
+			var xtype = "";
+			if(st_ifmt == "S_IFDIR") {
+				xtype   = "dir";
+				xpath  += "/";
+				st_ifmt = "文件夹";
+				icon = '<img class="fileicon" style="background:url('+icon+') no-repeat center center;"/>';
+			} else {
+				xtype   = "file";				
+				st_ifmt = "文件";
+				var ext = ..string.split(name,".");
+				icon    = ".";
+				icon = icon + (#ext ? ..table.pop(ext) : "file");
+				icon = '<img class="fileicon" filename="'+icon+'"/>';
+			}
+			var html = '<div xpath="'+xpath+'" xtype="'+xtype+'"><span class="cellname">'+icon+name+'</span><span class="celltime">'+st_mtime+'</span><span>'+st_ifmt+'</span><span>'+st_nlink+'</span></div>';
+
+			listDiv.insertAdjacentHTML("beforeEnd",html);
+		}		
+		return true;	
+	};
+	
+	showFileList = function(path) {
+		
+		var frame = ..wbLayout.getEle("contentFrame");
+		frame.xcall("load","/res/fileSystem.html");
+		frame.src = "/res/filesystem.html";
+		var listDiv = frame.querySelector("#listcontent");
+		listDiv.innerHTML = "";
+		path = !path ? "/" : path;
+		idevice_cur_fsys_path = path;
+		var fileList = idevice.ls(path);
+		if(!#fileList) {
+			return false;
+		}		
+		for(i=1;#fileList) {
+			var name     = fileList[i].name;
+			var st_nlink = fileList[i].st_nlink;
+			var st_ifmt  = fileList[i].st_ifmt;
+			var st_mtime = formateDatetime(fileList[i].st_mtime);
+			var st_birthtime = formateDatetime(fileList[i].st_birthtime);
+			var icon = "/res/styles/images/folder.png";
+			var xpath = path+name;
+			var xtype = "";
+			if(st_ifmt == "S_IFDIR") {
+				xtype   = "dir";
+				xpath  += "/";
+				st_ifmt = "文件夹";
+				icon = '<img class="fileicon" style="background:url('+icon+') no-repeat center center;"/>';
+			} else {
+				xtype   = "file";
+				st_ifmt = "文件";
+				var ext = ..string.split(name,".");
+				icon    = ".";
+				icon = icon + (#ext ? ..table.pop(ext) : "file");
+				icon = '<img class="fileicon" filename="'+icon+'"/>';
+			}
+			var html = '<div xpath="'+xpath+'" xtype="'+xtype+'"><span class="cellname">'+icon+name+'</span><span class="celltime">'+st_mtime+'</span><span>'+st_ifmt+'</span><span>'+st_nlink+'</span></div>';		
+			
+			listDiv.insertAdjacentHTML("beforeEnd",html);
+		}
+		return true;
+	};
+		
+	
+	uninstallApp = function(appid) {
+	
+		return 0 == idevice.uninstallApp(appid);
+	};
+	
+	download = function(src,dst) {
+	
+		return 0 == idevice.download(src,dst);	
+	};
+	
+	deletePath = function(path) {
+	
+		return 0 == idevice.remove(path);
+	};
+	
+	shutdown = function() {
+		
+		return 0 == idevice.shutdown();
+	};
+	
+	restart = function() {
+	
+		return 0 == idevice.restart();
+	};
+	
+}

@@ -1,0 +1,77 @@
+import crypt.bin; 
+import crypt.hmac;
+import web.rest.jsonClient; 
+     
+namespace qiniuyun{
+     
+    class uploader{
+        ctor(accessKey,secretKey){
+            this = ..web.rest.jsonClient() 
+            this.accessKey = accessKey
+            this.secretKey = secretKey; 
+                 
+            this.getUploadToken = function(bucket,fileName,override){
+                var scope = bucket;
+                if (override == true ) {
+                    scope += ':' ++ fileName;
+                }
+                var deadline = tonumber(..time()) + 3600;
+                var putPolicy = ..string.format('{"scope":"%s","deadline":%i}' ,scope,deadline)
+                var encoded = ..crypt.bin.encodeBase64(putPolicy)
+                     
+                var encoded_signed = ..crypt.bin.encodeUrlBase64( ..crypt.hmac.sha1(this.secretKey , encoded ).getValue(),,true )
+                return this.accessKey + ":" + encoded_signed + ":" + encoded;
+            }
+             
+            this.qbox = this.api("https://uc.qbox.me/v1/","GET" )
+                this.cacheUploadUrl = {
+                    @{_weak="kv"}
+                } 
+        };
+         
+        getUploadUrl = function(bucket){
+            var url = this.cacheUploadUrl[bucket];
+            if( url ) return url;
+            var res,err = this.qbox.query(,{
+                ak = this.accessKey;
+                bucket = bucket
+            })
+             
+            if(res){
+                var url  = res.http.up[1];
+                this.cacheUploadUrl[bucket] = url;
+                return url;
+            }
+             
+            return null,err;
+        }
+         
+             
+        upload = function(bucket,filePath,fileName,override){ 
+            if(fileName == null){
+                fileName = ..io.splitpath(filePath).file
+            } 
+             
+            var uploadUrl = this.getUploadUrl(bucket);
+             
+            this.sendMultipartForm( {
+                key = fileName;
+                token = this.getUploadToken(bucket,fileName,override);
+                    file = "@"++filePath;
+                }
+            )  
+             
+            return this.api(uploadUrl).post()
+        }   
+    }
+}
+
+
+//调用示例: 注意下面的key请去七牛云申请,然后替换为你申请到的
+accessKey = 'accessKey ';
+secretKey = 'secretKey ';
+bucket = 'bucket ';
+ 
+qiniu = qiniuyun.uploader(accessKey,secretKey) 
+console.dump(qiniu.uploadFile(bucket,'E:/q.txt','haha.txt')) //普通上传
+console.dump(qiniu.uploadFile(bucket,'E:/q.txt','haha.txt',true)) //覆盖上传

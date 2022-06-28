@@ -1,0 +1,27 @@
+import console; 
+import cv2
+img = cv2.imread("./images/coffee/coffee3.jpg")
+img = cv2.resize(img,,0.3,0.3)
+//img = cv2.rotate(img,0/*_CV2_ROTATE_90_CLOCKWISE*/)
+img = cv2.gaussianBlur(img,::SIZE(3,3))
+hsv = cv2.cvtColor(img,0x28/*_CV2_COLOR_BGR2HSV*/)
+//（色调（H），饱和度（S），明度（V））
+mask = cv2.inRange(hsv,::Scalar(0,50,20),::Scalar(50,255,255))
+cv2.imshow("mask", mask)
+result = cv2.bitwise_and(img,img,mask)
+cv2.findContours(mask)
+cv2.imshow("result", result)
+cv2.waitKey(0)
+/*
+//console.log(img.channels())
+v,s,h = cv2.split(img)
+cv2.imshow("img"
+,img)
+cv2.imshow("v",v)
+cv2.imshow("s",s) //可以作为筛选通道
+cv2.imshow("h",h)
+t = cv2.threshold(s,65,255)
+cv2.imshow("t",t)
+cv2.waitKey(0)
+//console.pause(true);
+*/

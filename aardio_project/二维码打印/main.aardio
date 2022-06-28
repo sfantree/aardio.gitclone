@@ -1,0 +1,222 @@
+import time;
+import string.conv;
+import fsys;
+import fsys.ini;
+import win;
+import win.ui;
+import win.ui.atom;
+import winex;
+import winex.mouse;
+import mouse;
+import com.activeX;
+import console;
+import qrencode.bitmap;
+/*DSG{{*/
+mainForm = win.form(text="二维码打印";right=567;bottom=511;max=false;min=1;mode="popup";sysmenu=1;title=1;topmost=1)
+mainForm.add(
+edit={cls="edit";text="XJ1206";left=8;top=8;right=104;bottom=40;ah=1;align="center";aw=1;edge=1;font=LOGFONT(h=-17);hidesel=1;z=1};
+edit2={cls="edit";text="年月日";left=114;top=8;right=226;bottom=40;ah=1;align="center";aw=1;edge=1;font=LOGFONT(h=-17);hidesel=1;z=2};
+edit3={cls="edit";text="01,02,03";left=235;top=8;right=339;bottom=40;ah=1;align="center";aw=1;edge=1;font=LOGFONT(h=-17);hidesel=1;z=3};
+edit4={cls="edit";text="00001";left=349;top=8;right=421;bottom=40;ah=1;align="center";aw=1;edge=1;font=LOGFONT(h=-17);hidesel=1;num=1;z=4};
+edit5={cls="edit";text="10";left=430;top=8;right=494;bottom=40;ah=1;align="center";aw=1;edge=1;font=LOGFONT(h=-17);hidesel=1;num=1;z=5};
+richedit={cls="richedit";left=8;top=48;right=560;bottom=424;ah=1;aw=1;edge=1;font=LOGFONT(h=-17);hscroll=1;multiline=1;vscroll=1;wrap=1;z=7};
+打印预览={cls="button";text="打印预览";left=168;top=440;right=392;bottom=480;ah=1;aw=1;z=8};
+生成数据={cls="button";text="生成数据";left=504;top=8;right=560;bottom=40;ah=1;aw=1;image=$"\res\1.jpg";z=6}
+)
+/*}}*/
+
+var path=fsys.getCurDir();
+var 换行符='\r\n';
+var grf=path++"\二维码.grf";  //模板
+var grdes6=path++"\gregn6.dll" ;  //运行模块
+var 配置文件=path++"\配置文件.ini";
+var report,xml="","";
+
+var 读配置=function(section,key){
+	var ini = fsys.ini(配置文件);
+    var str=ini.read(section, key);
+	return str:"";
+}
+var 写配置=function(section,key,val){
+    var ini = fsys.ini(配置文件);
+    ini.write(section, key,val);
+}
+
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/
+= mainForm.atom("99A3D693-D603-4F7C-AA76-98D6F2C3C4CC.ruilang-qr");
+if(!atom){
+	win.quitMessage();
+	return;
+}
+
+var add_line=function(lines){
+	mainForm.richedit.appendText(lines++换行符);
+}
+
+var get_text=function(id){
+    var t=mainForm[id]['text'];
+    if(t) t=string.trim(t);
+	return t;
+}
+
+var 获取证照=function(types){
+	var s=读配置("证照类型",types);
+	if(s) s=string.trim(s);
+	//if(!string.isUtf8(s)){ s=string.fromto(s,0,65001); } ///GBK->UTF8
+	return s:"";
+}
+
+mainForm.生成数据.oncommand = function(id,event){
+    mainForm.richedit.text="";
+	var p1= get_text('edit') ;
+	var p2= get_text('edit2') ;
+	var p3= get_text('edit3') ;
+	var p4= get_text('edit4') ;
+	var p5= get_text('edit5') ;
+	var vp3=string.split(string.conv.fromWide(p3)  ,","); //全角转半角 //证照类型
+	var vp4=tonumber(p4);
+	var vp5=tonumber(p5)+vp4-1;
+	var lp4=#p4;
+	var format="%0"+lp4+"d";
+	for i,v in vp3{
+		var 证照=获取证照(v);
+		if (!#证照){ win.msgboxErr("证照类型不存在,请检查配置文件","",mainForm.hwnd);return; }
+		for j=vp4;vp5;1 {
+			var vpj=string.format(format,j );
+			var pp=string.concat(p1,p2,v,vpj);
+			var qr=string.concat(p2,证照);
+			add_line(pp++"  #    "++qr);
+		}
+		add_line("");
+	}
+}
+
+/*
+mainForm.生成数据.oncommand = function(id,event){
+    mainForm.richedit.text="";
+	var p1= get_text('edit') ;
+	var p2= get_text('edit2') ;
+	var p3= get_text('edit3') ;
+	var p4= get_text('edit4') ;
+	var p5= get_text('edit5') ;
+	var vp3=string.split(p3,","); //证照类型
+	var vp4=tonumber(p4);
+	var vp5=tonumber(p5)+vp4-1;
+	var lp4=#p4;
+	for j=vp4;vp5;1 {
+		var format="%0"+lp4+"d";
+		var vpj=string.format(format,j );
+		for i,v in vp3{
+			var pp=string.concat(p1,p2,v,vpj);
+			var 证照=获取证照(v);
+			if (!#证照){ win.msgboxErr("证照类型不存在,请检查配置文件","",mainForm.hwnd);return; }
+			var qr=string.concat(p2,证照);
+			add_line(pp++"  #    "++qr);
+		}
+		add_line("");
+	}
+}
+*/
+
+open_bookMark=function(title){
+	var printhwnd = winex.find( ,title,, );
+	if (printhwnd) {
+		var  x, y, cx, cy = win.getPos(printhwnd);
+		x+=16;
+		y+=50;
+		winex.attach(printhwnd);
+		win.setFocus(printhwnd);
+		mouse.click(x,y,true);
+	}
+}
+
+/*
+var 生成二维码=function(qr){ 
+    var 图片=io.tmpname()++qr++".bmp";
+	var qrBmp = qrencode.bitmap(qr,,2);
+	qrBmp.bitmap.save(图片);
+	return 图片;
+}
+*/
+
+var 特殊处理=function(str){;    
+	var t="";    
+	for(i=1;string.len(str);1){ 
+		var v=string.slice(str,i,i,true);
+		t=t++string.format("%s ",v ); //加一个空格,否则二维码会乱码
+	}
+	return t;
+}
+
+gen_xml=function(){
+	var xxxml="<?xml version='1.0' encoding='UTF-8'?>"++换行符;	
+	var text=get_text('richedit');
+	if(!#text)return;
+	var arrtext= string.split(text,换行符);
+	if(!#arrtext)return;
+	xxxml+="<u>"++换行符;	
+	for v,t in arrtext {
+		if(!t || !#t) continue;
+		t=string.trim(t);
+		if(#t){
+			var lines=string.split(t,"#")[1];
+			var qr=string.split(t,"#")[2];
+			lines=string.trim(lines);
+			qr=string.trim(qr); //二维码
+			if(!#lines || !#qr)  continue ;
+			// i是分组字段,b是书签字段,f是文本字段,n是条码字段,m是二维码图片路径
+    		var str="<o><i>"++lines++"</i><b>"++lines++"#"++qr++"</b><f>"++lines++"</f><n>"++特殊处理(qr)++"</n></o>";
+    		xxxml+=str++换行符;
+		}
+	}
+	xxxml+="</u>";
+	var file=io.tmpname("qr.txt");
+	///xxxml=string.fromto(xxxml,65001,0);//UTF8->GBK
+	var b=string.save(file, xxxml ) ;
+	if(b) xml=file ;
+}
+
+mainForm.打印预览.oncommand = function(id,event){
+    gen_xml();
+	if(#xml && io.exist(xml) ) {
+		report.Title="二维码打印";
+		report.ShowProgressUI(true);
+		report.LoadFromFile(grf);
+		report.LoadDataFromURL(xml);
+		win.setTimeout( function(){ open_bookMark( string.left(report.Title,20)); },1000 ) ;
+		report.PrintPreview(true);
+		xml="";
+	}
+	else { win.msgboxErr("生成XML错误","错误",mainForm.hwnd); }
+}
+
+
+if(!io.exist(grf)){
+	win.msgboxErr(grf++"不存在","",mainForm.hwnd);
+	mainForm.close();
+};
+
+if(!io.exist(grdes6)){
+	win.msgboxErr(grdes6++"不存在","",mainForm.hwnd);
+	mainForm.close();
+};
+
+try{
+	com.activeX.regsvr32(grdes6);
+	report = com.CreateObject("gregn.GridppReport");
+}catch(e){
+	win.msgboxErr(grdes6++",锐浪控件注册错误,","",mainForm.hwnd);
+	mainForm.close();
+}
+
+var tm = time.now();
+mainForm.edit2.text=tostring(tm,"%Y%m%d","chs");
+
+/*
+写配置("证照类型","01","营业执照");
+写配置("证照类型","02","抵押登记申请表");
+写配置("证照类型","03","委托授权书");
+*/
+ 
+mainForm.show();
+return win.loopMessage();

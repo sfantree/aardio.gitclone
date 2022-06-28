@@ -1,0 +1,974 @@
+assert(web.sciter && web.sciter.behavior);
+
+namespace web.sciter;
+
+var valueObjectLite_t = valueObjectLite;
+var element_t = element; 
+var behavior_t = behavior;
+
+import util.registry;
+namespace event;
+
+HANDLE_GROUPS = { 
+	INITIALIZATION = 0x0000;
+	MOUSE = 0x0001;
+	KEY = 0x0002;
+	FOCUS = 0x0004;
+	SCROLL = 0x0008;
+	TIMER = 0x0010;
+	SIZE = 0x0020;
+	DRAW = 0x0040;
+	DATA_ARRIVED = 0x080;
+	BEHAVIOR = 0x0100;
+	METHOD_CALL = 0x0200;
+	SCRIPTING_METHOD_CALL  = 0x0400;
+	EXCHANGE = 0x1000;
+	GESTURE = 0x2000;
+	ALL = 0xFFFF;
+	DISABLE_INITIALIZATION = 0x80000000; 
+}
+ 
+getSubscriptions = function(handle){
+	var mask = 0x80000000;
+	var mapProcName;
+	var maped = {};
+	for(name,eventId in HANDLE_GROUPS){
+		mapProcName = self[name][["mapProcName"]]
+		if( mapProcName ){
+			for(evt,method in mapProcName){
+				if( handle[[method]] || handle[["sinking"]][[method]] ||  handle[["handled"]][[method]] ){
+					maped[method] = true;
+					if( eventId !== 0 ){
+						mask |=  eventId ;
+					}
+					else{
+						mask &= ~0x80000000
+					}
+					break;
+				}
+			} 
+		}
+	}
+	
+	var left = ..string.left;
+	for k,v in handle { 
+		if maped[k] continue;
+		if( type(k) == "string"  && type(v) == "function" ){
+			if(left(k,2) != "on" ){
+				mask = mask | 0x200/*_HL_HANDLE_METHOD_CALL*/ | 0x0400/*SCRIPTING_METHOD_CALL*/; 
+			}
+			else {
+				mask = mask | 0x100/*_HL_HANDLE_BEHAVIOR_EVENT*/;
+			} 
+		}
+	} 
+	
+	for k,v in handle[["sinking"]] { 
+		if maped[k] continue;
+		if( type(k) == "string"  && type(v) == "function" ){
+			if(left(k,2) != "on" ){
+				mask = mask | 0x200/*_HL_HANDLE_METHOD_CALL*/ | 0x0400/*SCRIPTING_METHOD_CALL*/; 
+			}
+			else {
+				mask = mask | 0x100/*_HL_HANDLE_BEHAVIOR_EVENT*/;
+			} 
+		}
+	}
+	
+	for k,v in handle[["handled"]] { 
+		if maped[k] continue;
+		if( type(k) == "string"  && type(v) == "function" ){
+			if(left(k,2) != "on" ){
+				mask = mask | 0x200/*_HL_HANDLE_METHOD_CALL*/ | 0x0400/*SCRIPTING_METHOD_CALL*/; 
+			}
+			else {
+				mask = mask | 0x100/*_HL_HANDLE_BEHAVIOR_EVENT*/;
+			} 
+		}
+	}
+	
+	if( behavior_t.__behavior_cache[handled] ){
+		mask &= ~0x80000000
+	}
+	return mask; 
+}
+
+namespace INITIALIZATION {
+	BEHAVIOR_DETACH = 0;
+	BEHAVIOR_ATTACH = 1;
+	mapProcName = {
+		[BEHAVIOR_DETACH] = "onDetach";
+		[BEHAVIOR_ATTACH] = "onAttach"; 
+	}
+}
+	
+namespace MOUSE { 
+	MOUSE_ENTER = 0;
+	MOUSE_LEAVE = 1;
+	MOUSE_MOVE  = 2;
+	MOUSE_UP    = 3;
+	MOUSE_DOWN  = 4;
+	MOUSE_DCLICK = 5;
+	MOUSE_WHEEL = 6; 
+	MOUSE_TICK  = 7;
+	MOUSE_IDLE  = 8;
+	DROP        = 9;
+	DRAG_ENTER  = 0xA;
+	DRAG_LEAVE  = 0xB;
+	DRAG_REQUEST = 0xC;
+	MOUSE_CLICK = 0xFF;
+	DRAGGING = 0x100; 
+	
+	mapProcName = {
+		[MOUSE_ENTER] = "onMouseEnter";
+		[MOUSE_LEAVE] = "onMouseLeave";
+		[MOUSE_MOVE] = "onMouseMove";
+		[MOUSE_UP] = "onMouseUp";
+		[MOUSE_DOWN] = "onMouseDown";
+		[MOUSE_DCLICK] = "onMouseDblClick";
+		[MOUSE_WHEEL] = "onMouseWheel";
+		[MOUSE_TICK] = "onMouseTick";
+		[MOUSE_IDLE] = "onMouseIdle";
+		[DROP] = "onDrop";
+		[DRAG_ENTER] = "onDragEnter";
+		[DRAG_LEAVE] = "onDragLeave";
+		[DRAG_REQUEST] = "onDragRequest";
+		[MOUSE_CLICK] = "onMouseClick"; 
+		[DRAGGING] = "onDragging";
+	}
+}
+var _mouse_mapProcName = MOUSE.mapProcName;  
+
+namespace KEY {
+	KEY_DOWN = 0;
+	KEY_UP = 1;
+	KEY_CHAR = 2;
+	
+	mapProcName = {
+		[KEY_DOWN] = "onKeyDown";
+		[KEY_UP] = "onKeyUp";
+		[KEY_CHAR] = "onKeyChar"; 
+	}
+}
+ 
+namespace FOCUS {
+	FOCUS_OUT = 0;
+	FOCUS_IN = 1;
+	FOCUS_GOT = 2;
+	FOCUS_LOST = 3;
+	FOCUS_REQUEST = 4;
+	mapProcName = {
+		[FOCUS_LOST] = "onFocusLost";
+		[FOCUS_GOT] = "onFocusGot"; 
+		[FOCUS_IN] = "onFocusIn"; 
+		[FOCUS_OUT] = "onFocusOut"; 
+		[FOCUS_REQUEST] = "onFocusRequest"; 
+	}
+}
+      
+namespace SCROLL {
+	SCROLL_HOME = 0;
+	SCROLL_END = 1;
+	SCROLL_STEP_PLUS = 2;
+	SCROLL_STEP_MINUS = 3;
+	SCROLL_PAGE_PLUS = 4;
+	SCROLL_PAGE_MINUS = 5;
+	SCROLL_POS = 6;
+	SCROLL_SLIDER_RELEASED = 7;
+	mapProcName = {
+		[SCROLL_HOME] = "onScrollHome";
+		[SCROLL_END] = "onScrollEnd";
+		[SCROLL_STEP_PLUS] = "onScrollStepPlus";
+		[SCROLL_STEP_MINUS] = "onScrollStepMinus";
+		[SCROLL_PAGE_PLUS] = "onScrollPagePlus";
+		[SCROLL_PAGE_MINUS] = "onScrollPageMinus";
+		[SCROLL_POS] = "onScrollPos";
+		[SCROLL_SLIDER_RELEASED] = "onSliderRelease";
+	}
+}
+
+namespace TIMER{
+	mapProcName = {
+		[0] = "onTimer";
+	}
+}
+
+namespace SIZE{
+	mapProcName = {
+		[0] = "onSize";
+	}
+}
+
+namespace DATA_ARRIVED{
+	mapProcName = {
+		[0] = "onDataArrived";
+	}	
+}
+
+namespace DRAW{
+	DRAW_BACKGROUND = 0;
+	DRAW_CONTENT = 1;
+	DRAW_FOREGROUND = 2;
+	mapProcName = {
+		[DRAW_BACKGROUND] = "onDrawBackground";
+		[DRAW_CONTENT] = "onDrawContent";
+		[DRAW_FOREGROUND] = "onDrawForeground";
+	}
+}
+
+namespace GESTURE{
+    GESTURE_REQUEST = 0;
+    GESTURE_ZOOM = 1;
+    GESTURE_PAN = 2;
+    GESTURE_ROTATE = 3;
+    GESTURE_TAP1 = 4;
+    GESTURE_TAP2 = 5;
+    mapProcName = {  
+		[GESTURE_REQUEST] = "onGestureRequest";
+		[GESTURE_ZOOM] = "onGestureZoom";
+		[GESTURE_PAN] = "onGesturePan";
+		[GESTURE_ROTATE] = "onGestureRotate";
+		[GESTURE_TAP1] = "onGestureTap1";
+		[GESTURE_TAP2] = "onGestureTap2"; 
+	}
+}
+
+namespace EXCHANGE{
+    X_DRAG_ENTER = 0;
+    X_DRAG_LEAVE = 1;
+    X_DRAG = 2;
+    X_DROP = 3;
+    X_PASTE = 4;
+    X_DRAG_REQUEST = 5;
+    X_DRAG_CANCEL = 6;
+    X_WILL_ACCEPT_DROP = 7;
+    mapProcName = { 
+		[X_DRAG_ENTER] = "onExchangeDragEnter";
+		[X_DRAG_LEAVE] = "onExchangeDragLeave";
+		[X_DRAG] = "onExchangeDrag";
+		[X_DROP] = "onExchangeDrop"; 
+		[X_PASTE] = "onExchangePaste"; 
+		[X_DRAG_REQUEST] = "onExchangeDragRequest"; 
+		[X_DRAG_CANCEL] = "onExchangeCancel"; 
+		[X_WILL_ACCEPT_DROP] = "onExchangeAcceptDrop";
+	}
+}
+
+namespace BEHAVIOR{ 
+	BUTTON_CLICK = 0;
+	BUTTON_PRESS = 1;
+	BUTTON_STATE_CHANGED = 2;
+	EDIT_VALUE_CHANGING = 3;
+	EDIT_VALUE_CHANGED = 4;
+	SELECT_SELECTION_CHANGED = 5;
+	SELECT_STATE_CHANGED = 6;
+	POPUP_REQUEST   = 7;
+	POPUP_READY     = 8;
+	POPUP_DISMISSED = 9;
+	MENU_ITEM_ACTIVE = 0xA;
+	MENU_ITEM_CLICK = 0xB;
+	CONTEXT_MENU_SETUP   = 0xF;
+	CONTEXT_MENU_REQUEST = 0x10;
+	VISIUAL_STATUS_CHANGED = 0x11;
+	DISABLED_STATUS_CHANGED = 0x12;
+	POPUP_DISMISSING = 0x13;
+	HYPERLINK_CLICK = 0x80;
+	TABLE_HEADER_CLICK = 0x81;
+	TABLE_ROW_CLICK = 0x82;
+	TABLE_ROW_DBL_CLICK = 0x83;
+	ELEMENT_COLLAPSED = 0x90;
+	ELEMENT_EXPANDED = 0x91;
+	ACTIVATE_CHILD = 0x92;
+	DO_SWITCH_TAB = 0x92; 
+	INIT_DATA_VIEW = 0x93;
+	ROWS_DATA_REQUEST = 0x94;
+	UI_STATE_CHANGED = 0x95;
+	FORM_SUBMIT = 0x96;
+	FORM_RESET = 0x97;
+	DOCUMENT_COMPLETE = 0x98;
+	HISTORY_PUSH = 0x99;
+	HISTORY_DROP = 0x9A;
+	HISTORY_PRIOR = 0x9B;
+	HISTORY_NEXT = 0x9C;
+	HISTORY_STATE_CHANGED = 0x9D;
+	CLOSE_POPUP = 0x9E;
+	REQUEST_TOOLTIP = 0x9F;
+	ANIMATION = 0xA0;
+	DOCUMENT_READY = 0xC3;
+	DOCUMENT_PARSED = 0xC4;
+	VIDEO_INITIALIZED = 0xD1;       
+    VIDEO_STARTED = 0xD2;      
+    VIDEO_STOPPED = 0xD3;   
+    VIDEO_BIND_RQ = 0xD4;  
+    PAGINATION_STARTS = 0xE0; 
+    PAGINATION_PAGE = 0xE1;
+    PAGINATION_ENDS = 0xE2;
+    CUSTOM = 0xF0; 
+	FIRST_APPLICATION_EVENT_CODE = 0x100; 
+	
+	mapProcName = {  
+		[BUTTON_CLICK] = "onButtonClick";
+		[BUTTON_PRESS] = "onButtonPress";
+		[BUTTON_STATE_CHANGED] = "onButtonStateChanged";
+		[EDIT_VALUE_CHANGING] = "onEditValueChanging";
+		[EDIT_VALUE_CHANGED] = "onEditValueChanged";
+		[SELECT_SELECTION_CHANGED] = "onSelectSelectionChanged";
+		[SELECT_STATE_CHANGED] = "onSelectStateChanged";
+		[POPUP_REQUEST] = "onPopupRequest";
+		[POPUP_READY] = "onPopupReady";
+		[POPUP_DISMISSED] = "onPopupDismissed";
+		[MENU_ITEM_ACTIVE] = "onMenuItemActive";
+		[MENU_ITEM_CLICK] = "onMenuItemClick";
+		[CONTEXT_MENU_SETUP] = "onContextMenuSetup";
+		[CONTEXT_MENU_REQUEST] = "onContextMenuRequest";
+		[VISIUAL_STATUS_CHANGED] = "onVisualStateChanged";
+		[DISABLED_STATUS_CHANGED] = "onDisabledStateChanged";
+		[POPUP_DISMISSING] = "onPopupDismissing";
+		[HYPERLINK_CLICK] = "onHyperlinkClick";
+		[TABLE_HEADER_CLICK] = "onTableHeaderClick";
+		[TABLE_ROW_CLICK] = "onTableRowClick";
+		[TABLE_ROW_DBL_CLICK] = "onTableRowDblClick";
+		[ELEMENT_COLLAPSED] = "onElementCollapsed";
+		[ELEMENT_EXPANDED] = "onElementExpanded";
+		[ACTIVATE_CHILD] = "onActiveChild";
+		[INIT_DATA_VIEW] = "onInitDataView";
+		[ROWS_DATA_REQUEST] = "onRowsDataRequest";
+		[UI_STATE_CHANGED] = "onUiStateChanged";
+		[FORM_SUBMIT] = "onFormSubmit";
+		[FORM_RESET] = "onFormReset";
+		[DOCUMENT_COMPLETE] = "onFrameDocumentComplete";
+		[DOCUMENT_PARSED] = "onDocumentParsed";
+		[DOCUMENT_READY] = "onDocumentReady";
+		[CLOSE_POPUP] = "onClosePopup";
+		[REQUEST_TOOLTIP] = "onRequestTooltip"; 
+		[ANIMATION] = "onAnimation"; 
+		[VIDEO_INITIALIZED] = "onVideoInitialized";     
+		[VIDEO_STARTED] = "onVideoStarted";     
+		[VIDEO_STOPPED] = "onVideoStopped";
+		[VIDEO_BIND_RQ] = "onVideoBindRequest"; 
+		[PAGINATION_STARTS] = "onPaginationStarts";
+		[PAGINATION_PAGE] = "onPaginationPage";
+		[PAGINATION_ENDS] = "onPaginationEnds";
+		[CUSTOM] = "onCustomEvent";
+	} 
+	
+	freeEventCode = 0x101;
+	mapName = {};
+}
+
+findEventCodeByName = function(name){ 
+	var m = BEHAVIOR.mapName;
+	if( m[name] ) return m[name];
+	
+	for(code,v in BEHAVIOR.mapProcName){
+		if( ..string.cmp(v,name)==0){
+			 m[name] = code;
+			return code;
+		}
+	} 
+	m[name] =  BEHAVIOR.freeEventCode;
+	BEHAVIOR.mapProcName[BEHAVIOR.freeEventCode] = name;
+	BEHAVIOR.freeEventCode = BEHAVIOR.freeEventCode + 1;
+	return m[name];
+}
+
+findMouseCodeByName = function(name){
+	for(code,v in MOUSE.mapProcName){
+		if( ..string.cmp(v,name)==0)
+			return code;
+	} 
+}
+
+findKeyCodeByName = function(name){
+	for(code,v in KEY.mapProcName){
+		if( ..string.cmp(v,name)==0)
+			return code;
+	} 
+}
+
+INITIALIZATION_PARAMS = class {
+	INT cmd;
+}
+
+MOUSE_PARAMS = class {
+	INT cmd;
+	pointer target;
+	struct pos = ::POINT();
+	struct pos_document = ::POINT();
+	int button_state;
+	INT alt_state;
+	INT cursor_type;
+	bool is_on_icon;
+	pointer dragging;
+	INT dragging_mode;
+}
+
+KEY_PARAMS = class {
+	INT cmd;
+	pointer target;
+	INT key_code;
+	INT alt_state;
+}
+
+FOCUS_PARAMS = class {
+	INT cmd;
+	pointer target;
+	bool by_mouse_click;
+	bool cancel;
+}
+
+SCROLL_PARAMS = class {
+	INT cmd;
+	pointer target;
+	int pos;
+	bool vertical;
+} 
+
+GESTURE_PARAMS = class {
+	INT cmd;
+	pointer target;
+	struct pos = ::POINT();
+	struct pos_view = ::POINT();
+	INT flags;
+	INT delta_time;
+	struct delta_xy = ::SIZE();
+	double delta_v;
+}
+
+DRAW_PARAMS = class {
+	INT cmd;
+	pointer hdc;
+	struct area = ::RECT();
+	INT reserved;
+}
+
+EXCHANGE_PARAMS = class {
+	INT cmd;
+	pointer target;
+	pointer source;  
+	struct pos = ::POINT();
+	struct pos_view = ::POINT();
+	INT mode;
+	struct data = {
+		INT type;
+		INT units;
+		LONG data;
+		@( ..web.sciter.valueObject._metaProperty )
+	};
+} 
+
+BEHAVIOR_EVENT_PARAMS = class {
+	INT cmd;
+	pointer target;
+	pointer he;
+	INT reason;
+	struct data = {
+		INT type;
+		INT units;
+		LONG data;
+		@( ..web.sciter.valueObject._metaProperty )
+	};
+	ustring name; 
+}
+
+namespace METHOD_CALL{
+	mapProcName = {
+		[0/*_HL_DO_CLICK*/] = "onClick";
+		[0xFC/*_HL_IS_EMPTY*/] = "onIsEmpty";
+		[0xFD/*_HL_GET_VALUE*/] = "onGetValue";
+		[0xFE/*_HL_SET_VALUE*/] = "onSetValue";
+		[5/*_HL_TEXT_EDIT_REPLACE_SELECTION*/] = "onReplaceSel";
+		[8/*_HL_TEXT_EDIT_GET_CARET_POSITION*/] = "onGetCaretPos";
+	}
+} 
+
+var fromUnicode = ..string.fromUnicode; 
+var raw_convert = ..raw.convert; 
+
+_defaultHandlerMethodCalls ={
+	[ 0/*_HL_DO_CLICK*/ ] = function(this,scEle,tag, prms){   
+		return this.onClick(scEle);
+	} 
+	[ 0xFC/*_HL_IS_EMPTY*/ ] = function(this,scEle,tag, prms){   
+		var ret,empty = this.onIsEmpty(scEle); 
+		::CopyMemoryByStruct( topointer(prms,4/*retval offset*/), {bool is_empty = empty},4);
+		return ret; 
+	} 
+	[ 0xFD/*_HL_GET_VALUE*/  ] = function(this,scEle,tag, prms){  
+		var ret,value = this.onGetValue(scEle);
+		if(value){ 
+			::CopyMemoryByStruct( topointer(prms,8/*retval offset*/), valueObjectLite_t(value),16/* sizeof retval */);
+		}
+		return ret;
+	} 
+	[ 0xFE/*_HL_SET_VALUE*/  ] = function(this,scEle,tag, prms){  
+		var val = raw_convert(topointer(prms,8/*retval offset*/), valueObjectLite_t() );
+		return this.onSetValue( scEle,val.getValue() )
+	} 
+	[ 5/*_HL_TEXT_EDIT_REPLACE_SELECTION*/  ] = function(this,scEle,tag, prms){  
+		var replaceParams = raw_convert( prms ,{ INT methodID ; pointer text; INT text_length; }  );
+		return this.onReplaceSel( scEle, fromUnicode(replaceParams.text,,true) )
+	}
+	[ 8/*_HL_TEXT_EDIT_GET_CARET_POSITION*/  ] = function(this,scEle,tag, prms){  
+		var handled;
+		var p = { INT methodID;int left;int top; int width;int height };
+		handled,p.left,p.top,p.width,p.height = this.onGetCaretPos( scEle )
+		if( handled ) ::CopyMemoryByStruct( prms, p,20);
+		return handled;
+	}  
+}
+
+class XCALL_PARAMS{
+	INT methodID = 0xFF/*_HL_XCALL*/;
+	string method_name;
+	INT argc;
+	pointer argv;
+	struct retval = valueObjectLite_t();
+} 
+
+class SCRIPTING_METHOD_PARAMS {
+	string method_name;
+	pointer argv;
+	INT argc;
+	struct retval = valueObjectLite_t();
+} 
+
+var callEvent = function(this,handler,target,...){
+	if( type(handler) == "function"  ){   
+		var scTarget = target ? ( element_t(target) ) //gc protect;
+		return invoke(handler,this,scTarget,... );
+	}
+	elseif(target){
+		var re,id = ::Sciter.GetAttributeByName(target,"id");
+		var func = ( id ? handler[ fromUnicode(id,,true) ] );
+		
+		if( !func ){
+			var re,name = ::Sciter.GetAttributeByName(target,"name");
+			func = ( name ? handler[ fromUnicode(name,,true) ] ) : handler.default;
+		}
+
+		if( func ){
+			var scTarget = element_t(target);
+			return invoke(func,handler,scTarget,... );
+		} 
+	};
+}
+
+_defaultHandler = {
+	[0xFFFFFFFF/*SUBSCRIPTIONS_REQUEST*/] = function(this,tag, he,cmd,prms,uRegistry){ 
+		var subscription;
+		if( this[["onSubscriptionRequest"]] !== null ){
+			subscription = callEvent( this,this[["onSubscriptionRequest"]],he );
+		}
+		elseif( this[["_event_subscriptions"]] !== null ){
+			subscription = this[["_event_subscriptions"]];
+		}
+		else{
+			subscription = getSubscriptions(this);
+		}
+		..raw.convert( {INT s = subscription},prms );
+		return true;
+	};
+	[ HANDLE_GROUPS.INITIALIZATION ] = function(this,tag, he,cmd,prms,uRegistry){ 
+		var ret;
+		var handler = this[[ INITIALIZATION.mapProcName[cmd] ]];
+		if( handler ) ret = callEvent( this,handler,he );
+		
+		if(!cmd){
+			behavior_t.__release(this);
+			if( uRegistry ) _handlerByTagRegistry.unReg(tag);
+		}
+		return ret;
+	};
+	[ HANDLE_GROUPS.TIMER ] = function(this,tag, he,cmd,prms){ 
+		var handler = this[["onTimer"]];
+		if(handler) return callEvent( this,handler,he,cmd )
+	};
+	[ HANDLE_GROUPS.SIZE ] = function(this,tag, he,cmd,prms){ 
+		var handler = this[[ "onSize" ]]  
+		if( handler ) return callEvent( this,handler,he );
+	};
+	[ HANDLE_GROUPS.DRAW ] = function(this,tag, he,cmd,prms){ 
+		var handler = this[[ DRAW.mapProcName[cmd] ]]; 
+		if(!handler)return;  
+		
+		var drawParams = raw_convert(prms, DRAW_PARAMS());
+		drawParams.pointer = prms;
+		
+		return callEvent( this,handler,he
+			,drawParams.hdc,drawParams.area,drawParams.reserved );
+	}; 
+	[ HANDLE_GROUPS.MOUSE ] = function(this,tag, he,cmd,prms){  
+		var isdragging = cmd &  0x100/*_HL_DRAGGING*/;
+		if( isdragging )cmd = cmd & 0xFFFFFEFF;
+		
+		var handler = this[[ _mouse_mapProcName[ cmd ] ]]; 
+		if(!handler) return;
+		
+		var scMouseParams = raw_convert(prms, MOUSE_PARAMS()); 
+		scMouseParams.pointer = prms;/*for behavior:gripper*/ 
+		scMouseParams.isdragging = isdragging;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		return callEvent( this ,handler,scMouseParams.target ,scEle
+			,scMouseParams.pos.x,scMouseParams.pos.y, scMouseParams );  
+	};  
+	[ HANDLE_GROUPS.KEY ] = function(this,tag, he,cmd,prms){
+		var handler = this[[ KEY.mapProcName[cmd] ]];
+		if(!handler)return; 
+		var scKeyParams = raw_convert(prms, KEY_PARAMS());
+		scKeyParams.pointer = prms;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		return callEvent( this,handler,scKeyParams.target,scEle
+			,scKeyParams.key_code,scKeyParams.alt_state, scKeyParams); 
+	};  
+	[ HANDLE_GROUPS.FOCUS ] = function(this,tag, he,cmd,prms){
+		var handler = this[[  FOCUS.mapProcName[cmd] ]];
+		if(!handler) return; 
+		var focusParams = raw_convert(prms, FOCUS_PARAMS());
+		focusParams.pointer = prms;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		return callEvent( this,handler,focusParams.target,scEle
+			,focusParams ); 
+	}; 
+	[ HANDLE_GROUPS.SCROLL ] = function(this,tag, he,cmd,prms){
+		var handler = this[[ SCROLL.mapProcName[cmd]  ]];
+		if( !handler ) return;
+		var scrollParams = raw_convert(prms, SCROLL_PARAMS()); 
+		scrollParams.pointer = prms;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		return callEvent( this,handler,scrollParams.target,scEle
+			,scrollParams.pos,scrollParams );
+	};
+	[ HANDLE_GROUPS.BEHAVIOR ] = function(this,tag, he,cmd,prms){ 
+	
+		var funcName = BEHAVIOR.mapProcName[cmd]; 
+		var handler = funcName ? this[[funcName]];
+		if(!handler){
+			if( cmd >= 0x100 && this[["onApplicationEvent"]] ) handler = this[["onApplicationEvent"]];
+			else return; 
+		};
+		
+		var behaviorParams = raw_convert(prms, BEHAVIOR_EVENT_PARAMS());  
+		behaviorParams.pointer = prms;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		
+		return callEvent( this,handler,behaviorParams.target,scEle
+		 	,behaviorParams.reason,behaviorParams );
+	}; 
+	[ HANDLE_GROUPS.GESTURE ] = function(this,tag, he,cmd,prms){ 
+	
+		var funcName = GESTURE.mapProcName[cmd]; 
+		var handler = this[[funcName]];
+		if(!handler) return; 
+		var gestureParams = raw_convert(prms, GESTURE_PARAMS());  
+		gestureParams.pointer = prms;
+		
+		var scEle = he ? ( element_t(he) ) ;
+		var ret = callEvent( this,handler,gestureParams.target,scEle,gestureParams );
+		if( cmd == 0 ){ 
+			..raw.mixin(prms,gestureParams);
+		}
+		return ret;
+	}; 
+	[ HANDLE_GROUPS.EXCHANGE ] = function(this,tag, he,cmd,prms){
+		var funcName = EXCHANGE.mapProcName[cmd]; 	
+		var handler = this[[funcName]];
+		if(!handler) return; 
+		var exParams = raw_convert(prms, EXCHANGE_PARAMS());  
+		var scEle = he ? (element_t(he) ) ;
+		return  callEvent( this,handler,exParams.target,scEle,exParams.pos.x,exParams.pos.y,exParams.mode,exParams.data,exParams ); 
+	}; 
+	[ HANDLE_GROUPS.DATA_ARRIVED ] = function(this,tag, he,cmd,prms){
+		var handler = this[["onDataArrived"]];
+		if(!handler) return; 
+		var p = raw_convert(prms, {
+  			ptr init; 
+  			poiter data; 
+  			INT size;
+  			INT dataType;
+  			INT status;
+  			ptr uri;
+			} );  
+		var scEle = he ? (element_t(he) ) ;
+		return  callEvent( this,handler,p.init,scEle
+				,p.size ? ..raw.tostring(p.data,1,p.size) : null ,p.dataType,p.status,fromUnicode(p.uri,,true) );
+	};
+	[ HANDLE_GROUPS.METHOD_CALL ] = function(this,tag, he,methodId,prms){  
+		if( methodId == 0xFF/*_HL_XCALL*/){  
+			var xcallParams = raw_convert(prms, XCALL_PARAMS());
+			var handler = this[[ xcallParams.method_name ]];
+			if( type(handler)!="function" ) return;
+			
+			var callOk,callRet;
+			var scEle = he ? (element_t(he) ) //gc protect;
+			var argc = xcallParams.argc;
+			if( argc ){
+				var offset = 0;
+				var p = xcallParams.argv;
+				var tArgs = {};
+				for(i=1;argc;1){
+					var v = valueObjectLite_t();//禁止自动析构
+					raw_convert(p,v,offset); 
+					
+					offset += 16/*..raw.sizeof( valueObjectLite_t() )*/ 
+					v = v.getValue();
+					tArgs[i] = v;
+				}
+				
+				callOk,callRet = call( handler,this,scEle, ..table.unpack(tArgs,1,argc) ) 
+			}
+			else {
+				callOk,callRet = call( handler,this,scEle )
+			}
+			
+			if( callOk ){
+				if( callRet !== null ){
+					xcallParams.retval.setValue(callRet);
+					::CopyMemoryByStruct( topointer(prms,16/*retval offset*/),xcallParams.retval,16/* sizeof retval */)
+				}
+			}
+			elseif( callRet ){ 
+				errput(callRet,'Sciter xcall("' +xcallParams.method_name+ '") 错误:');
+			}
+			
+			return true; 
+		}
+		else { 
+			var funcName = METHOD_CALL.mapProcName[methodId]; 
+			var handler = this[[funcName]]; 
+			if(!handler)return;
+			
+			handler = _defaultHandlerMethodCalls[methodId] 
+			if( handler ){
+				return handler(this,element_t(he),tag, prms); 
+			}
+		} 
+	}
+	[ HANDLE_GROUPS.SCRIPTING_METHOD_CALL] = function(this,tag, he,cmd,prms){  
+
+			var xcallParams = raw_convert(prms, SCRIPTING_METHOD_PARAMS());
+			var handler;
+			
+			if( this.external ) this  = this.external;
+			handler = this[[ xcallParams.method_name ]];
+			if( type(handler)!="function" ) return;
+			
+			var callOk,callRet;
+			var scEle = he ? (element_t(he) ) //gc protect;
+			var argc = xcallParams.argc;
+
+			if( argc ){
+				var offset = 0;
+				var p = xcallParams.argv;
+				var tArgs = {};
+				for(i=1;argc;1){
+					var v = valueObjectLite_t();//禁止自动析构
+					raw_convert(p,v,offset); 
+					
+					offset += 16/*..raw.sizeof( valueObjectLite_t() )*/ 
+					v = v.getValue();
+					tArgs[i] = v;
+				}
+				
+				callOk,callRet = call( handler,this,scEle, ..table.unpack(tArgs,1,argc) ) 
+			}
+			else {
+				callOk,callRet = call( handler,this,scEle )
+			}
+			
+			if( callOk ){
+				if( callRet !== null ){
+					xcallParams.retval.setValue(callRet);
+					::CopyMemoryByStruct( topointer(prms,16/*retval offset*/),xcallParams.retval,16/* sizeof retval */)
+				}
+			}
+			elseif( callRet ){
+				errput(callRet,'Sciter call("' +xcallParams.method_name+ '") 错误:')
+			}
+			
+			return true; 
+	} ;
+}
+
+var _defaultHandler = _defaultHandler;
+var _eventParam = { int cmd };
+_handler = function (tag, he, evtg, prms) {
+	var handle = _defaultHandler[evtg];
+	
+	if ( handle) {
+		if(!prms) return handle(owner,tag,he );
+		if( 0x0400/*HANDLE_GROUPS.SCRIPTING_METHOD_CALL*/ == evtg ) return handle(owner,tag,he,cmd,prms );
+		
+		var cmd = raw_convert(prms, _eventParam ).cmd;
+		if( cmd & 0x8000/*_HL_SINKING*/ ){
+			if(evtg == 0xFFFFFFFF/*SUBSCRIPTIONS_REQUEST*/) return handle(owner,tag,he,cmd & 0x7FFF,prms );
+			
+			owner = owner[["sinking"]];
+			cmd = cmd & 0x7FFF
+			if( !owner ) return;
+		}
+		elseif( cmd & 0x10000/*_HL_HANDLED*/ ){
+			owner = owner[["handled"]];
+			cmd = cmd & 0x7FFF
+			if( !owner ) return;
+		}
+		return handle(owner,tag,he,cmd,prms );
+	}
+}
+
+_handlerByTagRegistry = ..util.registry();
+var _handlerByTagRegistry = _handlerByTagRegistry;
+var handlerByTagId = function (tagId, he, evtg, prms) {
+	var handle = _defaultHandler[evtg]
+	if ( handle) {
+		var this = _handlerByTagRegistry[tagId] 
+		if( this ){ 
+			if(!prms) return handle(this,tagId,he ); 
+			if( 0x0400/*HANDLE_GROUPS.SCRIPTING_METHOD_CALL*/ == evtg ) return handle(owner,tag,he,cmd,prms );
+			
+			var cmd = raw_convert(prms, _eventParam ).cmd;
+			if( cmd & 0x8000/*_HL_SINKING*/ ){
+				if(evtg == 0xFFFFFFFF/*SUBSCRIPTIONS_REQUEST*/) return handle(this,tagId,he,cmd & 0x7FFF,prms,true ); 
+				
+				this = this[["sinking"]];
+				cmd = cmd & 0x7FFF;
+				if( !this ) return;
+			}
+			elseif( cmd & 0x10000/*_HL_HANDLED*/ ){
+				this = this[["handled"]];
+				cmd = cmd & 0x7FFF;
+				if( !this )return;
+			}
+			return handle(this,tagId,he,cmd,prms,true ); 
+		}
+	};
+}
+
+_handlerByTagId_c = ..raw.tostdcall( handlerByTagId , "bool(INT tagId,pointer he,INT evtg,pointer prms)" ); 
+element_t.__event = self;
+
+/**intellisense()
+web.sciter.event.MOUSE_PARAMS() = 创建鼠标事件结构体参数,\n!sc_mouse_params.
+!sc_mouse_params.cmd = 命令ID
+!sc_mouse_params.target = 触发事件节点
+!sc_mouse_params.pos = 节点坐标\n!point.
+!sc_mouse_params.pos_document = 文档坐标\n!point.
+!sc_mouse_params.button_state = 按键状态\n在onMouseWheel事件中表示滚轮数据
+!sc_mouse_params.alt_state = 控制键状态
+!sc_mouse_params.cursor_type = 指针
+!sc_mouse_params.is_on_icon = 是否位于图标上,\n这里指的是前景图片,并具有 no-repeat 样式
+!sc_mouse_params.isdragging = 是否正在拖动,无论节点CSS是否指定draggable属性
+!sc_mouse_params.dragging = 正在被拖放的节点,节点要在CSS属性draggable中启用拖动\n该节点不为空值是,isdragging为真
+!sc_mouse_params.dragging_mode = 拖动类型,\n1 _HL_DRAGGING_MOVE 或 _HL_DRAGGING_COPY
+!sc_mouse_params.pointer = 结构体指针地址
+web.sciter.event.KEY_PARAMS() = 创建鼠标事件结构体参数,\n!sc_key_params.
+!sc_key_params.cmd = 命令ID
+!sc_key_params.target = 触发事件节点
+!sc_key_params.key_code = 虚拟键码
+!sc_key_params.alt_state = 控制键状态
+!sc_key_params.pointer = 结构体指针地址
+!websciter.onMouseEnter = @.onMouseEnter = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseLeave = @.onMouseLeave = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseMove = @.onMouseMove = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseUp = @.onMouseUp = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseDown = @.onMouseDown = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseDblClick = @.onMouseDblClick = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseWheel = @.onMouseWheel = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseTick = @.onMouseTick = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseIdle = @.onMouseIdle = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onDrop = @.onDrop = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onDragEnter = @.onDragEnter = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onDragLeave = @.onDragLeave = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onDragRequest = @.onDragRequest = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onMouseClick = @.onMouseClick = function (scTarget,scOwner,x,y,scMouseParams) {\n	__\n}
+!websciter.onKeyDown = @.onKeyDown = function (scTarget,scOwner,keyCode, altState, scKeyParams) {\n	__\n}
+!websciter.onKeyUp = @.onKeyUp = function (scTarget,scOwner,keyCode, altState, scKeyParams) {\n	__\n}
+!websciter.onKeyChar = @.onKeyChar = function (scTarget,scOwner,keyCode, altState, scKeyParams) {\n	__\n}
+!websciter.onFocusLost = @.onFocusLost = function (scTarget,scOwner,focusParams) {\n	__\n}
+!websciter.onFocusGot = @.onFocusGot = function (scTarget,scOwner,focusParams) {\n	__\n}
+!websciter.onScrollHome = @.onScrollHome = function (scTarget,scOwner,pos,scrollParams) {\n	__\n}
+!websciter.onScrollEnd = @.onScrollEnd = function (scTarget,scOwner,pos,scrollParams) {\n	__\n}
+!websciter.onScrollStepPlus = @.onScrollStepPlus = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+!websciter.onScrollStepMinus = @.onScrollStepMinus = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+!websciter.onScrollPagePlus = @.onScrollPagePlus = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+!websciter.onScrollPageMinus = @.onScrollPageMinus = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+!websciter.onScrollPos = @.onScrollPos = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+!websciter.onSliderRelease = @.onSliderRelease = function (scTarget,scOwner,pos, scrollParams) {\n	__\n}
+ 
+!websciter.onGestureRequest = @.onGestureRequest = function (scTarget,scOwner,scGestureParams) {\n	scGestureParams.flags = 0xFFFF/*_HL_GESTURE_FLAGS_ALL*/\n	return true;__\n}
+!websciter.onGestureZoom = @.onGestureZoom = function (scTarget,scOwner,scGestureParams) {\n	__/*缩放*/\n}
+!websciter.onGesturePan = @.onGesturePan = function (scTarget,scOwner,scGestureParams) {\n	__/*平移*/\n}
+!websciter.onGestureRotate = @.onGestureRotate = function (scTarget,scOwner,scGestureParams) {\n	__/*旋转*/\n}
+!websciter.onGestureTap1 = @.onGestureTap1 = function (scTarget,scOwner,scGestureParams) {\n	__/*单击*/\n}
+!websciter.onGestureTap2 = @.onGestureTap2 = function (scTarget,scOwner,scGestureParams) {\n	__/*双击*/\n}
+
+!websciter.onSize = @.onSize = function (scOwner) {\n	__\n}
+!websciter.onTimer = @.onTimer = function (scOwner,timerId) {\n	__\n}
+!websciter.onFrameDocumentComplete = @.onFrameDocumentComplete = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onApplicationEvent = @.onApplicationEvent = function (scTarget,scOwner,reason,behaviorParams) {\n	__/*postEvent或sendEvent发出一大于0x100的消息*/\n}
+!websciter.onButtonClick = @.onButtonClick = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onButtonPress = @.onButtonPress = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onButtonStateChanged = @.onButtonStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onEditValueChanging = @.onEditValueChanging = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onEditValueChanged = @.onEditValueChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onSelectSelectionChanged = @.onSelectSelectionChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltOption = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onSelectStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltOption = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onPopupRequest = @.onPopupRequest = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onPopupReady = @.onPopupReady = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onPopupDismissed = @.onPopupDismissed = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onMenuItemActive = @.onMenuItemActive = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onMenuItemClick = @.onMenuItemClick = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onContextMenuSetup = @.onContextMenuSetup = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onContextMenuRequest = @.onContextMenuRequest = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltPopupOwner = ..web.sciter.element( behaviorParams.he )\n	__\n}
+!websciter.onVisualStateChanged = @.onVisualStateChanged = function (scTarget,scOwner,shown,behaviorParams) {\n	__\n}
+!websciter.onDisabledStateChanged = @.onDisabledStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onPopupDismissing = @.onPopupDismissing = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onHyperlinkClick = @.onHyperlinkClick = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onTableHeaderClick = @.onTableHeaderClick = function (scTarget,scOwner,cellIndex,behaviorParams) {\n	__\n}
+!websciter.onTableRowClick = @.onTableRowClick = function (scTarget,scOwner,rowIndex,behaviorParams) {\n	__\n}
+!websciter.onTableRowDblClick = @.onTableRowDblClick = function (scTarget,scOwner,rowIndex,behaviorParams) {\n	__\n}
+!websciter.onElementCollapsed = @.onElementCollapsed = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onElementExpanded = @.onElementExpanded = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onActiveChild = @.onActiveChild = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onInitDataView = @.onInitDataView = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onRowsDataRequest = @.onRowsDataRequest = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onUiStateChanged = @.onUiStateChanged = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onFormSubmit = @.onFormSubmit = function (scTarget,scOwner,reason,behaviorParams) {\n	var formData = behaviorParams.data.getValue();__\n}
+!websciter.onFormReset = @.onFormReset = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n} 
+!websciter.onClosePopup = @.onClosePopup = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onRequestTooltip = @.onRequestTooltip = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onAnimation = @.onAnimation = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n}
+!websciter.onElementControlCreated = @.onElementControlCreated = function (scTarget,scOwner,reason,behaviorParams) {\n	var ltCtrl = scOwner.getCtrl();__/*自定义控件已创建*/\n}
+!websciter.onDrawBackground = @.onDrawBackground = function(scOwner,hdc,rc){
+	
+}
+!websciter.onDrawContent = @.onDrawContent = function(scOwner,hdc,rc){
+	
+}
+!websciter.onDrawForeground = @.onDrawForeground = function(scOwner,hdc,rc){
+	
+}
+!websciter.onAttach = @.onAttach = function( scOwner ){
+	__
+	return true	
+}
+
+!websciter.onDetach = @.onDetach = function( scOwner ){
+	__
+	return true	
+}
+
+!websciter.onCustomEvent = @.onCustomEvent = function (scTarget,scOwner,reason,behaviorParams) {\n	__\n} 
+!websciter.onDataArrived = @.onDataArrived = function(scTarget,scOwner,data,dataType,status,url){\n    return true;__/*返回true撤消数据不显示内容*/\n}
+_SC_DD_MODE_NONE=@0/*_SC_DD_MODE_NONE*/
+_SC_DD_MODE_COPY=@1/*_SC_DD_MODE_COPY*/
+_SC_DD_MODE_MOVE=@2/*_SC_DD_MODE_MOVE*/
+_SC_DD_MODE_COPY_OR_MOVE=@3/*_SC_DD_MODE_COPY_OR_MOVE*/
+_SC_DD_MODE_LINK=@4/*_SC_DD_MODE_LINK*/
+end intellisense**/
+

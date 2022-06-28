@@ -1,0 +1,76 @@
+﻿var _dll = aaz.libxl._dll;
+
+namespace aaz.libxl;
+class autoFilter{ 
+	ctor( handle ){
+		if( !handle ) return ; 
+		this.handle = handle;
+	}
+	
+	getRef = function(){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		return 
+			_dll.xlAutoFilterGetRef( this.handle, rowFirst, rowLast, colFirst, colLast ),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value;
+	}
+	
+	setRef = function( rowFirst, rowLast, colFirst, colLast ){
+		_dll.xlAutoFilterSetRef( this.handle, rowFirst, rowLast, colFirst, colLast );
+	}
+	
+	column = function( colId ){
+		return ..aaz.libxl.filterColumn( _dll.xlAutoFilterColumnP(this.handle, colId) );
+	}
+	
+	columnByIndex = function( index ){
+		return ..aaz.libxl.filterColumn( _dll.xlAutoFilterColumnByIndexP(this.handle, index) );
+	}
+	
+	getSortRange = function(){
+		var rowFirst = {int value};
+		var rowLast = {int value};
+		var colFirst = {int value};
+		var colLast = {int value};
+		
+		return 
+			_dll.xlAutoFilterGetSortRange( this.handle, rowFirst, rowLast, colFirst, colLast ),
+			rowFirst.value,
+			rowLast.value,
+			colFirst.value,
+			colLast.value;
+	}
+	
+	getSort = function(){
+		var columnIndex = {int value};
+		var descending = {int value};
+		
+		return 
+			_dll.xlAutoFilterGetSort( this.handle, columnIndex, descending ),
+			columnIndex.value,
+			descending.value;
+	}
+	
+	setSort = function( columnIndex, descending ){
+		return _dll.xlAutoFilterSetSort( this.handle, columnIndex, descending );
+	}
+	
+	@_metaProperty;
+}
+namespace autoFilter{ 
+	_properties = {
+		columnSize = {
+			_get = function(){
+				return _dll.xlAutoFilterColumnSize( owner.handle ); 
+			}
+		}
+	}
+	
+	_metaProperty = ..aaz.libxl.metaProperty( _properties );	
+}

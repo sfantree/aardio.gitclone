@@ -1,0 +1,116 @@
+/*
+Google Authenticator OTP
+Author: zhuzb.com
+*/
+
+class Google2FA{
+	ctor( ){
+		this.keyRegeneration = 30; // 密钥生成间隔周期时间(单位/秒)
+		this.otpLength = 6;  // 生成令牌长度
+		this.lut = { A = 0;  B = 1; C = 2;  D = 3; E = 4;  F = 5; G = 6;  H = 7;
+        	I = 8;  J = 9; K = 10;  L = 11; M = 12;  N = 13; O = 14;  P = 15;
+        	Q = 16;  R = 17; S = 18;  T = 19; U = 20;  V = 21; W = 22;  X = 23;
+        	Y = 24;  Z = 25; ['2'] = 26; ['3'] = 27; ['4'] = 28;  ['5'] = 29;['6'] = 30;['7']= 31
+    	}
+	};
+	math.randomize();
+	
+	generate_secret_key = function() {
+		var key = {"2";"3";"4";"5";"6";"7";"Q";"W";"E";"R";"T";"Y";"U";"I";"O";"P";"A";"S";"D";"F";"G";"H";"J";"K";"L";"Z";"X";"C";"V";"B";"N";"M"};
+    	var s = "";
+		for(i=1;16){
+			s ++= key[math.random(1,32)];
+		}
+    	return s;
+	}
+	
+	get_timestamp = function() {
+  		return math.floor(tonumber(time.now())/this.keyRegeneration);
+	}
+	
+	base32_decode = function(key){
+		var key = string.upper(key);
+		var tab_key = string.split(key);
+	
+		var n = 0
+		var j = 0
+		var sec_key = "";
+	
+		for(i=1;16){
+			n = n<<5;
+			n = n + this.lut[tab_key[i]]
+			j = j + 5;
+
+			if(j>=8){
+				j = j-8
+				sec_key ++= string.pack(( n & (0xFF << j)) >> j);
+			}
+		}
+		return sec_key; 
+	}
+
+	pack = function(num){
+		var tab = {};
+		var val = num % 256;
+		table.insert(tab,val);
+	
+		for(i=1;3){
+			num = math.floor(num / 256);
+			val = num % 256;
+			table.insert(tab,val);
+		}
+	
+		return string.pack(tab); 
+	}
+	
+	oath_truncate = function(hash){
+ 		var tab_hash  ={}
+		for m in string.gmatch(hash,".") { 
+    		table.push(tab_hash,m)
+		}
+		var offset = string.unpack(tab_hash[20]) & 0xf;
+    	return (((string.unpack(tab_hash[offset+1]) & 0x7f) << 24 ) |
+            	((string.unpack(tab_hash[offset+2]) & 0xff) << 16 ) |
+            	((string.unpack(tab_hash[offset+3]) & 0xff) << 8 ) |
+            	(string.unpack(tab_hash[offset+4]) & 0xff)) % 10**this.otpLength;
+	}	
+
+	oath_hotp = function(key,timestamp){
+		bin_counter = this.pack(0) ++ this.pack(timestamp);
+		hash = crypt.hmac(this.base32_decode(key),bin_counter).getValue();
+		return this.oath_truncate(hash); 
+	}
+	
+	verify_key = function(keyseed,otpkey){
+    	var result = false;
+		var timeStamp = this.get_timestamp();
+	
+		for(i=timeStamp-4;timeStamp+4;1){
+			if (this.oath_hotp(keyseed,i) == otpkey)	return true; 
+		}
+		return result;
+	}
+	
+	qrcode = function(accout,key){
+		return "otpauth://totp/"++string.trim(accout)++"?secret="++key; 
+	}	
+}
+
+namespace Google2FA{
+	import crypt.hmac;
+	import math;
+    
+    table = ..table;
+    string = ..string;
+	time = ..time;
+}
+
+/*intellisense()
+    Google2FA() = 初始化常量;
+    Google2FA() = !Google2FA. 
+    !Google2FA.generate_secret_key() = 生成随机密钥
+    !Google2FA.get_timestamp() = 指定时间戳   
+    !Google2FA.oath_hotp(随机密钥,指定时间戳) = 生成一次性密码
+    !Google2FA.verify_key(随机密码,一次性密码) = 验证一次性密码
+    !Google2FA.qrcode(帐号,随机密码) = 生成URI地址显示为二维码
+end intellisense*/

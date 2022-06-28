@@ -1,0 +1,380 @@
+import fsys.dlg;
+import process; 
+import fsys.dirWatcher;
+import fsys.ini;
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="软件著作权申请代码统计打印";right=759;bottom=469;parent=...)
+winform.add(
+btnCodeType={cls="button";text="代码类型";left=509;top=15;right=579;bottom=42;dl=1;dt=1;z=13};
+btnConcatFile={cls="button";text="文件合并";left=432;top=424;right=516;bottom=454;db=1;dl=1;z=10};
+btnCount={cls="button";text="统计";left=425;top=12;right=489;bottom=42;disabled=1;dl=1;dt=1;z=12};
+btnOpen={cls="button";text="浏览";left=347;top=12;right=411;bottom=42;dl=1;dt=1;z=2};
+button={cls="button";text="浏览";left=342;top=424;right=403;bottom=454;db=1;dl=1;z=19};
+checkboxHeader={cls="checkbox";text="添加头部注释";left=44;top=252;right=155;bottom=278;db=1;dl=1;z=14};
+editDate={cls="edit";text="2021.06.02";left=516;top=252;right=622;bottom=278;db=1;dl=1;edge=1;z=18};
+editFile={cls="edit";left=98;top=20;right=337;bottom=42;bgcolor=16777215;dl=1;dt=1;edge=1;z=4};
+editLines={cls="edit";text="0";left=99;top=51;right=199;bottom=92;dl=1;dt=1;edge=1;font=LOGFONT(h=-21;name='微软雅黑');multiline=1;z=6};
+editName={cls="edit";text="Mr Chen";left=281;top=252;right=382;bottom=278;db=1;dl=1;edge=1;z=16};
+editOutpuFile={cls="edit";left=93;top=431;right=332;bottom=453;bgcolor=16777215;db=1;dl=1;edge=1;z=21};
+editSizes={cls="edit";text="0";left=277;top=54;right=379;bottom=92;dl=1;dt=1;edge=1;font=LOGFONT(h=-21;name='微软雅黑');z=8};
+groupbox={cls="groupbox";left=10;top=1;right=740;bottom=104;aw=1;dl=1;dt=1;edge=1;z=1};
+listview={cls="listview";left=12;top=113;right=741;bottom=241;ah=1;aw=1;db=1;dl=1;dt=1;edge=1;z=11};
+static={cls="static";text="合计行数：";left=21;top=63;right=108;bottom=86;dl=1;dt=1;transparent=1;z=5};
+static2={cls="static";text="程序目录：";left=22;top=20;right=97;bottom=42;dl=1;dt=1;transparent=1;z=3};
+static3={cls="static";text="合计大小：";left=210;top=63;right=275;bottom=86;dl=1;dt=1;transparent=1;z=7};
+static4={cls="static";text="程序创建者";left=211;top=252;right=277;bottom=278;db=1;dl=1;transparent=1;z=15};
+static5={cls="static";text="程序创建日期";left=426;top=252;right=504;bottom=278;db=1;dl=1;transparent=1;z=17};
+static6={cls="static";text="输出文件：";left=19;top=431;right=92;bottom=453;db=1;dl=1;transparent=1;z=20};
+txtFileHeader={cls="edit";left=11;top=285;right=742;bottom=416;db=1;dl=1;dr=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=9}
+)
+/*}}*/
+
+//移除列标题
+//winform.listview.modifyStyle(,0x4000/*_LVS_NOCOLUMNHEADER*/)
+winform.listview.insertColumn("目录",100) 
+winform.listview.insertColumn("文件名",400) 
+winform.listview.insertColumn("文件类型",100)
+winform.listview.insertColumn("文件大小",100)
+winform.listview.insertColumn("行数",100) 
+
+
+
+var config = fsys.ini("/res/sys.ini");
+var sec = config.getSection("sys")
+
+
+// 选择文件夹
+getDir = function(){
+    var dir = fsys.dlg.opendir()
+    winform.editFile.text = dir;
+    winform.btnCount.disabled = false;
+	
+}
+// 遍历文件夹，统计文件名称和行数
+countFile = function(){
+
+	import fsys;
+ 	
+ 	var dir = winform.editFile.text
+ 	var countlines = 0
+ 	var countsizes = 0
+	//批量处理文件
+	fsys.enum(  dir, //指定要遍历的目录
+				"*.*", //指定查询文件名,支持windows掩码
+				function(dir,filename,fullpath,findData){ //指定触发器
+					if(filename){ 
+           				// 统计文件行数
+           				// 文件类型
+           			    var filetype = fsys.getExtensionName(fullpath)
+           			    // 只统计规定文件类型
+           			    var rules = sec.type;
+           			    if( filetype){
+           			    	if(string.match(rules,filetype)){
+           			    		var sizes = getsizes(fullpath) 
+           			    		var lines = getlines(fullpath)
+           			    		
+           			    		countlines += lines
+           			    		countsizes += sizes
+           			    		
+           						winform.listview.addItem( { 
+									text={dir;fullpath;filetype;sizes;lines} 
+								} )
+           			        }
+           		        }	    
+					}else{
+							winform.listview.addItem( { 
+								text={dir;fullpath;'目录';'';''} 
+							} )
+					}
+				} 
+		  	); 
+    winform.editLines.text = countlines
+    winform.editSizes.text = countsizes
+}
+
+
+// 选择文件，并计算文件总行数
+getfile = function(){
+	var file=fsys.dlg.open()
+	
+    if(!io.exist(file)){
+        return ;
+    }
+    winform.editFile.text = file;
+    
+    var lines = getlines(file);
+    winform.editLines.text = lines;
+    
+
+    if( lines< 10 ){
+        winform.btnHeadMore.disabled = true;
+        winform.btnTailMore.disabled = true;  
+    }else {
+        winform.btnHeadMore.disabled = false;
+        winform.btnTailMore.disabled = false;      
+    }
+    
+
+    winform.editSizes.text = getsizes(file);
+}
+
+editFileHeader = function(dir, fullpath, filename){
+	var sCreateName = winform.editName.text
+	var sDate = winform.editDate.text
+	var sDesc = ''
+	
+	if(!fullpath) fullpath = ' '
+	if(!dir){
+	   dir = ' '
+	}else{
+		//
+		dir = string.replace((string.replace(fullpath,'@'+dir, '.')),'@'+filename,'')
+	}
+	if(!filename){
+	   filename = ' '
+	   sDesc = ' '
+	}else{
+		//
+		select(fsys.getExtensionName(filename)) {
+			case 'js' {
+				sDesc = 'js文件，业务逻辑程序'
+			}
+			case 'wxss' {
+				sDesc = 'wxss文件，页面个性化样式'
+			}
+			case 'wxml' {
+				sDesc = 'wxml文件，页面展示定义'
+			}
+			case 'json' {
+				sDesc = 'json文件，页面配置参数及外部引入组件声明'
+			}
+			else {
+				sDesc = '普通程序'
+			}
+		}
+	}
+	
+	winform.txtFileHeader.appendText('/***************************************************************', '\r\n')
+	winform.txtFileHeader.appendText('* directory:  ', dir,'                                        ', '\r\n')
+	winform.txtFileHeader.appendText('* fileName:  ', filename,'                                        ', '\r\n')
+	winform.txtFileHeader.appendText('* describe:  ', sDesc,'                                           ', '\r\n')
+	winform.txtFileHeader.appendText('* createTime:  ',sDate,'                                         ', '\r\n')
+	winform.txtFileHeader.appendText('* created By:  ',sCreateName,'                                    ', '\r\n')
+	winform.txtFileHeader.appendText('****************************************************************/', '\r\n')
+}
+
+
+//得到文件行数
+getlines = function(path){
+    var lines = 0;
+    for line in io.lines(path) {
+        lines++;
+    }
+    return lines;
+}
+
+//得到文件大小
+getsizes = function(path){
+    var file1 = io.open(path,"r");
+    var size = file1.seek("end") 
+    file1.close();
+    return  size; 	
+}
+
+/*
+    读取文件内容
+	// isForward: 1 head功能；0：tail功能
+	// isAgain： 1 累加读取
+	// readLines：一次读取行数
+*/
+readfile = function(isForward,isAgain,readLines){
+	//打开文件
+	if(!io.exist(winform.editFile.text)){
+        getfile();
+    }
+	var file = io.open(winform.editFile.text,"rb");
+	var lines = 0;
+	
+	var filelines = winform.editLines.text;
+	var current = winform.editCurrent.text; //得到读写指针当前位置
+	
+	if( isForward ){
+		file.seek("set",0);
+	}else {
+	    file.seek("end");
+	}
+	
+	while( lines< tonumber(winform.editLines.text) && lines<readLines ){
+		//读一行
+		if( isAgain == 0 ){
+			if(isForward){
+				winform.txtFileHeader.print(file.read() );
+			}else {
+			    winform.txtFileHeader.print(file.readback() );
+			}				
+		}else {
+			if(isForward){
+				file.read();
+			}else {
+			    file.readback();
+			}
+		}
+		current = file.seek();
+		lines++;
+	}
+    
+	//继续读文件
+	if( isAgain == 1 ){
+		var againlines = 0; // 再次读取行数
+	    
+	    current = winform.editCurrent.text; //置读写指针到上次结束时位置
+	    file.seek("set", current);
+	    
+		while( lines< tonumber(winform.editLines.text) && againlines < readLines  ){
+			//读一行
+			current = file.seek();
+			if(current>=1 && current<tonumber(winform.editSizes.text)){
+				if(isForward){
+					winform.txtFileHeader.print(file.read() );
+				}else {
+			    	winform.txtFileHeader.print(file.readback() );
+				}
+			}else {
+				winform.editCurrent.text = current;
+				return ; 				    
+			}
+			
+			lines++;
+			againlines++;
+		}	    
+	    
+
+	}
+	
+	winform.editCurrent.text = current;
+	file.close();
+}
+
+
+
+
+winform.btnOpen.oncommand = function(id,event){
+	//getfile();
+	getDir();
+}
+
+
+
+
+
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+	if(!winform.thrdWatcher) return; 
+    winform.thrdWatcher.close(); //停止监视文件
+}
+
+winform.btnConcatFile.oncommand = function(id,event){
+	import string;
+	import fsys;
+    import fsys.dlg;
+    import access;
+        
+    var dir = winform.editFile.text
+    var inputdir = winform.editFile.text
+    if(string.trim(dir)==''){
+        winform.msgbox("请先选择程序存放目录！")
+        return ; 
+    }
+    var outfilename = winform.editOutpuFile.text    
+    if(string.trim(outfilename)==''){
+        winform.msgbox("请先选择输出文件名！")
+        return ; 
+    }
+    tempfile = io.open(outfilename,"w+");
+ 	
+ 	
+	//批量处理文件
+	fsys.enum(  dir, //指定要遍历的目录
+				"*.*", //指定查询文件名,支持windows掩码
+				function(dir,filename,fullpath,findData){ //指定触发器				    
+					if(filename){ 
+						// 文件类型
+           				var filetype = fsys.getExtensionName(fullpath)
+           				// 只统计规定文件类型
+           				var rules = sec.type;
+           				if( filetype){
+           					if(rules=='*' || string.match(rules,filetype)){
+           						// 是否需要写文件注释头
+           			    		if(winform.checkboxHeader.checked == true ){
+           			    			winform.txtFileHeader.text = ''
+           			    			editFileHeader(inputdir, fullpath, filename);
+           			    			// 写入
+           			    			string.save(outfilename, winform.txtFileHeader.text, true )
+           			    		}
+           			    		// 读取文件内容
+           			    		var str = string.load(fullpath);
+           			    		// 写入到目标文件
+           			    		string.save(outfilename,str, true )
+           			    		string.save(outfilename,'\r\n' , true )
+           			    		string.save(outfilename,'\r\n' , true )
+           			    		string.save(outfilename,'\r\n' , true )
+           					}
+           				}           			    
+				    }else{
+						winform.listview.addItem( { 
+							text={dir;fullpath;'目录';'';''} 
+						} )
+					}
+				} 
+		  	); 
+    
+    tempfile.close();
+    var lines = getlines(outfilename);
+    var sizes = getsizes(outfilename);
+    winform.msgbox("文件合并成功，输出文件行数： "+lines)
+    winform.editLines.text = lines
+    winform.editSizes.text = sizes
+    
+	
+}
+
+winform.btnCount.oncommand = function(id,event){
+	countFile();
+}
+
+winform.btnCodeType.oncommand = function(id,event){
+	var frmChild,wb = winform.loadForm("\dlg\setting.aardio");
+	frmChild.show();
+	//主窗口最小化
+	/*
+mainForm.onMinimize();
+	try{
+		var chstr = frmChild.doModal(); 
+	}
+	catch(e){
+		mainForm.msgboxErr("关闭模式窗口错误"++e);
+	
+  }*/
+}
+
+winform.checkboxHeader.oncommand = function(id,event){
+    winform.txtFileHeader.text = ''
+	editFileHeader();
+}
+
+winform.button.oncommand = function(id,event){
+    var path = fsys.dlg.save('所有文件|*.*|文本文件|*.txt||',,,winform);
+	if(path){
+		winform.editOutpuFile.text = path;
+	}
+    
+}
+
+winform.enableDpiScaling();
+
+winform.show();
+
+win.loopMessage();
+return winform;

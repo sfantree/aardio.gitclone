@@ -1,0 +1,353 @@
+﻿//api 接口函数
+import raw.functions;
+namespace web.sciter;
+
+class api{
+	INT version;
+	ptr ClassName = "string()";
+	ptr GetVersionX = "INT(bool major)";
+	GetMajorVersion = function(){
+		var v = owner.GetVersionX(true); 
+		return (v>>16)& 0xFFFF;
+	}
+	GetMinorVersion = function(){
+		var v = owner.GetVersionX(false);
+		return v & 0xFFFF;
+	}
+	ptr DataReady = "int(int hwnd,ptr uri,ptr data,INT len)";
+	ptr DataReadyAsync;
+	ptr Proc;
+	ptr ProcND = "INT(int hwnd,INT msg,INT wParam,int lParam,bool& handled)";
+	ptr LoadFile = "int(int hwnd,ustring fileName)";
+	ptr LoadHtml = "int(int hwnd,string html,INT size,ustring baseUrl)";
+	ptr SetCallback = "void(INT hwnd,ptr cb,ptr param)";
+	ptr SetMasterCSS;
+	ptr AppendMasterCSS;
+	ptr SetCSS;
+	ptr SetMediaType;
+	ptr SetMediaVars;
+	ptr GetMinWidth;
+	ptr GetMinHeight;
+	ptr Call = "bool(addr hwnd,string func,INT argc,struct argv,struct &retval)";
+	ptr Eval = "bool(addr hwnd,ustring script,INT len,struct& retval)";
+	ptr UpdateWindow;
+	ptr TranslateMessage;
+	ptr SetOption = "bool(INT hwnd,INT option,INT value)";
+	ptr GetPPI;
+	ptr GetViewExpando;
+	ptr RenderD2D;
+	ptr D2DFactory;
+	ptr DWFactory;
+	ptr GraphicsCaps;
+	ptr SetHomeURL = "bool(addr hwnd,ustring baseUrl)";
+	ptr CreateWindow;
+	ptr SetupDebugOutput = "void(addr hwnd,ptr param,ptr pfOutput)";
+	ptr UseElement = "int(PTR he)";
+	ptr UnuseElement = "int(PTR he)";
+	ptr GetRootElement = "int(int hwnd,pointer& phe)";
+	ptr GetFocusElement = "int(int hwnd,pointer& phe)";
+	ptr FindElement = "int(int hwnd,int x,int y,pointer& phe)";
+	ptr GetChildrenCount = "int(PTR he,INT& count)";
+	ptr GetNthChild = "int(PTR he,INT n,pointer& he)";
+	ptr GetParentElement = "int(PTR he,pointer& parent_he)";
+	ptr GetElementHtmlCB =  "int(ptr he,bool outer,ptr rcv,ptr param)"; 
+	GetElementHtml = function(he,outer){
+		var ret = owner.GetElementHtmlCB(he,outer,stringReceiverU);
+		return ret,stringReceiverU();
+	}
+	ptr GetElementTextCB =  "int(ptr he,ptr rcv,ptr param)"; 
+	GetElementText = function(he){
+		var ret = owner.GetElementTextCB(he,stringReceiverW);
+		return ret,stringReceiverW();
+	}
+	ptr SetElementText = "int(ptr he,ustring utf16,INT len)";
+	ptr GetAttributeCount = "int(PTR he,INT& count)";
+	ptr GetNthAttributeNameCB =  "int(ptr he,INT n,ptr rcv,ptr param)";
+	GetNthAttributeName = function(he,name){
+		var ret = owner.GetNthAttributeNameCB(he,name,stringReceiverW);
+		return ret,stringReceiverW();
+	}
+	ptr GetNthAttributeValueCB =  "int(ptr he,INT n,ptr rcv,ptr param)";
+	GetNthAttributeValue = function(he,name){
+		var ret = owner.GetNthAttributeValueCB(he,name,stringReceiverW);
+		return ret,stringReceiverW();
+	}
+	ptr GetAttributeByNameCB =  "int(ptr he,str name,ptr rcv,ptr param)";
+	GetAttributeByName = function(he,name){
+		var ret = owner.GetAttributeByNameCB(he,name,stringReceiverW);
+		return ret,stringReceiverW();
+	}
+	ptr SetAttributeByName = "int(PTR he,STRING name,ptr value)";
+	ptr ClearAttributes;
+	ptr GetElementIndex = "int(PTR he,INT& index)";
+	ptr GetElementType = "int(PTR he,ptr &type)";
+	ptr GetElementTypeCB = "int(ptr he,ptr rcv,ptr param)";
+	ptr GetStyleAttributeCB =  "int(ptr he,str name,ptr rcv,ptr param)";
+	GetStyleAttribute = function(he,name){
+		var ret = owner.GetStyleAttributeCB(he,name,stringReceiverW);
+		return ret,stringReceiverW();
+	}
+	ptr SetStyleAttribute = "int(ptr he,string name,ustring value)";
+	ptr GetElementLocation = "int(PTR he,struct& location,INT areas)";
+	ptr ScrollToView = "int(PTR he,INT flags)";
+	ptr UpdateElement = "int(PTR he,bool remeasure)";
+	ptr RefreshElementArea;
+	ptr SetCapture;
+	ptr ReleaseCapture;
+	ptr GetElementHwnd = "int(PTR he,int& hwnd,bool rootWindow)";
+	ptr CombineURL;
+	ptr SelectElementsA;
+	ptr SelectElementsW = "int(PTR he,ustring selectors,ptr callback,INT tagParam)";
+	ptr SelectParentA;
+	ptr SelectParentW = "int(PTR he,ustring selector,INT depth,pointer& heFound)";
+	ptr SetElementHtml = "int(PTR he,ptr html,INT htmlLength,INT where)";
+	ptr GetElementUID = "int(PTR he,INT& puid)";
+	ptr GetElementByUID = "int(int hwnd,INT uid,pointer& phe)";
+	ptr ShowPopup = "int(PTR hePopup,PTR heAnchor,INT placement)";
+	ptr ShowPopupAt = "int(PTR hePopup,int x,int y,INT mode)";
+	ptr HidePopup = "int(PTR he)";
+	ptr GetElementState = "int(PTR he,INT& pstateBits)";
+	ptr SetElementState = "int(PTR he,INT stateBitsToSet,INT stateBitsToClear,bool updateView)";
+	ptr CreateElement = "int(ptr tagname,ustring textOrNull,pointer& phe)";
+	ptr CloneElement = "int(PTR he,pointer& phe)";
+	ptr InsertElement = "int(PTR he,PTR hparent,INT index)";
+	ptr DetachElement;
+	ptr DeleteElement = "int(PTR he)";
+	ptr SetTimer = "int(PTR he,INT millisecond,INT timerId)";
+	ptr DetachEventHandler = "int(PTR he,ptr pep,INT tag)";
+	ptr AttachEventHandler = "int(PTR he,ptr pep,INT tag)"; 
+	ptr WindowAttachEventHandler = "int(int hwndSciter,ptr pep,INT tag,INT subscription)";
+	ptr WindowDetachEventHandler = "int(int hwndSciter,ptr pep,INT tag)";
+	ptr SendEvent = "int(PTR he,INT appEventCode,ptr heSource,INT reason,bool& handled)";
+	ptr PostEvent = "int(PTR he,INT appEventCode,ptr heSource,INT reason)";
+	ptr CallBehaviorMethod = "int(PTR he,struct &params)";
+	ptr RequestElementData;
+	ptr HttpRequest = "int(PTR he,string url,INT dataType,INT requestType,struct requestParams,INT nParams)";
+	ptr GetScrollInfo = "int(PTR he,struct& scrollPos,struct& viewRect,struct& contentSize)";
+	ptr SetScrollPos = "int(PTR he,int x,int y,bool smooth)";
+	ptr GetElementIntrinsicWidths = "int(PTR he,INT& min,INT& max)";
+	ptr GetElementIntrinsicHeight = "int(PTR he,INT forWidth,INT& min)";
+	ptr IsElementVisible = "int(PTR he,bool& pVisible)";
+	ptr IsElementEnabled = "int(PTR he,bool& pEnabled)";
+	ptr SortElements = "int(PTR he,INT first,INT last,PTR func,INT tagParam)";
+	ptr SwapElements = "int(PTR he1,PTR he2)";
+	ptr TraverseUIEvent = "int(INT evt,struct param,bool& processed)";
+	ptr CallScriptingMethod = "bool(ptr he,string func,struct argv,INT argc,struct &retval)";
+	ptr CallScriptingFunction = "bool(ptr he,string func,struct argv,INT argc,struct &retval)";
+	ptr EvalElementScript = "bool(ptr he,ustring script,INT len,struct& retval)";
+	ptr AttachHwndToElement = "int(ptr he,addr hwnd)";
+	ptr ControlGetType;
+	ptr GetValue = "int(PTR he,struct& pVal)";
+	ptr SetValue = "int(PTR he,struct pVal)";
+	ptr GetExpando;
+	ptr GetObject;
+	ptr GetElementNamespace;
+	ptr GetHighlightedElement;
+	ptr SetHighlightedElement;
+	ptr NodeAddRef;
+	ptr NodeRelease;
+	ptr NodeCastFromElement;
+	ptr NodeCastToElement;
+	ptr NodeFirstChild;
+	ptr NodeLastChild;
+	ptr NodeNextSibling;
+	ptr NodePrevSibling;
+	ptr NodeParent;
+	ptr NodeNthChild;
+	ptr NodeChildrenCount;
+	ptr NodeType;
+	ptr NodeGetText;
+	ptr NodeSetText;
+	ptr NodeInsert;
+	ptr NodeRemove;
+	ptr CreateTextNode;
+	ptr CreateCommentNode;
+	ptr ValueInit = "INT(struct &val)";
+	ptr ValueClear = "INT(struct &val)";
+	ptr ValueCompare = "bool(struct pval,struct pval2)";
+	ptr ValueCopy = "INT(struct& pdst,struct psrc)";
+	ptr ValueIsolate = "INT(struct &val)";
+	ptr ValueType = "INT(struct pval,INT& type,INT& units)";
+	ptr ValueStringData = "INT(struct pval,pointer& pChars,INT& pNumChars)";
+	ptr ValueStringDataSet = "INT(struct &val,ptr chars,INT numChars,INT units)";
+	ptr ValueIntData = "INT(struct val,int& pData )";
+	ptr ValueIntDataSet = "INT( struct& pVal,int data,INT type,INT units )";
+	ptr ValueInt64Data = "INT(struct val,long& pData )";
+	ptr ValueInt64DataSet = "INT( struct &val,long data,INT type,INT units )";
+	ptr ValueFloatData = "INT(struct val,double& pData )";
+	ptr ValueFloatDataSet = "INT( struct &val,double data,INT type,INT units )";
+	ptr ValueBinaryData = "INT(struct val,pointer& pBytes,INT& pnBytes )";
+	ptr ValueBinaryDataSet = "INT( struct &val,ptr pBytes,INT nBytes,INT type,INT units )";
+	ptr ValueElementsCount = "INT(struct pval,int &pn)";
+	ptr ValueNthElementValue = "INT(struct pval,int n,struct& pretval)";
+	ptr ValueNthElementValueSet = "INT(struct &val,int n,struct pval_to_set)";
+	ptr ValueNthElementKey;
+	ptr ValueEnumElements = "INT(struct pval,ptr penum,ptr param)";
+	ptr ValueSetValueToKey = "INT(struct &val,struct pkey,struct pval_to_set)";
+	ptr ValueGetValueOfKey = "INT(struct pval,struct pkey,struct& pretval)";
+	ptr ValueToString = "INT( struct &val,INT how )";
+	ptr ValueFromString = "INT( struct &val,string str,INT length,INT how)";
+	ptr ValueInvoke;
+	ptr ValueNativeFunctorSet = "INT(struct &val,ptr invoke,ptr release,addr tag)";
+	ptr ValueIsNativeFunctor = "bool(struct pVal)";
+	ptr TIScriptAPI;
+	ptr GetVM = "ptr(addr hwnd)";
+	ptr ScriptValue2Value__ = "bool(ptr vm,LONG s,strct v,bool isolate)";
+	ptr Value2ScriptValue__;
+	ScriptValue2Value = function(vm,sv,isolate){
+		var v = ..web.sciter.valueObject();
+		if( owner.ScriptValue2Value__(vm,sv,v,isolate) ) return v;
+	}
+	Value2ScriptValue = function(vm,v){
+		var v = ..web.sciter.valueObject();
+		var sv = {LONG value}
+		if( owner.ScriptValue2Value__(vm,v,sv) ) return sv.value;
+	}
+	ptr OpenArchive;
+	ptr GetArchiveItem;
+	ptr CloseArchive;
+	ptr FireEvent;
+	ptr GetCallbackParam;
+	ptr PostCallback;
+	ptr GetSciterGraphicsAPI;
+	ptr GetSciterRequestAPI;
+	ptr CreateOnDirectXWindow = "int(addr hwnd,ptrp SwapChain )"; 
+	ptr RenderOnDirectXWindow = "int(addr hwnd,ptrp elementToRenderOrNull,bool frontLayer )";
+	ptr RenderOnDirectXTexture = "int(addr hwnd,ptr elementToRenderOrNull,ptr surface)"; 
+	ptr ProcX = "int(addr hwnd,ptr pMsg )";
+}
+ 	
+namespace api{
+
+	var fromUnicode = ..string.fromUnicode;
+	var receiverStringW;
+	stringReceiverW = ..raw.tostdcall( function(str,len,param){
+		if(str){
+			receiverStringW = fromUnicode(str,65001,len);
+		}
+		else {
+			var str = receiverStringW;
+			receiverStringW = null; 
+			return str;//from aardio
+		}
+	},"void(ptr str,INT len,ptr param)");
+	
+	var receiverStringUtf8;
+	stringReceiverU = ..raw.tostdcall( function(str,len,param){
+		if(str){
+			receiverStringUtf8 = ..raw.tostring(str,1,len);
+		}
+		else {
+			var str = receiverStringUtf8;
+			receiverStringUtf8 = null; 
+			return str;//from aardio
+		}
+	},"void(ptr str,INT len,ptr param)");
+	
+	var receiverStringAnsi;
+	stringReceiverA = ..raw.tostdcall( function(str,len,param){
+		if(str){
+			receiverStringAnsi = ..raw.tostring(str,1,len);
+		}
+		else {
+			var str = receiverStringAnsi;
+			receiverStringAnsi = null; 
+			return str;//from aardio
+		}
+	},"void(ptr str,INT len,ptr param)");
+}
+
+class tiscriptNativeInterface{
+	ptr create_vm;
+	ptr destroy_vm;
+	ptr invoke_gc;
+	ptr set_std_streams;
+	ptr get_current_vm;
+	ptr get_global_ns;
+	ptr get_current_ns;
+	ptr is_int;
+	ptr is_float;
+	ptr is_symbol;
+	ptr is_string;
+	ptr is_array;
+	ptr is_object;
+	ptr is_native_object;
+	ptr is_function;
+	ptr is_native_function;
+	ptr is_instance_of;
+	ptr is_undefined;
+	ptr is_nothing;
+	ptr is_null;
+	ptr is_true;
+	ptr is_false;
+	ptr is_class;
+	ptr is_error;
+	ptr is_bytes;
+	ptr is_datetime;
+	ptr get_int_value;
+	ptr get_float_value;
+	ptr get_bool_value;
+	ptr get_symbol_value;
+	ptr get_string_value;
+	ptr get_bytes;
+	ptr get_datetime;
+	ptr nothing_value; 
+	ptr undefined_value;
+	ptr null_value;
+	ptr bool_value;
+	ptr int_value;
+	ptr float_value;
+	ptr string_value;
+	ptr symbol_value;
+	ptr bytes_value;
+	ptr datetime_value;
+	ptr to_string;
+	ptr define_class;
+	ptr create_object;
+	ptr set_prop;
+	ptr get_prop;
+	ptr for_each_prop;
+	ptr get_instance_data;
+	ptr set_instance_data;
+	ptr create_array;
+	ptr set_elem;
+	ptr get_elem;
+	ptr set_array_size;
+	ptr get_array_size;
+	ptr eval;
+	ptr eval_string;
+	ptr call;
+	ptr compile;
+	ptr loadbc;
+	ptr throw_error;
+	ptr get_arg_count;
+	ptr get_arg_n;
+	ptr get_value_by_path;
+	ptr pin;
+	ptr unpin;
+	ptr native_function_value;
+	ptr native_property_value;
+	ptr post;
+	ptr set_remote_std_streams;
+	ptr set_nth_retval;
+	ptr get_length;
+	ptr get_next;
+	ptr get_next_key_value;
+	ptr set_extra_data;
+	ptr get_extra_data;
+} 
+
+var dll;
+if( !_STUDIO_INVOKED){
+	import ..fsys;
+	var path = ..fsys.appdata(  "aardio/std/sciter/4.4.0.0.dll",$"~/lib/web/sciter/.res/sciter.dll");
+	dll = ..raw.loadDll( path,"sciter.dll" );
+}
+else {
+	dll = ..raw.loadDll( "~/lib/web/sciter/.res/sciter.dll","sciter.dll" );
+}
+
+::Sciter = ..raw.functions( dll.SciterAPI() ,api)
+::Sciter.script = ..raw.functions( ::Sciter.TIScriptAPI(), tiscriptNativeInterface,"cdecl" );
+::Sciter.dll = dll;
+

@@ -1,0 +1,76 @@
+//树形控件入门示例
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="任务列表";right=715;bottom=573;parent=...)
+winform.add(
+button={cls="button";text="关闭";left=567;top=507;right=699;bottom=563;font=LOGFONT(h=-20);z=2};
+treeview={cls="treeview";left=9;top=11;right=699;bottom=492;asel=false;db=1;dl=1;dt=1;edge=1;font=LOGFONT(h=-20);hscroll=1;infoTip=1;vscroll=1;z=1}
+)
+/*}}*/
+
+import win.ui.menu;
+import fsys;
+
+var curTab = mainForm.tab.items[1];
+if(!io.exist('/projects')) fsys.createDir('/projects');
+var files, dirs, alldirs = fsys.list('/projects');
+var name, host = table.unpack(mainForm.hostInfos[curTab.listview.selIndex]);
+
+for(i=1; #dirs; 1){
+    import scrapydAPI;
+	var pending, running, finished = scrapydAPI.listJobs(host, dirs[i]);
+	
+    var hitem = winform.treeview.insertItem(text='项目: '+dirs[i]);
+	var pSubItem = winform.treeview.insertItem({text='待请求: '+'pending'}, hitem);
+	var rSubItem = winform.treeview.insertItem({text='运行中: '+'running'}, hitem);
+	var fSubItem = winform.treeview.insertItem({text='已完成: '+'finished'}, hitem);
+	//var pending, running, finished = win.invoke(function(host, project){
+	/*
+return pending, running, finished
+	}, host, dirs[i])
+*/
+	import web.json;
+	if(pending and running and finished){
+		for(i=1;#pending;1){
+			var subPSubItem = winform.treeview.insertItem({text='id: '+pending[i]['id']}, pSubItem);
+		}
+		for(j=1;#running;1){
+			var subRSubItem = winform.treeview.insertItem({text='id: '+running[j]['id']}, rSubItem);
+			winform.treeview.insertItem({text='pid: '+running[j]['pid']}, subRSubItem);
+			winform.treeview.insertItem({text='spider: '+running[j]['spider']}, subRSubItem);
+			winform.treeview.insertItem({text='start_time: '+running[j]['start_time']}, subRSubItem);
+		
+		}
+		for(k=1;#finished;1){
+			var subFSubItem = winform.treeview.insertItem({text='id: '+finished[k]['id']}, fSubItem);
+			winform.treeview.insertItem({text='end_time: '+finished[k]['end_time']}, subFSubItem);
+			winform.treeview.insertItem({text='spider: '+finished[k]['spider']}, subFSubItem);
+			winform.treeview.insertItem({text='start_time: '+finished[k]['start_time']}, subFSubItem);
+		}
+	}
+	else {
+		tip = string.format("查询失败，错误原因：%s", running)
+   		var exePath = fsys.getCurDir()
+   		mainForm.static.text = tip
+		var path = fsys.joinpath(exePath, 'log', string.format("%d%02d%02d.log",
+								time.now().year, time.now().month,  time.now().day))
+		string.save(path, tostring(time.now()) + tip+'\n', true)
+	}
+}
+
+winform.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x0010/*_WM_CLOSE*/{
+			winform.close()
+		}
+		else{}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+winform.button.oncommand = function(id,event){
+   winform.close()
+}
+
+win.loopMessage();
+return winform;

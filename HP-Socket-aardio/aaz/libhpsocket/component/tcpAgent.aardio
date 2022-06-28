@@ -1,0 +1,28 @@
+﻿import util.metaProperty;
+import aaz.libhpsocket.component.properties.tcpAgent;
+
+namespace aaz.libhpsocket.component;
+var _dll = ..aaz.libhpsocket._dll;
+
+class tcpAgent{
+	ctor(listener, pAgent){
+		if(pAgent){
+			this.pAgent = pAgent;
+		}
+		elseif(listener){
+			this.pAgent = _dll.Create_HP_TcpAgentP(listener);
+			..table.gc(this, "destroy");
+		}
+		else {
+			error("请指定参数@1 pAgent 或参数@2 pListener", 2);
+		}
+	};	
+	destroy = function(){
+		if(this.pAgent){
+			_dll.Destroy_HP_TcpAgent(this.pAgent);
+			this.pAgent = null;
+		}
+	};	
+	@_metaProperty;
+}
+tcpAgent._metaProperty = ..util.metaProperty(..aaz.libhpsocket.component.properties.tcpAgent); 

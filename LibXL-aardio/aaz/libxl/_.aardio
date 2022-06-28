@@ -1,0 +1,90 @@
+﻿//libxl 读写 Excel 文件
+namespace aaz;
+namespace libxl{
+    // https://www.libxl.com/
+    // https://www.libxl.com/documentation.html
+    _dll = ..raw.loadDll($"~\lib\aaz\libxl\.res\libxl32.dll", null, "cdecl, unicode"); 
+    
+    namespace ..global{
+        import aaz.libxl.metaProperty;
+		import aaz.libxl.book;
+		import aaz.libxl.sheet;
+		import aaz.libxl.format;
+		import aaz.libxl.font;
+		import aaz.libxl.richString;
+		import aaz.libxl.filterColumn;
+		import aaz.libxl.autoFilter;
+    } 
+     
+	createBook = function(){
+		return ..aaz.libxl.book(_dll.xlCreateBookP()); 
+	}
+	
+	createXmlBook = function(){
+		return ..aaz.libxl.book(_dll.xlCreateXMLBookP()); 
+	}		
+}
+
+/**intellisense(aaz)
+libxl = 读写 Excel 文件，不需要安装 Microsoft Excel，支持 Excel 97-2003的二进制格式(xls)和 Excel 2007-2016的 xml 格式(xlsx/xlsm) 
+end intellisense**/
+
+/**intellisense(aaz.libxl)
+createBook() = 创建 xls 格式的 book 实例\n!book.
+createXmlBook() = 创建 xlsx 格式的 xml book 实例\n!book.
+book(.(句柄) = 创建 book 实例\n!book.
+sheet(.(句柄) = 创建 sheet 实例\n!sheet.
+format(.(句柄) = 创建 format 实例\n!format.
+font(.(句柄) = 创建 font 实例\n!font.
+richString(.(句柄) = 创建 richString 实例\n!richString.
+filterColumn(.(句柄) = 创建 filterColumn 实例\n!filterColumn.
+autoFilter(.(句柄) = 创建 autoFilter 实例\n!autoFilter.
+end intellisense**/
+
+/**intellisense(!book)
+release() = 释放 book 实列
+load(.(文件路径) = 将整个文件加载到内存中。如果发生错误，则返回0
+save(.(文件路径) = 将当前工作簿保存到文件中。如果发生错误，则返回0
+loadUsingTempFile(.(文件路径, 临时文件路径) = 将整个文件加载到内存中，指定一个临时文件以减少内存消耗
+saveUsingTempFile(.(文件路径, 是否使用临时文件) = 使用临时文件将当前工作簿保存到文件中，以减少内存消耗。如果发生错误，则返回0
+loadPartially(.(文件路径, sheet 索引, 起始列, 结束列) = 仅将具有指定工作表索引和行范围的文件加载到内存中。如果发生错误，则返回0
+loadPartiallyUsingTempFile(.(文件路径, sheet 索引, 起始列, 结束列, 临时文件路径) = 使用临时文件减少内存消耗，仅将具有指定工作表索引和行范围的文件加载到内存中。如果发生错误，则返回0
+loadInfo(.(文件路径) = 仅加载有关图纸的信息. 之后，您可以调用 book.count 和 book.getSheetName() 方法
+loadRaw(.(数据) = 从用户的内存缓冲区加载文件。如果发生错误，则返回0
+loadRawPartially = 从用户的内存缓冲区加载文件
+
+getSheet(.(索引) = 获取指定索引的工作表
+addFormat(.(其他格式) = 向工作簿添加新格式，初始参数可以从其他格式复制
+format() = \n!format.
+addFormat() = !format.
+addFont() = \n!font.
+font() = \n!font.
+addRichString() = \n!richString.
+addSheet() = !sheet.
+insertSheet() = !sheet.
+getSheet() = !sheet.
+end intellisense**/
+
+/**intellisense(!sheet)
+cellFormat(.(行号, 列号) = 返回单元格的格式
+copyCell(起始行, 起始列, 目标行, 目标列) = 复制单元格
+readStr(.(行号, 列号, 格式) = 从单元格读取字符串及其格式
+readNum(.(行号, 列号, 格式) = 从单元格中读取数字或日期时间及其格式
+setCol(.(列起始索引, 列结束索引, 列宽, 格式, 是否隐藏) = 设置从colFirst到colLast的所有列的列宽和格式。\n\n列宽，以正常样式的字体中呈现的数字0、1、2，...，9的最大数字宽度的字符数来衡量。\n值-1用于自动调整列宽。\n\n如果format等于0，则忽略format。列可能被隐藏
+cellFormat() = \n!format.
+end intellisense**/
+
+/**intellisense(!format)
+end intellisense**/
+
+/**intellisense(!font)
+end intellisense**/
+
+/**intellisense(!richString)
+end intellisense**/
+
+/**intellisense(!filterColumn)
+end intellisense**/
+
+/**intellisense(!autoFilter)
+end intellisense**/

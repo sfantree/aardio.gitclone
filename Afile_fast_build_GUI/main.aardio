@@ -1,0 +1,46 @@
+//RUNAS//
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="Afile_fast_build_GUI";right=1199;bottom=699)
+mainForm.add()
+/*}}*/
+
+import web.view;
+var wb = web.view(mainForm);
+
+if(!_STUDIO_INVOKED){
+	wb.enalbeDefaultContextMenus(false);
+}
+
+import process.popen;
+wb.external = {
+	ping = function(domain){
+		import fsys.ini
+		if(_STUDIO_INVOKED and string.find(domain,"make")){
+			var configFile = io.splitpath(io._exefile).name + ".ini";
+			var ini = fsys.ini(configFile);
+			var makefilePath = string.replace(ini.getSection("Makefile").路径, "\\", "/");
+			if(!string.endWith(makefilePath,"/")){
+				makefilePath = makefilePath + "/";
+			}
+			domain = string.replace(domain, "make", makefilePath+"make.bat");
+			mainForm.msgbox(domain);
+			return;
+		}
+		
+		//同步有同步的优势，扬长避短是智慧，倒行逆施最累人。 
+		var prcs = process.popen(domain);
+		for( all,out,err in prcs.each() ){ 
+		    wb.invoke("insertAtTheEndOfEditor", all); 
+		}
+		wb.invoke("insertAtTheEndOfEditor", "----Build-End----"); 
+		return;
+	}
+}
+
+import wsock.tcp.simpleHttpServer; 
+url = wsock.tcp.simpleHttpServer.startSpaUrl("\web\index.aardio")
+wb.go( url );
+
+mainForm.show();
+return win.loopMessage();

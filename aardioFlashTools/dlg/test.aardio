@@ -1,0 +1,34 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=886;bottom=627;parent=...)
+winform.add(
+button={cls="button";text="点这里试试";left=554;top=561;right=801;bottom=620;color=14120960;db=1;dr=1;font=LOGFONT(h=-14);note="这点里操作记事本的编辑框";z=2};
+static={cls="static";left=46;top=22;right=854;bottom=542;db=1;dl=1;dr=1;dt=1;z=1}
+)
+/*}}*/
+
+import winex; 
+import process;
+process.executeWaitInput("cmd.exe");//运行记事本
+var hwndNotepad,hNotepadEdit = winex.wait(,,"cmd","<RichEditD2DPT>|<Edit>");//查找句柄
+winex.wait(,,"cmd",)
+
+//悬浮影子窗口：外部进程窗口附加到 winform.static 并如影随形的自适应缩放调整位置
+winex.orphanWindow(winform.static,hwndNotepad)
+
+//退出程序前让记事本退出
+winform.onClose = function(hwnd,message,wParam,lParam){
+   if(!winex.closeAndWait(hwndNotepad)) return 1; 
+}
+
+import winex.ctrl.edit;
+var edit = winex.ctrl.edit(hNotepadEdit);
+winform.button.oncommand = function(id,event){ 
+  edit.text="测试一下";
+  edit.print("测试调用函数",123,{
+    1,2,3
+  })   
+}
+
+winform.show(); 
+win.loopMessage();

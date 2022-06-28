@@ -1,0 +1,204 @@
+import win.ui;
+import win.animate;
+import key.hook;
+import com.interface.ITaskbarList3;
+import console;
+/*DSG{{*/
+winform = ..win.form(text="Setuper";right=650;bottom=560;bgcolor=4734261;border="none")
+winform.add(
+ButtonClose={cls="plus";left=608;top=0;right=650;bottom=40;background="\res\appbar.close.png";notify=1;repeat="scale";z=1};
+ButtonMin={cls="plus";left=576;top=0;right=617;bottom=40;background="\res\appbar.minus.png";notify=1;repeat="scale";z=2};
+PictureViwer={cls="plus";left=0;top=40;right=651;bottom=528;foreground="\res\2.jpg";foreRepeat="scale";repeat="scale";z=5};
+pie={cls="plus";left=0;top=0;right=80;bottom=40;background="\res\pie-bg.png";color=15793151;font=LOGFONT( h=-11 );foreground="\res\pie.png";foreRepeat="scale";repeat="scale";z=3};
+progress={cls="plus";left=0;top=528;right=648;bottom=560;align="right";background="\res\progress-bg.jpg";bgcolor=65280;color=2719744;font=LOGFONT( h=-16 );foreground="\res\progress.jpg";foreRepeat="expand";z=4}
+)
+/*}}*/
+
+//最小化按钮	
+winform.ButtonMin.skin(
+     background = { 
+         hover = "/res/appbar.minus.png";
+         focus = "/res/appbar.minus.png";
+         active = "/res/appbar.minus.png";
+         default = "/res/appbar.minus.png"; 
+     }
+    color = {
+        hover = 0xFFFF0000; //鼠标移上去的颜色
+        active = 0xFF00FF00; //鼠标按下去的颜色
+    } 
+)
+winform.ButtonMin.oncommand = function(id,event){
+	winform.hitmin();
+}
+
+//关闭按钮
+winform.ButtonClose.skin(
+	background = { 
+		hover = "/res/appbar.close.png";
+		active = "/res/appbar.close.png";
+		default = "/res/appbar.close.png"; 
+	}
+	color = {
+		hover = 0xFFFF0000; //鼠标移上去的颜色
+        active = 0xFF00FF00; //鼠标按下去的颜色
+	}
+)
+winform.ButtonClose.show(true);
+winform.ButtonClose.oncommand = function( id,event ){
+	winform.close();
+}
+
+//图片定时播放
+var i = 1;
+var tmId = winform.addtimer( 
+	1000,
+	function(hwnd,msg,id,tick){
+		winform.PictureViwer.setForeground(string.format("/res/%d.jpg", i));
+		if(i < 5){
+			i = i + 1
+		}else {
+			i = 1;
+		}
+		
+	} 
+)
+
+
+winform.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) {
+		/*任务栏显示进度*/ 
+		case _WM_TASKBARBUTTONCREATED{ 
+			winform.taskbar = com.interface.ITaskbarList3.Create() 
+		} 
+		case 0x201/*窗体拖动 */{
+			winform.hitCaption();
+		}
+	} 
+}
+
+// 进度条范围设定，接受解压线程的值
+winform.pie.setPieRange(1,100);
+winform.progress.setProgressRange(1,100)
+import thread.command;
+var listener = thread.command();
+listener.print = function( percent ){
+    winform.pie.text =  percent + " %";
+	winform.progress.text = percent + "%";
+	winform.pie.progressPercentage = percent;
+	winform.progress.progressPercentage = percent;
+	winform.taskbar.SetProgressValue(winform.hwnd, percent, 100)
+}
+
+var Decode7z = function(){
+	thread.invoke (
+		function(){
+			import console;
+			//import thread.event;
+        	//var event = thread.event("Decode7z");
+        	//event.wait();
+        	import thread.command;
+			import sevenZip.decoder2;
+			import fsys.dlg;
+			var archive = sevenZip.decoder2();
+			archive.printError = function(name,message){
+				console.log("出错了", name,message ) 
+			}
+			archive.open(io._exepath)
+			/*
+			if( !archive.open( fsys.dlg.open("7z压缩包|*.7z||") ) ){
+				console.log("打开压缩包出错");
+				return;
+			}
+			*/
+			//列出所有文件
+			/**
+			for(i=1;archive.count() ){
+				io.print( 
+					archive.getItemString(i,3/*_kpidPath*/), 
+					archive.getItemBoolean(i,6/*_kpidIsDir*/),
+					archive.getItemTime(i,0xC/*_kpidMTime*/),
+					archive.getItemNumber(i,7/*_kpidSize*/),
+				)
+			}
+			**/
+			
+			/*archive.extractSetTotal = function(size){
+				io.print("压缩包大小",fsys.formatSize(size) )
+			}*/
+ 			
+			archive.extractSetCompleted = function(lowSize,hiSize,percent){
+				import thread.command
+				thread.command.post("print",percent);
+			}
+			
+			/*
+			//列出解压的每个文件
+			archive.extractPrepareOperation = function(askExtractMode,itemIndex,filepath,isDir){
+				console.log("正在解压",filepath)
+			}
+			*/
+			
+			/**
+			archive.extractSetOperationResult = function(opRet){
+				if( opRet == 0/*kOK*/ ){
+				
+				}
+				elseif( opRet == 1/*kUnSupportedMethod*/ ){
+					io.print("Unsupported Method")
+				}
+				elseif( opRet == 0/*kDataError*/ ){
+					io.print("CRC Failed")
+				}
+				elseif( opRet == 0/*kCRCError*/ ){
+					io.print("Data Error")
+				}
+				else {
+					io.print("Unknown Error")
+				}
+			}
+			**/
+			if( archive.extract("/") ){
+				//console.log("已完成所有操作")
+			}
+			else {
+				//console.log("解压缩遇到错误")
+			}
+		}
+	)
+}
+
+// 监听键盘按钮事件
+var hook = key.hook();
+//录制回调函数
+hook.proc = function(msg,vkcode,scancode,injected,flags,timeStamp,extraInfo){ 
+	if( injected ) return; //模拟鼠标不处理
+  
+    var kn = key.getName( vkcode ); 
+    	
+    select(msg) {
+    	case 0x100/*_WM_KEYDOWN*/ ,0x104/*_WM_SYSKEYDOWN*/ {
+    	    //console.log("按下","键名:" + kn,"键码:"+vkcode)
+    	    if(kn == "ESC"){
+    	    	winform.close();
+    	    };
+    	    if(kn == "F5"){
+    	    	Decode7z();
+    	    }
+    	}
+    	case 0x101/*_WM_KEYUP*/,0x105/*_WM_SYSKEYUP*/ {
+    	    //console.log("弹起","键名:" + kn,"键码:"+vkcode)
+    	}  
+    } 
+    
+    if( win.getForeground() == winform.hwnd ) return true;  
+}
+
+
+// 程序显示关闭动画
+winform.onClose = function(hwnd,message,wParam,lParam){
+    win.animate.fade(winform).hide()
+}
+
+winform.show(true)
+win.loopMessage();  
+hook.close();

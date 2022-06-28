@@ -1,0 +1,103 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="DFT_LIST";right=663;bottom=471)
+winform.add(
+listview={cls="listview";left=0;top=0;right=664;bottom=472;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+progress={cls="progress";left=0;top=0;right=664;bottom=30;aw=1;dl=1;dr=1;dt=1;max=100;min=0;z=2}
+)
+/*}}*/
+
+import win.ui.grid;
+winform.grid = win.ui.grid(winform.listview);//创建数据视图
+
+var getDftList = function(winform){
+	import solidedge.application;
+	import solidedge.DraftDocument;
+//	import win.ui;
+
+	seApp := solidedge.application();
+	if !seApp return ; 
+	var seDocuments = seApp.Documents;
+	var seDfts = {};
+	seDfts.seIndex = {};
+	for (i = 1; seDocuments.Count)
+    	if (seDocuments.item(i).Type == 2 /*Draft Document Type*/ ) {
+    		table.push(seDfts, seDocuments.item(i));
+    		table.push(seDfts.seIndex, i);
+    	}
+    winform.publish("dft_loaded", seDfts); //把dfts推送给上一层
+	vtab = table.create(,{fields = {"物料","版本","型号","名称","属性"}})
+	winform.progress.min = 0;
+	winform.progress.max = #seDfts ;
+	winform.progress.hide = 0;
+	for(i=1; #seDfts){
+		winform.progress.pos = i;
+		var seDft = solidedge.DraftDocument(seDfts[i]);
+		var t={};
+		var tb = seDft.getTitleBlock(seDft.getFirstSheet());
+		if(tb){
+			var lbt = seDft.getLabelTable(tb);
+			t.物料 = seDft.getFileName();
+			t.名称 = seDft.formatWindowsFileName(lbt["零件名称"]);
+			t.型号 = seDft.formatWindowsFileName(lbt["型号/项目名称"]);
+			t.版本 = seDft.getDftVer();
+			var blkObj = seDft.getLabelObjectTable(seDft.getBlkByName("Version_CCR 2020",seDft.getFirstSheet()));
+			if blkObj
+				t.属性 = blkObj["属性"].value;
+			else {
+				blkObj := seDft.getLabelObjectTable(seDft.getBlkByName("SRDC_Ver",seDft.getFirstSheet()));
+				t.属性 = blkObj ?  blkObj["阶段"].value : "";
+			}
+			
+
+		}else{
+			t.物料 = seDft.getFileName();
+			t.名称 = "";
+			t.型号 = "";
+			t.版本 = "";
+			t.属性 = "";
+		}
+
+
+		//t.index = seDftIndex[i];
+		table.push(vtab, t)
+	}
+	winform.progress.hide = 1;
+
+	winform.grid.setTable(vtab);
+	winform.listview.checkbox = true;
+	winform.listview.setChecked(0);
+
+	winform.listview.setColumn({cx=120	;fmt=0x2/*_LVCFMT_CENTER*/},	1)
+	winform.listview.setColumn({cx=55	;fmt=0x2/*_LVCFMT_CENTER*/},	2)
+	winform.listview.setColumn({cx=120	;fmt=0x0/*_LVCFMT_LEFT*/},		3)
+	winform.listview.setColumn({cx=150	;fmt=0x0/*_LVCFMT_LEFT*/},		4)
+	winform.listview.setColumn({cx=50	;fmt=0x2/*_LVCFMT_CENTER*/},	5)
+}
+winform.show();
+
+thread.invoke(getDftList, winform);
+
+subscribe("refresh_dft_list",function(...){
+    winform.grid.clear();
+	thread.invoke(getDftList, winform);
+} )
+import win.clip;
+winform.listview.translateAccelerator = function( msg ){ 
+    var ctrl = ::GetKeyState(0x11/*_VK_CTRL*/);
+//    var shift =  ::GetKeyState(0x10/*_VK_SHIFT*/);
+//    var alt = ::GetKeyState(0x12/*_VK_ALT*/);
+//    var selectedRow = winform.listview.getSelection();
+    var vk = msg.wParam ;    
+    if( ( vk == 'C'# ) && ctrl  ){
+        var tab=table.array();
+        for (i=1;#owner.selected){
+            table.push(tab,string.join(owner.items[owner.selected[i]],'\t'))
+        }           
+		win.clip.write(string.join(tab,'\n'))
+        return true;
+    }
+}
+
+win.loopMessage();
+return winform;

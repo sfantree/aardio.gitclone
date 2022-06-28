@@ -1,0 +1,72 @@
+ import console;
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="进制转换";right=287;bottom=143;border="dialog frame";max=false;mode="popup")
+mainForm.add(
+static={cls="static";text="二进制";left=16;top=8;right=88;bottom=40;center=1;color=128;font=LOGFONT(h=-17);transparent=1;z=1};
+static2={cls="static";text="八进制";left=16;top=40;right=88;bottom=72;center=1;color=8388608;font=LOGFONT(h=-17);transparent=1;z=3};
+static3={cls="static";text="十进制";left=16;top=72;right=88;bottom=104;center=1;font=LOGFONT(h=-17);transparent=1;z=5};
+static4={cls="static";text="十六进制";left=1;top=104;right=89;bottom=136;center=1;color=32768;font=LOGFONT(h=-17);transparent=1;z=7};
+二进制={cls="edit";left=72;top=8;right=280;bottom=40;edge=1;font=LOGFONT(h=-20);multiline=1;z=2};
+八进制={cls="edit";left=72;top=40;right=280;bottom=72;edge=1;font=LOGFONT(h=-20);multiline=1;z=4};
+十六进制={cls="edit";left=72;top=104;right=280;bottom=136;edge=1;font=LOGFONT(h=-20);multiline=1;z=8};
+十进制={cls="edit";left=72;top=72;right=280;bottom=104;edge=1;font=LOGFONT(h=-20);multiline=1;z=6}
+)
+/*}}*/
+
+blank=function(str){
+	if( !#str || "null"==str ){  str="0" }   
+	return str;
+}
+
+format=function(str,_f){     
+	try{ if(2!=_f) mainForm.二进制.text=string.format("%b",tonumber(str,_f)) ;}  catch(e){  }
+	try{ if(8!=_f) mainForm.八进制.text=string.format("%o",tonumber(str,_f)) ;}  catch(e){  }
+	try{ if(10!=_f) mainForm.十进制.text=string.format("%s",tonumber(str,_f)) ;}  catch(e){  }
+	try{ if(16!=_f) mainForm.十六进制.text=string.upper(string.format("%08x",tonumber(str,_f)))	 ;}  catch(e){  }
+}
+
+check_big=function(str,_f){
+	var v=tonumber( str,_f);
+	var fff=tonumber("FFFFFFFF",_f);
+	if( v > fff ) win.msgboxErr("数值过大!","提示");
+}
+ 
+
+mainForm.二进制.onChange = function(){   
+    var str=string.trim(mainForm.二进制.text);
+    format(blank(str),2);
+}
+
+mainForm.八进制.onChange = function(){ 
+    var str=string.trim(mainForm.八进制.text);   
+    format(blank(str),8);
+}
+
+mainForm.十进制.onChange = function(){
+    var str=string.trim(mainForm.十进制.text); 
+    format(blank(str),10);
+}
+
+mainForm.十六进制.onChange = function(){ 
+    var str=string.trim(mainForm.十六进制.text);
+    format(blank(str),16);
+    ////检查
+    //if( #str > 6 ) check_big(str,16);
+}
+
+//检测对话框消息并确定如何响应快捷键
+mainForm.isDialogMessage = function(hwnd,msg){
+	if( msg.message == 0x100/*_WM_KEYDOWN*/){
+		if( msg.wParam == 0xD/*_VK_RETURN*/ ){ 
+			return true;//告诉消息处理函数这是一个快捷键,阻止按键消息继续分发
+		}
+	}	
+	//检测并响应默认快捷键
+	return win.isDialogMessage(hwnd,msg);
+}
+
+mainForm.十进制.setFocus();
+
+mainForm.show();
+return win.loopMessage();

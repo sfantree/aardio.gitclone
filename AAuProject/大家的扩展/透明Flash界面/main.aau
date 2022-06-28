@@ -1,0 +1,92 @@
+import web.util;
+import win.flashInBox;
+
+/*去掉水印{{*/
+
+import process; 
+var prcs = process();  
+var pDrawDemoAddr = tonumber( win.flashInBox._dll.gethandle()  ) +  0x1000 + 0x25EE0; 
+prcs.protect(pDrawDemoAddr,0x4/*_PAGE_READWRITE*/,1)
+prcs.writeString( pDrawDemoAddr,'\0' )
+prcs.free(); 
+
+/*
+上面的代码纯技术研究请勿用于实际产品
+f-in-box.dll 需要购买商业许可 http://www.f-in-box.com/dll/order.html
+*/
+
+/*}}*/
+
+//创建FLash透明窗口
+var flash = ..win.flashInBox( {text = "任务栏你好"} , true /*透明*/)
+
+//导出接口函数可供Flash调用
+flash.external = {
+	//关闭
+	resize = function(param){
+		var cx,cy = string.match(param,"(\d+)\,(\d+)");
+		flash._form.setPos(0,0,cx,cy);
+	} 
+	close= function(){
+		flash._form.close();
+	}
+	//退出
+	quit= function(){
+		flash._form.close();
+	}	
+	//最小化
+	minimal = function(){
+		flash._form.hitmin();
+	}
+	//拖动
+	moving = function(){
+		flash._form.hitCaption();
+	}
+	//注册
+	register = function(){
+		web.util.ieBrowser("http://www.aau.cn/member.php?mod=register")
+	} 
+	//充值 
+	charge = function(){
+		flash._form.msgbox("免费免费了!")
+	}
+	//修复
+	repair = function(){
+		flash._form.msgbox("修复已完成!")
+	} 
+	//设置
+	settingr = function(){
+		flash._form.msgbox("本功能还没时间写!")
+	} 
+	//开始
+	start  = function(){
+		flash.play();
+	} 
+	//动画播放完触发
+	["end"] = function(){
+	
+		//设置进度条 
+		flash.xcall("setProgressTotal",0);
+		flash.xcall("setProgressPart",0); 
+		var progress = 0;
+		tmid = flash._form.addtimer(
+			10/*毫秒*/,
+			function(hwnd,msg,id,tick){//定时执行代码
+				progress++;
+				flash.xcall("setProgressPart",progress);
+				flash.xcall("setProgressTotal",progress);
+			}
+		);
+
+	} 
+	
+}
+
+
+//显示窗口 
+flash.show() 
+
+//In Box 可以直接自内存加载Flash
+flash.putMovie( $"\res\movie.swf")
+
+win.loopMessage()

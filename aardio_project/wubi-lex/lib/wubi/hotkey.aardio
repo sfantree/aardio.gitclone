@@ -1,0 +1,51 @@
+﻿//hotkey 默认热键
+namespace wubi.hotkey;
+
+default = /*******
+["~hi"] = function(){
+	key.send("hello") //可支持UWP应用
+}
+["www."]=function(){
+	winex.say("www.");
+	key.down(0x10/*_VK_SHIFT*/);
+	key.up(0x10/*_VK_SHIFT*/);
+}
+["~time"] = function(){ 
+	var str = time(,"%Y年%m月%d日 %H时%M分%S秒","chs")
+	winex.say(tostring(str));
+}; 
+["~date"] = function(){ 
+	var nums = { ["0"]="〇";["1"]="一";["2"]="二";["3"]="三";["4"]="四";["5"]="五";["6"]="六";["7"]="七";["8"]="八";["9"]="九";}
+	var tm = time()
+	var year = string.replace(tm.year,"\d",nums);
+	var day = string.replace(tm.day,"\d",nums);
+	var month = string.replace(tm.month,"\d",nums);  
+	day = string.replace(day,"(:)(:)","\1十\2"); 
+	month = string.replace(month,"(:)(:)","十\2"); 
+	day = string.replace(day,"〇",""); 
+	month = string.replace(month,"〇",""); 
+	day = string.replace(day,"一十","十");
+	winex.say(year+"年"+month+"月"+day+"日");
+}; 
+["Ctrl+Q,Q"] = function(){
+	import process 
+	import fsys.lnk; 
+	qqpath  = fsys.lnk.search( {"qq.exe";"QQScLauncher.exe";"QQProtect.exe"} )   
+	process.execute( qqpath )
+} 
+
+/*
+要测试打字，请写到注释语句里（也就是这里)
+配置代码使用 aardio 语法（ http://www.aardio.com )
+
+中括号里是按键名字串，等号的后面指定输入文本或者执行输入的函数。
+已导入一些常用的库，可以使用import语句引用，如果需要更多库请下载开源代码自行添加
+
+键名串里，如果第一个按键是控制键并紧跟一个加号，
+那么后面所有键名都要使用逗号分开，例如"Ctrl+Q,Q"。
+
+注意这是真正的系统级热键，不是热字串，
+例如 ~hi 在按第一个~时不要按Shift键
+*/
+
+*******/

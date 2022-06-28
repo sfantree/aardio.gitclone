@@ -1,0 +1,38 @@
+//shellIcon 文件图标
+import win.imageList;
+import fsys.info;
+
+namespace web.sciter.behavior.shellIcon;
+ 
+//css -icon-size:"jumbo";
+__shilImageList = { 
+	large = 0/*SHIL_LARGE */;
+	small = 1/*SHIL_SMALL */;
+	extralarge = 2/*_SHIL_EXTRALARGE*/;
+	syssmall = 3/*_SHIL_SYSSMALL*/;
+	jumbo = 4/*_SHIL_JUMBO*/;
+}  
+ 
+var getFileInfo = ..fsys.info.get;
+var shImageList = ..win.imageList.shell;
+onDrawForeground = function(scOwner,hdc,rc){ 
+	var filename = scOwner.getAttribute("filename"); 
+	if( !filename ){ return; }
+	var size = scOwner.getCustomAttribute("icon-size") : "extraLarge";
+	var shilImg =  __shilImageList[ ..string.lower(size) ] : 1/*SHIL_SMALL */;
+	
+	var sfi = getFileInfo(filename
+		,0x10/*_SHGFI_USEFILEATTRIBUTES*/ | 0x4000/*_SHGFI_SYSICONINDEX*/);
+	if( !sfi.returnValue ) return; 
+  
+  	var imgList = shImageList( shilImg );
+  	if( !imgList ) return;
+  	
+ 	var x = rc.left + (rc.right - rc.left - imgList.width) / 2;
+    var y = rc.top + (rc.bottom - rc.top - imgList.height) / 2; 
+    
+ 	imgList.draw( sfi.iIcon, hdc, x, y,1/*_ILD_TRANSPARENT*/);
+ 	if(sfi.hIcon)::DestroyIcon(sfi.hIcon);
+ 	imgList.destroy(); 
+ 	return true; 
+}

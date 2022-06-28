@@ -1,0 +1,29 @@
+//添加信的数据  
+
+ new=function(c) begin
+ 	var title=muchzz('new +-t([\u4e00-\u9fa5a-zA-Z0-9]+)',c);//匹配列表行数
+ 	if(!title){
+		console.log("No title.");
+ 		return ; 
+ 	}
+ 	title='&title='+inet.url.encode(title);
+	
+ 	var remark=muchzz('new +-t.+-r([\u4e00-\u9fa5a-zA-Z0-9]+)',c);//匹配列表行数
+ 	if(remark){
+		remark='&remark='+inet.url.encode(remark);
+		
+	}else{
+ 		console.log("No remark,but still post the data!");
+		remark='';
+ 	}
+	
+ 	console.log("post data...");
+	
+ 	var h,e=getWebData('op=add'+title+remark);
+	
+ 	if(e==""){
+ 	 console.log("Success,Id:",h);
+	 var id=muchzz('id:([0-9]+)',h);//匹配列表行数
+	 mdf('mdf -i'+id);//此处调用ls来进入修改项目中去。
+ 	}
+ end;

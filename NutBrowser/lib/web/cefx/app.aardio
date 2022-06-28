@@ -1,0 +1,190 @@
+﻿import web.cefx;
+import web.socket.server;
+import web.socket.jsonServer;
+import web.rpc.jsonServer;
+
+namespace web.cefx;
+
+class app{
+	ctor( winform,settings ){
+		this.__browser = ..web.cefx( winform,settings );
+		
+		this._form = winform;
+		this.ws = ..web.socket.server(); 
+		this.rpc = ..web.socket.jsonServer(this.ws);
+		this.http = this.ws.httpServer;
+		
+		this.ws.onUpgradeToWebsocket = function(hSocket,request,response,protocol,origin){    
+    		if( request.path == "/rpc/ws" ){
+        		return this.rpc.start(hSocket);
+    		} 
+    		response.close();
+		}
+		
+		this.ws._onClientClosed = function(hSocket){
+			
+		}
+		
+		this.ws.onError = function(hSocket,err){
+			errput(err,"WebSocket Error");
+		}
+		
+		this.ws.onOpen = function(hSocket){
+			this.rpc.notify(hSocket,"rpcClientId",tonumber(hSocket) );
+		}
+		
+		this.ws.onClose = function(hSocket,err){
+			if(this.onClose){
+				return this.onClose(hSocket,err);
+			}
+		}
+			
+		this.httpHandler = {
+			["/aardio.js" ] = function(response,request){
+				var ip,port = this.ws.getLocalIp();
+				var js = ..string.replace($"~\lib\electron\app\.build\aardio\index.js"
+    				,"@{{{$rpcServerPort}}}",tostring(port));
+    			response.contentType = "text/javascript";
+    			response.write(js) 
+			}
+			["/favicon.ico" ] = function(response,request){
+				if(this.favicon){
+    				response.contentType = "image/x-icon";
+    				response.write( ..string.loadBuffer(this.favicon) ) 
+    			}
+			}
+			["/rpc/http"] = function(response,request){
+				var jsonServer = ..web.rpc.jsonServer(); 
+				jsonServer.rpc.external = this.rpc.external;
+				jsonServer.rpc.onError = this.onHttpRpcError;
+				var rpcSocket = topointer( request.headers["rpc-client-id"] );
+    			if(rpcSocket) {
+    				this.hActiveSocket = rpcSocket;
+					jsonServer.rpc.run(rpcSocket);
+				}
+				else {
+    				error("错误的RPC请求，请求头缺少：rpc-client-id",2)
+    			}
+			}
+		}
+		
+		this.http.run( 
+    		function(response,request){
+  				response.headers["Access-Control-Allow-Origin"] = "*";
+    			response.headers["Access-Control-Allow-Headers"] = "Content-Type, Rpc-Client-Id, *";
+    			if(request.method != "OPTIONS"){
+					var handler = this.httpHandler[request.path];
+    				if( handler ) return handler(response,request);
+        			response.loadcode( request.path  );
+				}
+    		} 	
+		);
+		
+		this.serverIp = "127.0.0.1";
+		this.serverPort = null;
+	};
+	publish = function(...){
+		this.rpc.publish(...)
+	};
+	survey = function(...){
+		this.rpc.survey(...)
+	};
+	xcall = function($,method,...){
+		if( type($) == "string" )return this.rpc.xcall(this.getActiveSocket(),method,...);
+		return this.rpc.xcall($ : this.getActiveSocket(),method,...);
+	};
+	notify = function($,method,...){
+		if( type($) == "string" )return this.rpc.notify(this.getActiveSocket(),method,...);
+		return this.rpc.notify($ : this.getActiveSocket(),method,...);
+	};
+	doScript = function($,js,...){
+		if( ... !== null ) js = ..string.format(js,...);
+		return this.notify($,"doScript",js);
+	};
+	callback = function(name,func){
+		if( type(name) != type.string ) error("参数@1必须是字符串",2);
+		if( (func!==null) && (type(func) != type.function )  )error("参数@2必须是函数对象",2);
+		this.rpc.xcallback[name] = func;
+	}; 
+	getActiveSocket = function(){
+		return this.rpc.hActiveSocket;
+	};
+	getBrowser = function(){
+		return this.__browser; 	
+	};
+	getUrl = function(url){
+		return this.http.getUrl(url);
+	};
+	onQuit = function(){
+		
+	};
+	start = function(indexUrl){
+		this.external = ..table.mix( this.external,{
+			quit = function(){
+				..win.quitMessage();
+				this.onQuit();
+			};
+			hitClose = function(){
+				this._form.hitClose();
+			};
+			hitCaption = function(){
+				this._form.hitCaption();
+			};
+			isZoomed = function(){
+				var hwnd = ..win.getRoot(this._form.hwnd);
+				return  ..win.isZoomed(hwnd); 
+			}; 
+			hitMax = function(){ 
+				return this._form.hitMax();;
+			};
+			hitMin = function(){
+				return this._form.hitMin();;
+			};  
+			print = function(){
+				if(!this.hwndChrome)return;
+   				..winex.key.combine(this.hwndChrome,"CTRL","P")
+			};   
+			showDevTools = function(){
+				this.__browser.showDevTools()
+			};
+			$onLoadUrl = function($,url){};
+		});
+		
+		this.rpc.external = this.external;
+		this.ws.start(this.serverIp,this.serverPort);
+		
+		this.__browser.waitBrowser();
+		this.__browser.go( this.http.getUrl(indexUrl) );
+	};
+}
+
+/**intellisense()
+web.cefx.app =  使用CEF3浏览器组件(Chromium内核)创建应用程序
+web.cefx.app(.(winform) = 使用CEF3浏览器组件(Chromium内核)创建应用程序\n可选在参数@2中用一个表指定默认onCreate事件中的cefSettings参数
+web.cefx.app() = !webkitxcefapp.
+end intellisense**/
+
+/**intellisense(!webkitxcefapp)
+ws = aardio创建的WebSocket服务器\n!stdwebsocketserver.
+rpc = aardio创建的JSON-RPC服务端\n!stdwebsocketjsonserver.
+http = aardio创建的HTTP服务器\n!stdasynHttpServer.
+serverIp = 指定嵌入服务器的监听IP\n默认值为 "127.0.0.1",仅限本机可以访问\n如果希望外网可以访问,可以赋值为null即可\n在调用start函数以前指定此属性才有效
+serverPort = 指定嵌入服务器的监听端口\n建议保持默认值null\n不指定端口可以随机分配空闲端口，不会出现端口冲突的问题\n在调用start函数以前指定此属性才有效
+publish(.(method,->->->) = 主动向所有客户端发送通知\nmethod指定网页客户端方法名,\n可添加任意个调用参数
+survey(.(method,->->->) = 发起调查任务,\n调用所有网页客户端的同名函数,\nmethod指定客户端方法名,\n可添加任意个调用参数\n\n请使用callback函数指定调查结束后客户端回调的函数
+notify(.($,"method",->->->) = 调用指定chrome函数,但不需要客户端回调反馈,\n\n参数@1指定客户端套接字句柄,\nRPC服务端远程回调函数名首字符为$时,\n第一个回调$参数即为当前客户端套接字句柄,\n除非熟悉getActiveSocket函数导致的潜在问题,请不要省略$参数
+xcall(.($,"method",->->->) = 调用chrome函数,\n参数@1指定客户端套接字句柄,\nRPC服务端远程回调函数名首字符为$时,第一个回调$参数即为当前客户端套接字句柄,\n除非熟悉getActiveSocket函数导致的潜在问题,请不要省略$参数\n\n在chrome的js代码使用 aardio.on("method")\n添加允许aardio调用的js回调函数.\n\n可选使用callback函数指定一个同名回调函数按收本次调用chrome的返回值 
+callback(name,callback) = @.callback("__/*要接收返回值的JS函数名,\n回调叁数$为RPC客户端套接字句柄\n成功result为返回值,失败err为错误信息*/",function($,result,err){\n	\n})
+doScript(.($,js,->->->) = 在chrome中执行javascript代码,忽略返回值,\n在js参数后可选指定多个字符串格式化参数用于调用string.form格式化代码,\n\n参数@1指定客户端套接字句柄,\nRPC服务端远程回调函数名首字符为$时,\n第一个回调$参数即为当前客户端套接字句柄,\n除非熟悉getActiveSocket函数导致的潜在问题,请不要省略$参数
+external = @.external = {
+    __/*可以在这里指定允许chrome访问的对象和函数\n在chrome里引用虚拟的"/aardio.js"导入aardio对象即可访问这里的成员函数,\n必须在调用start函数以前设置此对象才能生效*/
+}
+getActiveSocket() = 获取RPC服务端当前活动套接字句柄\n应当在RPC回调的第一句代码中获取此句柄,因为执行其他代码都有可能导致其他客户端变为活动客户端
+start(__) = 启动chrome应用\n参数可以指定资源目录下的aardio文件,\naardio会自动使用嵌入HTTP服务器调用该文件\n注意不允许在参数中直接指定远程网址,\n但是可以在aardio文件中跳转到远程网址
+httpHandler = @.httpHandler["/test.js" ] = function(response,request){
+	__/*自定义HTTP处理程序\n键为请求的路径,值为处理函数*/
+}
+favicon = 指定窗口图标路径\n默认为/res/favicon.ico
+getBrowser() = 获取cef3浏览器控件对象\n!webkitxcef.
+end intellisense**/
+

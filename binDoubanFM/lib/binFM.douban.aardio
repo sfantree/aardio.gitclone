@@ -1,0 +1,506 @@
+﻿//douban 豆瓣API相关
+namespace binFM.douban{
+	import web.json;
+	import web.msxml;
+	
+	
+	history = ""; // 豆瓣为防止短期内出现重复而设的参数 
+	count_h = 0; // 防止h参数过长
+	
+
+	/*
+ 	 * 获取token
+ 	 */
+	getToken = function(email,pass,response) {
+		import inet.url;
+		..binFM.monitor.info(email,pass,response);
+		if(!response) {
+			..binFM.monitor.info("重新获取token");
+			..binFM.wget2("https://www.douban.com/j/app/login?email=" ++ ..inet.url.encode(email) ++ "&password=" ++ ..inet.url.encode(pass) ++ "&app_name=radio_desktop_win&version=100",,"getToken",email,pass);
+		}
+		if(response) {
+			json = ..binFM.string.toGB2312(response);
+			response = null;
+			try{
+				json_tab = ..web.json.parse(json);
+			}
+			if(!json_tab || type(json_tab)!="table") {
+				..win.msgboxTimeout('未能登录成功，请稍后再试。\r\nPS：可能需要更换IP...',.._app,5000);
+				return false;
+			}
+			if(json_tab["err"]=="ok") {
+				..userId = json_tab["user_id"];
+				..token = json_tab["token"];
+				..expire = json_tab["expire"];
+				..userName = json_tab["user_name"];
+				
+				..binFM.db.set("userId",..userId);
+				..binFM.db.saveUser(email,pass,..userName,"",..userId,..userLiked,..token,..expire,tonumber(..time.now())*1000);
+				..binFM.monitor.info("获取token成功");
+				
+				..binFM.to.login(true,"ok");
+				return true;
+			}
+			else ..binFM.to.login(true,"failed");
+		}
+		return;
+	}
+	
+
+	/*
+	 * 生成发送给豆瓣的播放历史报告
+	 */
+	historyString = function(sid,todo="skip") {
+		if(!sid) return false;
+		if(todo && todo=="skip") history = ..string.replace(history, "@@"++tostring(sid)++":p", tostring(sid)++":s");
+		else if(todo && todo=="play") {
+		if(count_h % 10 == 0) history = ''; // h参数最多只能带20首歌
+			if(not ..string.find(history,"@" ++ tostring(sid))) {
+				history = history ++ tostring(sid) ++ ":p|";
+				count_h ++ ;
+			}
+		}
+		..binFM.monitor.info("h参数",history);
+		return history
+	}
+	
+		
+	/*
+ 	 * 获取歌曲
+ 	 * -- channelId: 0 私人兆赫 | -3 红心兆赫 | -100 某歌手 | -10 某专辑
+ 	 * -- replace: true 更换频道（重建播放列表） | false 当前频道（追加播放列表）
+ 	 * -- id: 当channelId为-100或-10时表示专辑id或歌手id
+ 	 */
+	getSongs = function(channelId,newChannel=true,id,name,response) {
+		if(!response) {
+			if(!newChannel) {
+				if(!..noAPNG) ..binFM.ui.css("#listToAdd","background-image","url(/res/images/listAddLoading.png)");
+				else {
+					..binFM.ui.css("#listToAdd","background-image","none");
+					..binFM.ui.html("#listToAdd","正在加载...");
+				}
+			}
+			if(!channelId) channelId = 0;
+			channelId = tostring(channelId);
+	
+			if(!..songs_json || ..songs_json=='' || newChannel) { // 如果 报告加红心或删除 未返回新的播放列表  或  已更换频道
+				..math.randomize();
+				..binFM.monitor.info("获取歌曲:"++channelId,..userId,..expire,..token,..userLiked);
+				select(channelId) {
+					case "-3" { // 红心兆赫
+						..binFM.monitor.info("红心");
+						if(!..login) return false;
+						else ..binFM.wget2("http://www.douban.com/j/app/radio/liked_songs?count=" ++ ..userLiked ++"&version=100&app_name=radio_desktop_win&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&formats=aac",,"getSongs",channelId,newChannel,id,name);
+					}
+					case "-100" { // 自定义 某歌手
+						if(!id || !name) id,name = ..binFM.artistId();
+						if(id && name) {
+							..binFM.monitor.info("歌手频道",id,name);
+							..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=0&context=channel%3A0|musician_id%3A" ++ id ++ "&channel=0&type=n&r=" ++ ..math.random(0,1000000) ++ "&h=" ++ history,,"getSongs",channelId,newChannel,id,name);
+						}
+					}
+					case "-10" { // 自定义 某专辑
+						if(!id || !name) id,name = ..binFM.albumId();
+						if(id && name) {
+							..binFM.monitor.info("专辑频道",id,name);
+							..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=0&context=channel%3A0|subject_id%3A" ++ id ++ "&channel=0&type=n&r=" ++ ..math.random(0,1000000) ++ "&h=" ++ history,,"getSongs",channelId,newChannel,id,name);
+						}
+					}
+					else {
+						..binFM.monitor.info("常用频道");
+						..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=0&channel=" ++ channelId ++ "&type=p&r=" ++ ..math.random(0,1000000) ++ "&h=" ++ history,,"getSongs",channelId,newChannel,id,name);
+					}
+				} 
+			}
+			else {
+				response = ..songs_json;
+				..songs_json = null;
+				getSongs(channelId,newChannel,id,response)
+			}
+		}
+		else { // 异步获取结果之后	
+			if(response=="") {
+				..binFM.ui.noSongs("timeout");
+				return false;
+			}
+			var json, json_tab;
+			json = ..binFM.string.toGB2312(response);
+			response = null;
+			
+			try {
+				json_tab = ..web.json.parse(json);
+			}
+			if(!json_tab) {
+				..binFM.ui.noSongs("timeout");
+				return false;
+			}			
+			json = null;
+			
+			var songs = {};
+			if(channelId == -3 && ..login) songs = json_tab["songs"];
+			else songs = json_tab["song"];
+			..binFM.monitor.info("共获取歌曲数 " ++ tostring(#songs));
+			
+			if(#songs==0) {
+				if(..channelId_now!=channelId || !newChannel) {
+					..binFM.ui.noSongs("back");
+					..channelId = ..channelId_now;
+					return false;
+				}
+				if(..channelId_now==channelId) {
+					..binFM.ui.noSongs("noSongs");
+					return false;
+				}
+			}
+			
+			var i_noAd;
+			var listHTML;
+			var added = false; // 判断是否已经在播放列表中
+			var media;		
+			if(songs) {
+				if(..randomSongs) songs = ..binFM.randTable(songs); // 乱序排列
+				if(newChannel) {
+					i_noAd = 0;
+					..binFM.ui.html("#listbox","");
+					..songs_noAd = {};
+				}
+				else {
+					i_noAd = ..table.count(..songs_noAd); // 从上次数组结束处开始
+				}
+				// 数组下标从1开始
+				
+				listHTML = ..binFM.ui.playlist("header",,newChannel);
+				
+				if(channelId == -3) ..binFM.db.dbBegin();
+				for(i=1;#songs;1) {
+					// 判断是否已经在播放列表中
+					added = false;
+
+					if(channelId=="-100") {
+						added = true;
+						if(..string.find(songs[i]["artist"],"@"++name)) added = false;
+						if(..string.find(name,"@"++songs[i]["artist"])) added = false;
+					}
+					if(channelId=="-10") {
+						// 豆瓣自身原因，专辑频道的歌曲往往只有一首或完全没有属于该专辑的，故该过滤取消
+						if(newChannel && #songs>2) {
+							added = true;
+							if(songs[i]["albumtitle"]==name) added = false;
+						}
+						else added = false;
+					}
+	
+					for(j=1;#..songs_noAd;1){
+						if(!songs[i] || !..songs_noAd[j]) {
+							added = true;
+							break;
+						}
+						if(songs[i]["title"] == ..songs_noAd[j]["title"] || songs[i]["url"] == ..songs_noAd[j]["url"] || songs[i]["sid"] == ..songs_noAd[j]["sid"]) {
+							added = true;
+							break;
+						}
+					}
+									
+					if(not ..string.find(songs[i]["title"],"@@豆瓣") 
+					&& not ..string.find(songs[i]["artist"],"@@豆瓣") 
+					&& not ..string.find(songs[i]["albumtitle"],"@@豆瓣") 
+					&& ..string.find(songs[i]["url"],"@@.mp3") 
+					&& !..binFM.auto.checkDel(false,songs[i]["title"],songs[i]["artist"],songs[i]["albumtitle"],channelId)
+					&& !added) {
+						i_noAd ++ ;
+						..songs_noAd[i_noAd] = songs[i];
+						..songs_noAd[i_noAd]["picture"] = ..string.replace(..songs_noAd[i_noAd]["picture"],"@@mpic","lpic");
+						..songs_noAd[i_noAd]["i"] = i_noAd;
+						listHTML += ..binFM.ui.playlist("body",songs[i]);
+
+						if(channelId == -3) ..binFM.db.recordSong_like(songs[i]);
+					}
+				}
+				if(channelId == -3) ..binFM.db.dbCommit();
+				
+				listHTML += ..binFM.ui.playlist("footer");
+				..binFM.ui.playlist("update",listHTML,newChannel);						
+				
+				songs = null;
+				listHTML = null;
+				collectgarbage("collect"); // 内存回收			
+				
+				// 播放歌曲
+				if(newChannel) {
+					..now_i = 1;
+					..binFM.play.start(1);
+				}
+				
+				// 返回成功的标志
+				..channelId_now = channelId;
+				if(channelId==-10) ..binFM.to.playAlbum(id,name,"ok");
+				if(channelId==-100) ..binFM.to.playArtist(id,name,"ok");				
+			}
+		}
+	} 
+	
+	
+	/*
+	 * 为曲目加红心
+	 */
+	like = function(song,noCancel,response,succeed) {
+		if(!response) {
+			if(song) var sid = song["sid"];
+			else return false;
+			if(song["like"]=="0") {
+				history = ..string.replace(history, "@@"++sid++":p", sid++":r");
+				..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=" ++ sid ++ "&h=" ++ history ++ "&channel=" ++ ..channelId ++ "&type=r",,"like",song,noCancel);
+			}
+			else if(song["like"]=="1" && !noCancel) {
+				history = ..string.replace(history, "@@"++sid++":p", sid++":u");
+				..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=" ++ sid ++ "&h=" ++ history ++ "&channel=" ++ ..channelId ++ "&type=u",,"like",song,noCancel);
+			} 
+		}
+		else {
+			if(song["like"]=="0") {
+				if(succeed && succeed=="ok") {
+					..songs_json = response;
+					if(..songs_noAd[song["i"]]) ..songs_noAd[song["i"]]["like"] = 1;
+					..binFM.ui.like("liked",song["sid"],..now_i==tonumber(song["i"]));
+					//if(noCancel) ..binFM.ui.showCurrent(..songs_noAd[..now_i]);
+					response = null;
+				}
+				else {
+					..binFM.ui.like("toLike",song["sid"],..now_i==tonumber(song["i"]));
+					..win.msgboxTimeout("请求超时，请稍候再试",.._app,3000);
+				}
+			}
+			else if(song["like"]=="1" && !noCancel) {
+				if(succeed && succeed=="ok") {
+					..songs_json = response;
+					if(..songs_noAd[song["i"]]) ..songs_noAd[song["i"]]["like"] = 0;
+					..binFM.ui.like("toLike",song["sid"],..now_i==tonumber(song["i"]));	
+					response = null;
+				}
+				else {
+					..binFM.ui.like("liked",song["sid"],..now_i==tonumber(song["i"]));
+					..win.msgboxTimeout("请求超时，请稍候再试","斌哥豆瓣FM第三方客户端",3000);
+				}
+			}
+		}
+		song = null;
+		return;
+	}
+
+
+	/*
+ 	 * 删除歌曲
+ 	 */
+	del = function(sidD,response) {
+		if(!response) {
+			history = ..string.replace(history, "@@"++sidD++":p", sidD++":s");
+			..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=" ++ sidD ++ "&h=" ++ history ++ "&channel=" ++ ..channelId ++ "&type=b",,"del",sidD);
+		}
+		else {
+			..songs_json = response;
+			response = null;
+			return true;
+		}
+	}
+
+
+	/*
+	 * 发送单首歌曲播放完成的报告
+	 */
+	sendEnded = function(sid) {
+		..binFM.wget2("http://douban.fm/j/app/radio/people?app_name=radio_desktop_win&version=100&user_id=" ++ ..userId ++ "&expire=" ++ ..expire ++ "&token=" ++ ..token ++ "&sid=" ++ sid ++ "&channel=" ++ ..channelId ++ "&type=e",,"sendEnded",sid);
+		return;
+	}
+	
+	
+	/*
+	 * 获取歌曲详细信息
+	 */
+	getSongDetail = function(sid,response,sync) {
+		if(!sid) return false;
+		var result = {};
+		var json,title,artist_name,artist_id,album_id,album_title,album_intro,artist_genre,artist_photo,artist_albums,artist_intro;
+		var song = ..binFM.song(sid);
+		var i;
+		if(song) {
+			i = song["i"];
+			title = song["title"];
+			album_id = song["aid"];
+			album_title = song["albumtitle"];
+			album_pic = song["picture"];
+		}
+		if(!response) {
+			if(!..song_detail[sid]) {
+				var url = "http://music.douban.com/api/song/info?song_id="++sid;
+				if(!sync) ..binFM.wget2(url,,"getSongDetail",sid,lrc);
+				else {
+					..binFM.monitor.info("**同步获取歌曲详情");
+					var response_ = ..binFM.invoke2(..binFM.wget,url);
+					result = getSongDetail(sid,response_);
+					return result;
+				}
+			}
+			else json = ..song_detail[sid];
+		}
+		else if(response!="") {
+			json = ..binFM.string.toGB2312(response);
+			..song_detail[sid] = json;
+			response = null;		
+		}
+		if(json) {
+			try{
+				json_tab = ..web.json.parse(json);
+				json = null;
+			}
+			if(json_tab) {
+				result["sid"] = sid;
+				result["title"] = title;
+				result["picture"] = album_pic;
+				result["album"] = album_title;
+				// 获取歌词
+				if(json_tab["lyric"] && ..string.trim(json_tab["lyric"])!='' && ..string.trim(json_tab["lyric"])!='[no_lyric]') {
+					result["lrc"] = json_tab["lyric"];
+				}
+				// 获取艺术家名称
+				if(json_tab["artist_name"] && ..string.trim(json_tab["artist_name"])!='') {
+					artist_name = json_tab["artist_name"];
+					result["artistName"] = artist_name;
+				}
+				// 获取艺术家id
+				if(json_tab["artist_id"] && ..string.trim(json_tab["artist_id"])!='') {
+					artist_id = json_tab["artist_id"];
+					if(i) ..songs_noAd[i]["artistId"] = artist_id;
+					result["artistId"] = artist_id;
+				}
+				// 获取当前专辑Id
+				if(json_tab["subject_id"] && ..string.trim(json_tab["subject_id"])!='') {
+					album_id = ..string.trim(json_tab["subject_id"]);
+					result["albumId"] = album_id;
+				}
+				// 获取当前专辑介绍
+				album_intro = "木有介绍..";
+				if(json_tab["album_intro"] && ..string.trim(json_tab["album_intro"])!='') {
+					album_intro = ..string.trim(json_tab["album_intro"]);
+					result["albumBrief"] = album_intro;
+				}
+				..binFM.ui.html("#album_intro",album_intro,..wbLayout_album);
+				// 获取艺术家流派
+				if(json_tab["artist_genre"] && ..string.trim(json_tab["artist_genre"])!='') {
+					artist_genre = json_tab["artist_genre"];
+					result["artistGenre"] = artist_genre;
+					if(i) ..songs_noAd[i]["genre"] = artist_genre;
+				}
+				// 获取艺术家介绍
+				if(json_tab["artist_intro"] && ..string.trim(json_tab["artist_intro"])!='') {
+					artist_intro = json_tab["artist_intro"];
+					result["artistBrief"] = artist_intro;
+				}
+				// 获取艺术家图片
+				if(json_tab["photos"][1] && ..string.trim(json_tab["photos"][1]["url"])!="") {
+					artist_photo = json_tab["photos"][1]["url"];
+					result["artistPhoto"] = artist_photo;
+					if(i) ..songs_noAd[i]["artist_photo"] = artist_photo;
+					..binFM.monitor.info("艺术家照片",artist_photo);
+				}
+				// 获取艺术家全部专辑
+				if(json_tab["albums"]) {
+					artist_albums = json_tab["albums"];
+					artist_albums = ..table.tostring(artist_albums);
+					result["albums"] = artist_albums;
+				}
+				
+				..binFM.db.dbBegin();
+				if(artist_id && artist_name) ..binFM.db.saveArtist(artist_id,artist_name,artist_photo,artist_albums,artist_intro);
+				..binFM.monitor.info("saveAlbum",album_title);
+				if(album_id && album_title) ..binFM.db.saveAlbum(album_id,album_title,album_intro,album_pic,artist_id,artist_name);				
+				..binFM.db.recordSong(sid,-1,result["lrc"],result["artistGenre"]);
+				..binFM.db.dbCommit();
+				if(..albumFormShown) ..binFM.ui.showAlbum(album_intro);
+				
+				json_tab = null;
+				return result; // 返回至 ..binFM.listener.callback();
+			}
+		}		
+	}
+
+
+	/*
+	 * 获取专辑详细信息
+	 */
+	getAlbumDetail = function(albumId,response,sync) {
+		if(!albumId) return;
+		if(!response) {
+			var url = "http://api.douban.com/music/subject/" ++ albumId;
+			if(!sync) ..binFM.wget2(url,,"getAlbumDetail",albumId);
+			else {
+				..binFM.monitor.info("**同步获取专辑详情");
+				var response_ = ..binFM.invoke2(..binFM.wget,url);
+				result = getAlbumDetail(albumId,response_);
+				return result;
+			}
+		}
+		else {
+			var result = {};
+			response = ..binFM.string.toGB2312(response);
+			if(..string.indexOf(response,"Your API access")) {
+				..binFM.monitor.info("API被封");
+				return false;
+			}
+			if(not ..string.find(response,'@@<db:attribute index="')) {
+				..binFM.monitor.info("专辑无法播放，剔除");
+				result["albumId"] = -1;
+				return result;
+			}
+			var photo1,photo2 = ..string.match(response ,"http\:\/\/img([\d-]+)\.douban\.com\/spic\/(.*?)\.jpg");
+			if(photo1 && photo1!="" && photo2 && photo2!="") var photo = "http://img" ++ photo1 ++ ".douban.com/spic/" ++ photo2 ++ ".jpg";
+			if(photo) {
+				//..binFM.monitor.info("专辑图片：" ++ photo);
+				result["photo"] = photo;
+			}
+			var artist = ..string.match(response ,"\<name\>(.*?)\<\/name\>");
+			if(artist) {
+				..binFM.monitor.info("!!!artist"++artist);
+				result["artistName"] = artist;		
+			}
+			else result["artistName"] = "unknown";
+			var xmlDoc = web.msxml();
+			try {
+				xmlDoc.loadXml(response);
+			}
+			response = null;
+			if(xmlDoc) {
+				result["albumId"] = albumId;
+				var qNodes = xmlDoc.queryNodes(tagName="title");
+				if(qNodes.text && qNodes.text!="") {
+					//..binFM.monitor.info("专辑名："++qNodes.text);
+					result["title"] = qNodes.text;
+				}
+				var qNodes = xmlDoc.queryNodes(tagName="name");
+				/*if(qNodes.text && qNodes.text!="") {
+					..binFM.monitor.info("歌手名："++qNodes.text);
+					result["artistName"] = qNodes.text;
+				}*/
+				result["brief"] = "木有介绍...";
+				var qNodes = xmlDoc.queryNodes(tagName="summary");
+				if(qNodes.text && qNodes.text!="") {
+					//..binFM.monitor.info("介绍："++qNodes.text);
+					var result_ = qNodes.text;
+					if(result_ && result_!="") result["brief"] = result_;
+				}
+				xmlDoc = null;
+			}
+			if(result && result["albumId"] && result["title"] && result["photo"]) {
+				..binFM.monitor.info("=======获取成功");
+				response = null;
+				return result; // 返回至 ..binFM.listener.callback();
+			}
+			else return false;
+		}
+	}
+}
+
+
+/**intellisense(binFM.douban)
+getSongs(channelId,true) = 切换频道，并获取歌曲
+getSongs(channelId,false) = 加载更多当前频道的歌曲
+end intellisense**/

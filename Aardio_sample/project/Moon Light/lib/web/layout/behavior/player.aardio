@@ -1,0 +1,81 @@
+﻿//player mpv播放器容器
+import helper;
+import abz.mpv;
+import win.ui.tracker
+
+namespace web.layout.behavior.player{ 
+	onElementControlCreated = function (ltTarget,ltOwner,reason,behaviorParams) {
+		var ctrl = ltOwner.getCtrl()
+		frmPlayer = ctrl.loadForm( "\res\layout\frmPlayer.aardio" )
+		
+		mpv = ..abz.mpv( frmPlayer )
+		
+		var p = {
+			["cache-size"] = function(v){
+				if( v ){
+					..io.print("cache-size 总缓存", v ++ " kb", v / 1024 ++ " MB")
+				}
+			}
+			["cache-used"] = function(v){
+				if( v ){
+					..io.print("cache-used 已用缓存", v ++ " kb", v / 1024 ++ " MB")
+				}
+			}
+			["cache-buffering-state"] = function(v){
+				if( v ){
+					..io.print("cache-buffering-state 缓冲状态", v ++ "%")
+				}
+			}
+			["paused-for-cache"] = function(v){
+				if( v ){
+					..io.print("paused-for-cache 暂停播放，等待缓存中", v)
+				}
+			}			
+			seeking = 1;						
+		}
+		for(k,v in  p ){
+			mpv.observeProperty(k)
+		
+		}
+		mpv.onPropertyChange = function(name,value){
+			var func = p[name]
+			if( type(func) == type.function ){
+				func(value)
+			}
+			elseif( type(func) == type.string ){
+				..io.print( name, value )
+			}
+			
+		}
+		
+		//启动一个定时器用于分发播放器事件（不然不会触发任何事件）
+		ctrl.addtimer( 5, 
+			function(){ 
+				var event = mpv.waitEvent(0); 
+				if( event.id == 8/*_MPV_EVENT_FILE_LOADED*/){
+/*
+					winform.cbSubtitles.trackList();//获取视频加载的字幕
+					winform.text = mplayer.getMediaTitle();
+					winform.btnPlay.text = "停止";
+*/
+				}
+			} 
+		)				
+				
+		var mpvOption = {
+    		["osd-font-size"] = 25;// 字体大小
+    		["osd-bold"] = "yes";// 字体大小    
+    		["osd-spacing"] = 2;// 字体间距
+    		["osd-align-x"] = "center";// 显示位置 
+    		["osd-align-y"] = "bottom";
+    		["osd-back-color"] = "#171111";// 背景颜色
+		}
+		
+		for(k,v in mpvOption){
+			mpv.setOption(k,v)
+		}		
+	} 
+	onSize = function (ltOwner) {
+		ltOwner.adjustCtrl(); 
+	}
+}

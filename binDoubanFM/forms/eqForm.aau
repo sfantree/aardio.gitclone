@@ -1,0 +1,160 @@
+/*
+ **************************
+ *
+ * 豆瓣FM 播放历史列表窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import web.layout;
+import web.layout.behavior.windowCommand;
+import web.layout.behavior.tabs;
+
+var eqForm = ..win.form(
+	parent=...;
+	text="自动加红心 / 自动屏蔽 - "++_app;
+	border="none";
+	right=410;
+	bottom=356;
+	exmode="toolwindow");
+	
+eqForm.transparent(true); // 透明窗体
+wbLayout_eq = web.layout(eqForm,0xFFFF/*_HL_HANDLE_ALL*/); // 接受onkeydown事件
+wbLayout_eq.go("/res/eq.html");
+
+
+
+/* 
+ * 滑块滑动事件
+ */
+wbLayout_eq.onButtonStateChanged = {
+	eq0_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq0_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/36*220))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][2] = tonumber(ltTarget.value);
+		..binFM.play.setEQ();
+	}
+	eq1_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq1_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][3] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();
+	}	
+	eq2_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq2_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][4] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();
+	}	
+	eq3_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq3_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][5] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq4_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq4_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][6] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq5_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq5_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][7] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq6_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq6_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][8] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq7_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq7_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][9] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq8_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq8_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][10] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq9_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq9_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][11] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+	eq10_slider = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.css("#eq10_bar","height",tostring(..math.floor(tonumber(ltTarget.value)/30*160))++"px",..wbLayout_eq);
+		..eqSetups[..eqId][12] = tonumber(ltTarget.value) - 15;
+		..binFM.play.setEQ();		
+	}	
+
+}
+
+
+
+
+/*
+ * 下拉列表事件
+ */
+wbLayout_eq.onSelectSelectionChanged = {
+	eqList = function (ltTarget,ltEle,reason,behaviorParams) {
+		..binFM.ui.showEQSliders(tonumber(ltTarget.value));
+		..eqId = tonumber(ltTarget.value);
+		..binFM.play.setEQ();
+	}
+}
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_eq.onButtonClick = {
+	enableEQ = function (layoutEle,reason,behaviorParams) { 
+		if(layoutEle.value=="true") { 
+			..enableEQ = true;
+			..binFM.play.setEQ("new");
+			..binFM.ui.showEQSliders(0);
+		}
+		else {
+			..enableEQ = false;
+			..binFM.play.removeEQ();
+			..binFM.ui.showEQSliders(-1);
+		}
+	}
+	eq_pre = function (layoutEle,reason,behaviorParams) {
+		..binFM.ui.showEQSliders(..eqId,true);
+		..binFM.play.setEQ();	
+	}
+ 	eq_close = function (layoutEle,reason,behaviorParams) { 
+		eqForm.close();
+	}
+ 	eq_close2 = function (layoutEle,reason,behaviorParams) {
+		eqForm.close();
+
+	}
+ 
+}
+
+
+
+
+/*
+ * 窗体事件
+ */
+eqForm.wndproc = {
+	[0x10/*0x10/*_WM_CLOSE*/] = function(hwnd,message,wParam,lParam) {
+		// 当窗体关闭时
+		eqForm.show(false);
+		eqFormShown = false;
+		..binFM.db.saveEQ(..eqId);
+		return "noclose";
+	}
+}
+
+//eqForm.show();
+
+
+win.loopMessage();
+
+return eqForm;

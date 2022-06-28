@@ -1,0 +1,32 @@
+﻿import aaz.libhpsocket.component.properties.tcpAgent;
+
+namespace aaz.libhpsocket.component.properties.tcpPullAgent;
+..table.mix(self, ..aaz.libhpsocket.component.properties.tcpAgent);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+fetch = function(connId, buf, len){ 
+	if(len){
+		
+	}
+	elseif(buf[["_struct"]]){
+		len = ..raw.sizeof(buf)
+	}
+	else {
+		len = #buf;
+	}
+	return _dll.HP_TcpPullAgent_Fetch(owner.pSocket, connId, buf, len);
+}
+
+peek = function(connId, buf, len){
+	if(len){
+		
+	}
+	elseif(buf[["_struct"]]){
+		len = ..raw.sizeof(buf)
+	}
+	else {
+		len = #buf;
+	}
+	return _dll.HP_TcpPullAgent_Peek(owner.pSocket, connId, buf, len);
+}

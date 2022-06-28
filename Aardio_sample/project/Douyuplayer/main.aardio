@@ -1,0 +1,536 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="简易播放器";right=959;bottom=677)
+winform.add(
+btnFullScreen={cls="button";text="全屏";left=488;top=635;right=584;bottom=665;db=1;dl=1;z=4};
+btnView={cls="button";text="查看";left=360;top=635;right=456;bottom=665;db=1;dl=1;z=2};
+custom={cls="custom";text="custom";left=0;top=0;right=960;bottom=540;ah=1;aw=1;z=5};
+danmu={cls="richedit";left=250;top=550;right=712;bottom=615;ah=1;aw=1;db=1;dt=1;link=1;multiline=1;transparent=1;vscroll=1;wrap=1;z=8};
+edRoomId={cls="edit";text="https://www.douyu.com/71771";left=120;top=635;right=344;bottom=665;db=1;dl=1;edge=1;multiline=1;z=1};
+static={cls="static";text="直播间地址";left=24;top=635;right=104;bottom=665;center=1;db=1;dl=1;transparent=1;z=3};
+static2={cls="static";text="音量";left=680;top=635;right=720;bottom=665;center=1;db=1;dl=1;transparent=1;z=7};
+trackbar={cls="trackbar";left=720;top=635;right=904;bottom=665;db=1;dl=1;max=100;min=0;z=6}
+)
+/*}}*/
+
+import mpvPlayer;
+import hpsocket.tcpPullClient;
+import thread.command;
+import time;
+import string;
+import console;
+
+var douyudanmu = {
+	server = "openapi-danmu.douyu.com";
+	port = 8601;
+	}; 
+var mpv = mpvPlayer(winform.custom);
+var tcpPullClient = hpsocket.tcpPullClient();
+winform.danmu.enablePopMenu();
+winform.danmu.setFont(point=10;name="微软雅黑");
+
+var thCmd = thread.command();
+	thCmd.onChat = function(nick, txt){
+		//mpv.setOption("osd-msg1", nick ++ "：" ++ txt );
+		winform.danmu.printf("%s：%s", nick, txt);
+	}
+
+var mpvOption = {
+	["osd-font-size"] = 35;// 字体大小
+	["osd-spacing"] = 2;// 字体间距
+	["osd-align-x"] = "center";// 显示位置 
+	["osd-align-y"] = "bottom";
+	["osd-back-color"] = "#171111";// 背景颜色
+};
+
+for(k,v in mpvOption){
+	mpv.setOption(k,v)
+}
+
+var sendData = function(s){
+	var data = {
+		int len;
+		struct msg = {
+			int len;
+			word type = 689;
+			byte cryptedField;
+			byte reservedField;
+			byte body[] = s;
+			byte e;
+		};
+	};
+
+	data.len = raw.sizeof(data.msg);
+	data.msg.len = data.len;
+	tcpPullClient.send( data,raw.sizeof(data ));
+}
+var loginreq = function(roomId){
+	sendData( "type@=loginreq/roomid@=" ++ roomId ++ "/" );
+}
+var joingroup = function(roomId){
+	sendData( "type@=joingroup/rid@=" ++ roomId ++ "/gid@=-9999/" );
+}
+var keepLive = function(){
+	sendData( "type@=mrkl/" );
+}
+
+var function get_douyu_info(link){
+	import web.json;
+	import inet.http;
+
+	if !#link
+		return null, "请填写房间号";
+
+	var rid = string.match( link, "<@www.douyu.com/@>(.+?)$" );
+	if !rid
+		return null, "房间号填写有误";
+
+	var http = inet.http();
+		
+	// 获取直播房间详情
+	var html = http.get("http://open.douyucdn.cn/api/RoomApi/room/" ++ rid);
+	http.close();
+	if !html
+		return null, "网络连接有误"; 
+
+	var r = web.json.parse(html);
+	if(r.error !== 0)
+		return null, "数据解析有误，网站可能已更新"; 
+		
+	var roomId = r.data.room_id;
+	var roomInfo = {
+		name = r.data.owner_name;
+		roomName = r.data.room_name;   
+		roomId = roomId;      
+	};
+
+	if(r.data.room_status === "2"){
+		return null, "没有开播";
+	}
+	return roomInfo, "完成";
+}
+
+var function get_tt(){
+	var tt = time.now();
+	var tt2 = tostring(tt.getMilliTime());
+	var tt1 = string.left(tt2, #tt2 - 3); 
+	var today = tostring(time(tt, "%Y%m%d"));
+	return tt1, tt2, today;
+}
+
+var function get_homejs(rid){
+	import inet.http;
+	var room_baseurl = "https://m.douyu.com/";
+	var http = inet.http();
+	var response = http.get(room_baseurl ++ rid);
+	var pattern = '"rid"\\:(\\d+)';
+	var real_rid = string.match(response, pattern);
+	if(real_rid != rid){
+		response = http.get(room_baseurl ++ real_rid);
+	}
+	var homejs = "";
+	pattern = "(function ub9[^\r\n]*).+?(var[^\r\n]*)"
+	var result = string.matches(response, pattern);
+	var str1 = string.replace(result[1][1], "eval.*;}", "strc;}");
+	homejs = str1 ++ result[1][2];
+	return homejs, real_rid;
+}
+
+var function get_sign(rid, post_v, tt, ub9){
+	//import nodeJs;
+	import crypt;
+	import web.script;
+	var jsscript = web.script("JavaScript");
+	jsscript.addCode(ub9);
+	var str3 = jsscript.script.ub98484234();
+/*
+	var res2 = nodeJs.exec(ub9 ++ "console.log(ub98484234());");
+	var str3 = "";
+	for( all,out,err in res2.each() ){
+		str3 = all;
+	}
+*/
+	str3 = string.replace(str3, "\(function[\s\S]*toString\(\)", "'");
+	var md5rb = crypt.md5(rid ++ '10000000000000000000000000001501' ++
+					tt ++ '2501' ++ post_v);
+	md5rb = string.lower(md5rb);
+	var str4 = "function get_sign(){var rb='" ++ md5rb ++ str3;
+	var str5 = string.replace(str4, "return rt;}[\s\S]*", "return re;};");
+	var str6 = string.replace(str5, '"v=.*&sign="\\+', "");
+	jsscript.reset();
+	jsscript.addCode(str6);
+	var sign = jsscript.xcall("get_sign", rid, '10000000000000000000000000001501', tt);
+/*
+	res2 = nodeJs.exec(str6 ++ "console.log(get_sign('" ++
+						rid ++ "', '10000000000000000000000000001501', '" ++
+						tt ++ "'));");
+	var sign = "";
+	for( all,out,err in res2.each() ){
+		sign = all;
+	}
+	sign = string.match(sign, "[^\r\n]+");
+*/
+	return sign;
+}
+
+var function mix_room(rid){
+	var result1 = "PKing";
+	return result1;
+}
+var function get_pre_url(rid, tt){
+	import inet.http;
+	import web.json;
+	import crypt;
+	var request_url = "https://playweb.douyucdn.cn/lapi/live/hlsH5Preview/" ++ rid;
+	var post_data = {
+		rid = rid;
+		did = "10000000000000000000000000001501";
+	}
+	var auth = string.lower(crypt.md5(rid ++ tt));
+	var header = {
+		['content-type'] = 'application/x-www-form-urlencoded';
+		rid = rid;
+		time = tt;
+		auth = auth;
+	}
+	var http = inet.http(); 
+	var response = http.post(request_url, post_data, header);
+	response = web.json.parse(response);
+	var pre_url = "";
+	var pre_url_flag = false; 
+	if(response.error == 0){
+		var real_url = response.data.rtmp_live;
+		for(k,v in real_url){
+			if(v == "mix=1"){
+				pre_url_flag = true;
+				break;
+			}
+		}
+		if(pre_url_flag){
+			pre_url = mix_room(rid);
+		} else {
+			var pattern = "^[0-9a-zA-Z]*";
+			pre_url = string.match(real_url, pattern);
+		}	
+	}
+	return pre_url;
+}
+var function get_sign_url(post_v, rid, tt, ub9){
+	import inet.http;
+	import web.json;
+	var sign = get_sign(rid, post_v, tt, ub9);
+	var request_url = "https://m.douyu.com/api/room/ratestream";
+	var post_data = {
+		v = '2501' ++ post_v;
+		did = '10000000000000000000000000001501';
+		tt = tt;
+		sign = sign;
+		ver = '219032101';
+		rid = rid;
+		rate = '-1';
+	};
+	header = {
+		['Content-Type'] = 'application/x-www-form-urlencoded';
+		['User-Agent'] = 'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Mobile Safari/537.36';
+	};
+	var http = inet.http(); 
+	var response = http.post(request_url, post_data, header);
+	response = web.json.parse(response);
+	var result1 = "";
+	var result1_flag = false; 
+	if(response.code == 0){
+		var real_url = response.data.url;
+		for(k,v in real_url){
+			if(v == "mix=1"){
+				result1_flag = true;
+				break;
+			}
+		}
+		if(result1_flag){
+			result1 = mix_room(rid);
+		} else {
+			var pattern = "live/(\d{1,8}[0-9a-zA-Z]+)_?[\d]{0,4}/playlist";
+			result1 = string.match(real_url, pattern);
+		}	
+	} else {
+		result1 = 0;
+	}
+	return result1;
+}
+var function get_real_url(link){
+    var roomInfo, err = get_douyu_info(link);
+	if(!roomInfo){
+		return roomInfo, err;
+	}
+	var rid = roomInfo.roomId;
+	var tt = {get_tt()};
+	var url = get_pre_url(rid, tt[2]);
+	if(url !== ""){
+		return "http://tx2play1.douyucdn.cn/live/" ++ url ++ ".flv?uuid=", roomInfo;
+	} else {
+		var homejs, real_rid = get_homejs(rid);
+		var real_url = get_sign_url(tt[3], real_rid, tt[1], homejs);
+		if(real_url != 0){
+			real_url = "http://tx2play1.douyucdn.cn/live/" ++ real_url ++ ".flv?uuid=";
+		} else {
+			real_url = "";
+		}
+		
+		return real_url, roomInfo;
+	}
+	
+}
+
+var function get_url_from_js(link){
+	//从播放页源代码中直接匹配地址
+	import web.json;    
+	import inet.http;
+	var roomInfo, err = get_douyu_info(link);	
+	if(!roomInfo){
+		return roomInfo, err;
+	}
+	var http = inet.http();
+	var header = {
+		['Content-Type'] = 'application/x-www-form-urlencoded';
+	};
+	html = http.get(link, header);
+	if( !html ){
+		return null, "网络连接有误"; 
+	}
+	var r = string.match(html, "live/(" ++ roomInfo.roomId ++ "[\d\w]*?)_");
+	if( r ){
+		return "http://tx2play1.douyucdn.cn/live/" ++ r ++ ".flv?uuid=", roomInfo; 
+	}
+	return null, "数据解析有误，网站可能已更新";
+}
+
+var function get_yy_info(link){
+	import web.json;    
+	import inet.http;
+	var yyapi = "http://www.yy.com/api/liveInfoDetail/%s/%s/0";
+	var header = {
+		['referer'] = 'http://wap.yy.com/mobileweb/%s';
+		['user-agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36';
+		};
+	if !#link
+		return null, "请填写房间号";
+			
+	var yyid = string.match( link, "<@www.yy.com/@>(\d+?)/\1.*" );
+	if !yyid
+		return null, "房间号填写有误";    
+
+	var http = inet.http();
+	var html, err, errcode = http.get( string.format(yyapi, yyid, yyid) );
+	if !html
+		return null, "网络连接有误，无直播信息，" ++ errcode;
+	var r = web.json.parse( html );
+	if( r.resultCode !== 0 )
+		return null, "直播信息数据解析有误，网站可能已更新"; 
+	if !r.data
+		return null, "没有开播";
+	var roomId = r.data.sid;
+	var roomInfo = {
+		name = r.data.name;
+		roomName = r.data.desc;
+		roomId = roomId;   
+	};
+	return roomInfo, "完成";
+}
+
+var function get_yy_url(link){
+	import web.json;    
+	import inet.http;
+	var room_url = "http://interface.yy.com/hls/new/get/%s/%s/1200?source=wapyy&callback=jsonp3";
+	var header = {
+		['referer'] = 'https://wap.yy.com/mobileweb/%s';
+		['user-agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36';
+		};
+	var roomInfo, err = get_yy_info(link);
+	if(!roomInfo){
+		return roomInfo, err;
+	}
+	var http = inet.http();
+	header['referer'] = string.format(header['referer'], roomInfo.roomId);
+	html, err, errcode = http.get(string.format(room_url, roomInfo.roomId, roomInfo.roomId), header);
+	if( !html ){
+		return null, "网络连接有误，无直播地址，" ++ errcode; 
+	}
+	var r = web.json.parse( html );
+	if( r ){
+		return r.hls, roomInfo;
+	}
+	return null, "直播地址数据解析有误，网站可能已更新"; 
+}
+
+var getFlvUrl = function(link){
+	import crypt;
+	import web.json;
+	import inet.http;
+
+	if !#link
+		return null, "请填写房间号";
+
+	link = string.match( link, "<@www.douyu.com/@>(.+?)$" );
+	if !link
+		return null, "房间号填写有误";    
+
+	var http = inet.http()
+		
+	// 获取直播房间详情
+	var html = http.get( "http://open.douyucdn.cn/api/RoomApi/room/" ++ link )
+	if !html
+		return null, "网络连接有误"; 
+
+	var r = web.json.parse( html )
+	if( r.error !== 0 )
+		return null, "数据解析有误，网站可能已更新"; 
+		
+	var roomId = r.data.room_id 
+	var roomInfo = {
+		name = r.data.owner_name;
+		roomName = r.data.room_name;   
+		roomId = roomId       
+	}
+		
+	if( r.data.room_status === "2" ){
+		return null, "没有开播";
+	}
+		
+	var key = "zNzMV1y4EMxOHS6I5WKm"
+	var t = tonumber(time())
+	var basicUrl = "http://capi.douyucdn.cn/api/v1/"
+	var path = "room/" ++ roomId ++ "?aid=wp&cdn=ws&client_sys=wp&time=" ++ t
+	var url = basicUrl ++ path ++ "&auth=" ++ crypt.md5( path ++ key, false ) 
+	html = http.get( url )
+	if( !html ){
+		return null, "网络连接有误"; 
+	}
+	
+	var r = web.json.parse(html)
+	if( r.error === 0 ){
+		return r.data.rtmp_url ++ "/" ++ r.data.rtmp_live, roomInfo; 
+	}
+	return null, "数据解析有误，网站可能已更新"; 
+}
+
+var tmId;
+var view = function(link){
+	var url_id = "";
+	var url = "";
+	var roomInfo = {};  
+	if(string.match(link, "<@www.douyu.com/@>(.+?)$")){
+		url_id = "douyu";
+	}
+	elseif(string.match(link, "<@www.yy.com/@>(\d+?)/\1.*")){
+		url_id = "yy";
+	}
+	select(url_id) {
+		case "yy" {
+			url , roomInfo = get_yy_url(link);
+			if !url
+				return null, roomInfo;
+			tcpPullClient.stop();
+			mpv.setOption("osd-msg1", "" );
+		}
+		else {
+			url , roomInfo = get_real_url(link);
+			if !url
+				return null, roomInfo;
+	
+			tcpPullClient.stop();
+			mpv.setOption("osd-msg1", "" );
+			if( !tcpPullClient.start( douyudanmu.server,douyudanmu.port,false) )
+				return null, "连接斗鱼弹幕服务器失败"; 
+		
+			loginreq( roomInfo.roomId);
+			joingroup(roomInfo.roomId);
+			if( tmId ){
+				winform.killtimer(tmId);
+			}       
+			tmId = winform.addtimer( 
+				15000,
+				function(hwnd,msg,id,tick){
+					keepLive();
+				}
+			);
+		}
+	}
+
+		
+	winform.text = roomInfo.name ++ "：" ++ roomInfo.roomName;
+	mpv.command("loadfile", url);
+	return true; 
+}
+
+
+
+tcpPullClient.onPullReceive = function(hpTcpPullClient,connId,length){
+	import thread.command;
+		
+	while( 
+		var min, remain = 9, length;
+		;
+		remain >= min
+	) {
+		remain -= 4;
+		var buf = {INT len};
+		if 0 !== hpTcpPullClient.peek( buf, 4 )
+			return ;
+				
+		var len = buf.len;
+		if remain < len 
+			return ;
+				
+		remain -= len;
+		var bufLen = 4 + len;
+		buf = raw.buffer( bufLen );
+		if 0 !== hpTcpPullClient.fetch( buf, bufLen )
+			return ;
+				
+		var s = raw.tostring(buf);
+		if( string.match( s, `type@=(.+?)/`) == "chatmsg" ){
+			var nickname = string.match( s, `nn@=(.+?)/`);
+			var txt = string.match( s, `txt@=(.+?)/`); 
+			if( nickname ? txt ){
+				thread.command.post( "onChat", nickname , txt );
+			}
+		}         
+	}   
+}
+
+winform.btnView.oncommand = function(id,event){
+	owner.disabled = true;
+	var link = winform.edRoomId.text;
+
+	var url, err  = view(link);
+	if( !url ){
+		winform.msgboxErr(err);
+	}
+	owner.disabled = false;   
+};
+
+winform.trackbar.pos = 70;
+mpv.setVolume(winform.trackbar.pos);
+
+winform.trackbar.oncommand = function(id,event,pos){
+	if( event == 0x8/*_TB_ENDTRACK*/ ){ 
+		mpv.setVolume(winform.trackbar.pos);
+	}
+	elseif( event = 0x5/*_TB_THUMBTRACK*/ ){
+		mpv.setVolume(pos);
+	}
+}
+
+winform.btnFullScreen.oncommand = function(id,event){
+	winform.custom.fullscreen(true);
+}
+
+import win.ui.accelerator;
+win.ui.accelerator({
+	{ vkey =0x1B/*_VK_ESC*/;oncommand = function(id,event) winform.custom.fullscreen(false) }  
+	{ vkey =0x7A/*_VK_F11*/; oncommand = function(id,event) winform.custom.fullscreen() }  
+},winform);
+
+
+winform.show();
+win.loopMessage();

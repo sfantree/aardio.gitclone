@@ -1,0 +1,23 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="Web Form";right=1024;bottom=700)
+winform.add()
+/*}}*/
+
+import web.form; 
+var wb = web.form( winform 
+	,//可输入_UIFLAG_ 前缀的常量自定义外观
+	,//可输入_DLCTL_ 前缀的常量以控制下载行为
+	,//"USER AGENT"
+	);
+ 
+//打开目标网站
+wb.go("about: loading...") 
+winform.show(); //显示窗体
+wb.wait(""); //等待指定网址
+
+//启动消息循环
+win.loopMessage();
+return winform,wb;
+ 
+

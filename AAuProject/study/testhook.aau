@@ -1,0 +1,11 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form( bottom=400;parent=...;right=600;text="AAuto Form" )
+winform.add( 
+richedit={ bottom=303;text="richedit";left=66;multiline=1;top=89;z=1;right=435;edge=1;cls="richedit" }
+)
+/*}}*/
+
+winform.show() 
+win.loopMessage();
+return winform;

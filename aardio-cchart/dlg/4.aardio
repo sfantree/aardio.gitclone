@@ -1,0 +1,38 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="第一个示例";left=0;top=440;right=119;bottom=470;db=1;dl=1;z=2};
+static={cls="static";left=0;top=0;right=760;bottom=428;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+Detach = dll.api("?Detach@Classless@@YA_NPAUHWND__@@@Z", "int(addr hwnd)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+AddPie = dll.api("?AddPie@Classless@@YAHNPA_W@Z", "int(double,ustring)");
+
+
+
+CreateChart();
+Attach(winform.static.hwnd,1);//kTypePie=1 饼图
+
+AddPie(28,"VB");
+AddPie(22,"C++");
+AddPie(21,"无名氏");
+AddPie(39,"aardio");
+ReDraw();
+
+winform.button.oncommand = function(id,event){
+	
+}
+
+winform.show();
+win.loopMessage();
+return winform;

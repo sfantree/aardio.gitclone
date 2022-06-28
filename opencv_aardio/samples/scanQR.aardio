@@ -1,0 +1,54 @@
+import console; 
+import cv2
+//相关模型至https://github.com/WeChatCV/opencv_3rdparty下载
+detector = cv2.wechat_qrcode_WeChatQRCode("./assets/model/detect.prototxt",
+								"./assets/model/detect.caffemodel",
+								"./assets/model/sr.prototxt",
+								"./assets/model/sr.caffemodel")					
+img = cv2.imread("./assets/images/qr.png")
+var list,points = detector.detectAndDecode(img)
+console.dumpJson(points)
+for(i=1;#points;1){
+	var ps = points[i]
+	cv2.line( img,ps[1],ps[2],::Scalar(0,255,0),1)
+	cv2.line( img,ps[2],ps[3],::Scalar(0,255,0),1)
+	cv2.line( img,ps[3],ps[4],::Scalar(0,255,0),1)
+	cv2.line( img,ps[4],ps[1],::Scalar(0,255,0),1)
+	fontSize = string.find(list[i],":") ? 15 : 0.5
+	cv2.putText( img,list[i],ps[1],,fontSize,::Scalar(0,255,0))
+}
+
+console.dumpJson(list)
+cv2.imshow("QR-detectAndDecode",img)
+cv2.waitKey(0)
+
+//以下代码可体验摄像头实时识别效果
+/*
+var cap = cv2.videoCapture(0)
+while(sleep(1)){
+	var ok,img = cap.read()
+	if ok {
+		cv2.imshow("QR-detectAndDecode",img)
+		cv2.waitKey(1)
+		var list,points = detector.detectAndDecode(img);
+		if(#list){
+			for(i=1;#list;1){
+				var ps = points[i]
+				cv2.line( img,ps[1],ps[2],::Scalar(0,255,0),1)
+				cv2.line( img,ps[2],ps[3],::Scalar(0,255,0),1)
+				cv2.line( img,ps[3],ps[4],::Scalar(0,255,0),1)
+				cv2.line( img,ps[4],ps[1],::Scalar(0,255,0),1)
+				cv2.putText( img,list[i],ps[1],,1,::Scalar(0,255,0))
+			}
+			cv2.imshow("QR-detectAndDecode",img)
+			cv2.waitKey(10)
+			//console.dumpJson(list)	
+		}
+		img.release();
+	}
+}
+cap.release()
+cv2.destroyAllWindows()
+*/
+detector.release()
+console.pause(true);

@@ -1,0 +1,26 @@
+//删除数据
+
+ del=function(c) begin
+ 	var id=muchzz('del +-i([0-9,]+)',c);//匹配列表行数
+ 	if(!id){
+		console.log("No title.");
+ 		return ;
+ 	}
+ 	
+ 	var time=time.tick();
+ 	
+ 	id='&ids='+id+'&sign='+crypt.md5(id+time+'.');
+	
+ 	console.log("post del data...");
+	
+ 	var h,e=getWebData('op=del'+id);
+	
+ 	if(h=="ok"){
+ 	 console.log("Success,",h);
+	 //id=muchzz('id:([0-9]+)',h);//匹配列表行数
+	// mdf('mdf -i'+id);//此处调用ls来进入修改项目中去。
+ 	}else{
+ 	 console.log("failed,",h);
+ 	
+ 	}
+ end;

@@ -1,0 +1,220 @@
+﻿import hpsocket.helper.headers;
+import hpsocket.socket.tcpAgent;
+import hpsocket.helper.websocket;
+
+namespace hpsocket.socket;
+class httpAgent{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpAgent(obj);
+	};
+	sendRequest = function(connId,body,path,headers,method){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"GET",path,headers.struct(),headers.length(),body,#body);
+	}
+	sendGet = function(path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	!!::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,"GET",path,headers.struct(),headers.length(),body,#body);
+	}
+	sendPost = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"POST",path,headers.struct(),headers.length(),body,#body);
+	}	
+	sendPut = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"PUT",path,headers.struct(),headers.length(),body,#body);
+	}
+	sendPatch = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"PATCH",path,headers.struct(),headers.length(),body,#body);
+	} 
+	sendDelete = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"DELETE",path,headers.struct(),headers.length(),body,#body);
+	} 
+	sendHead = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"HEAD",path,headers.struct(),headers.length(),body,#body);
+	} 
+	sendTrace = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"TRACE",path,headers.struct(),headers.length(),body,#body);
+	} 
+	sendOptions = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"OPTIONS",path,headers.struct(),headers.length(),body,#body);
+	} 
+	sendConnect = function(connId,body,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,method:"CONNECT",path,headers.struct(),headers.length(),body,#body);
+	}
+	sendLocalFile = function(connId,filename,method,path,headers){
+		headers = ..hpsocket.helper.headers(headers)
+		return 	::HPSocket.HP_HttpAgent_SendLocalFile(this.pSocket,connId,..io.fullpath(filename),method,path,headers.struct(),headers.length());
+	}
+	sendWsMessage = function(connId,data,opCode,final,mask,bodyLen,reserved){
+		if(final===null) final = true;
+		if(opCode===null) opCode = 1;
+		
+		var len = #data;
+		var pData = realloc(#data,,data);
+		var r = !!::HPSocket.HP_HttpAgent_SendWSMessage(this.pSocket,connId,final,reserved
+			,opCode,mask,pData, len, ..math.size64(len+(bodyLen:0)) );
+		realloc(0,pData);
+		return r;
+	};
+	sendWsUpgradeRequest = function(connId,path,headers){//新增的
+		headers = ..hpsocket.helper.headers(headers);
+
+		var key = wsHelper.getSecKey();
+		headers.mix(
+			["Upgrade"] = "websocket";
+			["Connection"] = "Upgrade";
+			["Host"] = owner.getUrlHost(connId);
+			["Sec-WebSocket-Origin"] =  owner.getUrl(connId,path);
+			["Sec-WebSocket-Version"] = "13";
+			["Sec-WebSocket-Protocol"]  = "chat";
+			["Sec-WebSocket-Key"] = key; 
+		)
+		
+		if( !!::HPSocket.HP_HttpAgent_SendRequest(this.pSocket,connId,"GET",path,headers.struct(),headers.length(), ,0) ){
+			owner.reallocString(connId,#key);
+			owner.appendString(connId,key,#key);
+		}
+	}
+	checkWsUpgradeResponse = function(connId,path,headers){
+		var acceptKey = owner.getHeader(connId,"Sec-WebSocket-Accept")
+		var requestKey = owner.getString(connId); 
+		owner.reallocString(connId,0);
+		if( wsHelper.getSecAccept(requestKey) == acceptKey ) return true;
+	}
+	getUrlHost = function(connId){
+		var ip,port = owner.getRemoteHost(connId);
+		if(!(ip&&port) )return;
+		if(ip=="0.0.0.0")ip = "localhost";
+		return  ..string.format("%s:%d",ip,port ); 
+	}
+	getUrl = function(connId,path,scheme){
+		var host = owner.getUrlHost(connId);
+		if(!host) return;
+		var url =  ..string.format("%s://%s",scheme:"http",host ); 
+		if(path){
+			path = ..string.replace(path,"\\","/");
+			if(path[1]!='/'#) path= "/" + path;
+			return url + path;
+		}
+		return url;
+	}
+	getContentEncoding = function(connId){
+		var s = ::HPSocket.HP_HttpAgent_GetContentEncoding(this.pSocket,connId);
+		if(s) return ..raw.str((topointer(s)));
+	}
+	getTransferEncoding = function(connId){
+		var s = ::HPSocket.HP_HttpAgent_GetTransferEncoding(this.pSocket,connId);
+		if(s) return ..raw.str((topointer(s)));
+	}
+	getContentType = function(connId){
+		var s = ::HPSocket.HP_HttpAgent_GetContentType(this.pSocket,connId);
+		if(s) return ..raw.str((topointer(s)));
+	}
+	getContentLength = function(connId){
+		return ::HPSocket.HP_HttpAgent_GetContentLength(this.pSocket,connId);
+	}
+	setLocalVersion = function(){
+		return ::HPSocket.HP_HttpAgent_SetLocalVersion(this.pSocket,v);
+	}
+	getLocalVersion = function(){
+		return ::HPSocket.HP_HttpAgent_GetLocalVersion(this.pSocket);
+	}
+	getVersion = function(){
+		return 0xFFFF & ::HPSocket.HP_HttpAgent_GetVersion(this.pSocket);
+	}
+	isKeepAlive = function(connId){
+		return !! ::HPSocket.HP_HttpAgent_IsKeepAlive(this.pSocket,connId);
+	} 
+	isUpgrade = function(connId){
+		return !! ::HPSocket.HP_HttpAgent_IsUpgrade(this.pSocket,connId);
+	}
+	getParseErrorCode = function(connId){
+		var errdesc= {string value};
+		var errno = 0xFFFF & ::HPSocket.HP_HttpAgent_GetParseErrorCode(this.pSocket,connId,errdesc);
+		return errno,errdesc.value;
+	}
+	getStatusCode = function(connId){
+		return 0xFFFF & ::HPSocket.HP_HttpAgent_GetStatusCode(this.pSocket,connId);
+	}
+	getHeader = function(connId,name){
+		var s = {string value};
+		if(::HPSocket.HP_HttpAgent_GetHeader(this.pSocket,connId,name,s))
+			return s.value;
+	}
+	getHeaders = function(connId,name){
+		var s = {string array[] = {INT length} };
+		if(::HPSocket.HP_HttpAgent_GetHeaders(this.pSocket,connId,null,s.array))
+			if(::HPSocket.HP_HttpAgent_GetHeaders(this.pSocket,connId,,name,s,s.array)) return s.array;
+	}
+	getAllHeaders = function(connId){
+		var hdrs = ..hpsocket.helper.headers(); 
+		::HPSocket.HP_HttpAgent_GetAllHeaders(this.pSocket,connId,null,hdrs.array);
+		if(::HPSocket.HP_HttpAgent_GetAllHeaders(this.pSocket,connId,hdrs.struct(),hdrs.array)) return hdrs;
+	}
+	getAllHeaderNames = function(connId){
+		var s = {string array[] = {INT length} };
+		if(::HPSocket.HP_HttpAgent_GetAllHeaderNames(this.pSocket,connId,null,s.array))
+			if(::HPSocket.HP_HttpAgent_GetAllHeaderNames(this.pSocket,connId,s,s.array)) return s.array;
+	}
+	getCookie = function(connId,name){
+		var s = {string value};
+		if(::HPSocket.HP_HttpAgent_GetCookie(this.pSocket,connId,name,s))
+			return s.value;
+	}
+	getAllCookies = function(connId){
+		var s = {struct array[] = {{string name;string value};INT length} };
+		if(::HPSocket.HP_HttpAgent_GetAllCookies(this.pSocket,connId,null,s.array))
+			if(::HPSocket.HP_HttpAgent_GetAllCookies(this.pSocket,connId,s,s.array)) return s.array;
+	}
+	addCookie = function(connId,name,value,relpace){
+		return !!::HPSocket.HP_HttpAgent_AddCookie(this.pSocket,connId,name,value,relpace)
+	}
+	deleteCookie = function(connId,name){
+		return !!::HPSocket.HP_HttpAgent_DeleteCookie(this.pSocket,connId,name)
+	}
+	deleteAllCookies = function(connId){
+		return !!::HPSocket.HP_HttpAgent_DeleteAllCookies(this.pSocket,connId)
+	}
+	getUpgradeType = function(connId){
+		return  ::HPSocket.HP_HttpAgent_GetUpgradeType(this.pSocket,connId);
+	}
+	getWsMessageState = function(connId,final,reserved,operationCode,mask,data,bodyLen){
+		var final = {bool value}
+		var reserved = {BYTE value}
+		var operationCode = {BYTE value}
+		var mask = {INT value}
+		var bodyLen = {LONG value}
+		var bodyRemain = {LONG value} 
+		if( ::HPSocket.HP_HttpAgent_GetWSMessageState(this.pSocket,connId,final,reserved
+			,operationCode,mask,bodyLen,bodyRemain ) ){
+				return{
+					final = final;
+					reserved = reserved;
+					operationCode = operationCode;
+					mask = mask;
+					bodyLen = bodyLen;
+					bodyRemain = bodyRemain
+				}
+			}
+	};
+	startHttp = function(connId){
+		return ::HPSocket.HP_HttpAgent_StartHttp(this.pSocket,connId);
+	}
+	setHttpAutoStart = function(bAutoStart){
+		::HPSocket.HP_HttpAgent_SetHttpAutoStart(this.pSocket,bAutoStart)
+	}
+	isHttpAutoStart = function(){
+		return ::HPSocket.HP_HttpAgent_IsHttpAutoStart(this.pSocket); 
+	}
+}
+
+namespace httpAgent{
+	realloc = ..raw.realloc;
+	wsHelper =  ..hpsocket.helper.websocket;
+}

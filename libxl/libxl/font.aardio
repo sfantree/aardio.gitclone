@@ -1,0 +1,187 @@
+﻿import util.metaProperty;
+
+namespace libxl;
+
+var libxl32 = _dll;
+
+class Font{
+	ctor( hwnd ){
+		if !hwnd return null,"请指定字体句柄"; 
+		this.hwnd	= hwnd; 
+	};
+	@_metaProperty;
+}
+
+namespace Font{
+	_metaProperty = ..util.metaProperty(
+		size = {
+			_get = function(){   
+		    	return Size(owner.hwnd);
+			};
+			_set = function( v ){
+				SetSize(owner.hwnd,v); 
+			};
+		};
+		italic = {
+			_get = function(){   
+		    	return Italic(owner.hwnd);
+			};
+			_set = function( v ){
+				SetItalic(owner.hwnd,v); 
+			};
+		};
+		strikeOut = {
+			_get = function(){   
+		    	return StrikeOut(owner.hwnd);
+			};
+			_set = function( v ){
+				SetStrikeOut(owner.hwnd,v); 
+			};
+		};
+		color = {
+			_get = function(){   
+		    	return Color(owner.hwnd);
+			};
+			_set = function( v ){
+				SetColor(owner.hwnd,v); 
+			};
+		};
+		bold = {
+			_get = function(){   
+		    	return Bold(owner.hwnd);
+			};
+			_set = function( v ){
+				SetBold(owner.hwnd,tonumber(v)); 
+			};
+		};
+		script = {
+			_get = function(){   
+		    	return Script(owner.hwnd);
+			};
+			_set = function( v ){
+				SetScript(owner.hwnd,v); 
+			};
+		};
+		underLine = {
+			_get = function(){   
+		    	return Underline(owner.hwnd);
+			};
+			_set = function( v ){
+				SetUnderline(owner.hwnd,v); 
+			};
+		};
+		name = {
+			_get = function(){   
+		    	return Name(owner.hwnd);
+			};
+			_set = function( v ){
+				SetName(owner.hwnd,v); 
+			};
+		};
+	)
+
+	Size			= libxl32.api("xlFontSize","int(ptr FontHandle)")
+	SetSize			= libxl32.api("xlFontSetSize","void(ptr FontHandle, int size)")
+	
+	Italic			= libxl32.api("xlFontItalic","int(ptr FontHandle)")
+	SetItalic		= libxl32.api("xlFontSetItalic","void(ptr FontHandle, int italic)")
+	
+	StrikeOut		= libxl32.api("xlFontStrikeOut","int(ptr FontHandle)")
+	SetStrikeOut	= libxl32.api("xlFontSetStrikeOut","void(ptr FontHandle, int strikeOut)")
+	
+	Color			= libxl32.api("xlFontColor","int(ptr FontHandle)")
+	SetColor		= libxl32.api("xlFontSetColor","void(ptr FontHandle, int color)")
+	
+	Bold			= libxl32.api("xlFontBold","int(ptr FontHandle)")
+	SetBold			= libxl32.api("xlFontSetBold","void(ptr FontHandle, int bold)")
+	
+	Script			= libxl32.api("xlFontScript","int(ptr FontHandle)")
+	SetScript		= libxl32.api("xlFontSetScript","void(ptr FontHandle, int script)")
+	
+	Underline		= libxl32.api("xlFontUnderline","int(ptr FontHandle)")
+	SetUnderline	= libxl32.api("xlFontSetUnderline","void(ptr FontHandle, int underline)")
+	
+	Name			= libxl32.api("xlFontName","ustring(ptr FontHandle)")
+	SetName			= libxl32.api("xlFontSetName","int(ptr FontHandle, ustring name)")
+	
+}
+
+/**intellisense()
+libxl.Format() = !xlFont.
+!libxl.Format() = !xlFont.
+!libxl.addFont() = !xlFont.
+!xlFont.size = 字号
+!xlFont.italic = 斜体
+!xlFont.strikeOut = 删除线
+!xlFont.color = 颜色,_COLOR_
+!xlFont.bold = 粗体
+!xlFont.script = 小字符样式,_SCRIPT_
+!xlFont.underLine = 下划线,_UNDERLINE_
+!xlFont.name = 字体
+_COLOR_BLACK=@8/*_COLOR_BLACK*/
+_COLOR_WHITE=@9/*_COLOR_WHITE*/
+_COLOR_RED=@10/*_COLOR_RED*/
+_COLOR_BRIGHTGREEN=@11/*_COLOR_BRIGHTGREEN*/
+_COLOR_BLUE=@12/*_COLOR_BLUE*/
+_COLOR_YELLOW=@13/*_COLOR_YELLOW*/
+_COLOR_PINK=@14/*_COLOR_PINK*/
+_COLOR_TURQUOISE=@15/*_COLOR_TURQUOISE*/
+_COLOR_DARKRED=@16/*_COLOR_DARKRED*/
+_COLOR_GREEN=@17/*_COLOR_GREEN*/
+_COLOR_DARKBLUE=@18/*_COLOR_DARKBLUE*/
+_COLOR_DARKYELLOW=@19/*_COLOR_DARKYELLOW*/
+_COLOR_VIOLET=@20/*_COLOR_VIOLET*/
+_COLOR_TEAL=@21/*_COLOR_TEAL*/
+_COLOR_GRAY25=@22/*_COLOR_GRAY25*/
+_COLOR_GRAY50=@23/*_COLOR_GRAY50*/
+_COLOR_PERIWINKLE_CF=@24/*_COLOR_PERIWINKLE_CF*/
+_COLOR_PLUM_CF=@25/*_COLOR_PLUM_CF*/
+_COLOR_IVORY_CF=@26/*_COLOR_IVORY_CF*/
+_COLOR_LIGHTTURQUOISE_CF=@27/*_COLOR_LIGHTTURQUOISE_CF*/
+_COLOR_DARKPURPLE_CF=@28/*_COLOR_DARKPURPLE_CF*/
+_COLOR_CORAL_CF=@29/*_COLOR_CORAL_CF*/
+_COLOR_OCEANBLUE_CF=@30/*_COLOR_OCEANBLUE_CF*/
+_COLOR_ICEBLUE_CF=@31/*_COLOR_ICEBLUE_CF*/
+_COLOR_DARKBLUE_CL=@32/*_COLOR_DARKBLUE_CL*/
+_COLOR_PINK_CL=@33/*_COLOR_PINK_CL*/
+_COLOR_YELLOW_CL=@34/*_COLOR_YELLOW_CL*/
+_COLOR_TURQUOISE_CL=@35/*_COLOR_TURQUOISE_CL*/
+_COLOR_VIOLET_CL=@36/*_COLOR_VIOLET_CL*/
+_COLOR_DARKRED_CL=@37/*_COLOR_DARKRED_CL*/
+_COLOR_TEAL_CL=@38/*_COLOR_TEAL_CL*/
+_COLOR_BLUE_CL=@39/*_COLOR_BLUE_CL*/
+_COLOR_SKYBLUE=@40/*_COLOR_SKYBLUE*/
+_COLOR_LIGHTTURQUOISE=@41/*_COLOR_LIGHTTURQUOISE*/
+_COLOR_LIGHTGREEN=@42/*_COLOR_LIGHTGREEN*/
+_COLOR_LIGHTYELLOW=@43/*_COLOR_LIGHTYELLOW*/
+_COLOR_PALEBLUE=@44/*_COLOR_PALEBLUE*/
+_COLOR_ROSE=@45/*_COLOR_ROSE*/
+_COLOR_LAVENDER=@46/*_COLOR_LAVENDER*/
+_COLOR_TAN=@47/*_COLOR_TAN*/
+_COLOR_LIGHTBLUE=@48/*_COLOR_LIGHTBLUE*/
+_COLOR_AQUA=@49/*_COLOR_AQUA*/
+_COLOR_LIME=@50/*_COLOR_LIME*/
+_COLOR_GOLD=@51/*_COLOR_GOLD*/
+_COLOR_LIGHTORANGE=@52/*_COLOR_LIGHTORANGE*/
+_COLOR_ORANGE=@53/*_COLOR_ORANGE*/
+_COLOR_BLUEGRAY=@54/*_COLOR_BLUEGRAY*/
+_COLOR_GRAY40=@55/*_COLOR_GRAY40*/
+_COLOR_DARKTEAL=@56/*_COLOR_DARKTEAL*/
+_COLOR_SEAGREEN=@57/*_COLOR_SEAGREEN*/
+_COLOR_DARKGREEN=@58/*_COLOR_DARKGREEN*/
+_COLOR_OLIVEGREEN=@59/*_COLOR_OLIVEGREEN*/
+_COLOR_BROWN=@60/*_COLOR_BROWN*/
+_COLOR_PLUM=@61/*_COLOR_PLUM*/
+_COLOR_INDIGO=@62/*_COLOR_INDIGO*/
+_COLOR_GRAY80=@63/*_COLOR_GRAY80*/
+_COLOR_DEFAULT_FOREGROUND=@64/*_COLOR_DEFAULT_FOREGROUND*/
+_COLOR_DEFAULT_BACKGROUND=@65/*_COLOR_DEFAULT_BACKGROUND*/
+_UNDERLINE_NONE=@0/*_UNDERLINE_NONE*/
+_UNDERLINE_SINGLE=@1/*_UNDERLINE_SINGLE*/
+_UNDERLINE_DOUBLE=@2/*_UNDERLINE_DOUBLE*/
+_UNDERLINE_SINGLEACC=@3/*_UNDERLINE_SINGLEACC*/
+_UNDERLINE_DOUBLEACC=@4/*_UNDERLINE_DOUBLEACC*/
+_SCRIPT_NORMAL=@0/*_SCRIPT_NORMAL*/
+_SCRIPT_SUPER=@1/*_SCRIPT_SUPER*/
+_SCRIPT_SUB=@2/*_SCRIPT_SUB*/
+end intellisense**/

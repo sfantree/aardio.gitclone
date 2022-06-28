@@ -1,0 +1,16 @@
+
+namespace web.layout.behavior.main.menu
+	
+onMenuItemClick =  {
+
+	// 事件可以是一个函数或列表,如果是列表键名匹配节点的id或name属性 
+	exit = function (ltTarget,ltOwner,reason,behaviorParams) {
+		ltOwner.getForm().close();
+	}
+	
+	//匹配不到id的节点会触发default函数*/
+	default = function (ltTarget,ltOwner,reason,behaviorParams) {
+		var ltPopupOwner = ..web.layout.element( behaviorParams.he );//这是弹出菜单的按钮节点
+		ltOwner.getForm().msgbox( ltTarget.innerText )
+	}
+}

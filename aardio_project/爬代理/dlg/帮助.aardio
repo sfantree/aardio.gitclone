@@ -1,0 +1,25 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="帮助";right=447;bottom=239;border="thin";max=false;min=false;mode="popup")
+winform.add(
+richedit={cls="richedit";left=8;top=8;right=440;bottom=192;bgcolor=15780518;edge=1;font=LOGFONT(h=-13;name='微软雅黑');multiline=1;readonly=1;z=1};
+关闭={cls="button";text="关闭";left=336;top=200;right=424;bottom=232;z=2}
+)
+/*}}*/
+
+var 换行符='\r\n';
+
+winform.richedit.appendText("示例："++换行符);
+winform.richedit.appendText('  '++"start  爬代理.exe AUTORUN AUTOSAVE proxy.list"++换行符);
+winform.richedit.appendText("帮助信息："++换行符);
+winform.richedit.appendText('  '++"参数一：AUTORUN，可以打开界面自动执行抓取"++换行符)
+winform.richedit.appendText('  '++"参数二：AUTOSAVE，自动保存"++换行符);
+winform.richedit.appendText('  '++"参数三：proxy.list，自动保存的文件名"++换行符);
+
+winform.关闭.oncommand = function(id,event){
+	winform.close();
+}
+
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,170 @@
+﻿// tarray
+var pop = ..table.pop;
+var map = ..table.map;
+var mapDeep = ..table.mapDeep;
+var slice = ..table.slice;
+var push = ..table.push;
+var escape = ..string.escape;
+var math = ..string.match;
+var next = ..table.next;
+var eachName = ..table.eachName;
+var eachIndex = ..table.eachIndex;
+var eachValue = ..table.eachValue;
+var eachArgs = ..table.eachArgs;
+var indexOf = ..table.indexOf;
+var mixin = ..table.assign;
+var join = ..string.join;
+var unique = ..table.unique;
+
+
+namespace tarray;
+/* column operation */
+serialize = function(arr){
+	var t={};
+	for (j=1; #arr){
+		var b = {}
+		for k,v in arr[j] 
+			b[indexOf(arr.fields,k) ? indexOf(arr.fields,k): k] = v;
+		push(t, b:"");
+	}
+	return t; 
+}
+detach = function(arr){
+	var t={};
+	var f = {}
+	for k,v in arr {
+		push(t, v:"")
+		push(f, k:"")
+	}
+	return t,f; 
+}
+detachBy = function(arr,fields){
+	var t={};
+	for k, v in fields 
+		push(t, arr[v]:"");
+	return t; 
+}
+transpose0 = function(arr){	
+	if #arr.fields arr = serialize(arr);
+	return map(arr[1], function(col, i){	//TODO: 单行转列有问题啊
+		return map(arr, function(row){
+		 	return row[i]; 
+		})
+	}) 
+}
+transpose = function(arr){
+	var t = transpose0(arr);
+	if #t == 1 return t[1];
+	else return t; 
+}
+mapfields = function(arr, fields){
+	var t={}
+	if !fields if #arr.fields fields = arr.fields;
+	if (#fields == 1) fields = fields[1];
+	for(i=1; #arr){
+		var cc={};
+		for(j=1; #fields)
+				cc[fields[j]] = arr[i][j] : "";
+		t[i] = cc;
+	}
+	t.fields = fields;
+	return t; 
+}
+popCol = function(arr,...){
+	var fields = arr.fields
+	pop(fields,...)
+	arr = transpose0(arr);
+	pop(arr,...);
+	arr = transpose0(arr)	
+	return mapfields(arr,fields); 
+}
+sliceCol = function(arr,a,b){;
+	var fields = slice(arr.fields,a,b)
+	arr = transpose0(arr);
+	arr = slice(arr,a,b);
+	arr = transpose0(arr);
+	return mapfields(arr,fields); 
+}
+uniqueCol = function(arr,col = 1){
+	var fields = arr.fields;
+	if arr.fields arr=serialize(arr);
+	var t={};
+	for (i=1; #arr) 
+		if arr[i][col]	//跳过空值
+			if !indexOf(getCol(t,col), arr[i][col]) //跳过重复值
+				push(t, arr[i]:"");
+	return mapfields(t,fields); 
+}
+getCol = function(arr, col){
+	var colindex = #arr.fields ? indexOf(arr.fields, col) : col;
+	return transpose0(arr)[colindex]; 
+}
+replaceValue = function(arr, searchFor, replaceBy){
+	return mapDeep(arr,lambda(v,k) v == searchFor ? replaceBy : v); 
+}
+drop = function(arr, index){
+	for(i=1;#arr)
+		for(j=1;#arr[i])
+			if j==index arr[i][j] = null;
+	return arr; 
+}
+pushFields = function(arr, tab){
+	var fields = {};
+	for k, v in tab {
+		push(fields, k:"")
+	}
+	arr.fields = fields;
+	return arr; 
+}
+getIndexByKey = function(arr, key){
+	for k,v in arr.fields 
+		if key==v return k; 
+}
+indexOfCol = function(arr, find, col){
+	return indexOf(getCol(arr, col), find); 
+}
+mapAsItem= function(tab, keyCol, vCol){
+	var t={}
+	for (i=1; #tab)
+		t[tab[i][keyCol]]=tab[i][vCol];
+	return t; 
+}
+findValue = function(arr, what){
+	for rowIndex, row in arr{
+		for colIndex, cellValue in row {
+			if ..string.indexOf(cellValue, what) return {
+				row = rowIndex;
+				col = colIndex;
+				value = cellValue;
+			}; 
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+/**intellisense()
+tarray = array列操作扩展库
+tarray.serialize(arr) = 保留fields把index改为数字
+tarray.transpose0(arr) = 
+tarray.transpose(arr) = 行列转置, 如果转置后只有1行, 变为1维
+tarray.mapfields(arr, fields) = 按fields重新定义arr的键名
+tarray.popCol(arr) = pop列
+tarray.sliceCol(arr,a,b) = slice列
+tarray.uniqueCol(arr, col = 1) = unique 时保留fields;
+tarray.getCol(arr, key) = 获取指定列的值数组
+tarray.replaceValue(arr,searchFor, replaceBy) = 替换指定值,返回新的arr
+tarray.drop(arr, index) = 删除指定列,返回新的arr
+tarray.pushFields(arr, tab) = 参考tab键名定义arr.fields,返回新的arr
+tarray.indexOfCol(arr, find, col) = 在指定col查找find所在的index值
+tarray.findValue(arr, what) = 查找值, 返加{row,col,value} \n!tFindItem.
+!tFindItem.row = 行
+!tFindItem.col = 列
+!tFindItem.value = 值 
+end intellisense**/

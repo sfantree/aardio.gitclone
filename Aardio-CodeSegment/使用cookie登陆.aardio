@@ -1,0 +1,34 @@
+//使用cookie登陆
+import web.form;
+import inet.whttp;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=759;bottom=497)
+mainForm.add(
+button={cls="button";text="秒";left=662;top=364;right=749;bottom=397;z=3};
+button2={cls="button";text="准备";left=560;top=364;right=647;bottom=397;z=4};
+button3={cls="button";text="button3";left=626;top=429;right=748;bottom=471;z=7};
+combobox={cls="combobox";left=436;top=370;right=554;bottom=395;edge=1;items={"8点";"12点";"16点";"20点";"0点"};mode="dropdown";z=5};
+custom={cls="custom";text="custom";left=11;top=15;right=337;bottom=202;border=1;center=1;clipch=1;transparent=1;z=1};
+edit={cls="edit";left=436;top=399;right=554;bottom=425;edge=1;z=9};
+richedit={cls="richedit";left=371;top=17;right=751;bottom=347;border=1;multiline=1;transparent=1;wrap=1;z=2};
+static={cls="static";text="计划时间:";left=377;top=374;right=437;bottom=391;transparent=1;z=6};
+static2={cls="static";text="ID:";left=413;top=404;right=436;bottom=429;transparent=1;z=8}
+)
+/*}}*/
+
+var wb = web.form(mainForm
+,
+,0x10/*_DLCTL_DLIMAGES*/ | 0x40000000/*_DLCTL_SILENT*/  //允许下载图片,但是禁用组件对话框、脚本错误对话框等
+);
+wb.go("https://plogin.m.jd.com/user/login.action")
+wb.wait()
+
+
+whttp = inet.whttp()
+whttp.addHeaders="Cookie:"+wb.document.cookie   //取wb的cookie
+htmldate= whttp.get("http://p.m.jd.com/cart/cart.action")
+
+
+mainForm.show() 
+return win.loopMessage(); 
+

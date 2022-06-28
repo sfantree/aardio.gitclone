@@ -1,0 +1,73 @@
+﻿import fsys.ini;
+import fsys.hosts;
+	
+fsys.hosts.ownCacls(); //hosts夺权,修正一些系统hosts无法编辑
+
+class iniHosts{
+	ctor(){
+		this.path = ..io.appData("aardio/hosts-switch.ini");
+		this.ini = ..fsys.ini(this.path);
+		if( ! #this.ini.getSectionNames() ){
+			sec = this.ini.getSection("备份hosts");
+			sec.status = "on";
+			sec.hosts = ..string.hex( ..fsys.hosts.loadText() ) // 转16进制
+			sec.name = "备份hosts";
+			sec.save()
+		} 
+	};
+	saveToSystemHosts = function(){
+		var content = ""; 
+		for section in this.ini.eachSection() { 
+			if(section.status=="on"){
+				content +=  ..string.unhex(section.hosts) + '\r\n' //16进转字符串
+			}
+		}
+		..fsys.hosts.saveText(content) 
+	}; 
+	createSection = function(name){  
+		sec = this.ini.getSection(name)
+		sec.status = "on"
+		sec.hosts = "# " + name
+		sec.name = name
+		sec.save()
+		return  "create ok"
+	};
+	getAllSections = function(){ 
+		var tab = {} 
+		for section in this.ini.eachSection() { 
+			section.hosts = ..string.unhex(section.hosts) //16进转字符串
+			..table.push(tab,section)
+		} 
+		return tab;
+	}; 
+	updateSection = function(oldName,newName,status,data){ 
+		if(oldName != newName){ 
+			this.ini.write(oldName,null,)
+		}
+			
+		sec = this.ini.getSection(newName)
+		sec.status = status
+		sec.hosts = ..string.hex(data) // 转16进制
+		sec.name = newName
+		sec.save()
+		this.saveToSystemHosts()
+		return  "update ok"
+	};
+	delSection = function(name){ 
+		this.ini.write(name,null)
+		this.saveToSystemHosts()
+		return  "del ok"
+	};
+}
+
+/**intellisense()
+iniHosts() = 创建host配置文件\n!iniHostsObject.
+end intellisense**/
+
+/**intellisense(!iniHostsObject)
+saveToSystemHosts() = 导出到系统hosts文件
+createSection(.(name) = 创建hosts配置小节
+getAllSections() = 返回所有hosts配置小节
+updateSection(.(oldName,newName,status,data) = 更新hosts配置小节
+delSection(.(name) = 删除hosts配置节
+end intellisense**/

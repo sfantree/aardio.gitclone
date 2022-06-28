@@ -1,0 +1,39 @@
+import util.buffer.headers;
+import util.buffer.cookies;
+namespace util.buffer;
+
+var oldStdoutWrite, oldStdErrWrite;
+var stdOutBuf, stdErrBuf;
+
+beginBuffer = function () {
+	oldStdoutWrite = ..io.stdout.write;
+	oldStdErrWrite = ..io.stderr.write;
+	stdOutBuf = {}; stdErrBuf = {};
+	..response.status = null;
+	..response.header = headers();
+	..request.cookie = cookies( ..request.server["HTTP_COOKIE"] )["_requestCookies"];
+	..response.cookie = cookies();
+	..io.stdout.write = function (...) {
+		if (#{...})
+			..table.push(stdOutBuf, ...);
+	}
+	..io.stderr.write = function (...) {
+		if (#{...})
+			..table.push(stdErrBuf, ...);
+	}
+}
+
+endBuffer = function () {
+	if (..response.status !== null) {
+		oldStdoutWrite("Status: ", ..response.status, '\r\n');
+	}
+	for (k, v in ..response.header) {
+		oldStdoutWrite(k, ": ", v, '\r\n');
+	}
+	oldStdoutWrite(..response.cookie.genHeaders());
+	oldStdoutWrite('\r\n');
+	oldStdoutWrite( ..table.unpack(stdOutBuf) );
+	oldStdErrWrite( ..table.unpack(stdErrBuf) );
+	..io.stdout.write = oldStdoutWrite;
+	..io.stderr.write = oldStdErrWrite;
+}

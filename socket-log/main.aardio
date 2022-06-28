@@ -1,0 +1,110 @@
+// SocketLog API online 调试神器
+
+import chrome.app;
+
+
+var app = chrome.app();
+var info = function(msg){
+    if(type(msg) != type.string){
+    	msg = tostring(msg)
+    }
+	app.publish("status", msg);
+}
+
+import config;
+var conf = config.client; // client 是一个文件，返回值是一个 table
+
+import web.socket.client;
+var ws = web.socket.client();  // WebSocket 异步客户端
+ws.originUrl = "http://console.woduhuiben.com/index";
+
+ws.onOpen = function(){
+	info("链接服务端：" + ws.url + " 【成功】")
+}
+
+ws.onClose = function(event){
+	info("onClose" + tostring(event))
+}
+
+ws.onError = function(err){
+	info("onError" + tostring(err))
+}
+
+import web.json;
+ws.onMessage = function(msg){
+    try{
+    	//json字串解码成table对象
+		var data  = web.json.parse(msg.data);
+    	//判断是否有强制日志
+    	if(conf.cid && data.force_client_id==conf.cid) {
+      		//将强制日志输出
+      		app.publish("log", data.logs)
+      		return ;
+    	}
+    	if((conf.cid  && data.client_id!=conf.cid) || !data.tabid) {
+       		//不是当前用户的日志不显示。 
+       		return ; 
+    	}
+		app.publish("log", data.logs)
+    } catch(e) { 
+		if(1 == string.indexOf(msg.data, 'close:')) {
+			app.msgbox("此client_id不允许连接服务")
+		} else {
+			app.msgbox("日志格式错误，" + msg.data)
+		}
+		return ; 
+    }
+}
+/*
+在下面的external对象中指定允许chrome中使用JS直接调用的函数
+在网页中直接引用"/aardio.js"下面的external 会自动转换为js中的aardio对象.
+"/aardio.js"是由 aardio虚拟的JS文件(不用自己准备这个文件)。
+*/
+app.external = {
+    //加载一个页面完成会触发这个事件(要求引用了"/aardio.js")
+    onLoadUrl = function(url){
+        app.publish("init", conf)
+    } 
+    // aardio 导出函数
+    alert= function(msg){
+        if(type(msg) == type.string) {
+        	app.msgbox(msg)
+        }
+    } 
+    connect = function(...){
+        var arg = { ... }
+        if(#arg == 0){
+            app.msgboxErr("配置信息有误");
+        	return false; 
+        } else {
+        	if(ws.readyState != 1) {
+        		conf.host = arg[1];
+        		conf.port = arg[2];
+        		conf.cid = arg[3];
+        		ws.connect("ws://" + conf.host + ":" + conf.port + "/" + conf.cid);
+        		//conf.save();
+        	}
+        	return true; 
+        }
+    }
+}
+
+//WebSocke/RPC中遇到的错误都会触发这个函数,可以在这里自定义错误处理方式
+app.ws.onError = function(hSocket,err){
+	errput(err,"chrome/rpc error");//当然也可以在 global.onError 里自定义全部的错误信息怎么显示
+}
+
+//正式的启动chrome进程， aardio 会自动把下面的文件转换为服务端请求
+app.start("/res/index.html");
+app.setPos(500, 300, 450, 380);
+
+app.onQuit = function(){
+    ..win.quitMessage();
+    if(!ws.isClosed()){
+    	ws.close()
+    }
+}
+
+//网页中可以调用 aardio.quit() 退出,也可以直接关闭chrome窗口退出
+win.loopMessage();
+  

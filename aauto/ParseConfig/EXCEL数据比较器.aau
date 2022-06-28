@@ -1,0 +1,289 @@
+import win.ui;
+import fsys.dlg
+import com.excel;
+/*DSG{{*/
+var winform = ..win.form( text="EXCEL数据比较器";bottom=393;parent=...;right=638 )
+winform.add( 
+button2={ bottom=258;right=483;left=365;top=220;z=11;text="退出";cls="button" };
+static={ bottom=322;text="信息显示区";left=18;top=283;transparent=1;right=609;z=8;edge=1;cls="static" };
+editpath1={ bottom=111;right=497;left=128;multiline=1;top=68;z=1;hscroll=1;edge=1;cls="edit" };
+btndlg2={ bottom=180;text="浏览目标文件";left=518;top=152;z=6;right=616;cls="button" };
+static_kys={ bottom=98;right=113;left=21;top=76;transparent=1;z=3;text="源数据";cls="static" };
+static_ezt={ bottom=195;right=145;left=23;top=165;transparent=1;z=4;text="目标数据";cls="static" };
+static3={ bottom=55;color=65280;right=427;left=200;top=12;font=LOGFONT( h=-29 );z=10;text="EXCEL数据比较器";transparent=1;cls="static" };
+button={ bottom=258;right=250;left=132;top=220;z=7;text="开始";cls="button" };
+editpath2={ bottom=198;right=495;left=126;multiline=1;top=156;z=5;hscroll=1;edge=1;cls="edit" };
+static2={ bottom=367;color=0;text="状态显示区";left=18;top=335;font=LOGFONT( h=-20 );z=9;right=615;frame=1;transparent=1;cls="static" };
+btndlg1={ bottom=96;text="浏览源文件";left=518;top=68;z=2;right=616;cls="button" }
+)
+/*}}*/
+
+winform.button2.oncommand = function(id,event){
+	//winform.msgbox( winform.button2.text );
+	winform.close();   
+	
+}
+
+
+winform.button.oncommand = function(id,event){
+	//winform.msgbox( winform.button.text );
+	if （winform.editpath1.text）{
+	winform.static2.text="初始化源文件并建立数组"
+	//读取第一个EXCEL文件数据
+	var excel1 = com.excel()
+	excel1.alerts = false; //关闭所有操作提示
+	//初始化EXCEL文件名和初始数据		
+	book1 = excel1.WorkBooks.Open( io.fullpath(winform.editpath1.text) )
+	var sheet1 = excel1.ActiveWorkbook.Sheets(1);
+	//初始行为1，求有几行;
+	H1=0;
+	while(sheet1.cells(H1+1,1).value2!=null){
+		H1+=1;
+	};
+	//初始列为1,求有几列; 
+	L1=0;
+	while(sheet1.cells(1,L1+1).value2!=null){
+		L1+=1;
+	};
+
+	tabsum1={};
+	for(j=1;H1;1){
+		//定义一个空表
+			str1=""
+		var tab1={};
+		for(k=1;L1;1){
+		//从每一行的第一列打印到最后一列;
+		//把单元格中的数值压入表中,空单元格或为null或为10个空格
+  			if(tostring(sheet1.cells(j,k).value2)!='          '){    
+   				table.push(tab1,tostring(sheet1.cells(j,k).value2));
+   				//string.save("/测试代码t.txt",tostring(sheet1.cells(j,k).value2)+'	',true)
+   				str1=str1+tostring(sheet1.cells(j,k).value2)+'	'
+   				
+  			}
+  			else {
+  				table.push(tab1,"null")
+  			}
+  		
+		};
+		winform.static.text=str1
+
+		//将子表中的数值压入总表中成二维数组
+		table.push(tabsum1,tab1); 
+	};
+	excel1.quit();
+	}
+	
+	if （winform.editpath2.text）{
+	winform.static2.text="初始化目标文件并建立数组"
+	var excel2 = com.excel()
+	excel2.alerts = false; //关闭所有操作提示
+	//初始化EXCEL文件名和初始数据		
+	book2 = excel2.WorkBooks.Open( io.fullpath(winform.editpath2.text) )
+	var sheet2 = excel2.ActiveWorkbook.Sheets(1);
+	//初始行为1，求有几行;
+	H2=0;
+	while(sheet2.cells(H2+1,1).value2!=null){
+		H2+=1;
+	};
+	//初始列为1,求有几列; 
+	L2=0;
+	while(sheet2.cells(1,L2+1).value2!=null){
+		L2+=1;
+	};
+
+	tabsum2={};
+	for(j=1;H2;1){
+		str2=""
+		//定义一个空表
+		var tab2={};
+		for(k=1;L2;1){
+		//从每一行的第一列打印到最后一列;
+		//把单元格中的数值压入表中,空单元格或为null或为10个空格
+  			if(tostring(sheet2.cells(j,k).value2)!='          '){    
+   				table.push(tab2,tostring(sheet2.cells(j,k).value2));
+   				str2=str2+tostring(sheet2.cells(j,k).value2)+'	'
+  			}
+  			else {
+  				table.push(tab2,"null")
+  			}
+  		
+		};
+		winform.static.text=str2
+		//将子表中的数值压入总表中成二维数组
+		table.push(tabsum2,tab2); 
+	};
+	excel2.quit();	
+
+	}
+	
+	winform.static2.text="创建对比文件EXCEL表"
+	var excel3 = com.excel()
+	excel3.alerts = false; //关闭所有操作提示
+	//初始化EXCEL文件名和初始数据
+    tm = time.now();
+ 	tm.format = "%Y年%m月%d日%H时%M分%S";
+    strtm=tostring(tm)
+	if(! io.exist("数据对比") ){fsys.createDir("/数据对比/")}
+	fileexcelname="\数据对比\数据对比"+tm.year+"年"+tm.month+"月"+tm.day+"日"+".xls"
+	excel3.createFile(fileexcelname)
+	book3 = excel3.WorkBooks.Open( io.fullpath(fileexcelname) )
+	book3=excel3.Worksheets.Add(,excel3.Worksheets("sheet3"),1，-4167)  //在工作表sheet3之后插入工作表sheet4 
+ 
+ 	var sheet3_1 = excel3.ActiveWorkbook.Sheets(1);
+	var sheet3_2 = excel3.ActiveWorkbook.Sheets(2);
+	var sheet3_3 = excel3.ActiveWorkbook.Sheets(3);
+	var sheet3_4 = excel3.ActiveWorkbook.Sheets(4);
+	sheet3_1.Name ="数据一致"
+	sheet3_2.Name ="源问题记录"
+	sheet3_3.Name ="目标记录"	
+	sheet3_4.Name ="源成功目标失败"		
+	for (i=1;4;1){		//初始化表格行标题
+		num_line=1
+		var sheet = excel3.ActiveWorkbook.Sheets(i);
+		cell = sheet.Cells(num_line,1);
+    	cell.Value2 = "序号"  
+    	
+		cell = sheet.Cells(num_line,2);
+    	cell.Value2 = "号码"    
+    	sheet.Columns(2).ColumnWidth = 12;
+    	
+    	cell = sheet.Cells(num_line,3);
+    	cell.Value2 = "数量"    
+    	sheet.Columns(3).NumberFormatLocal    =    "0"  //保留小数点后两位 ,  设置单元格格式为数值  
+    	
+    	cell = sheet.Cells(num_line,4);
+    	cell.Value2 ="源状态"    
+    	sheet.Columns(4).ColumnWidth = 9;
+    	
+    	cell = sheet.Cells(num_line,5);
+    	cell.Value2 ="目标状态"    
+    	sheet.Columns(5).ColumnWidth = 9;
+    	}
+	winform.static2.text="对比数据文件"
+//锚点1
+	flagok=1  //控制成功充值的行号
+	n1=1
+	n2=1
+	n3=1
+	n4=1
+	for(j1=2;H1;1){
+		j2=1
+
+		keyok=0
+			for(j2=2;#tabsum2;1){
+
+			winform.static.text="编号："+j1+" 号码："+tabsum1[j1][2]+" 数量："+tabsum1[j1][3]+" 状态："+tabsum1[j1][4]
+			if 	(tostring(tabsum1[j1][2])==tostring(tabsum2[j2][2])){  //判断号码
+				if 	(tonumber(tabsum1[j1][3])==tonumber(tabsum2[j2][3])){  //判断数量
+					if 	(tabsum1[j1][4]=="充值成功" and tabsum2[j2][4]=="成功"){  //判断状态	
+      					flagok=flagok+1		
+      					keyok=1				
+      					var cell = sheet3_1.Cells(flagok,1);
+      					cell.Value2 =  tabsum2[j2][1]
+      					
+      					var cell = sheet3_1.Cells(flagok,2);
+      					cell.Value2 =  tabsum2[j2][2]
+      					
+      					var cell = sheet3_1.Cells(flagok,3);
+      					cell.Value2 =  tabsum2[j2][3]
+      					
+      					var cell = sheet3_1.Cells(flagok,4);
+      					cell.Value2 =  tabsum1[j1][4]
+      					
+      					var cell = sheet3_1.Cells(flagok,5);
+      					cell.Value2 =  tabsum1[j2][5]
+						tabsum2[j2][2]="10086"
+
+     					
+
+								
+					}else{
+					    n4=n4+1						
+      					var cell = sheet3_4.Cells(n4,1);
+      					cell.Value2 =  tabsum2[j2][1]
+      					
+      					var cell = sheet3_4.Cells(n4,2);
+      					cell.Value2 =  tabsum2[j2][2]
+      					
+      					var cell = sheet3_4.Cells(n4,3);
+      					cell.Value2 =  tabsum2[j2][3]
+      					
+      					var cell = sheet3_4.Cells(n4,4);
+      					cell.Value2 =  tabsum1[j1][4]
+      					
+      					var cell = sheet3_4.Cells(n4,5);
+      					cell.Value2 =  tabsum1[j2][5]				
+
+					}
+				}	
+			}
+		}
+		if keyok==0 {
+		
+					    n2=n2+1						
+      					var cell = sheet3_2.Cells(n2,1);
+      					cell.Value2 =  tabsum1[j1][1]
+      					
+      					var cell = sheet3_2.Cells(n2,2);
+      					cell.Value2 =  tabsum1[j1][2]
+      					
+      					var cell = sheet3_2.Cells(n2,3);
+      					cell.Value2 =  tabsum1[j1][3]
+      					
+      					var cell = sheet3_2.Cells(n2,4);
+      					cell.Value2 =  tabsum1[j1][4]
+      					
+      					var cell = sheet3_2.Cells(n2,5);
+      					cell.Value2 =  tabsum1[j2][5]				
+
+      					
+      					}	
+						excel3.Save() 	
+		
+	}
+	//锚点2
+	for(j2=2;#tabsum2;1){
+	
+		if tabsum2[j2][2]!="10086"{
+						n3=n3+1		
+	      				var cell = sheet3_3.Cells(n3,1);
+      					cell.Value2 =  tabsum2[j2][1]
+      					
+      					var cell = sheet3_3.Cells(n3,2);
+      					cell.Value2 =  tabsum2[j2][2]
+      					
+      					var cell = sheet3_3.Cells(n3,3);
+      					cell.Value2 =  tabsum2[j2][3]
+    					
+     					var cell = sheet3_3.Cells(n3,5);
+      					cell.Value2 =  tabsum2[j2][5]
+      							
+		}
+
+	}
+	excel3.Save() 
+	excel3.quit();	
+	winform.static2.text="处理完成"
+}
+
+
+winform.btndlg2.oncommand = function(id,event){
+	//winform.msgbox( winform.btndlg2.text );
+		var strpath2  = fsys.dlg.open()
+	if( strpath2)
+		winform.editpath2.text = strpath2; 
+	
+}
+
+
+winform.btndlg1.oncommand = function(id,event){
+	//winform.msgbox( winform.btndlg1.text );
+	var strpath1  = fsys.dlg.open()
+	if( strpath1)
+		winform.editpath1.text = strpath1; 
+	
+}
+
+
+winform.show() 
+win.loopMessage();

@@ -1,0 +1,26 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="child2";right=306;bottom=133;parent=...)
+winform.add(
+button={cls="button";text="调用child1中函数";left=19;top=35;right=131;bottom=78;z=1};
+button2={cls="button";text="调用父窗口函数";left=157;top=35;right=269;bottom=78;z=2}
+)
+/*}}*/
+
+winform.button2.oncommand = function(id,event){
+	//调用父窗口函数  方法二
+	cstabfunc.csfunc();
+	
+}
+winform.button.oncommand = function(id,event){
+	//调用child2中的函数
+	winform.parent.parent.tab.items[1].child1func(1);
+}
+
+winform.child2func = function(id){
+	win.msgbox("我是child2中的函数","aardio");
+}
+
+winform.show() 
+win.loopMessage();
+return winform;

@@ -1,0 +1,38 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio工程13";right=959;bottom=591)
+winform.add(
+picturebox={cls="picturebox";left=0;top=0;right=960;bottom=592;db=1;dl=1;dr=1;dt=1;z=1}
+)
+/*}}*/
+ 
+import fsys.dlg;
+path = fsys.dlg.open("csv文件|*.csv","请选择CSV文件");
+if(!#path) return;
+ 
+var ec3dG = winform.picturebox.createEmbed("{0EA4ABD6-7D38-4C8F-B976-D1CFDDA4525C}");
+var ec3dObj = ec3dG._object;
+ec3dObj.RegisterecGraph3D("XXXXX-XXXXX-XXXXX-XXXXX-XXXXX");
+  
+import string.database;
+var strDb = string.database(",");
+ 
+var zData = strDb.parse(string.load(path)); //解析数据
+//table.remove(zData,#zData);
+var nx,ny=#zData,#zData[1];
+ 
+with ec3dObj{
+    Reset();
+    ClearColorBands();
+    SimpleColorBand(-80, 0, 0xD01212, 0x0000FF) 
+    PlotStyle = 3 //'PlotStyle: 0=waterfall, 1=slabs, 2=ribbons, 3=mesh, 4=columns
+    RenderStyle = 1 //'RenderStyle: 0=Gradient, 1=solid, 2=wireframe, 3=axes only
+    Skirt = 0 //
+    AddDataArray(nx-1, 0, nx, ny-1, 0, ny, zData)
+    Refresh();  
+}
+ 
+ 
+winform.show();
+win.loopMessage();
+return winform;

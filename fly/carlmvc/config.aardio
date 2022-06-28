@@ -1,0 +1,43 @@
+
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+//[mvc框架配置]
+
+//mvc应用程序目录
+MVC_APP_FILE = "application";
+MVC_APP_DIR = MVC_ROOT_DIR ++ MVC_APP_FILE ++ "\";
+
+//mvc应用程序公共目录
+MVC_COMMON_FILE = "common";
+MVC_COMMON_DIR = MVC_APP_DIR ++ MVC_COMMON_FILE ++ "\";
+
+//mvc应用过滤器目录
+MVC_FILTERS_FILE = "filters";
+MVC_FILTERS_DIR = MVC_APP_DIR ++ MVC_FILTERS_FILE ++ "\";
+
+//carlmvc框架目录
+MVC_CARLMVC_FILE = "carlmvc";
+MVC_CARLMVC_DIR = MVC_ROOT_DIR ++ MVC_CARLMVC_FILE ++ "\";
+
+//配置文件目录
+MVC_CONFIG_FILE = "config";
+MVC_CONFIG_DIR = MVC_ROOT_DIR ++ MVC_CONFIG_FILE ++ "\";
+
+//日志目录
+MVC_LOG_FILE = "log";
+MVC_LOG_DIR = MVC_ROOT_DIR ++ MVC_LOG_FILE ++ "\";
+
+//错误日志文件
+MVC_LOG_ERROR_PATH = MVC_LOG_DIR ++ "error.log";
+
+//web网站目录
+MVC_WWW_FILE = "www";
+MVC_WWW_DIR = MVC_ROOT_DIR ++ MVC_WWW_FILE ++ "\";

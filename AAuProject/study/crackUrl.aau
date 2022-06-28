@@ -1,0 +1,55 @@
+import win.ui;
+import string.base64
+/*DSG{{*/
+var winform = win.form( bottom=110;parent=...;right=425;text="专用链接破解器,支持迅雷、快车、旋风." )
+winform.add( 
+button={ bottom=94;right=407;left=311;top=66;font=LOGFONT( name='SimSun' );z=2;text="解密";cls="button" };
+url={ bottom=52;right=408;left=19;multiline=1;top=27;font=LOGFONT( name='SimSun' );z=1;text="添入专用链接";edge=1;cls="edit" }
+)
+/*}}*/
+
+winform.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x205/*_WM_RBUTTONUP*/{
+			//鼠标右键弹起,下面获取坐标
+			var x,y = win.getMessagePos(lParam);
+			
+		}
+		else{
+			
+		}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+
+winform.button.oncommand = function(id,event){
+    //win.msgbox( winform.button.text );
+    urlcode = winform.url.text
+    softname = string.match(urlcode,"(.*?)\:")
+    if(softname = "thunder"){  
+         mm = string.base64.decode(string.trimleft(urlcode,"thunder://", ))
+         trueurl = string.trim(mm,"<AA>|<ZZ>", )
+         winform.url.text = trueurl
+    }
+    elseif(softname = "flashget"){
+        mm = string.base64.decode(string.trim(urlcode,"<flashget://>|<=&forece>", ))
+        trueurl = string.trim(mm,"[FLASHGET]",)
+        winform.url.text = trueurl
+    
+    }
+    elseif(softname = "qqdl"){
+        trueurl = string.base64.decode(string.trimleft(urlcode,"qqdl://", )）
+        winform.url.text = trueurl
+    }
+    else {
+        win.msgbox("不是专用链接","错误")
+    }
+    
+         
+}   
+
+winform.show() 
+win.loopMessage();
+return winform;
+

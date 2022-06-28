@@ -1,0 +1,17 @@
+import winex;
+import win;
+var hwnd = win.find("Notepad"); // 获取无窗口句柄，或win.findEx(0,0,"Notepad")
+var hedit = win.findEx(hwnd,0,"Edit"); // 获取子窗口句柄
+//io.print(hwnd, hedit)
+if(hwnd and hedit) { //都不为0，即找到了
+	winex.attach(hwnd) //窗口显示最前
+	win.setFocus(hedit) //设置焦点
+	winex.say('say\n',hedit) //发送文本1
+	winex.say2('say2\n',hedit) //发送文本2
+	winex.sayIme('sayIme\n',hedit) //发送文本3
+	winex.sendString('sendString\r\n',hedit) //发送文本4
+	winex.setText(hedit,"fast") //巧用,发送文本5
+}
+
+//mainForm.show()
+return win.loopMessage(); 

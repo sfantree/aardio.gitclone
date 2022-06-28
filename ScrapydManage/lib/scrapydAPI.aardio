@@ -1,0 +1,194 @@
+﻿namespace scrapydAPI;
+
+import inet.url;
+import inet.http;
+import web.json;
+import web.multipartFormData;
+
+var http = inet.http()
+//设置超时时间
+http.setTimeouts(3000, 5000, 2000)
+//禁止缓存，默认会有
+http.flags = 0x80000000/*_INTERNET_FLAG_RELOAD*/ 
+            | 0x4000000/*_INTERNET_FLAG_DONT_CACHE*/ 
+//检查服务的负载状态
+getStatus = function(host){
+    var url = 'http://' + host + '/daemonstatus.json'
+	var html = http.get(url)
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['node_name'], false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//向项目添加版本，如果不存在则创建项目
+addItem = function(host, project, egg, version){
+    version = version ? version : tostring(tonumber(time.now()))
+	var formData = web.multipartFormData(); 
+	formData.add("project", project);
+	formData.add("version", version);
+	formData.addFile('egg', egg);
+	var header = {
+        ["Content-Type:"] = formData.contentType();
+	}; 
+	var url = 'http://' + host + '/addversion.json'
+	var html = http.post(url, formData.readAll(),  header);
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return true, false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+
+//安排一次蜘蛛运行
+runSpider = function(host, project, spider, setting=false, jobid=false, _version=false){
+    var formData = web.multipartFormData(); 
+	formData.add("project", project);
+	formData.add("spider", spider);
+	if(setting) formData.add("setting", setting);
+	if(jobid) formData.addFile('jobid', jobid);
+	if(_version) formData.add("_version", _version);
+	var header = {
+        ["Content-Type:"] = formData.contentType();
+	}; 
+	var url = 'http://' + host + '/schedule.json'
+	var html = http.post(url, formData.readAll(),  header);
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['jobid'], false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//取消任务的运行，如果任务的状态为pending(等待)，则删除任务。
+cancelSpider = function(host, project, jobid){
+    var formData = web.multipartFormData(); 
+	formData.add("project", project);
+	formData.add("job", jobid);
+	var header = {
+        ["Content-Type:"] = formData.contentType();
+	}; 
+	var url = 'http://' + host + '/cancel.json'
+	var html = http.post(url, formData.readAll(),  header);
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return true, false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//获取上传到此Scrapy服务器的项目列表
+listProjects = function(host){
+    var url = 'http://' + host + '/listprojects.json'
+	var html = http.get(url)
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['projects'], false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//获取可用于某些项目的版本列表
+listVersions = function(host, project){
+    var url = 'http://' + host + '/listversions.json?project=' + project 
+	var html = http.get(url)
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['versions'], false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+listSpiders = function(host, project, _version=false){
+    var url = 'http://' + host + '/listspiders.json?project=' + project 
+	if _version{
+		url += '&_version=' + tostring(_version)
+	}
+	var html = http.get(url)
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['spiders'], false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//获取某个项目的挂起，正在运行和已完成的作业的列表
+listJobs = function(host, project){
+    var url = 'http://' + host + '/listjobs.json?project=' + project 
+	var html = http.get(url)
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return data['pending'], data['running'], data['finished']
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//删除项目版本。如果给定项目没有更多版本，该项目也将被删除
+delVersion = function(host, project, version){
+    var formData = web.multipartFormData(); 
+	formData.add("project", project);
+	formData.add("version", version);
+	var header = {
+        ["Content-Type:"] = formData.contentType();
+	}; 
+	var url = 'http://' + host + '/delversion.json'
+	var html = http.post(url, formData.readAll(),  header);
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return true, false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+//删除项目及其所有上传的版本
+delProject = function(host, project){
+    return false, '谨慎操作';
+     
+	var formData = web.multipartFormData(); 
+	formData.add("project", project);
+	var header = {
+        ["Content-Type:"] = formData.contentType();
+	}; 
+	var url = 'http://' + host + '/delproject.json'
+	var html = http.post(url, formData.readAll(),  header);
+	if(html){
+		var data = web.json.parse(html)
+		if(data['status'] == 'ok'){
+			return true, false
+		}
+		return false, html
+	}
+	return false, '请求超时，请检查主机状态！'
+}
+/*
+import console;
+status, err = addItem('127.0.0.1:6800','splashspider', '/splashspider.egg', '1')
+spiders = listSpiders('127.0.0.1:6800','newspider')
+console.log(..table.tostring(spiders))
+jobid = runSpider('127.0.0.1:6800','newspider', spiders[1])
+console.log(jobid)
+status, err = cancelSpider('127.0.0.1:6800','newspider','c177e390967e11ea8669a8a159099a6c')
+console.log(status)
+console.log(err)
+console.pause()
+*/

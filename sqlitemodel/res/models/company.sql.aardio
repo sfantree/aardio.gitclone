@@ -1,0 +1,8 @@
+CREATE TABLE "company" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"nsrsbh" VARCHAR(16), /*纳税人识别号*/
+	"cate" VARCHAR(16), /*分类*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+);

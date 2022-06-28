@@ -1,0 +1,81 @@
+﻿/*
+ **************************
+ *
+ * 豆瓣FM 播放历史列表窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import web.layout;
+import web.layout.behavior.windowCommand;
+
+var albumForm = ..win.form(
+	text="专辑封面 - "++_app;
+	border="none";
+	right=682;
+	bottom=334;
+	);
+	
+
+wbLayout_album = web.layout(albumForm);
+wbLayout_album.go("/res/album.html");
+
+albumForm.transparent(true); // 透明窗体
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_album.onButtonClick = {
+	// =============================
+	// 显示红心兆赫歌曲按钮
+	// =============================
+ 	album_close = function (layoutEle,reason,behaviorParams) { // cancel
+		albumForm.close();
+	}
+ 	play = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.play();	
+	}	
+ 	like = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.like();	
+	}
+	del= function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.del();
+	}
+	next= function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.to.next();
+	}
+}
+
+
+
+
+/*
+ * 窗体事件
+ */
+albumForm.wndproc = {
+	[0x10/*0x10/*_WM_CLOSE*/] = function(hwnd,message,wParam,lParam) {
+		// 当窗体关闭时
+		albumForm.show(false);
+		albumFormShown = false;
+		return "noclose";
+	}
+	[0x204/*_WM_RBUTTONDOWN 鼠标右键*/] = function (hwnd, message, wParam, lParam) {
+   		import mouse;
+   		var x,y = mouse.getPos();
+   		win.setForeground(mainForm.hwnd);
+   		mainForm.popmenu.popup(x,y,true);	
+	}
+}
+
+//albumForm.show();
+
+
+win.loopMessage();
+
+return albumForm;

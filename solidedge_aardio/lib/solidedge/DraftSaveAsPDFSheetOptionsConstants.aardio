@@ -1,0 +1,13 @@
+﻿//DraftSaveAsPDFSheetOptionsConstants
+namespace solidedge;
+namespace DraftSaveAsPDFSheetOptionsConstants{
+    
+    
+	
+}
+
+/**intellisense()
+_seDraftSaveAsPDFSheetOptionsConstantsActiveSheet = @0 /*Active sheet only*/
+_seDraftSaveAsPDFSheetOptionsConstantsAllSheets = @1 /*All sheets*/
+_seDraftSaveAsPDFSheetOptionsConstantsSelectedSheets = @2 /*Selected sheets*/
+end intellisense**/

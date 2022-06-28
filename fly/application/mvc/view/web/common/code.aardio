@@ -1,0 +1,15 @@
+
+<script>
+layui.use('jquery',function(){
+	var $ = layui.jquery
+	$('#img_vercode').off('click').on('click', function () {
+        this.src = "<?=mvcapp.urlAction("getVerCode","default")?>&_=" + new Date().getTime();
+    });
+    $('#L_vercode').off('click').on('click', function () {
+    	if($('#L_vercode').val() == ""){
+        	$('#img_vercode').click();
+        }
+    });
+    
+});
+</script>

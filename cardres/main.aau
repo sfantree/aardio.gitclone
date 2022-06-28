@@ -1,0 +1,65 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="干部信息管理";right=770;bottom=700;border="none";mode="popup")
+winform.add()
+/*}}*/
+
+import process;
+/*
+import process.admin;
+
+var isAdmin,isXp=process.admin.isRunAs();
+if(!isXp){
+	if(!isAdmin){
+		var ppath =process.getPath(process.getId());
+		process.admin.runas(ppath);
+		winform.close();
+	}
+}
+*/
+
+//启动日志
+import log4a;
+log4a.init('uselog','/log/log_');
+
+winform.onClose = function(hwnd,message,wParam,lParam){
+	log4a.info('close');
+    log4a.close();
+}
+
+
+//初始化数据库
+import sqlite;
+import io;
+
+..InfoDB=sqlite(io.fullpath("/db/db.db"));
+..ConfigDB=sqlite(io.fullpath("/db/config.db"));
+
+//导入webkit支持库
+import web.kit.form;
+import web.kit.jsFunction;
+//import web.kit.fileSystem; //支持嵌入资源文件
+
+//创建webkit浏览器窗口
+var webkit = web.kit.form(winform);
+webkit.go("\html\main.html"); 
+
+//可以使用CSS选择器获取HTML节点对象
+//webkit.querySelector("#header .title-bar .title").innerText = "我 的 软 件";
+
+//添加可拖动边框
+import win.ui.resizeBorder;
+win.ui.resizeBorder(winform);
+
+//添加阴影
+import win.ui.shadow;
+win.ui.shadow(winform);
+
+//限定最大化范围
+import win.ui.minmax;
+win.ui.minmax(winform);
+
+
+
+winform.show();
+win.loopMessage();

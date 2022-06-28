@@ -1,0 +1,145 @@
+import win.ui;
+import win.ui.atom;
+import fonts.fontAwesome;
+import win.clip;
+import win.dlg.message;
+import fsys.ini;
+/*DSG{{*/
+mainForm = win.form(text="snipOCR";right=599;bottom=399;bgcolor=16777215;border="none";max=false)
+mainForm.add(
+bk={cls="bk";text="简易OCR文字识别工具";left=0;top=0;right=600;bottom=28;bgcolor=12632256;z=1};
+btnClean={cls="plus";text='\uF1F8';left=53;top=33;right=89;bottom=69;border={radius=6};color=2368548;font=LOGFONT(h=-29;name='FontAwesome');notify=1;z=4};
+btnCopy={cls="plus";text='\uF24D';left=96;top=33;right=132;bottom=69;border={radius=6};color=2368548;font=LOGFONT(h=-29;name='FontAwesome');notify=1;z=5};
+btnOcr={cls="plus";text='\uF0C4';left=9;top=33;right=45;bottom=69;border={radius=6};color=2368548;font=LOGFONT(h=-29;name='FontAwesome');notify=1;z=3};
+btnSet={cls="plus";text='\uF013';left=556;top=34;right=592;bottom=70;border={radius=6};color=2368548;dr=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=6};
+chkEnableLinefeed={cls="plus";text="关闭换行";left=456;top=37;right=546;bottom=67;align="left";dl=1;dt=1;font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome')};iconText='\uF0C8';notify=1;textPadding={left=24};z=7};
+edtResult={cls="edit";left=8;top=75;right=592;bottom=391;edge=1;font=LOGFONT(h=-16;name='宋体');multiline=1;vscroll=1;z=2}
+)
+/*}}*/
+
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = mainForm.atom("DB0BDB54-F944-4609-8A1A-25CBAE612166");
+if(!atom){
+	/*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+	win.quitMessage();	return;
+}
+
+var style = {
+	icon = {
+		background={
+			active=0xFF0078B0;
+			hover=0xFF00AEFF;
+			default=0;
+		}; 
+	};
+	checkBox = {
+		color = { 
+			hover = 0xFF00AEFF; 
+			active = 0xFF0078B0;
+			disabled = 0xEE666666;
+		}
+		checked = {
+			color = { 
+				hover = 0xFF00AEFF; 
+				active = 0xFF0078B0;
+				disabled = 0xEE666666;
+			}
+			iconText = '\uF14a'/*_FA_CHECK_SQUARE*/
+		} 	
+	};
+}
+
+mainForm.btnOcr.skin(style.icon)
+mainForm.btnClean.skin(style.icon)
+mainForm.btnCopy.skin(style.icon)
+mainForm.btnSet.skin(style.icon)
+mainForm.chkEnableLinefeed.skin(style.checkBox)
+
+import win.ui.simpleWindow2;
+var simpleWindow2 = win.ui.simpleWindow2(mainForm);
+
+import win.ui.tooltip; 
+var tooltipCtrl = win.ui.tooltip( mainForm );//在窗口上创建tooltip控件 
+tooltipCtrl.addTool(mainForm.btnOcr,"截图扫描" )
+tooltipCtrl.addTool(mainForm.btnClean,"清空" )
+tooltipCtrl.addTool(mainForm.btnCopy,"复制" )
+tooltipCtrl.addTool(mainForm.btnSet,"密钥设置" )
+
+var counter=0;
+var ini=fsys.ini("\set.ini");
+var sec = ini.getSection("config");
+if(!sec.apikey || !sec.secretkey){
+	sec.apikey = ""; 
+	sec.secretkey = ""; 
+	sec.save()
+}
+mainForm.apikey = ini.read("config","apikey");
+mainForm.secretkey = ini.read("config","secretkey");
+
+var orc = function(mainForm,image,data,flag){
+    import baidu.client;
+    var http =  baidu.client();
+    /*
+    支持下面三种写法： 
+    http.setAuth( 这里直接写access_token )
+    http.setAuth( 这里写一个可以获取access_token的网址 )
+    http.setAuth( "你自己的API Key","你自己的Secret Key" )
+    */ 
+
+ 	http.setAuth( data.apikey,data.secretkey )
+  
+    //OCR识别接口
+    var ocr = http.api("https://aip.baidubce.com/rest/2.0/ocr/v1/");
+    var result = ocr.accurate_basic( 
+        image = image;
+    )
+    
+    if(result.words_result){
+    	for i,v in table.eachIndex(result.words_result){	
+    		if(mainForm.chkEnableLinefeed.checked){
+    			mainForm.edtResult.appendText(v.words);
+    		} else {
+    			mainForm.edtResult.appendText(v.words++'\r\n');
+    		}
+    	}    	
+    } else {
+    	mainForm.msgErr("密钥有误，认证失败！",1000)
+    }
+    
+    mainForm.btnOcr.disabledText = null;	
+}
+
+mainForm.btnSet.oncommand = function(id,event){
+	var frmSet = win.loadForm("\dlg\set.aardio");
+	var username = frmSet.doModal();
+}
+
+var dll = raw.loadDll($"\PrScrn.dll");
+mainForm.btnOcr.oncommand = function(id,event){
+	dll.PrScrn();
+    var hbmp = win.clip.readBitmap();
+    if(!hbmp){
+		mainForm.msgErr("剪贴板中没有图像,请先复制图像!",1000)
+    	mainForm.btnOcr.disabledText = null;
+    	return;
+    }
+    
+    import gdip.bitmap
+    var img  = gdip.bitmap(hbmp);
+    var buffer = img.saveToBuffer();
+    		
+    mainForm.btnOcr.disabledText = '\uF110';
+    thread.invoke( orc,mainForm,buffer,{apikey=mainForm.apikey;secretkey=mainForm.secretkey} );
+
+}
+
+mainForm.btnClean.oncommand = function(id,event){
+	mainForm.edtResult.text = "";
+}
+
+mainForm.btnCopy.oncommand = function(id,event){
+	win.clip.write(mainForm.edtResult.text);
+	mainForm.msgOk("复制完成",500)
+}
+
+mainForm.show();
+return win.loopMessage();

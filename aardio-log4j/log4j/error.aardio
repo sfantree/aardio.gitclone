@@ -1,0 +1,61 @@
+﻿// error 全局错误日志
+namespace log4j
+/*
+全局错误处理hook
+*/
+self.configure({
+	appenders = {
+		error =  { 
+			type ='file';  //日志输出方式
+			fileName = 'error.log'; //日志文件名 如果为空用日期做文件名
+			layouts = { ['type'] = 'basic'};
+		};
+	};
+	categories = {
+   	 	error =  { appenders = { 'error' };level='ERROR'}
+    }
+})
+
+var loggerError = self.Logger('golobal.onError'); 
+/*
+  保存错误日志到文件
+*/
+global.onError = function( err,over ){   
+ 	if(type(err) != type.string ) return; 
+	err = ..string.replace(err,'@\n{Error}:\n','\n');
+	err = ..string.replace(err,"\n----------------------\s*\n\s*",'\n'); 
+	err = ..string.replace('\n'+err,"\n\{?([\a\s]*?)\}?\:", {
+		["Near"] = '\n靠近:';
+		["Byte"] = '\n字节码:';
+		["Error"] = '\n错误:';
+		["File"] = '\n文件:';
+		["Line"] = '\n错误行号:';
+		["Field"] = '\n字段:';
+		["Failed"] = '\n失败操作:';
+		["Attempt to"] = '\n不支持此操作:';
+		["Kind"] = '\n定义类型:';
+		["Name"] = '\n名字:';
+		["Type"] = '\n类型:';
+		["Expected"] = '\n预期:';
+		["Got"] = '\n实际获取:';  
+		["Struct error"] = '\n结构体错误:'; 
+		["Match for"] = '\n匹配于:'; 
+		["Match line"] = '\n匹配行:'; 
+		["Expected size"] = '\n预期大小:'; 
+		["Bad argument"] = '\n错误参数:'; 
+		["Calling"] = '\n调用函数名:'; 
+		["Declare api"] = '\nAPI函数声明:'; 
+		["Data type error"] = '\n参数类型错误:'; 
+	});
+	
+	err = ..string.replace(err,"<.*?>", {
+			["unexpected symbol"] = "<未知符号>";
+			["unexpected end"] = "<意外结束>";
+			["name"] = "<标识符>";
+	});
+	err = ..string.trim(err);
+	loggerError.error(err)
+	return err
+    if( _STUDIO_INVOKED ) return err;/*IDE中返回错误信息以继续显示*/   
+}
+

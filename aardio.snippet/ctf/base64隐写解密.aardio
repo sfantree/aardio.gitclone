@@ -1,0 +1,217 @@
+// @Author  : popy32
+// @Contact : 74o5o27o8#qq.com
+// @File    : base64steg.aardio
+// @Comment : base64隐写解密
+
+// 第一版
+// 2022-04-22 14:20:53
+
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="base64隐写解密";right=767;bottom=471)
+winform.add(
+button={cls="button";text="解密";left=616;top=56;right=768;bottom=96;z=2};
+button2={cls="button";text="原理";left=616;top=112;right=768;bottom=152;z=4};
+button3={cls="button";text="读取剪切板";left=616;top=0;right=768;bottom=40;z=5};
+edit={cls="edit";left=0;top=0;right=616;bottom=304;edge=1;multiline=1;z=1};
+edit2={cls="edit";left=0;top=304;right=616;bottom=472;edge=1;multiline=1;z=3}
+)
+/*}}*/
+
+import console;
+
+Base64Table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// 编码后 每个字符的二进制
+// A -> 0 -> 000000
+// / -> 63 -> 111111
+getCharBitString = function(base64Char){
+	var i = string.indexOf(Base64Table, base64Char);
+	if(not i or i <= 0) {
+	    return ""
+	}
+	i = i - 1;
+	var r = tostring(i,2);
+	var prefix = ""
+	for(index = 1; 6 - #r; 1){
+		prefix = prefix + "0"
+	}
+	return prefix ++ r;
+}
+
+// 每行base64编码隐写的位数
+// 末尾没有= 返回""
+// 1个= 返回 "00"
+// 2个= 返回 "0000"
+
+getLineStegBit = function(base64Line) {
+	//console.log("base64Line", base64Line);
+	var base64Line = string.trim(base64Line);
+    var length = #base64Line;
+    // =的个数
+    var count = 0;
+    var lastChar;
+    for(i=length;length - 3;-1){
+    	if(base64Line[i] == '='#) {
+    	    count = count + 1;
+    	} else {
+    	    lastChar = base64Line[i];
+    	    break;
+    	}
+    }
+    var r = "";
+    lastChar = string.pack(lastChar);
+    //console.log("lastChar", lastChar);
+    if(count == 0) {
+        
+    } 
+    
+    if(count == 1) {
+         r = getCharBitString(lastChar);
+         r = string.right(r, 2);
+    }
+    
+    if(count == 2) {
+         r = getCharBitString(lastChar);
+         r = string.right(r, 4);
+         
+    }
+    //console.log("r", r);
+    return r;
+}
+
+// 多行base64返回隐写位
+// 按8位分组
+getMultiLineStegBit = function(l){
+	var r = "";
+	for(i=1;#l;1){
+		r = r ++ getLineStegBit(l[i]);
+		
+	}
+	//console.log("r", r);
+	
+	var length = #r;
+	var count = math.floor( length / 8 );
+	var t = {};
+	//console.log("count", count)
+	for(i=1;count + 1;1){
+		var start = 8 * (i - 1) + 1;
+		var end_ =  8 * (i - 1) + 8;
+		
+		if(end_ > length) {
+		    end_ = length;
+		}
+		//console.log("start", start, "end_", end_);
+		var each8bit = string.slice(r, start, end_);
+		
+		//console.log(each8bit);
+		var eachChar = tonumber(each8bit, 2);
+		table.push(t, eachChar);
+		
+	}
+	return t;
+}
+
+printAsciiList = function(l){
+	var r = "";
+	for(i=1;#l;1){
+		var eachAscii = l[i];
+		// 可打印字符
+		if(eachAscii >= 0x20 and eachAscii <= 0x7e) {
+		    r = r ++ string.pack(eachAscii);
+		// 不可打印字符
+		} else {
+		    r = r ++ ".";
+		}
+	}
+	return r;
+}
+
+printAscii2Hex = function(l){
+	var r = "";
+	for(i=1;#l;1){
+		var eachAscii = l[i];
+		r = r ++ tostring(eachAscii, 16);
+		if(i <= #l - 1) {
+		    r = r ++ " ";
+		}
+	}
+	return r;
+}
+
+printAscii2HexNoPrefix = function(l){
+	var t = string.pack(l);
+	var r = string.hex(t, "");
+	return r;
+
+}
+
+winform.button.oncommand = function(id,event){
+	winform.edit2.text = "";
+	var t = {};
+	for line in winform.edit.lines(true){
+	    table.push(t, line);
+	}
+	var l = getMultiLineStegBit(t);
+
+    var r = printAscii2Hex(l);
+	winform.edit2.print(r);
+	
+    winform.edit2.print("");
+	
+	r = printAscii2HexNoPrefix(l)
+	winform.edit2.print(r);
+	
+	winform.edit2.print("");
+
+	r = printAsciiList(l);
+	winform.edit2.print(r);
+}
+
+winform.button2.oncommand = function(id,event){
+	winform.edit2.text = "";
+	winform.edit2.print("利用base64编码的3字符转4字符");
+	winform.edit2.print("若编码前长度不是3的倍数（编码后出现=）");
+	winform.edit2.print("则编码后包含一些冗余位（参考逐位对应的图解会更直观）");
+	winform.edit2.print("可以利用这些冗余位来隐藏信息");
+	winform.edit2.print("https://ctf-wiki.org/misc/encode/computer/#base");
+}
+
+winform.edit.text = /**
+I2luY2x1ZGU8c3RkaW8uaD5=
+I2luY2x1ZGUgPHN0ZGxpYi5oPi==
+bWFpbigpe2ludCBpLG5bXT17KCgoMSA8PDEpPDwoMTw8MSk8PCgxPDx=
+ICAgICAgIDEpPDwoMTw8KDE+PjEpKSkrKCgxPDwxKTw8KDE8PDEpKSksICgoKDE=
+ICAgICAgIDw8MSk8PCgxPDwxKTw8KDE8PDEpPDwoMTw8MSkpLSgoMTw8MSk8PCi=
+ICAgIAkxPDwxKTw8KDE8PDEpKSsoKDE8PDEpPDwoMTw8KDE+PjEpKSkrKDE8PCgxPj4xKSkpLA==
+ICAgICAgICgoKDE8PDEpPDwoMTw8MSk8PCgxPDwxKTw8KDE8PDEpKS0oKDEgPDwxKW==
+ICAgICAgIDw8KDE8PDEpIDw8KDE8PCgxPj4xKSkpLSgoMTw8MSk8PCgxPDwoMT4+MSkpKSkgLB==
+ICAgICAgICgoKDE8PDEpPDwoMTw8MSk8PCgxPDwxKTw8KCAxPDwxKSktKCgxIDw8MSk8PG==
+ICAgICAgICAoMTw8MSk8PCgxIDw8KDE+PjEpKSktKCgxPDwxKTw8KDE8PCgxPj4xKSkpKSAgLN==
+ICAgICAgICAoKCgxPDwxKTw8KDE8PDEpPDwoMTw8MSk8PCgxPDwxKSktKCgxPDwxKSA8PC==
+ICAgICAgICAoMTw8MSk8PCgxPDwoMT4+MSkpKS0oMTw8KDE+PjEpKSksKCgoMTw8MSk8PA==
+ICAgICAgICAoMTw8MSk8PCgxPDwxKSkrKCgxPDwxKTw8KDE8PDEpPDwoMTw8KDE+PjEpKSkgLW==
+ICAgICAgICAoKDE8PDEpPDwoMTw8KDE+PjEpKSkpLCgoMTw8MSk8PCgxPDwxKTw8KDE8PDEpKR==
+ICAgICAgICwoKCgxPDwxKTw8KDE8PDEpPDwoMTw8MSk8PCgxPDwxKSktKCgxPDwxKTw8KDE8PDEpKS==
+ICAgICAgIC0oMTw8KDE+PjEpKSksKCgoMTw8MSk8PCgxPDwxKTw8KDE8PDEpPDwoMTw8MSkpLSgoMQ==
+ICAgICAgIDw8MSk8PCgxPDwxKTw8KDE8PCgxPj4xKSkpLSgxPDwoMT4+MSkpKSwgICgoKDE8PDF=
+ICAgICAgICk8PCgxPDwxKTw8KDE8PDEpPDwoMTw8MSkpLSgoMTw8MSk8PCAoMQ==
+ICAgICAgIDw8MSk8PCgxPDwoMT4+MSkpKSsoMTw8MSkpLCgoKDE8PDEpPDwoMTw8MSAgKd==
+ICAgICAgIDw8KDE8PDEpPDwoMTw8MSkpLSgoMTw8MSk8PCgxPDwxKTw8KDE8PCgxPj4xKSkpLV==
+ICAgICAgICgoMTw8MSk8PCgxPDwoMT4+MSkpKSksKCgoMTw8MSk8PCgxPDwxKSA8PCgxPDwxKR==
+ICAgICAgIDw8KDE8PDEpKS0oKDE8PDEpPDwoMTw8MSk8PCgxPDwxKSkrICgoMR==
+ICAgICAgIDw8MSk8PCgxPDwoMT4+MSkpKSksKCgoMTw8MSk8PCgxPDwxKSAgPDwoMZ==
+ICAgICAgIDw8MSkpKygxPDwoMT4+MSkpKSwoKCgxPDwxKTw8KDE8PDEpKSAgKygoMZ==
+ICAgICAgIDw8MSk8PCAoMTw8KDE+PjEpKSkgKygxPDwgKDE+PjEpKSl9O2Zvcl==
+ICAgICAgIChpPSgxPj4xKTtpPCgoKDE8PDEpPDwoMTw8MSkpKygoMSAgPDwxKTw8KM==
+ICAgICAgIDE8PCgxPj4xKSkpKygxPDwxKSk7aSsrKSAgIHByaW50ZigiJWMiLG5baV0pO32=
+**/
+
+winform.button3.oncommand = function(id,event){
+	import win.clip;
+	var txt = win.clip.read();
+	winform.edit.text = txt;
+}
+
+winform.show();
+win.loopMessage();

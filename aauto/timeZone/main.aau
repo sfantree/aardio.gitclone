@@ -1,0 +1,30 @@
+import win.ui;
+import time.zone;
+/*DSG{{*/
+mainForm = ..win.form( right=600;text="timeZone";bottom=400 )
+mainForm.add(  )
+/*}}*/
+
+/***
+import config;
+mainForm.bindConfig( config.mainForm,{
+	edit = "text"; //绑定edit控件的text属性值到配置文件
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+} );
+***/
+
+//-480 东八区
+
+//time.zone.setInfo( bias = -480 );
+var zoneInfo,zoneId = time.zone.getInfo();
+//win.msgbox("standardName:"++zoneInfo.standardName++"  " ++ zoneInfo.daylightName ++ " " ++ zoneId);
+win.msgbox("bias:" ++zoneInfo["bias"]);
+win.msgbox("standardBias:" ++zoneInfo["standardBias"]);
+//win.msgbox("standardDate:" ++tostring(zoneInfo["standardDate"]));
+win.msgbox("standardName:" ++zoneInfo["standardName"]);
+win.msgbox("daylightName:" ++zoneInfo["daylightName"]);
+
+mainForm.show() 
+win.loopMessage(); 

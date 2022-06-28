@@ -1,0 +1,399 @@
+/*
+PCRE.DLL is distributed under the terms of the "BSD" licence
+http://www.pcre.org/licence.txt
+*/
+ 
+class preg {
+
+	ctor( strCode,flagStr ){ {
+		if( strCode[1] == '/'# && flagStr===null ){
+			strCode,flagStr = ..string.match(strCode,"^\/(.+)\/(\w*)$" );
+		}
+			
+		var flag = 0;
+		if( flagStr ) { 
+			for(i=1;#flagStr;1){ 
+				flag = flag | ( _FLAG_COMPILE[flagStr[i]] : 0 );
+			}
+			if(flag & 0x800/*_PCRE_UTF8*/){
+				this.utf8 = true;
+				strCode = ..string.fromto(strCode,0,65001);
+			}
+		} 
+		 
+		var errorcode,err,erroffset;
+		this.regexCode,errorcode,err,erroffset = pcre_compile2(strCode,flag,0,null,0,null);
+		if( !this.regexCode ){
+			if(err){
+				err = ..raw.tostring(err) ;
+				if( erroffset )
+					err = err + " at offset " + erroffset;
+			}
+			return null,err,errorcode,erroffset
+		} 
+		 
+		var ovectorSize = 2;
+		for(i=1;#strCode;1){
+			if( strCode[i] == '('# )
+				ovectorSize+=2;   
+		}
+		this.ovectorSize = ovectorSize + ( 3 - ( ovectorSize % 3 ) ); 
+		
+		..table.add_gc( this,"free" );
+	} };
+	
+	@_meta;
+} 
+ 
+namespace preg {
+
+	_dll = ..raw.loadDll( "/pcre.dll" ); 
+	var dll = _dll; collectgarbage("collect");
+	
+	_FLAG_COMPILE = {
+	
+		['i'#] = 1/*_PCRE_CASELESS*/;
+		['j'#] = 0x2000000/*_PCRE_JAVASCRIPT_COMPAT*/;
+		['m'#] = 2/*_PCRE_MULTILINE*/;
+		['s'#] = 4/*_PCRE_DOTALL*/;
+		['x'#] = 8/*_PCRE_EXTENDED*/;
+		['A'#] = 0x10/*_PCRE_ANCHORED*/;
+		['D'#] = 0x20/*_PCRE_DOLLAR_ENDONLY*/;
+		['U'#] = 0x200/*_PCRE_UNGREEDY*/;
+		['X'#] = 0x40/*_PCRE_EXTRA*/;
+		['u'#] = 0x800/*_PCRE_UTF8*/;
+	}
+	 
+	pcre_config = dll.api("pcre_config","pointer(int what,struct &wher)" ,"cdecl");
+	pcre_compile2 = dll.api("pcre_compile2","pointer(STRING pattern,int options,int &errorcodeptr,pointer &errptr,int &erroffset,pointer tableptr)" ,"cdecl");
+	pcre_exec = dll.api("pcre_exec","int(POINTER code, pointer extra, string subject,int length,int startoffset,int options,struct &ovector,int ovecsize)" ,"cdecl")
+	pcre_get_stringnumber= dll.api("pcre_get_stringnumber","int(POINTER code,STRING name)" ,"cdecl")
+	pcre_free = dll.api("pcre_free_ex","void(POINTER)","cdecl");
+	
+	/*
+	pcre_malloc = dll.api("pcre_malloc_ex","pointer(INT size)" ,"cdecl")
+	pcre_stack_malloc = dll.api("pcre_stack_malloc_ex","pointer(INT size)" ,"cdecl")
+	pcre_stack_free = dll.api("pcre_stack_free_ex","void(pointer)" ,"cdecl") 
+	pcre_version= dll.api("pcre_version","string()" ,"cdecl")  
+	pcre_fullinfo = dll.api("pcre_fullinfo","int(POINTER code, pointer extra,int what,pointer where)" ,"cdecl")
+	pcre_copy_named_substring = dll.api("pcre_copy_named_substring","pointer(pointer code,string subject,struct ovector,int stringcount, string stringname,string &buffer, int buffersize)" ,"cdecl")
+	pcre_copy_substring = dll.api("pcre_copy_substring","pointer(string subject,struct &ovector,int stringcount,int stringnumber,string &buffer, int buffersize)" ,"cdecl")
+	pcre_free_substring = dll.api("pcre_free_substring","void(pointer stringptr)" ,"cdecl")
+	pcre_free_substring_list= dll.api("pcre_free_substring_list","void(pointer stringptr)" ,"cdecl")   
+	pcre_get_named_substring= dll.api("pcre_get_named_substring","int(POINTER code,string subject,struct &ovector,int stringcount,string stringname,pointer &stringptr)" ,"cdecl")
+	pcre_get_substring= dll.api("pcre_get_substring","int(string subject,struct &ovector,int stringcount,int stringnumber,pointer &stringptr)" ,"cdecl")
+	pcre_get_substring_list= dll.api("pcre_get_substring_list","int(string subject,struct &ovector,int stringcount,pointer &stringptr)" ,"cdecl")
+	pcre_maketables = dll.api("pcre_maketables","string()" ,"cdecl")
+	pcre_refcount = dll.api("pcre_refcount","int(POINTER code,int adjust)" ,"cdecl") 
+	pcre_study = dll.api("pcre_study","pointer(POINTER code,int options,pointer &errptr)" ,"cdecl")
+	pcre_get_stringtable_entries = dll.api("pcre_get_stringtable_entries","int(POINTER code,string,pointer&,pointer&)" ,"cdecl")
+	*/ 
+	
+	var push = ..table.push;
+	var pop = ..table.pop;
+	var table_remove = ..table.remove;
+	var table_unpack =  ..table.unpack;
+	var string_sub = ..string.sub;
+	var string_fromto = ..string.fromto;
+	var raw_toarray = ..raw.toarray;
+	var string_replace  = ..string.replace;
+	
+	var execIndex = function(regexCode,ovectorSize,subject,startoffset=1,options=0){ 
+		var ret,ovector = pcre_exec( regexCode,,subject,#subject,startoffset-1,options
+			,raw_toarray( ovectorSize ,"int" ), ovectorSize);
+			
+		if( ret > 0 ){
+			var idxArray = ovector.array;
+			var idxGroups = {};
+			for(i=1;ret*2;2){ 
+				push(idxGroups,{ index = idxArray[i]+1;lastIndex=idxArray[i+1] } ) 
+			}
+			return idxGroups,ovector;
+		}
+	} 
+	
+	var formUtf8Pos = function(utf8str,i,j){
+		var l = #string_fromto( string_sub(utf8str,i,j) )
+		i = #string_fromto( string_sub(utf8str,1,i-1) )
+		return i+1,i+l;
+	} 
+	
+	_meta = {
+		_get = {
+			namedStringNumber = function(name){
+				return pcre_get_stringnumber(owner.regexCode,name);
+			};
+			exec = function(subject,startoffset=1,options=0){
+				if( owner.utf8 )
+					subject = string_fromto(subject,0,65001);
+					
+				var regexCode = owner.regexCode;
+				var idxGroups,ovector = execIndex(owner.regexCode,owner.ovectorSize
+					,subject,startoffset,options)
+					
+				if(idxGroups){
+					var strGroups = {}; 
+					for(i=1;#idxGroups;1){ 
+						strGroups[i] = string_sub(subject,idxGroups[i].index,idxGroups[i].lastIndex);
+						if( owner.utf8  ){
+							strGroups[i] = string_fromto(strGroups[i]);
+							idxGroups[i].index,idxGroups[i].lastIndex = formUtf8Pos(subject, idxGroups[i].index,idxGroups[i].lastIndex );
+						}
+					};
+					strGroups@ = {
+						_get = function(k){  
+							if( type(k)!= "string")return;
+							if( k[1] == '_'# ) return;
+							var idx = pcre_get_stringnumber(regexCode,k);
+							if( idx > 0 ){ 
+								return strGroups[idx+1]
+							}
+						} 
+					}
+					
+					return strGroups,idxGroups;
+				}
+			};
+			split = function(subject,startoffset=1,options=0){
+				var preEnd = 1;
+				var nextBegin,nextEnd = owner.find(subject,startoffset,options);  
+				var array = {};
+				while( nextBegin ){
+					push( array, string_sub(subject,preEnd,nextBegin-1 ) ) 
+					preEnd = nextEnd + 1;
+					nextBegin,nextEnd = owner.find(subject,preEnd,options);
+				}
+				if( preEnd <= #subject )
+					push( array, string_sub(subject,preEnd,#subject ) );
+					
+				return array;
+			};
+			find = function(subject,startoffset=1,options=0){
+				if( owner.utf8 )
+					subject = string_fromto(subject,0,65001);
+					
+				var ret,ovector = pcre_exec( owner.regexCode,null
+					,subject,#subject
+					,startoffset-1,options,raw_toarray(owner.ovectorSize ,"int" ),owner.ovectorSize); 
+				if( ret > 0){
+					var idxArray = ovector.array;
+					var i,j = idxArray[1]+1,idxArray[2];
+					if( owner.utf8  ){
+						i,j = formUtf8Pos(subject,i,j);
+					}
+					return i,j;
+				}
+			};
+			test = function(subject,startoffset=1,options=0){ 
+				if( owner.utf8 )
+					subject = string_fromto(subject,0,65001);
+					
+				var ret,ovector = pcre_exec( owner.regexCode, ,subject,#subject
+					,startoffset-1,options,raw_toarray(owner.ovectorSize ,"int" ),owner.ovectorSize);
+				return ret > 0 ;
+			}
+			grep = function(input,options=0){
+				if( owner.utf8 )
+					subject = string_fromto(subject,0,65001);
+					
+				var result = {};
+				for(k,subject in input){
+					var idxGroups,ovector = execIndex(owner.regexCode,owner.ovectorSize,subject,1,options)
+					if(idxGroups){
+						result[k] = string_sub(subject,idxGroups[1].index,idxGroups[1].lastIndex)
+						if( owner.utf8 )
+							result[k]  = string_fromto( result[k] );
+					}
+				} 
+				return result;
+			};
+			gmatch = function(subject,startoffset=1,options=0) { 
+				var strGroups,idxGroups = owner.exec(subject,startoffset,options)
+				return function(){
+					if(strGroups){
+			    		var cur = strGroups;
+			    		if( #cur > 1 )table_remove(cur);
+						strGroups,idxGroups = owner.exec(subject,idxGroups[1].lastIndex+1,options);
+						return table_unpack(cur);
+					}
+				},owner; 
+			};
+			match = function(subject,startoffset=1,options=0){
+				var strGroups,idxGroups = owner.exec(subject,startoffset,options);
+				if( #strGroups ){
+			 		if( #strGroups > 1 )table_remove(strGroups);
+			 		return table_unpack(strGroups);
+				}
+			};
+			replace = function(subject,replacement,startoffset=1,count=-1,options=0,newString){
+				var t = type(replacement)
+				var strGroups,idxGroups = owner.exec(subject,startoffset,options);
+				var strRep;
+		 		
+				if( !strGroups) {
+					if(newString){
+						for(idx,part in newString){
+							if( type(part) == "table" ){
+								newString[idx] = string_sub( subject,part[1],part[2] )
+							};
+						} 
+						return ..string.join( newString );
+					}
+					else {
+						return subject;
+					} 
+				}
+				
+				if( t == "string" ){ 
+					strRep = string_replace( replacement,"[\\\$](\d)",function(idx){ 
+						idx = tonumber(idx) + 1;
+						if( !idxGroups[idx] ) return c;
+						return string_sub(subject,idxGroups[idx].index,idxGroups[idx].lastIndex);
+					} );  
+				}
+				elseif( t == "function" ){
+					var d = strGroups[1];
+					if(#strGroups>1) table_remove(strGroups);
+					strRep = replacement( table_unpack(strGroups) ) : d;
+				}
+				elseif( t == "table" ){
+					if(#strGroups<2){
+						strRep = replacement[ strGroups[1] ] : strGroups[1]; 
+					}
+					else {
+						strRep = replacement[ strGroups[2] ] : strGroups[1];  
+					} 
+				}
+				
+				if(!newString){
+					newString = {string_sub( subject,1,idxGroups[1].index -1 ); strRep;{idxGroups[1].lastIndex+1;#subject} } ;
+				}
+				else { 
+					var lastPart = pop(newString)
+					push( newString,{lastPart[1];idxGroups[1].index - 1 },strRep,{idxGroups[1].lastIndex+1;#subject} );
+				}
+				if( count==0 ){
+					for(idx,part in newString){
+						if( type(part) == "table" ){
+							newString[idx] = string_sub( subject,part[1],part[2] )
+						};
+					} 
+					return ..string.join( newString );
+				} 
+				return owner.replace(subject,replacement,idxGroups[1].lastIndex+1,count-1,options,newString)
+			};
+			getNamedSubstring = function(matchs){
+				pcre_copy_named_substring(  owner.regexCode,);
+			};
+			free = function(){
+				if( owner.regexCode ){ 
+					pcre_free( owner.regexCode );	
+				
+					owner.regexCode = null;
+				}
+			}
+		}
+	
+	}
+}
+
+/**intellisense()
+preg = Perl兼容正则表达式支持库
+preg(.("\w+","uis") = 创建正则表达式对象,参数一指定正则,\n参数2指定修正符: \n    "i" 忽略大小写,\n    "u" 转换为UTF8编码匹配 - 使正则表达式可支持中文,\n    "s"表示圆点可以匹配换行\n\n也可以在参数一中同时指定正则与修正符，例如"/正则/修正符",\n正则语法错误创建对象失败时返回:null,错误信息,错误代码,错误位置
+preg() = !pRegex.
+!pRegex.free() = 释放正则对象,正则对象将释放不能再使用,\n对象自动回收时将会自动调用该函数,因此并非必须调用此函数
+!pRegex.test(.(匹配字符串,起始位置,选项) = 测试正则是否匹配，返回布尔值,\n参数2,3为可选参数
+!pRegex.find(.(匹配字符串,起始位置,选项) = 返回匹配字符串起始位置，结束位置,\n匹配失败返回空,\n参数2,3为可选参数
+!pRegex.exec(.(匹配字符串,起始位置,选项) = 匹配字符串,失败返回null空值,\n成功返回值1为字符串数组,第一个元素为匹配结果,后面是其他捕获知分组\n返回值2返回对应的匹配位置数组
+!pRegex.match(.(匹配字符串,起始位置,选项) = 匹配字符串并使用多个返回值返回所有捕获分组,\n如果无分组则返回匹配字符串
+!pRegex.gmatch  = @for m,m2,m3 in string.gmatch( __/*参数(匹配字符串,起始位置,选项)\n参数2,3可选*/) { \n\n}
+!pRegex.replace(.(匹配字符串,替换字符串,起始位置,替换次数,选项) = 除参数1,2以外其他参数可选,\n替换次数默认为-1,即不限替换次数,\n参数2也可以是回调函数对象,或者替换表对象,用法同string.replace()
+!pRegex.grep(.(匹配数组,选项) = 返回数组的值匹配正则的新数组,\n参数2可选
+!pRegex.split(.(拆分字符串,起始位置,选项) = 使用正则表达式指定分隔符拆分字符串并返回数组,\n参数2,3为可选参数
+!pRegex.utf8 = 是否使用UTF8编码自动转换,\n如果在正则修正符中指定了"u",在该属性自动设置为true
+!pRegex.namedStringNumber(.("捕获组名字") = 返回命名捕获组在匹配分组中的索引
+_PCRE_CASELESS=@1/*_PCRE_CASELESS*/
+_PCRE_MULTILINE=@2/*_PCRE_MULTILINE*/
+_PCRE_DOTALL=@4/*_PCRE_DOTALL*/
+_PCRE_EXTENDED=@8/*_PCRE_EXTENDED*/
+_PCRE_ANCHORED=@0x10/*_PCRE_ANCHORED*/
+_PCRE_DOLLAR_ENDONLY=@0x20/*_PCRE_DOLLAR_ENDONLY*/
+_PCRE_EXTRA=@0x40/*_PCRE_EXTRA*/
+_PCRE_NOTBOL=@0x80/*_PCRE_NOTBOL*/
+_PCRE_NOTEOL=@0x100/*_PCRE_NOTEOL*/
+_PCRE_UNGREEDY=@0x200/*_PCRE_UNGREEDY*/
+_PCRE_NOTEMPTY=@0x400/*_PCRE_NOTEMPTY*/
+_PCRE_UTF8=@0x800/*_PCRE_UTF8*/
+_PCRE_NO_AUTO_CAPTURE=@0x1000/*_PCRE_NO_AUTO_CAPTURE*/
+_PCRE_NO_UTF8_CHECK=@0x2000/*_PCRE_NO_UTF8_CHECK*/
+_PCRE_AUTO_CALLOUT=@0x4000/*_PCRE_AUTO_CALLOUT*/
+_PCRE_PARTIAL=@0x8000/*_PCRE_PARTIAL*/
+_PCRE_DFA_SHORTEST=@0x10000/*_PCRE_DFA_SHORTEST*/
+_PCRE_DFA_RESTART=@0x20000/*_PCRE_DFA_RESTART*/
+_PCRE_FIRSTLINE=@0x40000/*_PCRE_FIRSTLINE*/
+_PCRE_DUPNAMES=@0x80000/*_PCRE_DUPNAMES*/
+_PCRE_NEWLINE_CR=@0x100000/*_PCRE_NEWLINE_CR*/
+_PCRE_NEWLINE_LF=@0x200000/*_PCRE_NEWLINE_LF*/
+_PCRE_NEWLINE_CRLF=@0x300000/*_PCRE_NEWLINE_CRLF*/
+_PCRE_NEWLINE_ANY=@0x400000/*_PCRE_NEWLINE_ANY*/
+_PCRE_NEWLINE_ANYCRLF=@0x500000/*_PCRE_NEWLINE_ANYCRLF*/
+_PCRE_BSR_ANYCRLF=@0x800000/*_PCRE_BSR_ANYCRLF*/
+_PCRE_BSR_UNICODE=@0x1000000/*_PCRE_BSR_UNICODE*/
+_PCRE_JAVASCRIPT_COMPAT=@0x2000000/*_PCRE_JAVASCRIPT_COMPAT*/
+_PCRE_NO_START_OPTIMIZE=@0x4000000/*_PCRE_NO_START_OPTIMIZE*/
+_PCRE_NO_START_OPTIMISE=@0x4000000/*_PCRE_NO_START_OPTIMISE*/
+_PCRE_ERROR_NOMATCH=@-1/*_PCRE_ERROR_NOMATCH*/
+_PCRE_ERROR_NULL=@-2/*_PCRE_ERROR_NULL*/
+_PCRE_ERROR_BADOPTION=@-3/*_PCRE_ERROR_BADOPTION*/
+_PCRE_ERROR_BADMAGIC=@-4/*_PCRE_ERROR_BADMAGIC*/
+_PCRE_ERROR_UNKNOWN_OPCODE=@-5/*_PCRE_ERROR_UNKNOWN_OPCODE*/
+_PCRE_ERROR_UNKNOWN_NODE=@-5/*_PCRE_ERROR_UNKNOWN_NODE*/
+_PCRE_ERROR_NOMEMORY=@-6/*_PCRE_ERROR_NOMEMORY*/
+_PCRE_ERROR_NOSUBSTRING=@-7/*_PCRE_ERROR_NOSUBSTRING*/
+_PCRE_ERROR_MATCHLIMIT=@-8/*_PCRE_ERROR_MATCHLIMIT*/
+_PCRE_ERROR_CALLOUT=@-9/*_PCRE_ERROR_CALLOUT*/
+_PCRE_ERROR_BADUTF8=@-10/*_PCRE_ERROR_BADUTF8*/
+_PCRE_ERROR_BADUTF8_OFFSET=@-11/*_PCRE_ERROR_BADUTF8_OFFSET*/
+_PCRE_ERROR_PARTIAL=@-12/*_PCRE_ERROR_PARTIAL*/
+_PCRE_ERROR_BADPARTIAL=@-13/*_PCRE_ERROR_BADPARTIAL*/
+_PCRE_ERROR_INTERNAL=@-14/*_PCRE_ERROR_INTERNAL*/
+_PCRE_ERROR_BADCOUNT=@-15/*_PCRE_ERROR_BADCOUNT*/
+_PCRE_ERROR_DFA_UITEM=@-16/*_PCRE_ERROR_DFA_UITEM*/
+_PCRE_ERROR_DFA_UCOND=@-17/*_PCRE_ERROR_DFA_UCOND*/
+_PCRE_ERROR_DFA_UMLIMIT=@-18/*_PCRE_ERROR_DFA_UMLIMIT*/
+_PCRE_ERROR_DFA_WSSIZE=@-19/*_PCRE_ERROR_DFA_WSSIZE*/
+_PCRE_ERROR_DFA_RECURSE=@-20/*_PCRE_ERROR_DFA_RECURSE*/
+_PCRE_ERROR_RECURSIONLIMIT=@-21/*_PCRE_ERROR_RECURSIONLIMIT*/
+_PCRE_ERROR_NULLWSLIMIT=@-22/*_PCRE_ERROR_NULLWSLIMIT*/
+_PCRE_ERROR_BADNEWLINE=@-23/*_PCRE_ERROR_BADNEWLINE*/
+_PCRE_INFO_OPTIONS=@0/*_PCRE_INFO_OPTIONS*/
+_PCRE_INFO_SIZE=@1/*_PCRE_INFO_SIZE*/
+_PCRE_INFO_CAPTURECOUNT=@2/*_PCRE_INFO_CAPTURECOUNT*/
+_PCRE_INFO_BACKREFMAX=@3/*_PCRE_INFO_BACKREFMAX*/
+_PCRE_INFO_FIRSTBYTE=@4/*_PCRE_INFO_FIRSTBYTE*/
+_PCRE_INFO_FIRSTCHAR=@4/*_PCRE_INFO_FIRSTCHAR*/
+_PCRE_INFO_FIRSTTABLE=@5/*_PCRE_INFO_FIRSTTABLE*/
+_PCRE_INFO_LASTLITERAL=@6/*_PCRE_INFO_LASTLITERAL*/
+_PCRE_INFO_NAMEENTRYSIZE=@7/*_PCRE_INFO_NAMEENTRYSIZE*/
+_PCRE_INFO_NAMECOUNT=@8/*_PCRE_INFO_NAMECOUNT*/
+_PCRE_INFO_NAMETABLE=@9/*_PCRE_INFO_NAMETABLE*/
+_PCRE_INFO_STUDYSIZE=@0xA/*_PCRE_INFO_STUDYSIZE*/
+_PCRE_INFO_DEFAULT_TABLES=@0xB/*_PCRE_INFO_DEFAULT_TABLES*/
+_PCRE_INFO_OKPARTIAL=@0xC/*_PCRE_INFO_OKPARTIAL*/
+_PCRE_INFO_JCHANGED=@0xD/*_PCRE_INFO_JCHANGED*/
+_PCRE_INFO_HASCRORLF=@0xE/*_PCRE_INFO_HASCRORLF*/
+_PCRE_CONFIG_UTF8=@0/*_PCRE_CONFIG_UTF8*/
+_PCRE_CONFIG_NEWLINE=@1/*_PCRE_CONFIG_NEWLINE*/
+_PCRE_CONFIG_LINK_SIZE=@2/*_PCRE_CONFIG_LINK_SIZE*/
+_PCRE_CONFIG_POSIX_MALLOC_THRESHOLD=@3/*_PCRE_CONFIG_POSIX_MALLOC_THRESHOLD*/
+_PCRE_CONFIG_MATCH_LIMIT=@4/*_PCRE_CONFIG_MATCH_LIMIT*/
+_PCRE_CONFIG_STACKRECURSE=@5/*_PCRE_CONFIG_STACKRECURSE*/
+_PCRE_CONFIG_UNICODE_PROPERTIES=@6/*_PCRE_CONFIG_UNICODE_PROPERTIES*/
+_PCRE_CONFIG_MATCH_LIMIT_RECURSION=@7/*_PCRE_CONFIG_MATCH_LIMIT_RECURSION*/
+_PCRE_CONFIG_BSR=@8/*_PCRE_CONFIG_BSR*/
+_PCRE_EXTRA_STUDY_DATA=@1/*_PCRE_EXTRA_STUDY_DATA*/
+_PCRE_EXTRA_MATCH_LIMIT=@2/*_PCRE_EXTRA_MATCH_LIMIT*/
+_PCRE_EXTRA_CALLOUT_DATA=@4/*_PCRE_EXTRA_CALLOUT_DATA*/
+_PCRE_EXTRA_TABLES=@8/*_PCRE_EXTRA_TABLES*/
+_PCRE_EXTRA_MATCH_LIMIT_RECURSION=@0x10/*_PCRE_EXTRA_MATCH_LIMIT_RECURSION*/
+end intellisense**/

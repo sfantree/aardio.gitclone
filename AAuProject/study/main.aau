@@ -1,0 +1,90 @@
+//FLASH播放器
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form( text="FLASH 播放器";bottom=467;parent=...;right=687;border="resizable" )
+winform.add( 
+btnPlay={ dr=1;bottom=454;text="播放";left=400;top=427;z=2;db=1;right=481;cls="button" };
+static={ dr=1;dl=1;text="static";bottom=422;notify=1;right=667;left=16;dt=1;top=16;z=1;db=1;transparent=1;edge=1;cls="static" };
+btnStop={ dr=1;bottom=454;text="停止";left=488;top=427;z=3;db=1;right=569;cls="button" };
+btnDump={ dr=1;bottom=454;text="显示成员";left=576;top=427;z=4;db=1;right=657;cls="button" }
+)
+/*}}*/
+
+winform.static.oncommand = function(id,event){
+	//winform.msgbox( winform.static.text );
+	
+	
+}
+
+
+winform.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x205/*_WM_RBUTTONUP*/{
+			//鼠标右键弹起,下面获取坐标
+			var x,y = win.getMessagePos(lParam);
+			
+		}
+		else{
+			
+		}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+
+//创建控件
+var flash = com.CreateEmbed( {} ,winform.static,"ShockwaveFlash.ShockwaveFlash") 
+var shockwave = flash._object;
+
+//屏蔽flash右键
+import win.subclass;
+var sclass = win.subclass(
+    win.getLeaf(winform.static.hwnd), //得到flash控件的句柄
+    function (hwnd, message, wParam, lParam) {
+    	if(message==0x204/*_WM_RBUTTONDOWN*/)
+        	return 0; //按下鼠标右键时不处理消息
+    	elseif(message==0x201/*_WM_LBUTTONDOWN*/){
+        	winform.hitCaption();
+    }
+} 
+)
+
+
+callEvent ={
+	OnReadyStateChange=function( newState ){
+		io.print("OnReadyStateChange")
+	}
+	OnProgress=function( percentDone ){
+		io.print(percentDone)
+	}
+	FSCommand=function( command ,args ){
+		io.print( command , args );
+	} 
+}
+com.Connect(shockwave, callEvent )
+
+str = string.load("/res/zuma.swf") //加载资源里的swf文件
+tmpPath = io.tmpname() //生成临时文件名，类似 c:\temp\4 这样的文件路径，别人看不到文件
+string.save(tmpPath,str ) //创建临时文件
+shockwave.Movie = tmpPath //加载flash;
+io.remove(tmpPath) //删除临时文件
+
+winform.btnStop.oncommand = function(id,event){ 
+	shockwave.stop() 
+}
+winform.btnPlay.oncommand = function(id,event){ 
+	shockwave.play()
+}
+winform.btnDump.oncommand = function(id,event){
+	io.open()
+	com.DumpTypeInfo(shockwave)   
+	io.print("按 CTRL+C 关闭此窗口")
+} 
+
+winform.btnStop.disabled = true;
+//winform.btnPlay.disabled = true;
+winform.btnDump.disabled = true;
+
+winform.show(true) 
+win.loopMessage();
+return winform;

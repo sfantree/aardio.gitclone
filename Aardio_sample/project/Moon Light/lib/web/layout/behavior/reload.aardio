@@ -1,0 +1,8 @@
+﻿//reload 重新加载直播间
+import public;
+
+namespace web.layout.behavior.reload{
+	onMouseClick = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+		..public.reload()
+	}	
+}

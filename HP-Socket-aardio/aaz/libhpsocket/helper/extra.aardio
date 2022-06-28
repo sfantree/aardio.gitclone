@@ -1,0 +1,25 @@
+﻿
+namespace aaz.libhpsocket.helper;
+class extra{
+	ctor(userData, extra){
+		if(!userData[["_struct"]]){
+			error("userData 必须是结构体", 2);
+		}
+		this = userData;
+		if(extra){
+			..raw.convert(extra, this);
+			this.extra = extra; 
+		}
+		else {				
+			this.extra = ..raw.realloc(..raw.sizeof(this), null, this); 
+		}
+	};
+	free = function(){
+		if(this.extra){
+			this.extra = ..raw.realloc(0, this.extra);
+		}
+	};
+	save = function(){
+		..raw.convert(this, this.extra); 
+	};
+}

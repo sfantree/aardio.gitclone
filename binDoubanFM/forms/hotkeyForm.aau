@@ -1,0 +1,146 @@
+/*
+ **************************
+ *
+ * 豆瓣FM 热键设置窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+/*DSG{{*/
+var hotkeyForm = ..win.form(text="热键设置 - "++_app;right=389;bottom=359;border="thin";max=false;min=false;parent=...)
+hotkeyForm.add(
+button_cancel={cls="button";text="取消";left=260;top=168;right=375;bottom=200;z=20};
+button_ok={cls="button";text="更新热键";left=260;top=48;right=375;bottom=96;z=1};
+button_re={cls="button";text="还原";left=260;top=120;right=375;bottom=152;z=19};
+hotkey_back={cls="hotkey";left=128;top=160;right=240;bottom=180;edge=1;z=3};
+hotkey_del={cls="hotkey";left=128;top=80;right=240;bottom=100;edge=1;z=5};
+hotkey_exit={cls="hotkey";left=128;top=320;right=240;bottom=340;edge=1;z=9};
+hotkey_front={cls="hotkey";left=128;top=288;right=240;bottom=308;edge=1;z=8};
+hotkey_like={cls="hotkey";left=128;top=48;right=240;bottom=68;edge=1;z=4};
+hotkey_lrc={cls="hotkey";left=128;top=240;right=240;bottom=260;edge=1;z=7};
+hotkey_next={cls="hotkey";left=128;top=128;right=240;bottom=148;edge=1;z=2};
+hotkey_play={cls="hotkey";left=128;top=192;right=240;bottom=212;edge=1;z=6};
+static_back={cls="static";text="上一首";left=16;top=160;right=64;bottom=176;transparent=1;z=13};
+static_del={cls="static";text="不再听之";left=16;top=80;right=64;bottom=96;transparent=1;z=11};
+static_exit={cls="static";text="完全退出豆瓣FM";left=16;top=320;right=112;bottom=336;transparent=1;z=17};
+static_front={cls="static";text="显示主控制面板";left=16;top=288;right=120;bottom=304;transparent=1;z=16};
+static_like={cls="static";text="加红心（不取消）";left=16;top=48;right=120;bottom=64;transparent=1;z=10};
+static_lrc={cls="static";text="显示 / 隐藏 歌词";left=16;top=240;right=112;bottom=256;transparent=1;z=15};
+static_next={cls="static";text="下一首";left=16;top=128;right=64;bottom=144;transparent=1;z=12};
+static_play={cls="static";text="播放 / 暂停";left=16;top=192;right=88;bottom=208;transparent=1;z=14};
+static_tip={cls="static";text="请单击右侧相应文本框，并按下热键 ...";left=16;top=16;right=255;bottom=39;transparent=1;z=18}
+)
+/*}}*/
+
+
+
+
+/* 
+ * 更新热键 按钮
+ */
+hotkeyForm.button_ok.oncommand = function(id,event){
+	binFM.hotkey.unReg();
+	
+	hk_next_a,hk_next_b = hotkeyForm.hotkey_next.gethotkey();
+	hk_back_a,hk_back_b = hotkeyForm.hotkey_back.gethotkey();
+	hk_play_a,hk_play_b = hotkeyForm.hotkey_play.gethotkey();
+	hk_like_a,hk_like_b = hotkeyForm.hotkey_like.gethotkey();
+	hk_del_a,hk_del_b = hotkeyForm.hotkey_del.gethotkey();
+	hk_lrc_a,hk_lrc_b = hotkeyForm.hotkey_lrc.gethotkey();
+	hk_front_a,hk_front_b = hotkeyForm.hotkey_front.gethotkey();
+	hk_exit_a,hk_exit_b = hotkeyForm.hotkey_exit.gethotkey();
+
+	// 未设置则取默认值
+	
+	if(!hk_next_a || !hk_next_b || hk_next_a==0 || hk_next_b==0) {
+		hk_next_a = 0;
+		hk_next_b = 0;
+	} 
+	if(!hk_back_a || !hk_back_b || hk_back_a==0 || hk_back_b==0) {
+		hk_back_a = 0;
+		hk_back_b = 0;
+	}
+	if(!hk_play_a || !hk_play_b || hk_play_a==0 || hk_play_b==0) {
+		hk_play_a = 0;
+		hk_play_b = 0;
+	}
+	if(!hk_like_a || !hk_like_b || hk_like_a==0 || hk_like_b==0) {
+		hk_like_a = 0;
+		hk_like_b = 0;
+	}
+	if(!hk_del_a || !hk_del_b || hk_del_a==0 || hk_del_b==0) {
+		hk_del_a = 0;
+		hk_del_b = 0;
+	}
+	if(!hk_lrc_a || !hk_lrc_b || hk_lrc_a==0 || hk_lrc_b==0) {
+		hk_lrc_a = 0;
+		hk_lrc_b = 0;
+	}
+	if(!hk_front_a || !hk_front_b || hk_front_a==0 || hk_front_b==0) {
+		hk_front_a = 0;
+		hk_front_b = 0;
+	}
+	if(!hk_exit_a || !hk_exit_b || hk_exit_a==0 || hk_exit_b==0) {
+		hk_exit_a = 0;
+		hk_exit_b = 0;
+	}
+	//binFM.hotkey.reg();
+	
+	binFM.db.dbBegin();
+	binFM.hotkey.save();
+	binFM.db.dbCommit();
+	
+	hotkeyForm.close();
+}
+
+
+
+
+/* 
+ * 还原热键 按钮
+ * -- 仅还原热键显示，不更改设置
+ */
+hotkeyForm.button_re.oncommand = function(id,event){
+	hotkeyForm.hotkey_next.sethotkey(3,190);
+	hotkeyForm.hotkey_back.sethotkey(3,188);
+	hotkeyForm.hotkey_play.sethotkey(3,80);
+	hotkeyForm.hotkey_like.sethotkey(3,70);
+	hotkeyForm.hotkey_del.sethotkey(3,191);
+	hotkeyForm.hotkey_lrc.sethotkey(3,76);
+	hotkeyForm.hotkey_front.sethotkey(3,90);
+	hotkeyForm.hotkey_exit.sethotkey(3,88);
+}
+
+
+
+
+/* 
+ * 取消 按钮
+ */
+hotkeyForm.button_cancel.oncommand = function(id,event){
+	//binFM.hotkey.reg();
+	hotkeyForm.close();
+}
+
+
+
+
+hotkeyForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x10/*_WM_CLOSE窗口关闭消息*/{
+			binFM.hotkey.reg();
+			hotkeyForm.show(false);
+			return "noclose";
+		}
+		else{
+			
+		}
+	}
+}
+
+win.loopMessage();
+
+return hotkeyForm; 

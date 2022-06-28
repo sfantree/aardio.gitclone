@@ -1,0 +1,23 @@
+﻿//处理类-oa消息
+namespace yh.oa{
+import time; 
+    
+	获取邮件信息=function(参数){		
+/*
+		用户名=参数.用户名||"用户名";
+		密码=参数.密码||"密码";
+		超时时间=参数.超时时间||6000;
+*/
+		var tab={};
+		for(v=1;2;1){ //模拟获取邮件信息
+			var 邮件={
+				标题="标题"+time.tick();
+				HREF="HREF";
+				内容="内容";
+			};
+			..table.push(tab,邮件); 
+		}
+		return tab ;
+	}
+	
+}

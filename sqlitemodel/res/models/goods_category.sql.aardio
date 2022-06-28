@@ -1,0 +1,8 @@
+CREATE TABLE "goods_category" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"name" VARCHAR(32) NOT NULL,  /*分类名称*/
+	"parent" INTEGER , /*上级分类*/
+	"pos" INTEGER DEFAULT 0, /*排序*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+);

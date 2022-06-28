@@ -1,0 +1,17 @@
+/*
+ *	idevice demo
+ *  https://github.com/xhook7
+ *	Oct,2015
+ */
+ 
+namespace web.layout.behavior.about.link {
+	
+	onMouseClick = function( ltTarget,ltOwner,x,y,ltMouseParams ) {
+		
+		var link = ltOwner.getCustomAttribute("link");
+		if(link) {
+			import process;
+			process.execute(link);
+		}
+	}
+}

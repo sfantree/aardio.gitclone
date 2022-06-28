@@ -1,0 +1,85 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469)
+winform.add(
+button={cls="button";text="创建";left=0;top=420;right=160;bottom=470;db=1;dl=1;z=2};
+button2={cls="button";text="画图";left=183;top=420;right=343;bottom=470;db=1;dl=1;z=3};
+button3={cls="button";text="画图2";left=600;top=420;right=760;bottom=470;db=1;dl=1;z=4};
+static={cls="static";text="Static";left=0;top=0;right=760;bottom=407;db=1;dl=1;dr=1;dt=1;notify=1;transparent=1;z=1}
+)
+/*}}*/
+
+var dll = ..raw.loadDll("\res\CChartu.dll","ccshare","cdecl");
+Attach = dll.api("?Attach@Classless@@YAHPAUHWND__@@H@Z", "int(addr hwnd,int)");//int __cdecl Attach(struct HWND__ *)
+CreateChart = dll.api("?CreateChart@Classless@@YAXXZ", "void(void)");
+DestroyChart = dll.api("?DestroyChart@Classless@@YAXXZ", "void(void)");
+SetType = dll.api("?SetType@Classless@@YA_NH@Z", "byte(int)");//bool __cdecl SetType(int)
+//静态回调函数
+SetFieldFcn = dll.api("?SetFieldFcn@Classless@@YAXP6ANNN@Z@Z", "void(pointer fun)");//void __cdecl SetFieldFcn(double (__cdecl*)(double,double))
+SetPlotRange = dll.api("?SetPlotRange@Classless@@YAXNNNN@Z", "void(double, double, double, double)");//(void __cdecl SetPlotRange(double,double,double,double))
+ReDraw = dll.api("?ReDraw@Classless@@YAXXZ", "void(void)");//void __cdecl ReDraw(void)
+SetTitle = dll.api("?SetTitle@Classless@@YAXPB_W@Z", "void(ustring title)");//void __cdecl SetTitle(wchar_t const *)
+SimpleMsgLoop = dll.api("?SimpleMsgLoop@NsCChart@@YAHXZ", "void(void)");
+
+ResizePlots = dll.api("?ResizePlots@Classless@@YAXH@Z", "void(int)");//void __cdecl ResizePlots(int) 
+
+//ResizePlots = dll.api("?ResizePlots@Classless@@YAXHHH@Z", "void(int,int,int)");//void __cdecl ResizePlots(int) 
+AddCurve = dll.api("?AddCurve@Classless@@YAHPAN0HH@Z", "int(struct,struct,int,int)");//int __cdecl AddCurve(double* ,double*,int,int); 
+AddAxis = dll.api("?AddAxis@Classless@@YAXHH@Z", "void(int, int)");//void __cdecl AddAxis(int,int)
+
+        
+winform.static.onEraseBkgnd  = function(hwnd,message,wParam,lParam){
+    return 0;//禁止擦除背景
+};
+winform.button.oncommand = function(id,event){
+    CreateChart();
+    Attach(winform.static.hwnd,10);
+    ReDraw();
+}
+
+winform.button3.oncommand = function(id,event){
+    ResizePlots(2);
+	var x = { double arr[200] = {0} };
+	var y = { double arr[200] = {0} };
+	for(i=1;200;1){
+		x.arr[i] = i ;
+		y.arr[i] = 5.0*math.sin(i*2.0*3.14/360.0*3.0) ;
+	}
+	
+	AddCurve(x,y,200,0);
+	AddAxis(0,0);
+	for(i=1;200;1){
+		y.arr[i] = 2.0*math.sin(i*1.0*3.14/360.0*3.0) ;
+	}
+	AddCurve(x,y,200,1);
+	AddAxis(2,1)
+	SetTitle("双黄蛋");
+    ReDraw();
+} 
+ 
+import console
+console.open()
+ 
+//定义静态回调函数
+func = function(x,y){
+    var ret = 1.0/(x*x+y*y+1.0);
+    return ret;
+}
+//dll中在别的线程中调用,所以这里用thread
+func_c = thread.tocdecl(func,"double(double,double)");
+ 
+winform.button2.oncommand = function(id,event){
+    SetType(6)
+    //主要看这个: 静态回调
+    SetFieldFcn(func_c);
+    SetPlotRange(-3.0, 3.0, -2.0, 2.0);
+    SetTitle("GCC标题");
+    ReDraw();
+    //SimpleMsgLoop();
+}
+
+
+
+winform.show();
+win.loopMessage();
+return winform;

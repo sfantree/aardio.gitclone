@@ -1,0 +1,10 @@
+import cv2
+src = cv2.imread("./images/person.jpg",0/*_CV2_IMREAD_GRAYSCALE*/)
+src = cv2.threshold( src,220,255,0x1/*_CV2_THRESH_BINARY_INV*/ )
+kernel = cv2.getStructuringElement( 0/*_CV2_MORPH_RECT*/,::SIZE(9,9) )
+dst = cv2.dilate(src,kernel)
+dst2 = cv2.erode(src,kernel)
+cv2.imshow( "src",src )
+cv2.imshow( "dilate变胖",dst )
+cv2.imshow( "erode变瘦",dst2 )
+cv2.waitKey(0)

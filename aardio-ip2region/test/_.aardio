@@ -1,0 +1,31 @@
+﻿//tese search
+import console; 
+import inet.ip2region;
+var ip2 = inet.ip2region();
+
+errIp = "12345";
+var region,err = ip2.search(errIp)
+assert(err,"应该返回错误的ip")
+timeDiff = function() {
+    var t1 = time.tick();
+    return function() {
+        return ( time.tick() - t1 ) / 1000 ++"s";
+    };
+};
+var t1 = timeDiff()
+for(i=1;10000;1){
+	ip2.search("8.8.8.8",2)
+}
+console.log("基于btree算法 1W次用时",t1())
+var t2 = timeDiff()
+for(i=1;10000;1){
+	ip2.search("8.8.8.8",1)
+}
+console.log("基于二分查找 1W次用时",t2())
+
+var t3 = timeDiff()
+for(i=1;10000;1){
+	ip2.search("8.8.8.8",0)
+}
+console.log("数据库全部载入内存 1W次用时",t3())
+console.pause(true);

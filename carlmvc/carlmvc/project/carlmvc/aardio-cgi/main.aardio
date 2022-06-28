@@ -1,0 +1,66 @@
+
+/*捕获错误信息{{*/
+global.onError = function( err,over,app ){ 
+    if(!over){
+        import debug;
+        var stack = debug.traceback(,"调用栈",3);
+        err =  ..string.concat(err,'\n',stack);
+    }
+    
+    //错误信息请查看"CGI.EXE目录/config"下面生成的日志文件
+    import fsys.log;
+    fsys.log.print( err );
+    
+    //500错误错误服务器上本地打开网页可以看到,
+    return err;
+} 
+/*}}*/ 
+
+import fastcgi;
+import fastcgi.client;
+import fsys.log;
+
+//创建CGI客户端(用于处理Web服务器请求)
+var fcgiClient = fastcgi.client();
+
+//启动CGI客户端
+fcgiClient.run(
+	function(response,request,session){
+	 	response.loadcode( request.path );//参数可省略 
+	} 	
+);
+
+/*
+FastCGI安装配置说明
+-------------------------------------
+此程序应先生成EXE文件、并在web服务器上注册为fastcgi模块才能使用，
+以 win2008 ,IIS7为例(网上教程很多，请自行查找详细教程)
+
+1、桌面右键点【计算机】，弹出菜单中点【管理】，【添加角色/添加IIS】
+
+2、右键点【Web服务器(IIS)】，弹出菜单中点【添加角色服务】，确认已添加【CGI】
+
+3、然后打开IIS，到指定的网站点击【处理程序映射】，添加【处理程序映射】
+   后缀名设为：*.aardio ( 如果设为 *,取消勾选请求限制到文件或目录则处理所有URL )
+   模块选：FastCgiModule
+   可执行文件：选中使用本工程生成的 aardio-cgi.exe 即可
+   
+4、在资源管理器右键点击 aardio-cgi.exe 所在目录，在目录属性中点【安全】，
+添加IUSR,IIS_USER用户组权限,允许读取和执行、列出目录、读取、写入权限。
+
+5、如果是64位系统，请在应用程序池属性中设置"启用32位的应用程序"为True
+*/
+
+/*
+FastCGI开发常见问题:
+-------------------------------------
+1、如果用新版aardio编写的代码，在旧版编译的CGI.EXE中运行报错，那么把旧版CGI.EXE重新编译一次就可以。
+
+2、import导入的库，在一个进程中只会加载一次, 如果网站引用了修改的库，应当杀除CGI.EXE进程重启动，如果在服务器上编译CGI.EXE，此工程会在发布后自动执行此操作。工程内的发布前触发器,\.build\default.init.aardio 会在每次发布前停止已运行的CGI进程，这个操作需要管理权限如果在本机上安装IIS测试，本机测试建议以管理权限启动aardio开发环境
+
+3、如果是64位系统，请在应用程序池属性中设置"启用32位的应用程序"为True
+
+4、如果在开发中遇到任何错误，通过远程桌面登录后在服务器上本地直接打开网页，可以看到500错误的详细信息，CGI内部错误可请查看"CGI.EXE目录/config"下面生成的日志文件。
+
+5、注意在编写网站时，有必要请输出日志文件来排查错误。
+*/

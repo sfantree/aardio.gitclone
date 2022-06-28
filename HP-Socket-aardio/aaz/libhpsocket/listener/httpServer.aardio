@@ -1,0 +1,22 @@
+﻿import util.metaProperty;
+import aaz.libhpsocket.listener;
+import aaz.libhpsocket.listener.properties.httpServer;
+
+namespace aaz.libhpsocket.listener;
+var _dll = ..aaz.libhpsocket._dll;
+
+class httpServer{
+	ctor(){
+		this = ..aaz.libhpsocket.listener();
+		this.pListener = _dll.Create_HP_HttpServerListenerP(); 
+		this.componentClassPath = "component.httpServer";
+	};
+	destroy = function(){
+		if(this.pListener){
+			_dll.Destroy_HP_HttpServerListener(this.pListener);
+			this.pListener = null;
+		}
+	};	
+	@_metaProperty;
+}
+httpServer._metaProperty = ..util.metaProperty(..aaz.libhpsocket.listener.properties.httpServer);

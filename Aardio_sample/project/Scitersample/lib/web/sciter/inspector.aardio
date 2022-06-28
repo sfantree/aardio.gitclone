@@ -1,0 +1,20 @@
+﻿//inspector 调试工具
+import web.sciter;
+import process;
+
+//if(!_STUDIO_INVOKED) return;
+
+namespace web.sciter.inspector;
+::Sciter.SetOption(0,10/*_SCITER_SET_DEBUG_MODE*/,1);
+::Sciter.SetOption(0,8/*_SCITER_SET_SCRIPT_RUNTIME_FEATURES*/,0xF);
+
+if( ! ..process.find("sciter.inspector.exe") ){
+	..string.save("~\lib\web\sciter\.build\sciter.dll",
+		..string.load("~\lib\web\sciter\.res\sciter.dll"))
+		
+	..process.execute("~\lib\web\sciter\.build\sciter.inspector.exe" );
+}
+
+/**intellisense()
+web.sciter.inspector = 导入此支持库可以打开Sciter调试工具:inspector.exe\n按CTRL+SHIFT+I组合键可以连接调试工具,\n也可以按住CTRL+SHIFT用鼠标点击并查看指定HTML节点
+end intellisense**/

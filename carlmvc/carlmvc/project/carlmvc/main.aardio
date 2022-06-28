@@ -1,0 +1,13 @@
+
+/*
+说明:
+
+1.IIS网站目录必须指向本工程 /www/ 目录
+
+2.在开发环境 IIS网站的“处理程序映射”，cgi指向本工程目录下的 /aardio-cgi/aardio-cgi.exe
+
+3.本mvc框架自带rpc服务,地址: /index.aardio?_method=rpc.start
+
+4.开发过程中,请使插件中"调试发布","代码生成器"两个功能.
+
+*/

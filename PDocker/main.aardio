@@ -1,0 +1,63 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="Docker 容器发布工具";right=1019;bottom=717;bgcolor=15793151;border="none")
+mainForm.add(
+caption={cls="bkplus";text="Docker 容器发布工具 v1.2";left=67;top=9;right=320;bottom=27;align="left";color=6052956;dl=1;dt=1;font=LOGFONT(h=-14);z=7};
+custom={cls="custom";left=83;top=40;right=1019;bottom=719;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;z=4};
+logo={cls="bkplus";left=35;top=7;right=64;bottom=32;background="\app.ico";color=6450008;dl=1;dt=1;font=LOGFONT(h=-18;name='FontAwesome');z=6};
+nav1={cls="plus";text="首页";left=0;top=48;right=85;bottom=128;bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;border={color=-65536};color=16777215;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={font=LOGFONT(h=-37;name='FontAwesome');padding={bottom=20}};iconText='\uF0AD';notify=1;textPadding={bottom=10};valign="bottom";x=0.5;y=0.2;z=3};
+nav2={cls="plus";text="设置";left=0;top=129;right=85;bottom=209;bkBottom=3;bkLeft=7;bkRight=8;bkTop=2;border={color=-65536};color=16777215;dl=1;dt=1;font=LOGFONT(h=-13);iconStyle={font=LOGFONT(h=-37;name='FontAwesome');padding={bottom=20}};iconText='\uF013';notify=1;textPadding={bottom=10};valign="bottom";x=0.5;y=0.2;z=5};
+navBar={cls="bkplus";left=0;top=37;right=83;bottom=719;bgcolor=4961168;db=1;dl=1;dt=1;z=1};
+titleBar={cls="bkplus";left=0;top=0;right=1022;bottom=38;bgcolor=6318930;dl=1;dr=1;dt=1;forecolor=16777215;linearGradient=180;z=2}
+)
+/*}}*/
+
+import win.ui.atom;
+var atom,hwnd = mainForm.atom("{3B6F026D-D2FA-4A39-9BAB-E29DE8766CF0}。PDocker");
+if(!atom){
+	win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+
+import win.dlg.message;
+import win.ui.simpleWindow;
+win.ui.simpleWindow( mainForm );
+
+import win.ui.tabs;
+var tbs = win.ui.tabs( 
+	mainForm.nav1,
+	mainForm.nav2,
+);
+
+tbs.skin({
+	background={
+		active=0xFFFFFFFF;
+		default=0x00FFFFFF;
+		hover=0x38FFFFFF
+	};
+	color={
+		default=0xFFFFFFFF; 
+	};
+	checked={
+		background={default=0xFFFFFFFF;};
+		color={default=0xFF42A875;};
+	}
+})
+
+tbs.add({
+	text="映射";
+	iconText='\uF074';
+})
+
+tbs.loadForm(1,"\forms\main\docker.aardio" );
+tbs.loadForm(2,"\forms\main\setting.aardio" );
+tbs.loadForm(3,"\forms\main\volume.aardio" );
+tbs.preloadForm(2);
+tbs.preloadForm(3);
+tbs.selIndex = 1;
+
+mainForm.logo.background = $"\app.ico"
+mainForm.show();
+return win.loopMessage(); 

@@ -1,0 +1,196 @@
+import win.ui;
+import time.zone;
+import inet.http;
+import preg;
+import win.ui.minmax;
+
+mainForm = ..win.form( text="getTimeString";right=535;bottom=327 )
+mainFormInitResult = mainForm.add( 
+timestampStringLabel={ bottom=40;align="center";right=400;left=240;top=16;center=1;transparent=1;text="时间";z=6;cls="static" };
+timestamp={ dr=1;dl=1;bottom=72;right=184;left=24;dt=1;top=48;autohscroll=false;z=2;db=1;autovscroll=false;edge=1;cls="edit" };
+button={ bottom=72;text="添加";left=416;top=48;z=3;right=504;cls="button" };
+timestampLabel={ bottom=40;align="center";right=184;left=24;top=16;center=1;transparent=1;text="时间戳   ";z=1;cls="static" };
+timestampString={ dr=1;dl=1;bottom=72;right=399;left=240;dt=1;top=48;z=5;db=1;edge=1;cls="edit" };
+timestampToStringLabel={ dr=1;dl=1;bottom=71;align="right";text="==》   ";left=192;dt=1;top=48;center=1;transparent=1;db=1;right=239;z=4;cls="static" }
+)
+
+
+win.ui.minmax(mainForm,200,300);
+
+mapIdAndName = {};
+
+findMappedEdit = function(id) {
+	var currentEdit = mapIdAndName[id];
+	var currentEditName = currentEdit["name"];
+	var currentEditIndex = currentEdit["index"];
+	for _currentEditId,_editInfo in mapIdAndName {
+		var _currentEditIndexInFor = _editInfo["index"];
+		var _currentEditNameInFor = _editInfo["name"];
+		var mappedEditName = "timestampString"++currentEditIndex;
+		//win.msgbox(id++" => "++mappedEditName);
+		if (_currentEditNameInFor == mappedEditName) {
+			return mainForm.getCtrlById(_currentEditId); 
+		}
+	}
+	return mainForm.getCtrlById(id);;
+}
+index = 0;//添加次数
+updateMapIdAndName = function(winFormAddResult){
+	for k,v in winFormAddResult {
+		var curr = {};
+		curr["name"] = k;
+		curr["index"] = index == 0 ? "" : index;
+		mapIdAndName[v["id"]] = curr;
+		//win.msgbox(k ++ "=> index:" ++ index);
+	}
+}
+
+updateMapIdAndName(mainFormInitResult);
+
+//键名排序
+kpairs = function(tab,f){
+    //kpairs被调用时创建闭包
+    var tarr = {}
+    //字典中的数据复制到一个数组中然后进行排序
+    for k in tab
+        ..table.push(tarr, k);
+        ..table.sort(tarr, f);//调用默认的排序函数f对字典中的键进行排序
+    var i = 0 //迭代器计数器.(在闭包中保存值)
+    return function () { //迭代函数
+        i = i + 1
+        if(not tarr[ i ])
+            return null
+        else
+            return tarr[ i ], tab[tarr[ i ]]
+    }
+}
+
+oldtimestampText = "";
+timestampOncommand = function(id,event){
+     select(event) {
+         case 0x300/*_EN_CHANGE*/ {
+         	//win.msgbox(currentTimestampStringId);
+         	var currentTimeStamp = mainForm.getCtrlById(id);
+         	var currentTimestampString = findMappedEdit(id);
+         	//win.msgbox(id);
+         	
+            var timeStampValue = currentTimeStamp.text;
+            //win.msgbox(timeStampValue);
+            var regex = preg("^\s*\d+\s*$");
+			var keywords,j = regex.match (timeStampValue); 
+			if (keywords == null && timeStampValue != "") {
+				win.msgbox("请输入正确的时间戳---纯数字", "时间戳错误--非数字");
+				currentTimeStamp.text = oldtimestampText;
+			} else {
+				var url = "http://91coding.com/time.php&timestamp=" ++ timeStampValue;
+				var responseContent,status = inet.http().get(url);
+				var timezone = -23400;//(-8+5)/2*3600
+				currentTimestampString.text = responseContent;
+				var calcuateTime = tonumber(timeStampValue+timezone) + timezone;
+				var timeFormat = time( calcuateTime , "%Y-%m-%d %H:%M:%S");
+				/*if (tostring(timeFormat) == responseContent) {
+					
+				} else {
+					win.msgbox(tostring(timeFormat) ++ " <===> " ++ responseContent);
+				}
+				*/
+				oldtimestampText = timeStampValue;
+			}	
+         }    
+ 	} 	
+}
+
+mainForm.timestamp.oncommand = timestampOncommand;
+
+//添加按钮
+mainForm.button.oncommand = function(id,event){
+	//mainForm.close();
+	index = calcuateIndex(index, 1);
+	if (index < maxIndex) {
+		addNewCombineControl(index);
+		if (index == maxIndex-1) {
+			mainForm.button.disabled = true;
+		}
+	}
+}
+
+
+editGap = 10;//控件行间隔
+timestampTop = 48;//timestamp控件的top
+timestampBottom = 72;//timestamp控件的bottom
+timestampLeft = 24;//timestamp控件的left
+timestampRight = 184;//timestamp控件的right
+maxIndex = 7;//最大次数
+
+timestampToStringLabelTop = 48;//timestampToStringLabel控件的top
+timestampToStringLabelBottom = 72;//timestampToStringLabel控件的Bottom
+timestampToStringLabelLeft = 192;//timestampToStringLabel控件的Left
+timestampToStringLabelRight = 239;//timestampToStringLabel控件的Right
+
+
+timestampStringTop = 48;//timestampString控件的top
+timestampStringBottom = 72;//timestampString控件的Bottom
+timestampStringLeft = 240;//timestampString控件的top
+timestampStringRight = 399;//timestampString控件的Bottom
+
+
+calcuateIndex = function(index, _count){
+	return index + _count;
+}
+
+addNewCombineControl = function(index){
+	var rs = mainForm.add( 
+		["timestamp"+index]={
+        right = tonumber(timestampRight);
+        left = tonumber(timestampLeft);
+        z=1;
+        text="";
+        cls="edit";
+        top = timestampTop + index * 40;
+        bottom = timestampBottom + index * 40;
+        oncommand = function(id,event){timestampOncommand(id, event);}
+    };
+    
+    ["timestampToStringLabel"+index]={
+        right=  timestampToStringLabelRight;
+        left = timestampToStringLabelLeft;
+        z = 1;
+        text = "==》   ";
+        cls = "static";
+        top = timestampToStringLabelTop + index * 40;
+        bottom = timestampToStringLabelBottom + index * 40;
+    };
+    ["timestampString"+index]={
+        right = timestampStringRight;
+        left = timestampStringLeft;
+        z = 1;
+        text = "";
+        cls = "edit";
+        top = timestampStringTop + index * 40;
+        bottom = timestampStringBottom + index *40;
+        //oncommand = function(id,event){testOncommand(id, event);}
+    };
+	);
+	
+	updateMapIdAndName(rs);
+	//for t,tt in kpairs(mapIdAndName) {
+	//	win.msgbox(t ++ " => " ++ tt["name"] ++ ":" ++ tt["index"]);
+	//}
+}
+
+
+/***
+import config;
+mainForm.bindConfig( config.mainForm,{
+	edit = "text"; //绑定edit控件的text属性值到配置文件
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+} );
+***/
+
+//win.msgbox(mainForm.width ++":" + mainForm.height);
+win.ui.minmax(mainForm,552,366,552,366);//see http://bbs.aau.cn/forum.php?mod=viewthread&tid=10062&page=1#pid56634  win.ui.minmax(winform,最小宽度,最小高度,最大宽度,最大高度) 
+
+mainForm.show() 
+win.loopMessage(); 

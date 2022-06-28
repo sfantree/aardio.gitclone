@@ -1,0 +1,478 @@
+﻿import win.ui;
+import fsys;
+import sqlite;
+import win.ui.menu;
+import win.clip;
+import process;
+import win.imageList;
+var libDir =io.fullpath("~\lib")
+var sqlconn = sqlite("\aau.dat")
+var functab;
+var contab;
+var sectab;
+var lname;
+var fname;
+/*DSG{{*/
+mainForm = ..win.form( bottom=535;parent=...;right=756;text="AAuto 库浏览工具" )
+mainForm.add( 
+tab={ ah=1;bottom=467;right=432;left=217;top=10;aw=1;z=7;edge=1;cls="tab" };
+button3={ bottom=527;text="退出";left=47;top=502;z=5;right=153;cls="button" };
+static4={ bgcolor=12639424;bottom=41;color=128;right=749;border=1;top=24;aw=1;left=435;z=17;cls="static" };
+static3={ bottom=353;text="对象引用";left=440;right=509;top=337;transparent=1;z=12;cls="static" };
+richedit2={ ah=1;bottom=308;vscroll=1;right=751;left=435;multiline=1;top=179;wrap=1;aw=1;z=9;hscroll=1;edge=1;cls="richedit" };
+button={ bottom=500;text="更新";left=47;top=475;z=4;right=153;cls="button" };
+groupbox={ ah=1;bgcolor=255;bottom=527;right=751;left=216;top=467;transparent=1;z=2;aw=1;cls="groupbox" };
+button2={ bottom=511;text="搜索";left=653;top=485;z=1;right=693;cls="button" };
+edit={ aw=1;bottom=510;right=437;left=280;top=487;z=13;edge=1;cls="edit" };
+treeview={ border=1;ah=1;bgcolor=16777215;vscroll=1;bottom=465;right=216;left=8;asel=false;top=9;aw=1;z=6;hscroll=1;edge=1;cls="treeview" };
+static2={ bottom=177;text="自定义说明";left=440;right=510;top=163;transparent=1;z=11;cls="static" };
+richedit={ ah=1;bottom=160;vscroll=1;right=750;left=435;multiline=1;top=44;wrap=1;aw=1;z=8;hscroll=1;edge=1;cls="richedit" };
+radiobutton={ checked=1;bottom=499;text="搜索函数和常量名";left=455;top=481;z=14;right=597;cls="radiobutton" };
+button4={ bottom=332;text="保存对自定义说明的更改";left=436;top=306;z=16;right=751;cls="button" };
+radiobutton2={ bottom=517;text="搜索智能提示和自定义说明";left=455;top=500;z=15;right=629;cls="radiobutton" };
+static={ bgcolor=12639424;bottom=27;color=255;text="智能提示";border=1;top=7;aw=1;right=749;left=435;z=10;cls="static" };
+listbox={ 
+items={  };ah=1;bgcolor=16777215;bottom=469;vscroll=1;right=750;left=435;border=1;top=359;aw=1;z=3;hscroll=1;edge=1;cls="listbox" }
+)
+/*}}*/
+
+mainForm.button3.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.button3.text );
+	win.quitMessage();
+	
+}
+var imageList = win.imageList(16,15).add("\res\iml.gif",0xFF00FF/*透明色*/)
+mainForm.treeview.setImageList( imageList,0/*_TVSIL_NORMAL*/ )
+
+var page_fun=mainForm.tab.add(text="   函  数   ")
+var page_con=mainForm.tab.add(text="   常  量   ")
+var page_sec=mainForm.tab.add(text=" 搜索结果  ")
+page_fun.add(
+	listbox={ bgcolor=16777215;bottom=459;right=216;left=0;ah=1;aw=1;
+		items={  };vscroll=1;hscroll=1;z=1;top=2;edge=1;cls="listbox" }
+)
+page_con.add(
+	listbox={ bgcolor=16777215;bottom=459;right=216;left=0;ah=1;aw=1;
+		items={  };vscroll=1;hscroll=1;z=1;top=2;edge=1;cls="listbox" }
+)
+page_sec.add(
+	listbox={ bgcolor=16777215;bottom=459;right=216;left=0;ah=1;aw=1;
+		items={  };vscroll=1;hscroll=1;z=1;top=2;edge=1;cls="listbox" }
+)
+//创建弹出菜单
+var addPopMenu = function(obj){
+	obj.popmenu = win.ui.popmenu(obj); 
+	obj.popmenu.add('复制',function(id){ 
+			win.clip.write(obj.listbox.selText);
+	} ); 
+	obj.popmenu.add('打开所在文件',function(id){ 
+			process.execute(io.fullpath("~\lib\"++mainForm.static.text));
+	} );
+	obj.listbox.wndproc = function(hwnd,message,wParam,lParam){
+		select( message ) { 
+			case 0x205/*_WM_RBUTTONUP*/{
+				var x,y = win.getMessagePos();  
+				var item = obj.listbox.hitTest(x,y,true);
+				var selitem = obj.listbox.selIndex;
+				if(!item||!selitem||item!=selitem) return ; 
+				mainForm.listbox.selIndex = item;
+				obj.popmenu.popup(x,y,true)
+			} 
+		}
+	}
+}
+var addMenu = function(){
+	addPopMenu(page_fun);
+	addPopMenu(page_con);
+	addPopMenu(page_sec);
+}
+
+////////////////////////////
+//    保存按钮单击事件    //
+////////////////////////////
+mainForm.button4.oncommand = function(id,event){
+	var command =sqlconn.prepare("UPDATE [func] SET shuoming =@text WHERE libpath =@path and funcname =@funcname")
+	command.bind.parameterByNamesAt(text =mainForm.richedit2.text;path =lname;funcname =fname)
+	command.step();
+	mainForm.msgbox(lname)
+	command.finalize();
+}
+
+////////////////////////////
+//    搜索按钮单击事件    //
+////////////////////////////
+mainForm.button2.oncommand = function(id,event){
+	var sql = "select * from func where "
+	if(mainForm.radiobutton.checked)
+		sql =sql +"funcname like '%"+mainForm.edit.text +"%'";
+	if(mainForm.radiobutton2.checked)
+		sql =sql +"tishi like '%"+ mainForm.edit.text +"%' or shuoming like '%" + 
+			mainForm.edit.text +"%'";
+	sectab =sqlconn.getTable(sql)
+	page_sec.listbox.clear();
+	mainForm.tab.selIndex =3
+	for(k,v in sectab){
+		page_sec.listbox.add(v.funcname)
+	
+	}
+	addMenu();
+}
+////////////////////////////////////
+////////////////////////////////////
+getpath =function(hitem){
+	
+	var str =mainForm.treeview.getItemText(hitem)
+	path =str + path;
+	
+	pitem =mainForm.treeview.getParentItem(hitem)
+	if(pitem){
+		path ="\"+path;
+		getpath(pitem)
+		
+	}
+	
+}
+
+mainForm.treeview.onnotify = function(id,code,ptr){
+	
+	if(code =0xFFFFFFFE/*_NM_CLICK*/)
+	{
+		var item = mainForm.treeview.hitTest();
+		if(item){
+			cli =mainForm.treeview.getChildItem(item)
+			if(cli =null){
+				path = "";
+				getpath(item)
+				//显示函数
+				viewfunc(path)
+			}
+		}
+	}
+	
+	
+}
+
+viewfunc=function(libname){
+	page_fun.listbox.clear();
+	page_con.listbox.clear();
+	mainForm.listbox.clear();
+	//func =sqlconn.getTable("SELECT funcname FROM [func] where leixing =0 and libpath ='"+ libname+"'")
+	functab =sqlconn.getTable("SELECT * FROM [func] ",{leixing =2;libpath =libname})
+	for(k,v in functab){
+		mainForm.listbox.add(v.funcname +" = "+v.tishi);
+	}
+	functab =sqlconn.getTable("SELECT * FROM [func] ",{leixing =0;libpath =libname})
+	for(k,v in functab){
+		page_fun.listbox.add(v.funcname);
+	}
+	contab =sqlconn.getTable("SELECT * FROM [func] ",{leixing =1;libpath =libname})
+	for(k,v in contab){
+		page_con.listbox.add(v.funcname);
+	
+	}
+	addMenu();
+}
+page_fun.listbox.oncommand =function(id,event){
+	if(event == 0x1){
+		for(k,v in functab){
+			
+			if(v.funcname == page_fun.listbox.selText){
+				mainForm.richedit.text = string.replace(v.tishi,"\\n",'\r\n')
+				mainForm.static.text = v.libpath;
+				mainForm.static4.text = v.funcname;
+				mainForm.richedit2.clear();
+				//mainForm.richedit2.text = string.replace(v.shuoming,"\\n",'\r\n')
+				mainForm.richedit2.text = v.shuoming ? v.shuoming : "";
+				lname =v.libpath;
+				fname =v.funcname;
+			}
+		}
+	}
+}
+page_con.listbox.oncommand =function(id,event){
+	if(event ==0x1){
+		for(k,v in contab){
+			if(v.funcname == page_con.listbox.selText){
+				mainForm.static.text = v.libpath;
+				mainForm.static4.text = v.funcname;
+				mainForm.richedit.text =string.replace(v.tishi,"\\n",'\r\n');
+				mainForm.richedit2.text = v.shuoming ? v.shuoming : "";
+				lname =v.libpath;
+				fname =v.funcname;
+			}
+		}
+	}
+}
+page_sec.listbox.oncommand =function(id,event){
+	if(event ==0x1){
+		for(k,v in sectab){
+			if(v.funcname == page_sec.listbox.selText){
+				mainForm.static.text = v.libpath;
+				mainForm.static4.text = v.funcname;
+				mainForm.richedit.text =string.replace(v.tishi,"\\n",'\r\n');
+				mainForm.richedit2.text = v.shuoming ? v.shuoming : "";
+				lname =v.libpath;
+				fname =v.funcname;
+			}
+		}
+	}
+}
+
+if(not sqlconn.existsTable("func"))
+{
+	sqlconn.exec("create table func(
+					libpath,
+					funcname,
+					tishi,
+					shuoming,
+					leixing );")
+}
+if(not sqlconn.existsTable("libmd5"))
+{
+	sqlconn.exec("create table libmd5(
+					libname,
+					md5,
+					date);")
+}
+//tab_func = sqlconn.getTable("SELECT distinct libpath FROM func ")
+
+
+viewtree=function(){
+	tree={};
+	for libpath in sqlconn.each("SELECT distinct libpath FROM func ") {
+		//mainForm.listbox2.add(libpath);
+		path = string.split(libpath,'\\')
+		tab =tree;
+		for(i=1;#path-1;1){
+			//树型表为空，直接添加结点
+						
+			find =false;
+			if(#tab =0){
+				table.push(tab,{text=path[i];iImage=7;iSelectedImage=1;children={}})
+				tab=tab[#tab].children
+			}
+			else{
+				max =#tab;
+				
+				for(j=1;max;1)
+				{
+					if(tab[j].text = path[i])
+					{
+						table.mix(tab[j],{children = {}});
+						tab =tab[j].children
+						find =true;
+						break
+					}
+					
+				}
+				if(find=false){
+					table.push(tab,{text=path[i];iImage=7;iSelectedImage=1;children={}})
+					tab=tab[#tab].children
+					
+				}
+				
+			}
+		}
+		table.push(tab,{text=path[#path];iImage=2;iSelectedImage=2})
+	}
+	mainForm.treeview.clear();
+	mainForm.treeview.insertItem(tree);
+}
+viewtree();
+/*更新数据库
+//取LIB目录	
+//枚举所有文件
+//	在表中查找文件名，找到
+//		判断MD5是否相同，相同证明文件没有更新，不用提取智能提示，不相同则调用提取函数
+//	没有找到文件，证明是新加库，调用提取函数
+//枚举结束
+*/
+import crypt;
+filemd5 =function(Path){
+	//定义哈希变量
+	var crc32;
+	var md5 = crypt().createHashByMd5();
+	
+	
+	//打开文件
+	var file,err =  io.open(Path, "rbR");//R 随机优化
+	if(!file) error("打开文件失败" + err,2 ) 
+ 
+ 	//计算哈希值
+ 	bufsize = 1024 * 1024;
+ 	var buffer = raw.malloc( bufsize ); 
+ 	
+	var readSize = file.readBuffer(buffer);
+	while ( readSize ){  
+		md5.hashBuffer(buffer,readSize);
+		
+		readSize = file.readBuffer(buffer) 
+	};
+	file.close();
+	return md5.getHexValue();	
+	
+}
+
+uplib =function(winlog,libname,fullpath,new=false)
+{
+	var b =false;
+	var fun={};
+	
+	for line in io.lines(fullpath) { 
+		if(line ="")
+			continue ;
+		if(b){
+			//if(string.left(line,19)="end intellisense**/"){
+			if(string.find(line,"<@end intellisense@>")!=null){
+				b=false;
+			}
+			else{
+				//查找第一个等号的位置
+				位置=string.find(line,"@=")
+				if(位置=null){
+					说明=说明+line;
+					var command = sqlconn.prepare("UPDATE func SET tishi=@tishi WHERE funcname =@funcname ")
+					command.bind.parameterByNamesAt(tishi =说明;funcname =函数);
+					command.step();
+					command.finalize();
+					//sqlconn.exec("UPDATE func SET tishi = '"+说明+"' WHERE funcname = '"+函数+"';");
+					continue ;
+				}
+				函数 = string.left(line,位置-1)
+				说明 = string.sub(line,位置+1,-1);
+				//去除首尾空字符
+				函数 =string.trim(函数);
+				说明 =string.trim(说明);
+				if(not new)
+					table.push(fun,函数);
+				var leixing =0;
+				if(string.left(函数,1) ="_")
+					leixing =1;//常量
+				if(string.left(说明,1) ="!")
+					leixing =2;//实例引用
+				if(new){
+					var command =sqlconn.prepare("insert into func(libpath,funcname,tishi,leixing)
+									 values( @libpath,@func,@tishi,@lx )")
+					command.bind.parameterByNamesAt(
+						libpath =libname;
+						func =函数;
+						tishi =说明;
+						lx =leixing;
+					).step();
+					command.finalize();
+						
+					//sqlconn.exec("insert into func(libpath,funcname,tishi,leixing)
+					//				 values( '"+libname+"','"+函数+"','"+说明+"',"+leixing+" )")
+					winlog.edit.appendText('新增->'+函数+'\r\n');
+				}
+				else {
+					var dat = sqlconn.getTable("SELECT * FROM func",{funcname =函数})
+					if(#dat =0)//没有找到此函数
+					{
+						var command =sqlconn.prepare("insert into func(libpath,funcname,tishi,leixing)
+									 values( @libpath,@func,@tishi,@lx )")
+						command.bind.parameterByNamesAt(
+							libpath =libname;
+							func =函数;
+							tishi =说明;
+							lx =leixing;
+						).step();
+						command.finalize();
+						//sqlconn.exec("insert into func(libpath,funcname,tishi,leixing)
+						//			 values( '"+libname+"','"+函数+"','"+说明+"',"+leixing+" )")
+						winlog.edit.appendText('新增->'+函数+'\r\n');
+						win.delay()
+					}
+					else {
+						if(说明!=dat[1].tishi){
+							var command = sqlconn.prepare("UPDATE func SET tishi=@tishi WHERE funcname =@funcname ")
+							command.bind.parameterByNamesAt(tishi =说明;funcname =函数);
+							command.step();
+							command.finalize();
+							//sqlconn.exec("UPDATE func SET tishi = '"+说明+"' WHERE funcname = '"+函数+"';");
+							winlog.edit.appendText('更新->'+函数+'\r\n');
+							win.delay()
+						}
+					}
+											
+				}
+				
+			}
+		}
+		else{
+			//if(string.left(line,15) ="/**intellisense")
+			if(string.find(line,"<@intellisense@>")!=null)
+				b =true;
+		}
+	win.delay() 
+	}
+	if(not new){
+	//反查有没有删除的函数 
+		var dat =sqlconn.getTable("SELECT funcname FROM func where libpath='"+libname+"'")
+		if(#dat != #fun)
+		{
+			for(row=1;#dat){
+				var zhaodao =false;
+				for(k,v in fun){
+					if(dat[row].funcname =v){
+						zhaodao =true;
+						break ;
+					}
+				}
+				if(zhaodao = false){
+					sqlconn.exec("DELETE FROM func where libpath='"+libname+"' and funcname='"+dat[row].funcname+"'")
+					winlog.edit.appendText('删除->'+函数+'\r\n');
+					win.delay()
+				}
+			}		
+		}
+	}
+}
+
+
+mainForm.button.oncommand = function(id,event){
+	//var tab_libmd5 = sqlconn.getTable("SELECT * FROM libmd5 ")
+	winlog,wb = mainForm.loadForm("\res\log.aau",mainForm /*指定父窗口*/ );
+	winlog.show();
+	fsys.enum( libDir, "*.aau",
+		function(dir,filename,fullpath,findData){ 
+			if(filename){ 
+	           	if(..string.endWith(filename,"#Src.aau",true))
+	           		return ;
+	           	var libname =fsys.path.relative(fullpath,libDir);
+	           	libname =..string.trimleft(libname,"\\");
+	           	winlog.static.text =libname; 
+	           	var dat = sqlconn.getTable("SELECT * FROM libmd5 where libname ='"+libname +"'")
+	           	//计算md5
+	           	var	fmd =filemd5(fullpath)
+	           	tm =time()
+	           	tm.format="%Y-%m-%d";
+	           	date =tostring(tm);
+	           	if(#dat =0){
+	           	//没有找到记录,新的库文件，要更新
+	           		winlog.edit.appendText("新增库文件:"+libname+'\r\n');	
+	           		uplib(winlog,libname,fullpath,true)
+	           		//mainForm.msgbox("insert into libmd5 values( '"+libname+"','"+fmd+"',"+date+")")
+	           		sqlconn.exec("insert into libmd5 values( '"+libname+"','"+fmd+"','"+date+"')")
+	           			
+	           	}
+	           	else{
+	           		if(fmd !=dat[1].md5){
+	           		   	//md5不同，库文件有更新
+	           			winlog.edit.appendText("更新库文件:"+libname+'\r\n');	
+	           			uplib(winlog,libname,fullpath)
+	           			sqlconn.exec("UPDATE libmd5 SET md5 = '"+fmd+"',date = '"+date+"' WHERE libname = '"+libname+"'");
+	           			
+	           		}
+	           	}
+	           	
+			}
+			
+		} 
+		,/*如果此参数为false则忽略子目录*/
+	);
+	mainForm.msgbox("更新完成")
+	viewtree();
+}
+mainForm.show() 
+win.loopMessage(); 

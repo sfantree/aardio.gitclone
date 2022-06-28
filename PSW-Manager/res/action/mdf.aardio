@@ -1,0 +1,164 @@
+//修改信息命令
+
+printDetail=function(title,remark,tab){
+
+io.print('Title:',title,'Remark:',remark); //显示: 键,值 
+	for k,v in tab { 
+		io.print('line '+k+' ',v); //显示: 键,值 
+	}
+}
+
+ 
+mdf=function(c){
+	var tab={};
+	var id="";
+ 	var title='';
+ 	var remark_='';
+ 	var tm=muchzz('mdf +-i([0-9]+)',c);//匹配列表行数
+ 	id =tm? tm:id;
+	
+	if(id==''){
+ 		return ;
+ 	}
+ 	
+ 	var h,e=getWebData('op=getlist&where='+inet.url.encodeUri(' id in ('+id+') '));
+	
+	if(e=="" && h!='[]'){
+ 		var json=web.json.parse(h);
+ 		for adptInfo,hh in json{
+ 		console.log(hh);
+ 			console.log('---------------------------------------------------------------------start:'+hh['id']);
+			remark_=hh['remark'];
+			try{
+				remark_=remark_==null?'':crypt.bin.decodeBase64(remark_);//..string.sub( hh['pswtext'],1,8),
+			}
+			catch(e){
+				remark_='';
+			}
+			//hh['id']='0';
+			title=crypt.bin.decodeBase64(hh['title']);
+			console.log('### '+hh['id']+" | "+title+' | '+remark_+' | '+hh['createdatetime']+' | '+hh['modifydatetime']);
+		 	//console.log(hh['id']+" "+..string.sub(crypt.bin.decodeBase64(hh['title']),1,10,true),remark_,hh['createdatetime'],hh['modifydatetime']);
+			//console.log('---------Detail:');
+			try{
+				var psw=crypt.bin.decodeBase64(hh['pswtext']);
+				//console.log('解密前的：',psw,hh['pswtext']);
+				try{
+				
+					var csp = crypt();
+					csp.setPassword(enpsw);
+					psw=csp.decrypt(psw);
+					//console.log('解密后的：',psw);
+					var p=web.json.parse(psw);
+					//console.log(p);
+					var i=0;
+					for k,v in  p { 
+						i++;
+						//k为键,v是匹配的值,在这里键值对无序的随机出现。
+						tab[i+'']=k+'>'+v;//这里的i是数值，变成文本后面好操作
+						//io.print('line '+i+' ',k+'>'+v); //显示: 键,值 
+					}
+					printDetail(title,remark_,tab);
+					
+				}catch(e){
+					 console.log('ERROR:'+e);
+				}
+			}catch(e){
+				 console.log('No items here!');
+			}
+			
+			
+			
+			console.log('---------------------------------------------------------------------end:'+hh['id']);
+			var c='';
+			var t='';
+			var line='';
+			var info='';
+			while(true){
+ 				console.stdout.write('modify:'+id+'>');
+ 				c= console.getText();
+ 				tm=muchzz('([a-z0-9]+)',c);//匹配命令
+ 				if(tm=='c'){//修改
+ 					var line=muchzz('c +([0-9]+)',c);//匹配列表行数
+ 					if(line){
+ 						var info=muchzz('c +[0-9]+ +(.+>.+)',c);//匹配输入的信息:c 1 title>psw
+ 						if(info){
+ 							tab[line]=info; 
+							console.log('----',line,info);
+ 							//printDetail(tab);							
+ 						}else{
+ 							console.log("no item changed.");
+ 						}
+ 							
+ 					}else{
+ 						console.log("please input change line id.");
+ 					}
+ 				
+ 				}elseif(tm=='d'){//删除
+ 					var line=muchzz('d +([0-9]+)',c);//匹配列表行数
+ 					if(line){
+ 						if( tonumber(line)>table.count(tab)){console.log("index is more than list count.");}
+ 						  else {table.remove(tab,line);}
+ 					}
+ 				}elseif(tm=='post'){//提交修改后的数据到服务器中
+ 					if(table.count(tab)<1){console.log("here no data in items.");continue; }//检测是否有数据，无则到循环首。
+ 					console.log("post data to server,please wait amoment!");
+ 					
+ 					var i=1
+ 					var str_;
+ 					var pswtext = '{'; //开始序列化json文本
+ 					for k,v in tab {		
+						//io.print('line '+k+' ',v); //显示: 键,值 
+						str_=..string.split(v,'>');
+						pswtext+='"'+str_[1]+'":"'+str_[2]+'"';
+						if(i<table.count(tab)){pswtext+=',';}//这里给最后加一个逗号“，”
+						i++;
+					}
+					pswtext += '}';
+					console.log(pswtext);
+ 					
+ 					
+ 					var csp = crypt();
+					csp.setPassword(enpsw);
+ 					pswtext=csp.encrypt(pswtext);//json数据加密
+ 					pswtext=crypt.bin.encodeBase64(pswtext);//加密后然后在base64加密
+ 					pswtext=inet.url.encode(pswtext);//然后url编码，像+这类字符串都不能够被php正常分析并使用。
+ 					
+ 					var h,e=getWebData('op=modify&pswtext='+pswtext+'&title='+inet.url.encodeUri(title)+'&remark='+inet.url.encodeUri(remark_)+'&id='+id);
+					 
+					if(h=='OK'){
+					 	console.log('Do success!'); 
+ 					}else{
+ 						console.log("ERROR:",e);		
+ 					}
+ 				}elseif(tm=='t'){//修改备注
+ 					var t=muchzz('t +(.+)',c);//匹配列表行数
+ 					if(t && t!=''){
+ 						title=t;
+ 					}
+ 				}elseif(tm=='r'){//修改标题
+ 					var t=muchzz('r +(.+)',c);//匹配列表行数
+ 					if(t && t!=''){
+ 						remark_=t;
+ 					} 
+ 				}elseif(tm=='detail'){//打印详细信息
+ 					printDetail(title,remark_,tab);
+ 				}elseif(tm=='exit'){//退出当前的任务
+ 					break ;
+ 				}else{
+ 					console.log("Can't recognise the cmd.");
+ 				}
+ 				
+ 			 } 
+			
+			console.log();
+			break ;
+		} 	
+ 	
+ 	}
+	
+	
+	
+	
+}
+

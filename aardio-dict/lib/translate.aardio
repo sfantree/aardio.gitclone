@@ -1,0 +1,167 @@
+﻿import web.rest.jsonLiteClient;
+
+class translate {  
+    ctor(SecretId,SecretKey){
+        this = http : ..web.rest.jsonLiteClient()
+        this.SecretId = SecretId;
+        this.SecretKey = SecretKey;
+    };
+    
+    //1、百度句子翻译
+    baidu = function(lang,queryStr){ 
+        salt = tostring( tonumber(time.now()) );
+		var result,err = this.post("http://api.fanyi.baidu.com/api/trans/vip/translate",{
+        	q = queryStr;
+        	from = "auto";  
+        	to = lang;
+        	appid = this.SecretId;
+        	salt = salt;
+        	sign = crypt.md5(this.SecretId ++ queryStr ++ salt ++ this.SecretKey,false);
+    	})
+        if(!result.trans_result[1]) return null,"查询失败";
+        
+        return result.trans_result[1].dst; 
+    }
+    //2、网易有道句子翻译
+    youdao = function(queryStr){
+    	var result = this.get("http://fanyi.youdao.com/openapi.do",{
+			keyfrom = this.SecretId;
+        	key = this.SecretKey;
+        	type = "data";
+        	doctype = "json";  
+        	version = "1.1";
+        	q = queryStr;
+        	only = "translate";
+    	} )
+    
+   		return result.translation[1];	
+    }
+    //3、腾讯句子翻译
+    tencent = function(lang,queryStr){
+    	var tm = time.now();
+		var timestamp = tostring(tonumber(tm));
+		var utcTm = tm.utc();
+		utcTm.format = "%Y-%m-%d";
+		var date = tostring(utcTm);
+
+		var content = {
+			SourceText = queryStr;
+			Source = "auto";
+			Target = lang;
+			ProjectId = 0
+		}
+
+		//（1）、拼接规范请求串
+		var playload = web.json.stringify(content);
+		var HashedRequestPayload = crypt.sha256(playload,false);
+		var canonicalRequest = "POST" ++ '\n' ++ 
+				   		"/" ++ '\n' ++
+			       		"" ++ '\n' ++
+			      		 "content-type:application/json" ++ '\n' ++
+			       		"host:tmt.tencentcloudapi.com" ++ '\n'++ 
+			       		"" ++ '\n' ++
+			       		"content-type;host" ++ '\n' ++
+			       		HashedRequestPayload;
+
+		//（2）、拼接待签名字符串
+		var HashedCanonicalRequest = crypt.sha256(canonicalRequest,false);
+		var stringToSign = "TC3-HMAC-SHA256" ++ '\n' ++ 
+			   timestamp ++ '\n' ++ 
+			   date++"/tmt/tc3_request" ++ '\n' ++ 
+			   HashedCanonicalRequest;
+
+		//（3）、计算签名
+		var SecretDate = crypt.hmac.sha256("TC3" ++ this.SecretKey, date).getValue();
+		var SecretService = crypt.hmac.sha256(SecretDate, "tmt").getValue();
+		var SecretSigning = crypt.hmac.sha256(SecretService, "tc3_request").getValue();
+		var Signature = crypt.hmac.sha256(SecretSigning, stringToSign).getHexValue(false);
+
+		//（4）、拼接 Authorization
+		var Authorization = "TC3-HMAC-SHA256 Credential=" ++ this.SecretId ++ "/" ++ date ++ "/tmt/tc3_request" ++ ", " ++
+ 				"SignedHeaders=content-type;host" ++ ", " ++"Signature=" ++ Signature;
+
+		//（5）、提交查询
+		var restHttp = web.rest.jsonLiteClient();
+		restHttp.addHeaders = {
+			Authorization = Authorization;
+			['Content-Type'] = "application/json";
+			Host = "tmt.tencentcloudapi.com";
+			['X-TC-Action'] = "TextTranslate";
+			['X-TC-Version'] = "2018-03-21";
+			['X-TC-Timestamp'] = timestamp;
+			['X-TC-Region'] = "ap-shanghai"
+		}
+
+		var result = restHttp.post("https://tmt.tencentcloudapi.com/",playload)
+    	return result.Response.TargetText;
+    }
+    
+    //爱词霸单词翻译
+    iciba = function(queryStr){
+        var icibaUrl = "http://dict-co.iciba.com/api/dictionary.php";
+    	var result = this.get(icibaUrl,{
+        	key = this.SecretId;
+        	type = "json";
+        	w = queryStr
+    	} )
+    	
+    	var xmlTab = {};
+    	var http = inet.whttp();
+		xmlStr = http.get(icibaUrl++"?key="++this.SecretId++"&w="++queryStr);
+		var xmlDoc = web.msxml();
+		xmlDoc.loadXml(xmlStr);
+		
+		for i,xnode in xmlDoc.eachNode("sent") {
+      		table.push(xmlTab,{orig=xnode.childNodes(0).text;trans=xnode.childNodes(1).text})
+		}
+		result.sent = xmlTab;
+		
+    	return result; 
+    }
+
+    //网易有道单词翻译
+    yddict = function(queryStr){
+    	var result = this.get("http://fanyi.youdao.com/openapi.do",{
+			keyfrom = this.SecretId;
+        	key = this.SecretKey;
+        	type = "data";
+        	doctype = "json";  
+        	version = "1.1";
+        	q = queryStr;
+        	only = "dict";
+    	} )
+    
+   		return result;
+    }    
+    
+}
+
+namespace translate{
+    import crypt;
+    import crypt.hmac;
+	import web.json;
+	import web.msxml;
+	import inet.whttp;
+
+	crypt = ..crypt;
+	time = ..time;
+	table = ..table;
+	
+	fromlang = function(queryStr){
+		this = http : ..web.rest.jsonLiteClient()
+    	var result,err = this.get("http://fanyi.baidu.com/langdetect",{query=queryStr});
+    	if(!result[["lan"]]) return null,"检测失败";
+    	
+    	return result[["lan"]]; 
+    }
+}
+
+/**intellisense(!translate)
+translate.baidu = 百度翻译支持库,\n文档：http://fanyi-api.baidu.com/api/trans/product/apidoc
+translate(.(ID,密钥) = 创建翻译支持库
+translate.baidu() = !bdTranslate.
+end intellisense**/
+
+/**intellisense(translate)
+fromlang(.(queryStr) = 查询语言类型
+end intellisense**/

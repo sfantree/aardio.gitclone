@@ -1,0 +1,36 @@
+﻿//选项卡切换
+namespace web.layout.behavior.menutab {
+	//鼠标单击
+	onMouseClick = function (ltTarget,ltEle,x,y,ltMouseParams) {
+    	var winform = ltEle.getForm(); //获得winform对象
+    	var Layout = ltEle.getLayout(); //获得layout对象
+
+    	//设置当前选中
+    	var selectedEle = Layout.queryEle("[target][selected]");
+    	if (selectedEle) {
+    		//取消其他选中
+    		selectedEle.selected = null;
+    	}
+    	ltEle.setAttribute("selected", "true");
+
+    	//设置目标显示
+    	var target = Layout.queryEle("[name="++ltEle.target++"]");
+    	for ( i, eleChild in target.parent().eachChild() ) {
+    		if (eleChild.name) {
+    			eleChild.selected = null;
+    		}
+    	}
+    	target.setAttribute("selected", "true");
+	}
+
+	sinking = {
+    	//捕获模式下阻止鼠标移动事件传递，以避免按住按钮拖动窗口
+    	onMouseMove = function (ltTarget,ltEle,x,y,ltMouseParams) {
+        	return true;
+    	}
+    	onMouseDblClick = function (ltTarget,ltEle,x,y,ltMouseParams) {
+        	return true;    
+    	}
+	}
+	
+}

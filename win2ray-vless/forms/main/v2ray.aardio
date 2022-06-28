@@ -1,0 +1,493 @@
+import fonts.fontAwesome;
+import win.ui;
+import win.ui.atom;
+/*DSG{{*/
+var frmV2ray = win.form(text="win2ray ";right=959;bottom=591;bgcolor=16777215)
+frmV2ray.add(
+btnEditPac={cls="plus";text="编辑PAC";left=332;top=366;right=438;bottom=396;align="left";db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF1C4';notify=1;textPadding={left=30};z=7};
+btnImportServerFromClipBd={cls="plus";text="批量导入链接";left=459;top=366;right=592;bottom=396;align="left";db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF196 ';notify=1;textPadding={left=30};z=8};
+btnTcping={cls="plus";text="检测并连接最快服务器";left=735;top=366;right=941;bottom=398;align="left";bgcolor=11580047;border={radius=4};db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=18}};iconText='\uF012';notify=1;textPadding={left=42};z=3};
+chkAutoTest={cls="plus";text="异常自动重连 ";left=598;top=366;right=729;bottom=396;align="left";db=1;dr=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=12}};iconText='\uF0C8';notify=1;textPadding={left=30};z=9};
+edit={cls="edit";left=6;top=405;right=953;bottom=585;bgcolor=0;color=16777215;db=1;dl=1;dr=1;edge=1;hscroll=1;multiline=1;vscroll=1;z=2};
+listview={cls="listview";left=4;top=5;right=954;bottom=358;db=1;dl=1;dr=1;dt=1;edge=1;fullRow=1;gridLines=1;z=1};
+radioProxy={cls="radiobutton";text="全局代理";left=129;top=369;right=226;bottom=395;bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-13);z=4};
+radioProxyDirect={cls="radiobutton";text="不使用代理";left=14;top=369;right=120;bottom=395;bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-13);z=6};
+radioProxyPac={cls="radiobutton";text="PAC代理";left=234;top=369;right=321;bottom=395;bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-13);z=5}
+)
+/*}}*/
+
+frmV2ray.listview.insertColumn("类型",100) 
+frmV2ray.listview.insertColumn("服务器",160) 
+frmV2ray.listview.insertColumn("端口",70) 
+frmV2ray.listview.insertColumn("加密",90) 
+frmV2ray.listview.insertColumn("协议",50) 
+frmV2ray.listview.insertColumn("备注",190) 
+frmV2ray.listview.insertColumn("响应速度",80) 
+frmV2ray.listview.insertColumn("状态",-1) 
+frmV2ray.show();
+
+import config;
+import v2ray.core; 
+var currentOutboundIndex,currentOutboundAddress;
+var activeOutbound = function(outboundIndex,outboundAddress,enableRetry){
+    if(!outboundIndex && !outboundAddress){
+    	outboundIndex,outboundAddress = currentOutboundIndex,currentOutboundAddress ;
+    	if(!outboundIndex && !outboundAddress) return;
+    }
+    
+	var currentTesting = currentOutboundIndex == outboundIndex && currentOutboundAddress == outboundAddress;
+	if(config.core.default.inbounds[1]["port"] && config.core.default.inbounds[1]["port"]!=v2ray.core.getPort()){
+	 	currentTesting = false;
+	}
+	
+	if( currentTesting || v2ray.core.restart(frmV2ray.edit,config.proxy.outbounds[outboundIndex]) ){
+		currentOutboundIndex,currentOutboundAddress = outboundIndex,outboundAddress;
+		frmV2ray.autoTesting = true;
+		
+		..thread.invoke( 
+			function(frmV2ray,outboundIndex,outboundAddress,port,enableRetry,currentTesting){
+				import wsock.tcp.socks5Client;
+			 
+				for(i=1;2;1){ 
+					var client;
+					for(i=1;5;1){
+						sleep(1000);
+						client = wsock.tcp.socks5Client("127.0.0.1",port); 
+						if(client)break;
+					}
+					
+					if(!client){
+						continue;
+					};
+					
+					client.setTimeouts(1000,1000); 
+					if(client.connect("www.google.com",80) ){
+						var sendData =/***********
+GET /  HTTP/1.1
+Host: www.google.com
+Connection: close
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64)
+Accept: */*;  
+Accept-Language: zh-CN,zh; 
+Accept-Charset:utf-8;  
+***********/
+						client.write( sendData + '\r\n\r\n' )
+						var rep = client.read(9);
+						client.close();
+						
+						if(outboundAddress!=frmV2ray.listview.getItemText(outboundIndex,2)){
+							return;
+						}
+					
+						if( rep && ..string.startWith(rep,"HTTP/1.1 ") ){
+							
+							import web.rest.client;
+							var restClient = web.rest.client(,"SOCKS=127.0.0.1:"+port);
+							restClient._http.setTimeouts(1000,2000,2000);
+							restClient.get("https://www.google.com/generate_204");
+							var lastStatusCode = restClient.lastStatusCode;
+							restClient.close();
+ 	
+							if( lastStatusCode == 204 ){
+								frmV2ray.onStartV2rayComplete(outboundIndex,currentTesting);
+								return;	
+							}
+							
+						} 
+					}
+				}
+				frmV2ray.onStartV2rayFailed(outboundIndex,enableRetry);
+			},frmV2ray,outboundIndex,outboundAddress,v2ray.core.getPort(),enableRetry,currentTesting
+		)
+	}	
+}
+
+frmV2ray.onStartV2rayComplete = function(outboundIndex,currentTesting){
+	frmV2ray.listview.ensureVisible(outboundIndex);
+	
+	for b,v in table.eachIndex(config.proxy.outbounds){
+		frmV2ray.listview.setItemText("",b,8);
+	}
+	
+	frmV2ray.autoTesting = false;
+	frmV2ray.listview.setItemText("活动服务器：正常",outboundIndex,8);
+
+	if(!currentTesting) frmV2ray.edit.print("已切换到服务器：",frmV2ray.listview.getItemText(outboundIndex,2));
+
+	if(frmV2ray.listview.getItemText(outboundIndex,7)=="不可用"){
+		frmV2ray.listview.setItemText("...",outboundIndex,7);
+	}
+		
+	frmV2ray.onTcpingReturn = function(){};
+	frmV2ray.btnTcping.disabledText = null;
+	frmV2ray.validOutbounds = {};
+}
+
+frmV2ray.onStartV2rayFailed = function(outboundIndex,enableRetry){
+	frmV2ray.listview.ensureVisible(outboundIndex);
+	
+	
+	if(enableRetry){
+		if(#frmV2ray.validOutbounds){
+			var next = table.shift(frmV2ray.validOutbounds);
+			activeOutbound(next[1],next[2],#frmV2ray.validOutbounds);
+			frmV2ray.listview.setItemText("异常,测试下一个...",outboundIndex,8);
+			frmV2ray.edit.print("服务器异常：",frmV2ray.listview.getItemText(outboundIndex,2)); 
+			frmV2ray.edit.print("正在尝试连接：",next[2]); 	
+		}
+		else {
+			frmV2ray.btnTcping.oncommand();
+		}
+	}
+	else {
+		frmV2ray.listview.setItemText("活动服务器：异常",outboundIndex,8);
+		frmV2ray.edit.print("已切换到服务器：",frmV2ray.listview.getItemText(outboundIndex,2)); 
+		frmV2ray.autoTesting = false;
+	} 
+	
+	frmV2ray.btnTcping.disabledText = null;
+}
+
+var tcping = function(frmV2ray,outboundIndex,address){ 
+	import wsock.tcp.client; 
+	var item = frmV2ray.listview.items[outboundIndex];
+	
+	var timeout = 0; 
+	for(i=1;8;1){ 
+		var client = wsock.tcp.client(); 	
+		var tickBegin = time.tick(); 
+		if(client.connectTimeout(item[2],tonumber(item[3]),3)){
+			var ret = client.send("."); 
+			client.close();
+			
+			if( ret != 1){ 
+				frmV2ray.listview.setItemText("不可用",outboundIndex,7);
+				frmV2ray.onTcpingReturn(outboundIndex,address,false);
+				return;
+			}
+			timeout =  timeout + (time.tick() - tickBegin);
+		}
+		else {
+			client.close();
+			frmV2ray.listview.setItemText("不可用",outboundIndex,7);
+			frmV2ray.onTcpingReturn(outboundIndex,address,false);
+			return;
+		} 
+	}
+	
+	frmV2ray.onTcpingReturn(outboundIndex,address,true);
+	frmV2ray.listview.setItemText(math.round(timeout / 8 / 1000,2)+"秒",outboundIndex,7);
+};
+
+import style;
+frmV2ray.btnTcping.skin(style.primaryButton);
+frmV2ray.btnTcping.oncommand = function(id,event){
+	
+	var items = frmV2ray.listview.items;
+	if(#items){
+		frmV2ray.btnTcping.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'}
+		if(!v2ray.core.getPath()){
+			frmV2ray.btnTcping.disabledText = null;
+			frmV2ray.msgErr("下载 v2ray.exe 失败")
+			return;
+		}
+		
+		var faieldCount = 0;
+		frmV2ray.onTcpingReturn = function(outboundIndex,address,succeeded){
+			if(address!=frmV2ray.listview.getItemText(outboundIndex,2)){
+				return; 
+			}
+			
+			if(config.proxy.outbounds[outboundIndex].autoConnect === false ){
+				faieldCount++;
+				if(faieldCount==#items) frmV2ray.autoTesting = false;
+				return;
+			}
+			
+			if(succeeded){
+				frmV2ray.validOutbounds = {}
+				frmV2ray.onTcpingReturn = function(outboundIndex,address,succeeded){
+					if(address!=frmV2ray.listview.getItemText(outboundIndex,2)){
+						return; 
+					}
+					
+					if(config.proxy.outbounds[outboundIndex].autoConnect === false ){
+						faieldCount++;
+						if(faieldCount==#items) frmV2ray.autoTesting = false;
+						return;
+					}
+					
+					if(succeeded) table.push(frmV2ray.validOutbounds,{outboundIndex;address});
+					else{
+						faieldCount++;
+						if(faieldCount==#items) frmV2ray.autoTesting = false;
+					}
+				}
+				activeOutbound(outboundIndex,address,#items>1);	
+			}
+			else{
+				faieldCount++;
+				if(faieldCount==#items) frmV2ray.autoTesting = false;
+			}
+		}
+		
+		for b,v in table.eachIndex(config.proxy.outbounds){
+			frmV2ray.listview.setItemText("...",b,7);
+			frmV2ray.listview.setItemText("",b,8);
+		}
+		
+		var handles = {}	
+		thread.createSuspended(true);
+		for(i=1;#items;1){
+			var h = thread.create(tcping,frmV2ray,i,frmV2ray.listview.getItemText(i,2));	 
+			table.push(handles,h);
+		} 
+		thread.createSuspended(false);
+		
+		var dnsapi = ..raw.loadDll("dnsapi.dll");
+		dnsapi.DnsFlushResolverCacheB();
+		
+		for(i=1;#handles;1){
+			var h = handles[i];	 
+			thread.resume(h);
+			raw.closehandle(h);
+		} 
+		
+		..thread.waitOne(handles);
+		frmV2ray.btnTcping.disabledText = null;
+	}
+	else {
+		if(id) frmV2ray.msgWarn("请先添加服务器")
+	}
+}
+
+frmV2ray.onDestroy = function(){
+	v2ray.core.stop();
+}
+
+frmV2ray.listview.onnotify = function(id,code,ptr){
+	select(code) {
+		case 0xFFFFFFF4/*_NM_CUSTOMDRAW*/ {
+			var lvcd = frmV2ray.listview.getNotifyCustomDraw(code,ptr);
+			if( lvcd.nmcd.dwDrawStage == 0x10001/*_CDDS_ITEMPREPAINT*/)
+				return 0x20/*_CDRF_NOTIFYSUBITEMDRAW*/
+			elseif( lvcd.nmcd.dwDrawStage == 1/*_CDDS_PREPAINT*/ ){
+				return 0x20/*_CDRF_NOTIFYITEMDRAW*/;
+			}
+			elseif( lvcd.nmcd.dwDrawStage == ( 0x10001/*_CDDS_ITEMPREPAINT*/ | 0x20000/*_CDDS_SUBITEM*/) ){ 
+				//注意这里 iSubItem 的索引自0开始( 其他函数通常自1开始 )
+				lvcd.clrText = lvcd.nmcd.dwItemSpec % 2 ? 0x373737 : 0;
+				lvcd.clrTextBk = lvcd.nmcd.dwItemSpec % 2 ? 0xFFFFFF : 0xF5F5F5;
+				lvcd.update()
+				
+				return 0/*_CDRF_DODEFAULT*/
+			}
+		}
+		case  0xFFFFFFFD/*_NM_DBLCLK*/ {
+			var nm = frmV2ray.listview.getNotifyMessage(code,ptr);
+			if( nm ){
+				frmV2ray.onTcpingReturn = function(i){}
+				frmV2ray.btnTcping.disabledText = null;
+				
+				for b,v in table.eachIndex(config.proxy.outbounds){
+					frmV2ray.listview.setItemText("",b,8);
+				}
+				activeOutbound(nm.iItem,frmV2ray.listview.getItemText(nm.iItem,2),false); 
+			}
+		}
+		case 0xFFFFFFFB/*_NM_RCLICK*/  {
+			var x,y = win.getCursorPos();
+			var nm = frmV2ray.listview.getNotifyMessage(code,ptr);
+			if(!nm) return;
+			
+			var currentIdx = nm.iItem;
+			if(!currentIdx){
+				return;
+			}
+			
+			var selectedItems = frmV2ray.listview.selected; 
+			var popmenu = win.ui.popmenu(frmV2ray);
+			
+			if(#selectedItems==1){
+				popmenu.add('设为活动服务器( 鼠标双击 )',function(id){
+					if(currentIdx){
+						frmV2ray.onTcpingReturn = function(i){}
+						frmV2ray.btnTcping.disabledText = null;
+						
+						for b,v in table.eachIndex(config.proxy.outbounds){
+							frmV2ray.listview.setItemText("",b,8);
+						}
+						activeOutbound(currentIdx,frmV2ray.listview.getItemText(currentIdx,2),false)
+					}
+				});
+				
+				popmenu.add('允许被自动选择为活动服务器',function(id){
+					if(currentIdx){
+						if(config.proxy.outbounds[currentIdx].autoConnect === false){
+							config.proxy.outbounds[currentIdx].autoConnect = null;
+						}
+						else {
+							config.proxy.outbounds[currentIdx].autoConnect = false;
+						}
+						
+					}
+				});
+				popmenu.check(2,config.proxy.outbounds[currentIdx].autoConnect!==false);
+				
+				popmenu.add('复制服务器链接',function(id){
+					if(currentIdx){
+						import v2ray.config;
+						import win.clip;
+						
+						var str = v2ray.config.exportToString({config.proxy.outbounds[currentIdx]});
+						if(str){ 
+							win.clip.write(str); 
+							frmV2ray.edit.print("已复制链接:",str);
+						}  
+					}
+				});
+				popmenu.add();
+				
+				popmenu.add('全球范围 Ping 检测',function(id){
+					if(currentIdx){
+						process.openUrl("http://ping.pe/" + config.proxy.outbounds[currentIdx].address)
+					}
+				});
+				
+				popmenu.add('全球范围端口检测',function(id){
+					if(currentIdx){
+						process.openUrl("http://port.ping.pe/" + config.proxy.outbounds[currentIdx].address + ":" + config.proxy.outbounds[currentIdx].port)
+					}
+				});
+				
+				popmenu.add();
+			}
+			
+			popmenu.add('删除服务器',function(id){
+				if(currentIdx){
+					for(i=#selectedItems;1;-1){
+  						var item = selectedItems[i] 
+						frmV2ray.listview.delItem(item);
+						..table.remove(config.proxy.outbounds,item);
+					}
+					 
+					publish("outbounds.updateConfigJson");
+				}
+			});
+			popmenu.popup(x,y,true);
+		}
+	}
+}
+
+import v2ray.core;
+subscribe("v2ray.core.reload",function(){ 
+	config.proxy.outbounds.fields = {"protocol";"address";"port";"security";"network";"ps";}
+	frmV2ray.listview.setTable(config.proxy.outbounds);	 
+	
+	frmV2ray.btnTcping.oncommand();
+} )
+
+import process;
+process.kill("v2ray.exe");
+if(#config.proxy.outbounds){
+	frmV2ray.setTimeout( 
+		function(){
+			publish("v2ray.core.reload");	
+		},1000
+	);	
+}
+
+subscribe("config.proxy.mode.changed",function(...){
+	frmV2ray.radioProxyPac.checked = false;
+	frmV2ray.radioProxy.checked = false;
+	frmV2ray.radioProxyDirect.checked = false;
+	
+	if(config.proxy.mode = "pac"){
+		frmV2ray.radioProxyPac.checked = true;
+	}
+	elseif(config.proxy.mode = "proxy"){
+		frmV2ray.radioProxy.checked = true;
+	}
+	else{
+		frmV2ray.radioProxyDirect.checked = true;
+	}	
+} )
+publish("config.proxy.mode.changed");
+
+var updatProxySetting = function(){
+	if(frmV2ray.radioProxyPac.checked){
+		config.proxy.mode = "pac";
+		inet.conn.setProxyAutoConfig(,v2ray.core.getPacUrl() )		
+	}
+	elseif(frmV2ray.radioProxy.checked){
+		config.proxy.mode = "proxy";
+		inet.conn.setProxy(,"SOCKS=127.0.0.1:"+v2ray.core.getPort());	
+	}
+	else {
+		config.proxy.mode = "direct";
+		inet.conn.setProxy();	
+	}
+	
+	config.proxy.save();
+}
+frmV2ray.radioProxyPac.oncommand = updatProxySetting;
+frmV2ray.radioProxy.oncommand = updatProxySetting;
+frmV2ray.radioProxyDirect.oncommand = updatProxySetting;
+
+import win.dlg.message
+win.dlg.message.install()
+frmV2ray.btnEditPac.skin(style.plainButton)
+frmV2ray.btnEditPac.oncommand = function(id,event){
+	if(frmPac && win.isWindow(frmPac.hwnd)){
+		if( isIconic(frmPac.hwnd) ) win.show(frmPac.hwnd,9/*_SW_RESTORE*/ );
+		if( !isVisible(frmPac.hwnd) ) win.show(frmPac.hwnd,0x1/*_SW_NORMAL*/ );
+		win.setForeground(frmPac.hwnd)
+		return;
+	}
+
+	frmPac = frmV2ray.loadForm("\forms\main\pac.aardio");
+	frmPac.show();
+}
+
+frmV2ray.btnImportServerFromClipBd.skin(style.plainButton)
+frmV2ray.btnImportServerFromClipBd.oncommand = function(id,event){
+	var outbounds = v2ray.config.importFromClip();
+	if(#outbounds){
+		..table.append(config.proxy.outbounds,outbounds); 
+		publish("v2ray.core.reload");
+		publish("outbounds.updateConfigJson");
+		frmV2ray.msgOk("已成功导入" + #outbounds + "个服务器",1200); 
+		return; 
+	}
+
+	frmV2ray.msgFrown('未导入服务器！ \r\n请先复制以下格式服务器分享链接：\r\n\r\nvmess:// 链接\r\nvless:// 链接\r\nss:// 链接\r\ntrojan:// 链接\r\ntrojan-go:// 链接\r\nhttp:// 或 https:// 订阅源！')
+}
+
+var testTimerId;
+frmV2ray.chkAutoTest.oncommand = function(id,event){
+	if(testTimerId){
+		frmV2ray.clearInterval(testTimerId);
+	}
+
+	config.proxy.test = frmV2ray.chkAutoTest.checked;
+	if(!config.proxy.test) return;
+
+	testTimerId = frmV2ray.setInterval( 
+		15000,function(){
+			if( frmV2ray.autoTesting ) return;
+			frmV2ray.autoTesting = true;
+
+			activeOutbound(,,true);
+		} 
+	)
+}
+
+if(config.proxy.test){
+	frmV2ray.chkAutoTest.checked = true;
+	frmV2ray.chkAutoTest.oncommand();
+}
+
+frmV2ray.chkAutoTest.skin(style.checkBox);
+
+frmV2ray.enableDpiScaling();
+return win.loopMessage();

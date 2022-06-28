@@ -1,0 +1,406 @@
+//多线程多任务下载
+import debug;
+import debug.log;
+import fsys;
+import win.ui;
+import thread.command;
+/*DSG{{*/
+var winform = win.form(text="测试多线程多文件断点续传下载";right=887;bottom=439)
+winform.add(
+button={cls="button";text="测试多线程多文件断点续传下载";left=480;top=392;right=744;bottom=428;db=1;dr=1;font=LOGFONT(h=-13);z=2};
+button2={cls="button";text="停止下载";left=784;top=392;right=872;bottom=428;db=1;dr=1;font=LOGFONT(h=-13);z=3};
+edit={cls="edit";text="https://www.1d5908d82b79.com/shipin/list-%E7%9F%AD%E8%A7%86%E9%A2%91.html";left=64;top=8;right=878;bottom=44;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-20);multiline=1;z=4};
+listview={cls="listview";left=8;top=56;right=878;bottom=386;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;z=1};
+static={cls="static";text="网址";left=8;top=8;right=64;bottom=44;align="center";center=1;dl=1;dt=1;font=LOGFONT(h=-20);transparent=1;z=5};
+status={cls="static";left=8;top=392;right=472;bottom=428;center=1;db=1;dl=1;edge=1;font=LOGFONT(h=-17);transparent=1;z=6};
+导出={cls="button";text="导出";left=752;top=392;right=776;bottom=428;z=7}
+)
+/*}}*/
+
+var 换行符='\r\n';
+var max_threads=5;
+
+io.createDir(fsys.getTempDir()++"/thunder/");
+debug.log.setPath(fsys.getTempDir()++"/thunder/log.txt");
+debug.log.checkSize(0x20000); //设置日志大小
+
+/*
+//单实例运行
+import win.ui.atom;
+var atom,hwnd = winform.atom("6A59BEF6-4224-4737-9C43-7FE1BADCF5E3.thunder");
+if(!atom){ 
+    win.showForeground(hwnd);
+	win.quitMessage();	
+	return;
+}
+*/
+thread.set("User-Agent", "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; WOW64; Trident/5.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; .NET4.0C; .NET4.0E)" ) ; //http://bbs.aardio.com/forum.php?mod=viewthread&tid=13376&highlight=Agent
+var listener = thread.command();
+
+//初始化listview控件
+winform.listview.insertColumn("视频地址",280);
+winform.listview.insertColumn("文件名",180);
+winform.listview.insertColumn("状态",80);
+winform.listview.insertColumn("大小",80);
+winform.listview.insertColumn("速度",80);
+winform.listview.insertColumn("已下载",80);
+winform.listview.insertColumn("存放路径",200);
+winform.listview.adjust = function(cx,cy){
+    winform.listview.fillParent(1);
+}
+
+//创建下载线程管理器
+import thread.dlManager;
+var dlmgr = null;
+
+subscribe("初始化下载线程管理器",function(...){
+    	
+	dlmgr = thread.dlManager( max_threads /*最多允许5个线程同时下载*/);
+	
+	//响应下载事件
+	dlmgr.onReceiveBegin = function(id,url,filename,statusText,httpStatusCode,totalSize,downSize){
+    	winform.listview.setItemText( {url;filename;statusText;fsys.formatSize(totalSize);fsys.formatSize(downSize) },id )
+	}
+	dlmgr.onReceive = function(id,sizePs,downSize){
+    	winform.listview.setItemText( fsys.formatSize(downSize),id,6);
+    	winform.listview.setItemText( fsys.formatSize(sizePs) + "/s" ,id,5);
+	}
+	dlmgr.onEnd = function(id,savepath,resumePath,contentLength){ 
+		if( savepath ){ 
+        	winform.listview.setItemText(  "已完成"  ,id,3);
+        	winform.listview.setItemText( fsys.formatSize(contentLength),id,4);
+    	}
+    	else {
+        	winform.listview.setItemText(  "已停止"  ,id,3);
+    	}
+    	winform.listview.setItemText(  "0KB/s"  ,id,5); 
+    	//fsys.delete(resumePath)
+	}
+	dlmgr.onError = function(id,err){
+    	winform.listview.setItemText( err,id,3);
+	}
+} )
+
+var 分析页面=function(url){
+	import debug;
+	import debug.log;
+    import fsys;
+    import fsys.file;
+    import crypt;
+    import console;
+	import inet.http; 
+	import string.xml;
+	import string.html; 
+	import thread.command;	
+	//console.log("分析子页面");
+	var html=""; 
+	var can_http_get=true;
+	var tempfile=fsys.getTempDir()++"/thunder/"++ crypt.md5(string.lower(url))++".html";
+	if(io.exist(tempfile)){
+		html=string.load(tempfile);
+		if(#html){
+			var realhtml =fsys.file(tempfile, "r");
+			var tnow = time.now().addhour(-1); //近1个小时.
+			var tttm = realhtml.getTime().write; 
+			if (tttm > tnow) {
+				can_http_get=false;
+			}
+		}
+	} 		
+	if(can_http_get){
+		var http = inet.http(thread.get("User-Agent"));
+		inet.clearCache();
+		var html = http.get(url);
+		if(!html) {sleep(2000); html = http.get(url); }
+		if(!html) {sleep(4000); html = http.get(url); }
+		if(!html) {sleep(8000); html = http.get(url); }
+		if(html) string.save(tempfile,html ) ;
+		http.close();		 
+	}
+	var xml = string.xml(html);
+	//var content = xml.queryEle( ["class"]="content-list");	
+	var a_video_s = xml.queryEles( ["class"]="video-pic");	
+	var video_host=thread.get("video_host");
+	var get_href=function(href){
+		var href=..string.lower(href);
+		if( ..string.startWith(href,"http") ) return href;
+		else  return video_host+""++href;
+	}
+	
+	for(index, xNode in a_video_s ){
+		var href= get_href( xNode.href );
+		var tvideo={index=index;href=href;title=xNode.title;tagName=xNode.tagName;xNode=xNode}; 
+		//console.dump(tvideo);
+		thread.command.post("发现一个视频页面",tvideo);    
+		sleep(100);
+	} 
+};
+
+import thread.manage;
+var manage = thread.manage( max_threads );
+
+var 提取视频 = function(href){    
+	import debug;
+	import debug.log;
+    import fsys;
+    import fsys.file;
+    import crypt;
+    import console;
+	import inet.http; 
+	import string.xml;
+	import string.html; 
+	import thread.command;	
+	//console.log("提取视频"); 	
+	var html=""; 
+	var can_http_get=true;
+	var tempfile=fsys.getTempDir()++"/thunder/"++ crypt.md5(string.lower(href))++".html";
+	if(io.exist(tempfile)){
+		html=string.load(tempfile);
+		if(#html){
+			var realhtml =fsys.file(tempfile, "r");
+			var tnow = time.now().addhour(-1); //近1个小时.
+			var tttm = realhtml.getTime().write; 
+			if (tttm > tnow) {
+				can_http_get=false;
+			}
+		}
+	} 		
+	if(can_http_get){
+		var http = inet.http(thread.get("User-Agent"));
+		inet.clearCache();
+		var html = http.get(href);
+		if(!html) {sleep(2000); html = http.get(href); }
+		if(!html) {sleep(4000); html = http.get(href); }
+		if(!html) {sleep(8000); html = http.get(href); }
+		if(html) string.save(tempfile,html ) ;
+		http.close();		 
+	}
+	if(!html) { ..fsys.delete(tempfile); return "mp4"; }  
+	var xml = string.xml(html);
+	var a_mp4 = xml.queryEle( ["class"]="btn btn-sm btn-default downlink_btn c_white fdm_down");
+	var mp4=a_mp4[['data-clipboard-text']];
+	//var mp4=a_mp4.value;
+	//console.log(mp4);
+	return mp4;
+}
+
+listener.发现一个视频页面=function(tvideo){
+    import console; 
+	manage.create(提取视频,tvideo.href).onEnd = function(mp4){
+		if( "mp4"==mp4 ) { return ; }  
+		tvideo['mp4']=mp4;
+    	var download_list=thread.get("download_list");
+    	if(!download_list) download_list={};
+    	table.push(download_list,tvideo);
+    	thread.set("download_list",download_list);		
+	} 
+}
+
+listener.加入下载列表=function(tvideo){   
+	var get_id=function(tv,n){ return n };  
+	var savedir = ..fsys.getTempDir()++"/thunder/" ;
+	var filename= tvideo.title++".MP4" ;
+	var n=winform.listview.addItem ( tvideo.mp4 );  
+	winform.listview.setItemText( filename ,n , 2);
+	winform.listview.setItemText( ..io.joinpath(savedir,filename) ,n , 7);
+	if( tvideo.mp4 ){
+		dlmgr.push( 
+    		id = get_id(tvideo,n) ;
+    		url = tvideo.mp4  ;
+    		filename= filename ; //文件名可以省略
+    		savedir = savedir ; 
+		);  
+	} else{
+		//win.msgboxTimeout(tvideo,"错误");
+		debug.log(tvideo);
+	}
+}
+
+var get_video_host=function(url){  
+    var host="";
+    if(..string.indexOf(url,"//")) { host=..string.splitEx(url,"//")[1]; url=..string.splitEx(url,"//")[2]; }
+    if(..string.indexOf(url,"/"))  { url=..string.splitEx(url,"/")[1]; } 
+    if(#host) return host++"//"++url;
+	else return "http://"++url;
+}
+
+listener.开始下载视频=function(){ 
+	var url=winform.edit.text;
+	var video_host=get_video_host(url);
+	thread.set("video_host", video_host:"https://www.7327570eed82.com/") ;
+    thread.invoke( 分析页面 ,url  )  ; 
+}
+var 监听线程=function(){
+	import console;
+	//console.log("监听线程");
+	import thread.command;
+	var download_list={};
+	while( 1 ){
+    	var 下载中=thread.get("下载中");
+    	if( !下载中 ) break; 
+    	var tvideo=table.pop( download_list,1) ;
+    	if(tvideo) { 
+    		thread.command.post("加入下载列表",tvideo);
+    		thread.set("download_list",download_list) ;
+    	} else { 
+    		sleep(1000); 
+    		download_list=thread.get("download_list") ; 
+    		if(!download_list) download_list={};
+    	}    	
+    	sleep(100); 
+	}
+	//console.pause();
+	
+}
+
+listener.监听视频 =function(){ 
+	thread.set("下载中",true );	
+    thread.invoke( 监听线程  )  ;    
+}
+
+listener.结束下载视频=function(){ 
+	thread.set("下载中",false );
+	if(null!=dlmgr) dlmgr.quit();  
+	dlmgr=null;
+	
+}
+
+//开始
+winform.button.oncommand = function(id,event){
+    winform.button.disabled = true; 
+    winform.listview.clear();
+    publish("初始化下载线程管理器",);
+	win.setTimeout(
+		function(){
+			import thread.command;
+			thread.command.post("开始下载视频");  
+		},1000
+	)  
+}
+
+//停止
+winform.button2.oncommand = function(id,event){
+	thread.command.post("结束下载视频"); 
+	win.setTimeout( function(){ winform.button.disabled = false; },1000 ) 
+
+}
+
+//下载任务右键管理菜单
+import win.ui.menu;
+winform.listview.fullRow=true;
+winform.listview.gridLines=true;
+winform.listview.getRowTable = function(row){
+    return owner.items[row]; 
+}
+winform.listview.onnotify = function(id,code,ptr){  
+      if( code = 0xFFFFFFFB/*_NM_RCLICK*/ ){
+          var x,y = win.getMessagePos(); 
+          var n= winform.listview.selIndex;
+    	  var r=winform.listview.getRowTable(n);        
+          	if(r){
+          		var mp4_url=r[1];
+          		var file_path=r[7];
+          		//创建弹出菜单
+        		var popmenu = win.ui.popmenu(winform);
+        		
+        		if(..io.exist(file_path)){
+        			popmenu.add('播放视频',function(id){  
+						import process;
+						process.execute( file_path ); 
+        			} ) 
+        			popmenu.add('打开文件夹',function(id){  
+						import process;
+						process.exploreSelect( file_path );
+        			} ) 
+        		}
+        		popmenu.add('重新下载',function(id){   
+        			win.msgboxTimeout("TO BE CONTINUED ..","重新下载");	 
+        		} )
+        		popmenu.add('复制下载地址',function(id){  
+        			import win.clip;
+					win.clip.write(mp4_url);	 
+        		} )
+        		popmenu.popup(x-2,y-2,true);
+        		popmenu.close();          	
+          	}
+      }
+}
+
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+	winform.center();
+}
+
+thread.create(
+	function( winform ){		
+		import debug;
+		import debug.log;
+		import win; 		
+		import thread;
+		import console;
+		while(1){  
+			sleep(1000); 
+    		var 下载中=thread.get("下载中");
+    		if( !下载中 ) break; 
+    		var download_list=thread.get("download_list") ;
+    		if(!download_list) download_list={};
+    		var q = #download_list;  
+    		if(	q > 0 ){ 
+    			winform.status.text=" "++"未下载: "++q;
+    		}else{  
+    			winform.status.text=" "++"没有未下载任务";
+    		} 
+		} 
+	},	winform
+);
+
+winform.status.text=" "++"初始化引擎..";
+
+win.setTimeout(
+	function(){		
+		thread.command.post("监听视频");  
+	},1000
+)
+
+//关闭窗体时停止所有下载
+import thread.event;
+winform.onClose = function(hwnd,message,wParam,lParam){
+    winform.text = "正在等待关闭"; 
+    winform.show(false);
+    if(null!=dlmgr)dlmgr.quit();
+    winform.close();
+}
+ 
+//显示主窗体
+
+winform.导出.oncommand = function(id,event){
+    import fsys.dlg ;
+	var str="";
+	var items=winform.listview.items;
+	for k , v in items{
+		var src=v[1];
+		str= str++ src ++换行符 ;
+	}
+	var txt=fsys.getTempDir()++"/thunder/list.txt";
+	..fsys.delete(txt);
+	..string.save(txt,str ,true)
+	if(#str){
+		var can_save=false;
+		var path = fsys.dlg.save('文件文件(.txt)|*.txt||',,,winform,,"下载链接.txt");
+		if(!path) return;
+		var path_ok=..io.exist(path);
+		if(!#path_ok){//路径不存在，可以直接保存
+			can_save=true;
+		}else{ //已经存在
+			var over=winform.msgboxTest("文件已存在，是否覆盖？") ;
+			if(over){ can_save=true; }
+		}			
+		if(can_save){ 
+			..fsys.copy(txt,path);
+			import process;
+			process.explore(path);	
+		} 
+	}
+}
+
+winform.show() 
+win.loopMessage();

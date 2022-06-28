@@ -1,0 +1,83 @@
+import console; 
+import libxl;
+import console;
+
+
+var WriteData = function(){
+	io.open()
+	var start = time.tick()
+	
+	var file = "export/formula.xlsx"
+	var xlExcel,err = libxl()
+	
+	var alFormat = xlExcel.addFormat()
+	alFormat.alignH = 1/*ALIGNH_LEFT*/
+	
+	var arFormat = xlExcel.addFormat()
+	arFormat.alignH = 3/*ALIGNH_RIGHT*/
+
+	var alignDateFormat = xlExcel.addFormat(alFormat)
+	alignDateFormat.numStyle = 14/*NUMFORMAT_DATE*/
+
+    var linkFont = xlExcel.addFont();
+    linkFont.color = 12/*_COLOR_BLUE*/
+    linkFont.underLine = 1/*_UNDERLINE_SINGLE*/
+
+    var linkFormat = xlExcel.addFormat(alFormat);
+    linkFormat.font = linkFont;
+    
+    var xlSheet = xlExcel.addSheet("Sheet1")
+    
+    if xlSheet{
+    	
+    	xlSheet.Cell("A12").value = 40
+    	
+    	xlSheet.Column(1).width = 27
+    	xlSheet.Column(2).width = 10
+    
+    	xlSheet.Cell(3,2).value = 40
+    	xlSheet.Cell(3,2).format = alFormat
+    	xlSheet.Cell(4,2).value = 30
+    	xlSheet.Cell(4,2).format = alFormat
+    	xlSheet.Cell(5,2).value = 50
+    	xlSheet.Cell(5,2).format = alFormat
+
+		xlSheet.Cell(7,1).setValue("SUM(B3:B5) = ",arFormat)
+		xlSheet.Cell(7,2).setFormula ("SUM(B3:B5)",alFormat)
+     
+     	xlSheet.Cell(8,1).value = "AVERAGE(B3:B5) = ";
+		xlSheet.Cell(8,1).format = arFormat;
+		xlSheet.Cell(8,2).formula = "AVERAGE(B3:B5)";
+		xlSheet.Cell(8,2).format = alFormat;
+     
+		xlSheet.Cell(9,1).value = "MAX(B3:B5) =";
+		xlSheet.Cell(9,1).format = arFormat;
+		xlSheet.Cell(9,2).formula = "MAX(B3:B5)";
+		xlSheet.Cell(9,2).format = alFormat;
+
+        xlSheet.Cell(10,1).value = "MIN(B3:B5) =";
+		xlSheet.Cell(10,1).format = arFormat;
+		xlSheet.Cell(10,2).formula = "MIN(B3:B5)";
+		xlSheet.Cell(10,2).format = alFormat;   
+            
+		xlSheet.Cell(11,1).value = "COUNT(B3:B5) =";
+		xlSheet.Cell(11,1).format = arFormat;
+		xlSheet.Cell(11,2).formula = "COUNT(B3:B5)";
+		xlSheet.Cell(11,2).format = alFormat; 
+    	
+		io.print(xlExcel.Save(file))
+		
+		io.print(xlExcel.getErrMsg())
+		
+		xlExcel.Close()
+		
+		io.print("Done")
+		
+		io.print("use" + (time.tick() - start + "ms"));
+	}
+
+};
+
+WriteData()
+
+console.pause(true);

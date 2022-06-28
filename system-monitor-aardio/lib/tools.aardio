@@ -1,0 +1,146 @@
+﻿
+namespace tools{
+	var winformEventHandlers = {};
+	
+	// 窗口事件监听
+	winformEventHandle = function(winform){
+		var wndproc = {}
+		for(event, handlers in winformEventHandlers){
+			if (type(event) == type.number) {
+				// 0xACCF/*_WM_TRAYMESSAGE*/ 之类的
+				wndproc[event] = function(hwnd,message,wParam,lParam){
+					for(k,v in handlers){
+						var is = v(hwnd,message,wParam,lParam)
+						if (type(is) == type.boolean) {
+							return is; 
+						}
+					}
+				}
+			} elseif (type(event) == type.string) {
+				// onClose / onMinimize 之类的
+				winform[event] = function(lParam){
+					for(k,v in handlers){
+						var is = v(lParam)
+						if (type(is) == type.boolean) {
+							return is; 
+						}
+					}
+				}
+			}	
+		}
+		
+		winform.wndproc = wndproc
+	};
+	
+	// 注册窗口事件
+	winformEventRegister = function(event, handler){
+		if (type(winformEventHandlers[event]) != type.table) {
+			winformEventHandlers[event] = {}
+		}
+		..table.push(winformEventHandlers[event], handler)
+	};
+	
+	
+	// 单实例运行
+	singleInstance = function(winform){
+		import win.ui.atom;
+		
+		var atom,hwnd = winform.atom("36A270B2-C57B-481F-8A3D-DC1B49767F04"/*使用 GUID 生成器生成*/);
+		if(!atom){
+			win.showForeground(hwnd);
+			win.quitMessage();
+			return false;
+		}
+		return true; 
+	};
+	
+	// 创建主菜单
+	createMainMenu = function(winform, menuTable){
+		import win.ui.menu;
+		
+		var menu = win.ui.menu(winform);
+		menu.addTable(menuTable)
+		
+		return menu; 
+	};
+	
+	// 创建弹出菜单
+	createPopMenu = function(winform, menuTable, winformName){
+		import win.ui.menu;
+		
+		winformEventRegister(0xACCF/*_WM_TRAYMESSAGE*/, function(hwnd,message,wParam,lParam){
+			if( lParam = 0x205/*_WM_RBUTTONUP*/ ){ 
+	    		var pt = ::POINT();
+				::User32.GetCursorPos(pt); 
+	    		
+	    		//弹出托盘菜单以前,一定要前置主窗口中,不然不点击菜单不会消失
+	    		win.setForeground(winform.hwnd)
+	    		winform[winformName].popup(pt.x,pt.y,true)
+	    	}
+		})
+		
+		var popmenu = win.ui.popmenu(winform);
+		popmenu.addTable(menuTable)
+		
+		return popmenu; 
+	};
+	
+	// 创建系统托盘
+	createTray = function(winform, icon, tip){
+		import win.util.tray;
+		
+		var tray = win.util.tray(winform)
+		if (icon) {
+			tray.icon = icon
+		}
+		if (tip) {
+			tray.tip = tip
+		}
+		
+		// 最小化时不关闭
+		winformEventRegister('onMinimize', function(){
+            winform.show(false);
+            
+            import process;
+			process.emptyWorkingSet();
+            
+            return true;
+		})
+		// 关闭时不关闭，到托盘，如果需要退出，先调用 winform.onClose=null
+		winformEventRegister('onClose', function(){
+			if(!_STUDIO_INVOKED){
+				winform.onMinimize();
+				return true;
+			}
+		})
+		// 销毁时删除托盘
+		winformEventRegister('onDestroy', function(){
+			if(winform.tray){
+				winform.tray.delete()
+			}
+		})
+		// 双击打开窗口
+		winformEventRegister(0xACCF/*_WM_TRAYMESSAGE*/, function(hwnd,message,wParam,lParam){
+			if(lParam = 0x203/*_WM_LBUTTONDBLCLK)*/){
+				win.setForeground(winform.hwnd)
+                winform.show(!win.isVisible(winform.hwnd));
+                ..publish("trayOpenWinForm")
+            }
+		})
+		
+		return tray; 
+	};
+	
+	// 创建定时器
+	createTimeInterval = function(winform, onTimer, interval = 1000, start = true){
+		import win.timer;
+		
+		var timer = win.timer(winform);
+		timer.setInterval(interval);
+		timer.onTimer = onTimer;
+		if (start) {
+			timer.enable();
+		}
+		return timer; 
+	};
+}

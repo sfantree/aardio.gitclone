@@ -1,0 +1,84 @@
+import console; 
+import win.ui;
+import crypt;
+import inet.http;
+import gdip.feather;
+import thread.command;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=607;bottom=447)
+winform.add(
+button={cls="button";text="发送";left=8;top=352;right=112;bottom=440;ah=1;aw=1;font=LOGFONT(h=-20);image=$"\res\2.bmp";z=3};
+edit={cls="edit";left=120;top=352;right=600;bottom=376;ah=1;aw=1;edge=1;font=LOGFONT(h=-13);multiline=1;z=2};
+plus={cls="plus";left=8;top=8;right=600;bottom=344;aw=1;z=1};
+plus2={cls="plus";left=18;top=18;right=610;bottom=354;ah=1;aw=1;z=5};
+richedit={cls="richedit";left=120;top=376;right=600;bottom=440;ah=1;aw=1;edge=1;multiline=1;wrap=1;z=4}
+)
+/*}}*/
+
+var meizi_server =thread.get("meizi_server" ) ;
+
+var listener=thread.command();
+listener.展示图片=function(file){ 
+    //这里不会用.
+	winform.plus.background = gdip.feather( file ,0,0,0,0);
+}
+listener.发送结果=function(t){
+	winform.richedit.text=t;
+}
+
+
+var download_img=function(src,file){
+	thread.invoke( 
+		function(src,file){
+			import inet;   
+			import inet.httpFile;
+			import thread.command;
+			if(io.exist(file)){}
+			else{ 
+				for(i=1;3;1){ 					
+					var remoteFile = inet.httpFile( src  ,file); 
+					var ok,err,fileSize = remoteFile.download() ;
+					if(ok) {
+						remoteFile.removeResumeFile();		
+						remoteFile.close();				
+						break;
+					}
+				}
+			}
+			if(io.exist(file)) 
+				thread.command.post("展示图片",file); 
+		},src,file
+	)	
+}
+
+
+winform.onInitDialog = function(hwnd,message,wParam,lParam){
+	winform.center();
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;}
+    var md5 = crypt.md5(src);
+	var file=fsys.getTempDir()++"/"++md5++".jpg";
+	winform.edit.text=src;
+	download_img(src,file); 
+}
+
+winform.button.oncommand = function(id,event){ 
+	///thread.command.post("展示图片",winform.edit.text); 
+	var src=thread.get("标志键_src");
+	if(src && #src){ } else{ return ;}
+	thread.invoke( 
+		function(src,meizi_server){
+			import inet.http;
+			import thread.command;
+			var htt=inet.http();		
+			var get_param=function(src){ return thread.get("meizi_param")++"&meizi.url="++src ;}	
+			var html,err,errCode =htt.post(meizi_server, get_param(src) );
+			thread.command.post("发送结果",html);
+			htt.close();
+		},src,meizi_server
+	) 
+}
+
+winform.show();
+win.loopMessage();
+return winform;

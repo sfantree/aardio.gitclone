@@ -1,0 +1,476 @@
+//popen 进程管道
+import process;
+import fsys.wow64;
+
+namespace process
+
+class popen{
+	ctor( exefile,parameters="", startInfo,... ){{
+		if( type(startInfo) == type.string ){
+   			parameters = {parameters;startInfo;...};
+   			startInfo = null;
+   		}
+   			
+		var sa = ..table.assign(..process.STARTUPINFO(),startInfo);
+		sa.flags = (sa.flags:0) | 0x100/*_STARTF_USESTDHANDLES*/ | 0x1/*_STARTF_USESHOWWINDOW*/
+		sa.createNoWindow = true;
+
+		var saPipe = { 
+    		INT nLength;
+    		pointer lpSecurityDescriptor;
+    		bool bInheritHandle = true;
+		};
+		var ok,outPipeRead,outPipeWrite = CreatePipe(,,saPipe,0)
+		var ok,errPipeRead,errPipeWrite = CreatePipe(,,saPipe,0)
+		var ok,inPipeRead,inPipeWrite = CreatePipe(,,saPipe,0)
+		
+		if ( ! SetHandleInformation(outPipeRead, 0x00000001/*_HANDLE_FLAG_INHERIT*/, 0) )
+  			error( "Stdout SetHandleInformation",2); 
+		
+		if ( ! SetHandleInformation(inPipeWrite, 0x00000001/*_HANDLE_FLAG_INHERIT*/, 0) )
+  			error( "Stdin SetHandleInformation",2); 
+   
+		// sa.flags 需要指定 _STARTF_USESTDHANDLES 下面的参数才起作用
+		sa.stdInput = ..process.dup( inPipeRead )
+		sa.stdOutput =  ..process.dup( outPipeWrite )
+		sa.stdError =  ..process.dup( errPipeWrite )
+		
+		sa.inheritHandles = true;
+	
+		var prcs = ..process( exefile,parameters, sa);
+		if(!prcs) return null,..lasterr();
+		this.process = prcs;
+	
+		// 子继承已经继承了此句柄,我们可以关掉了,不然子进程结束会因为等待这些句柄关闭而卡住
+		..raw.closehandle(sa.stdInput)
+		..raw.closehandle(sa.stdOutput)
+		..raw.closehandle(sa.stdError)
+	
+		this.outPipeRead = outPipeRead;
+		this.errPipeRead = errPipeRead;
+		this.inPipeWrite = inPipeWrite;
+		
+		this.stdIn = ..io.open(inPipeWrite,"w+");
+		this.stdOut = ..io.open(outPipeRead,"r");
+		this.stdErr = ..io.open(errPipeRead,"r");
+		this.codepage = ::Kernel32.GetACP() = 65001? 65001 : 0;
+		
+		..table.gc(this,"close");
+	}};
+	textMode = function(o,i){
+		this.stdOut.mode( o ? 0x4000/*_O_TEXT*/ : 0x8000/*_O_BINARY*/);
+		this.stdErr.mode( o ? 0x4000/*_O_TEXT*/ : 0x8000/*_O_BINARY*/);
+		this.stdIn.mode( i ? 0x4000/*_O_TEXT*/ : 0x8000/*_O_BINARY*/);
+	};
+	write = function(...){ 
+		if( this.stdIn ){
+			for i,arg in ..table.eachArgs({...}){
+				if( type(arg) == type.string ){
+					arg = ..string.fromto( arg,65001,this.codepage);
+				}
+				this.stdIn.write(arg);
+			}  
+			this.stdIn.flush() 
+		}
+	};
+	writeClose = function(...){
+		if(...) this.write(...);
+		if(this.stdIn){
+			this.stdIn.close();
+			this.stdIn = null;			
+		}
+	};
+	print = function(...){
+		if( this.stdIn ){ 
+			args = {...};
+			for(k,v in ..table.eachArgs(args)){
+				args[k] = ..string.fromto( tostring(v),65001,this.codepage);
+			}
+			
+			this.peek(0);
+			this.stdIn.write(..string.join(args,' '),'\n');
+			this.stdIn.flush(); 
+		}
+	};
+	printf = function(s,...){
+		if( this.stdIn ){
+			if(...) s = ..string.fromto( ..string.format(s,...),65001,this.codepage);;
+			
+			this.peek(0);
+			this.stdIn.write(s,'\n');
+			this.stdIn.flush();
+		}
+	};
+	read = function(...){
+		if(!this.stdOut){
+			return;
+		}
+		
+		if(...==-1) this.writeClose();
+		var out = {  this.stdOut.read(...) }
+		if(this.codepage!==65001){
+			for i,v in ..table.eachArgs(out){
+				out[i] = ..string.fromto(v,this.codepage,65001);
+			}			
+		}
+		else {
+			if(out[1] && out[1][1] == 0xEF){
+				out[1] = ..string.removeBom(out[1]);
+			}
+		}
+
+		return ..table.unpackArgs(out);
+	};
+	lines = function(pattern){
+		if(!pattern) return function(){
+			var l = this.read() 
+			if(l) return ..string.trimright(l);
+		}
+
+		return function() {
+			while( var l = this.read() ) {
+				l = ..string.trimright(l);
+				if(..string.find(l,pattern)){
+					return ..string.match(l,pattern);
+				}
+			}
+		}
+	};
+	readErr = function(...){
+		if(!this.stdErr){
+			return;
+		}
+		var out = {  this.stdErr.read(...) }
+		for i,v in ..table.eachArgs(out){
+			out[i] = ..string.fromto(v,this.codepage,65001);
+		}
+		return ..table.unpackArgs(out); 
+	};
+	peek = function(delay){  
+		if(!this.process) return;
+		
+		if( delay === null ) delay = 1000;
+		if( delay ? this.process.waitOne(delay) ){
+			return this.read(-1),this.readErr(-1); 
+		}
+		
+		var out,err;
+		var ret,read,total,leftmsg = PeekNamedPipe(this.outPipeRead, ,0,0,0,0) 
+		if(ret && total)
+			out = this.read(total); 
+	
+		ret,read,total,leftmsg = PeekNamedPipe(this.errPipeRead, ,0,0,0,0)
+		if(ret && total && this.stdErr)
+			err = this.readErr(total);
+			
+		return out,err;
+	};
+	peekTo = function(tag,proc,timeout){ 
+		var str,err = "","";
+		var s,e; 
+		var time = 0;
+		var endWith = ..string.endWith;
+		var closed;
+		if(!tag) tag = ">";
+		
+		do{ 
+			if(!this.process) return;
+			closed = this.process.waitOne(1000);
+			s,e = this.peek(0);
+			
+			if( s || e ){
+				if(s){
+					str = ..string.concat(str,s ) 
+				}
+				if(e){
+					err = ..string.concat(err,e ) 
+				}
+				
+				if( proc) {
+					proc(s,e);
+				}
+			}
+			elseif(timeout ? timeout > 0 ) {
+				time = time + 1000;
+				if( time > timeout ){ 
+					return str,err;
+				}
+			}
+		}while(  !( closed || ..win[["closed"]]  || endWith(str,tag) || endWith(err,tag) ) ) 
+		 
+		return str,err;
+	}; 
+	each = function(interval,timeout){
+		if( interval === null ) interval=1;
+		var tick = 0;
+		return function(){ 
+			var a,o,e;
+			
+			do{
+				o,e = this.peek(0); 
+				if( o || e ) return ..string.concat(o,e):"",o,e;
+				if(timeout){
+					tick = tick + interval; 
+					if( tick > timeout ) return;
+				}
+			}while(this.process && !..thread.waitOne(this.process.handle,interval));
+		 	if(!this.process) return;
+		 	
+			if( this.stdOut && this.stdErr ){ 
+				o,e = this.read(-1),this.readErr(-1);
+				a = ..string.concat(o,e);
+				if(#a) return a,o,e; 
+			}
+		} 
+	};
+	stopLogResponse = function(){
+		if(this.echoEditor && this.echoTimerId){
+			this.echoEditor.clearInterval(this.echoTimerId);
+			this.echoTimerId = null;
+			this.echoEditor = null;
+		}
+	};
+	logResponse = function(echo,interval){
+		this.stopLogResponse();
+		
+		if(echo[["hwnd"]] && echo.setInterval && echo.log){
+			this.echoEditor = echo;
+			this.echoTimerId = this.echoEditor.setInterval( 
+				function(){
+					var s  =  ..string.concat(this.peek(0));
+					if(s) echo.log( ..string.crlf( s )  );
+					if( !( this.process && this.process.stillActive() ) ) {
+						this.echoTimerId = null;
+						return 0;
+					}
+				},interval : 500 
+			);
+			
+			return;
+		}
+		
+		if(!echo){ 
+			if( this.logger ){ 
+				if( this.logger.echo) echo = function(all) this.logger.echo(all);
+				elseif( this.logger.log) echo = function(all) this.logger.log(all);
+				elseif( this.logger.write )  echo = function(all) this.logger.write(all);   
+			}
+			else {
+				if( ..console && ! ..console.getWindow() ) ..console.open();
+				echo = function(all,out,err){
+					if(out) ..io.stdout.write( out );
+					if(err) ..io.stderr.write( err );
+				} 	
+			}
+			
+		}
+		for( all,out,err in this.each(interval) ){
+    		echo( all,out,err );//回显
+		}
+	};
+	expect = function(p,timeout,max){
+		var s = "";  
+		var match = ..string.match;
+		if( max === null ) max = 1024;
+		if(!p) error("请指定参数@2",2);
+		
+		var tick = ..time.tick();
+		for( all,out,err in this.each(,timeout) ){
+	    	if( out ){
+	    		s = s ++ out; 
+	    		if( match( s,p ) ) return match( s,p );
+	    		if( #s > max ) s = ..string.right(s,max/2,true);
+	    	}
+	    	elseif(err){
+	    		return null,err;
+	    	}
+		}
+	};
+	readAll = function(pattern,close,timeout){
+		this.writeClose();
+		..thread.waitOne(this.process.handle,timeout);
+		sleep(10);
+		
+		var ret = ..string.concat(this.read(-1),this.readErr(-1));
+		if(close || close===null ) this.close();
+		if(ret) {
+			if(pattern) return ..string.match(ret,pattern);
+			ret = ..string.trim(ret);
+		}
+		return ret;
+	};
+	wait = function(timeout){
+		if(! ( this.process ? this.process.handle ) ) return true;
+		var ret = ..thread.wait(this.process.handle,timeout)  
+		sleep(10);
+		 
+		if( ret ){
+			return true,this.read(-1),this.readErr(-1),(this.process.getExitCode());
+		} 
+	};
+	waitOne = function(timeout){
+		if(! ( this.process ? this.process.handle ) ) return true;
+		var ret = ..thread.waitOne(this.process.handle,timeout)  
+		sleep(10);
+		
+		if( ret ){
+			return true,this.read(-1),this.readErr(-1),(this.process.getExitCode());
+		} 
+	};
+	getExitCode = function(){
+		if(this.process) return this.process.getExitCode();
+	};
+	assignToJobObject = function(hJob){
+		if( this.process ){
+			return this.process.assignToJobObject(hJob);
+		}
+	};
+	terminate = function(){
+		this.process.terminate();
+		this.close();
+	};
+	ctrlEvent = function(event){
+		this.stopLogResponse();
+		return this.process.ctrlEvent(event);
+	};
+	close = function(){
+		this.stopLogResponse();
+		
+		if( this.process ){
+			
+			if( this.beforeClose ) this.beforeClose();
+			
+			if(this.stdIn)..raw._release(this.stdIn);
+			..raw._release(this.stdOut);
+			..raw._release(this.stdErr);
+		  
+			this.stdIn = null;  
+			this.stdOut = null; 
+			this.stdErr = null; 
+			
+			this.process.free();
+			this.process = null;
+		}
+	};
+	@_meta; 
+}
+
+namespace popen{
+	_meta = {_topointer = lambda() owner.process} 
+	is  = lambda(v) v@ ==_meta;
+	
+	CreatePipe = ::Kernel32.api( "CreatePipe", "bool(pointer& hRead,pointer& hWrite,struct attributes,INT size)");
+	SetHandleInformation = ::Kernel32.api( "SetHandleInformation", "bool(pointer object,INT mask,INT flags)");
+	PeekNamedPipe = ::Kernel32.api( "PeekNamedPipe", "bool(pointer pipe,pointer buf,INT size,INT &read,INT & total,INT & leftMsg)");
+
+	cmd = function(cmdline,...){
+		var m;
+		cmdline = ..string.trim(cmdline);
+		cmdline,m = ..string.replace(cmdline,"[\r\n]+","&");
+		 
+		if(..io.exist(cmdline)){
+			return ..process.popen(cmdline,...)
+		}
+		
+		return ( type(...)==type.string ? ..process.popen( "cmd.exe","/c",cmdline,...) 
+				: ..process.popen( "cmd.exe"," /c " + cmdline ) )
+	}
+	
+	cmd64 = function(...){
+		return ..fsys.wow64.disableRedirection(lambda(...) cmd(...),...	)
+	}
+	
+	wow64 = function(...){
+		return ..fsys.wow64.disableRedirection(lambda(...) ..process.popen(...),...)
+	}
+	
+	bind64 = function(fileName,codepage){
+		return function(cmdline,...){
+			var prcs;
+			if(type(...)==type.string ) prcs =  ..fsys.wow64.disableRedirection(lambda(cmdline,...) ..process.popen(fileName,cmdline,...),cmdline,...);
+			else prcs =  ..fsys.wow64.disableRedirection(lambda() ..process.popen(fileName,cmdline));
+			prcs.codepage = codepage;
+			return prcs;
+		}
+	}
+	
+	ps = bind64("PowerShell");
+	ps1 = lambda(path,...) ps(`-NoLogo`,`-ExecutionPolicy`,`bypass`,`-File`,..io.fullpath(path),...);
+
+	wsl = bind64("wsl",65001);
+		
+	detached = function(exefile,...){
+		return ..process.popen(exefile,type.isString(...)?{...}:...,{
+			creationFlag = 8/*_DETACHED_PROCESS*/; 
+		}) 
+	}
+}
+ 
+/**intellisense()
+process.popen = 创建管道调用控制台类型应用程序创建子进程,\n可隐藏子进程的控制台黑窗口,并支持管道读写。
+process.popen( = 创建管道调用控制台类型应用程序创建子进程,\n可隐藏子进程的控制台黑窗口,并支持管道读写。
+process.popen(.(执行文件,命令行参数,STARTUPINFO) = 创建子进程,并支持管道读写\n命令行参数可以是一个数组、一个或多个字符串参数,\n\n数组或多个命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号\n\n要特别注意某些跨平台程序需要将首参数指定为应用程序自身路径,\n否则会启动失败
+process.popen.cmd( = 创建管道按命令行方式调用控制台类型应用程序,\n可隐藏子进程的控制台黑窗口,并支持管道读写。
+process.popen.cmd(.(命令行参数,->->->) = 如果第一个参数包含换行,则替换为批处理命令分隔符&&,\n如果传入多个命令行参数，或者命令行参数是个数组，则合并为单个命令行,\n合并时不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.cmd64( = 创建管道按命令行方式调用控制台类型应用程序,\n可隐藏子进程的控制台黑窗口,并支持管道读写。\n\n此函数禁用64位系统文件与注册表重定向,\n在64位系统会返回64位进程,兼容32位系统。\n\n如果不需要读写管道，应当改用 process.wow64
+process.popen.cmd64(.(命令行参数,->->->) = 如果第一个命令行参数包含换行,则替换为批处理命令分隔符&&,\n如果传入多个命令行参数，或者命令行参数是个数组，则合并为单个命令行,\n合并时不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.wow64(.(执行文件,命令行参数,->->->) = 创建子进程,返回可读写进程管道,\n此函数禁用64位系统文件与注册表重定向,\n在64位系统会返回64位进程,兼容32位系统,\n命令行参数可以是一个数组、一个或多个字符串参数,\n\n数组或多个命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.ps(.(命令行参数,->->->) = 创建进程执行 PowerShell 命令,返回可读写进程管道,\n命令行参数可以是一个数组、一个或多个字符串参数,\n数组或多个命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.ps1((.(ps1脚本路径,->->->) = 创建进程执行 PowerShell *.ps1 脚本,返回可读写进程管道,\n可添加一个或多个其他命令行参数,\n所有命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.wsl(.(命令行参数,->->->) = 创建进程执行 WSL 命令,并支持管道读写,\n命令行参数可以是一个数组、一个或多个字符串参数,\n数组或多个命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.bind64( = 禁用 64 位重定向绑定并返回执行命令行的函数,\n该函数的命令行参数可以是一个数组、一个或多个字符串参数,\n数组或多个命令行参数调用 process.joinArguments 合并,\n不在双引号内、且包含空白或需要转义的参数转义处理后首尾添加双引号
+process.popen.bind64(fileName,codepage) = fileName 指定要执行的命令文件名,codepage 指定代码页
+process.popen.is(__) = 传入参数是否 process.popen 对象
+process.popen() = !process_popen.
+process.popen.cmd() = !process_popen.
+process.popen.cmd64() = !process_popen.
+process.popen.wow64() = !process_popen.
+process.popen.ps() = !process_popen.
+process.popen.ps1() = !process_popen.
+process.popen.detached() = !process_popen.
+!process_popen.codepage = 进程输入输出使用的代码页,默认为0
+!process_popen.textMode(.(output,input) = 参数 @output 指定进程输出是否使用文本模式\n参数 @input 指定进程输入是否使用文本模式\n输入输出默认都是二进制模式\n\n文本模式下'\x1A'(CTRL+Z),'\0'表示终止文本,\n并且读入时自动转换回车换行为换行,\n写出时自动转换换行符为回车换行
+!process_popen.read() = 从当前位置,向后读取下一行\n默认为二进制模式,行尾可能有回车符号,\n可使用 textMode 函数修改
+!process_popen.read("%s") = 从当前位置,向后读取下一行\n支持多参数
+!process_popen.read("%d") = 从当前位置,向后读取下一个数值\n支持多参数
+!process_popen.read(-1) = 向后读取到文件尾部\n负数表示从文件尾部倒计数位置\n如果第一个参数为-1，则自动调用 writeClose 关闭输出流,\n支持多参数
+!process_popen.readErr(-1) = 读取所有错误输出
+!process_popen.readAll( = 读取所有输出,包含标准输出与错误输出\n此函数等待读取过程中不会阻塞窗口消息
+!process_popen.readAll(.(匹配模式串,是否关闭,超时) = 读取所有输出,所有参数可选,\n不指定参数@1时会清除返回文本首尾的空白字符,\n如果有输出文本且指定了参数@1,\n则按参数@1指定的模式串在输出文本中查找并返回文本,\n参数@2指定是否关闭进程对象,默认为true,\n可选用参数@3指定超时,以毫秒为单位
+!process_popen.each( 间隔时间,超时时间 ) = @for( all,out,err in ??.each() ){
+    io.stdout.write( out,err );__/*读取进程输出直到进程关闭*/
+}
+!process_popen.lines(模式表达式) = @for i,k,v in ??.lines("^(\s*)(\S.*?)[\s.]*\:(.*)"){
+	__/*按行读取进程输出,\n移除每行尾部的空白字符,\n如果指定模式表达式,则返回匹配结果,\n否则直接返回当前读取的文本*/
+}
+!process_popen.beforeClose = @.beforeClose = function(){
+	owner.process.terminate();__/*释放管道以前触发此事件,可强制关闭进程*/
+}
+!process_popen.logger = 指定 logResponse 的默认回显对象\n该对象必须有log或write成员函数用于输出回显\nlogger 对象用于logResponse 时将同步获取输出并等待进程结束\n\n如果不指定此属性,且已导入 console 则默认输出到控制台
+!process_popen.logResponse( = 回显进程的标准输出以及错误输出
+!process_popen.logResponse(.(回显函数,间隔时间) = 自动同动获取进程输出,并直到进程结束,所有参数可省略,\n如果之前定义了logger成员对象，则调用logger输出进程回显\n未指定logger对象则默认回显到控制台
+!process_popen.logResponse(.(异步回显文本框,间隔时间) = 不会阻塞并等待进程结束,\n而是在传入文本框控件上创建定时器异步回显进程输出,\n回显文本框必须指定edit或richedit控件,间隔时间可省略
+!process_popen.stopLogResponse() = 清除异步回显文本框的定时器\n关闭进程对象时也会自动清除此定时器
+!process_popen.peek(__) = 检测标准输出管道中可读取的数据长度\n有数据则读取数据,无数据则返回空值\n如果stdErr中有错误信息,则第二个返回值为错误信息\n此函数不会因为等待输入而阻塞\n参数可指定等待目标进程执行的延时时间
+!process_popen.peekTo(.(">",回显函数,超时) = 读取数据,直到数据以参数一指定的字符串结束\n返回标准输出,第二个返回值为错误信息\n可选使用参数@2指定回显函数,回显函数有两个参数,分别为标准输出,错误信息\n可选用参数@3指定无输出时的超时限制\n该函数在进程退出后也会返回
+!process_popen.read(0) = 检测是否读取到文件尾
+!process_popen.read(__) = 正数参数表示从当前位置向后读取n个字节\n支持多参数
+!process_popen.expect(  = 等待直到模式匹配标准输出成功,返回匹配结果,\n如果遇到错误输出返回null以及错误信息
+!process_popen.expect(.("模式表达式",超时,文本最大长度) = 超时参数是以毫秒为单位的估算值,可省略\n参数@3可省略,默认为1024
+!process_popen.print(__) = 清空标准输出然后写数据\n多个参数中间添加空格,尾部添加换行
+!process_popen.printf(__) = 清空标准输出然后写数据\n调用string.format函数格式化全部参数,尾部添加换行
+!process_popen.write(__) = 写数据,支持一个或多个参数
+!process_popen.writeClose(__) = 写数据并关闭进程输入流,\n可选指定一个或多个参数\n不指定参数则直接关闭输入流\n注意:有些进程会一直等待输入流关闭再继续下一下操作
+!process_popen.waitOne() = 等待进程关闭,不阻塞UI消息循环,\n可选使用一个毫秒值参数设定超时\n超时或失败返回 null,\n进程已退出则返回值1为true,返回值2为标准输出,\n返回值3为错误输出,返回值4为退出代码
+!process_popen.wait() = 等待进程关闭,可选使用一个毫秒值参数设定超时\n超时或失败返回 null,\n进程退出则返回值1为true,返回值2为标准输出,返回值3为错误输出,返回值4为退出代码
+!process_popen.getExitCode() = 该函数调用成功有两个返回值:进程退出代码,进程是否已退出
+!process_popen.close() = 释放对象
+!process_popen.terminate() = 强制关闭进程并释放进程对象
+!process_popen.assignToJobObject(.(process->job->limitKill) = 绑定到作业对象,成功返回true\n作业对象示例请参考标准库 process.job.limitKill 的源码
+!process_popen.ctrlEvent(0)=发送Ctrl+C(SIGINT信号)\n信号将传递到与目标进程控制台连接的所有非分离控制台进程\n64位目标进程会导致当前控制台暂时关闭
+!process_popen.ctrlEvent(1)=发送Ctrl+Break(SIGBREAK信号)\n信号将传递到与目标进程控制台连接的所有非分离控制台进程\n64位目标进程会导致当前控制台暂时关闭
+!process_popen.process = !process.
+!process_popen.stdErr = 进程标准错误输出\n!file.
+!process_popen.stdOut = 进程标准输出\n!file.
+!process_popen.stdIn = 进程标准输出\n!file.
+end intellisense**/

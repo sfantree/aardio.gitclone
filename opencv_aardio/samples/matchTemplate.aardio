@@ -1,0 +1,19 @@
+import cv2
+smallImg = cv2.imread("./images/small.jpg");
+normalImg = cv2.imread( "./images/normal.jpg",0 )
+smallImg = cv2.cvtColor( smallImg,6/*_CV2_COLOR_BGR2GRAY*/)
+//smallImg = cv2.gaussianBlur( smallImg,::SIZE(3,3) )
+h,w,c = table.unpack(smallImg.shape)
+
+//图像减法,调整至相似亮度
+var mask = ( cv2.mat().ones(h,w,c,0) * 75 ).toMat()
+smallImg = cv2.subtract(smallImg,mask)
+
+//cv2.imshow("smallImg",smallImg)
+match = cv2.matchTemplate(normalImg,smallImg)
+var minVal,maxVal,minLoc,maxLoc = cv2.minMaxLoc(match)
+normalImg = cv2.rectangle( normalImg,::POINT(maxLoc.x,maxLoc.y),::POINT(maxLoc.x+smallImg.cols,maxLoc.y+smallImg.rows),::Scalar(0,0,0),3 )
+cv2.imshow("result",normalImg )
+cv2.waitKey();
+
+//算法来自 https://github.com/xuncv/image-match

@@ -1,0 +1,108 @@
+import win.ui;
+ import win.ui.atom;
+ import win.ui.menu;
+ import fsys.dlg;
+ /*DSG{{*/
+ var winform = win.form(parent=...; right=627;bottom=384;frame=1;text="AAuto Form" )
+ winform.add( 
+listbox_table={ bgcolor=16777215;bottom=184;right=163;left=10;
+ items={  };top=31;font=LOGFONT( name="宋体";h=-12 );z=1;text="listbox";edge=1;cls="listbox" };
+ static={ bottom=374;right=545;left=13;top=355;font=LOGFONT( name="宋体";h=-12 );transparent=1;z=4;text="static";cls="static" };
+ listview_rs={ bgcolor=16777215;bottom=344;text="listview";left=171;top=32;font=LOGFONT( name="宋体";h=-12 );z=2;right=618;cls="listview";edge=1;fullRow=1 };
+ checklist_Fields={ bgcolor=16777215;bottom=343;text="checklist";left=10;
+ items={  };top=193;font=LOGFONT( name="宋体";h=-12 );z=5;right=162;edge=1;cls="checklist" };
+ button_open={ bottom=27;right=421;left=372;top=4;font=LOGFONT( name="宋体";h=-12 );z=3;text="打开";cls="button" };
+ combobox={ bottom=26;text="combobox";left=19;top=6;font=LOGFONT( name="宋体";h=-12 );right=205;z=6;
+ items={  };mode="dropdown";edge=1;cls="combobox" }
+ )
+ /*}}*/
+ 
+winform.combobox.oncommand = function(id,event){
+ //win.msgbox( winform.combobox.text );
+ 
+
+}
+ 
+var atom,hwnd/*冲突窗口的句柄,该函数会自动激活此窗口*/ = winform.atom("024ED639-552A-49B3-B0CC-DF418928EE49");
+ if(!atom){
+ /*为窗口设置原子值可以避免一个程序重复运行多个实例*/
+ win.quitMessage(); return;
+ }
+ 
+winform.combobox.add("浏览文件")
+ 
+winform.listbox_table.oncommand = function(id,event){
+ if(winform.listbox_table.selText!=null){
+   rs=com.CreateObject("ADODB.RecordSet")
+   rs.open("SELECT * FROM "+winform.listbox_table.selText,conn)
+   ck_fd()
+   lt_rs()
+   rs.close()
+ } 
+}
+ 
+winform.checklist_Fields.onnotify = function(id,code,ptr){
+ if(code=0xFFFFFF9B/*_LVN_ITEMCHANGED*/){
+ winform.static.text=winform.checklist_Fields.getChecked(winform.checklist_Fields.selIndex)
+     winform.static.text=winform.checklist_Fields.getItemText(winform.checklist_Fields.selIndex,1)
+      if (winform.checklist_Fields.getChecked(winform.checklist_Fields.selIndex)=true){
+    winform.listview_rs.setColumn(winform.checklist_Fields.selIndex+1,winform.checklist_Fields.getItemText(winform.checklist_Fields.selIndex,1),80)
+   }else{
+       winform.listview_rs.setColumn(winform.checklist_Fields.selIndex+1,winform.checklist_Fields.getItemText(winform.checklist_Fields.selIndex,1),1)
+   }
+ } 
+}
+ winform.button_open.oncommand = function(id,event){
+ pp=fsys.dlg.open()
+ DBconn()
+ lb()
+ 
+}
+ function DBconn(){
+ conn=com.CreateObject("ADODB.connection")
+ conn.connectionstring="Provider=Microsoft.Jet.OLEDB.4.0;Data Source="+pp /*这里应该对pp做个检查,以防未选择文件*/
+ winform.static.text=conn.connectionstring
+ conn.open()
+ }
+ function lb(){
+ rsSchema=com.CreateObject("ADODB.RecordSet")
+ rsSchema=conn.OpenSchema(20)
+ rsSchema.MoveFirst()
+ while(rsSchema.EOF=false){
+   winform.listbox_table.add(rsSchema("table_name").value)
+   rsSchema.MoveNext()
+ } 
+}
+ function lt_rs(){
+ winform.listview_rs.clear()
+ if(winform.listview_rs.getColumnText(1)!=null){
+      for(x=1;winform.listview_rs.columnCount+1){
+       winform.listview_rs.delColumn(x)
+   }
+ }
+ 
+winform.listview_rs.insertColumn("序号",60)
+ for(i=0;rs.Fields.count-1){
+   winform.listview_rs.insertColumn(rs.fields(i).name,80,i+2)  
+ } 
+r=0
+ while(rs.EOF=false){
+   r=r+1
+   winform.listview_rs.addItem(tostring(r))
+   for(c=0;rs.fields.count-1;1){
+    winform.listview_rs.setItemText(tostring(rs(c).value),r,c+2)
+   }
+   rs.MoveNext()  
+ }
+ }
+ function ck_fd(){
+ winform.checklist_Fields.clear()
+ for(i=0;rs.Fields.count-1){
+   winform.checklist_Fields.addItem(rs.fields(i).name) 
+  winform.checklist_Fields.setChecked(i+1)  
+ }   
+ }
+ 
+winform.show() 
+win.loopMessage();
+ return winform;

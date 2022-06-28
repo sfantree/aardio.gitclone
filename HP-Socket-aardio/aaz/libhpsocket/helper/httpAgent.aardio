@@ -1,0 +1,72 @@
+﻿import aaz.libhpsocket.helper.websocket;
+import aaz.libhpsocket.helper.agent;
+
+namespace aaz.libhpsocket.helper.httpAgent;
+..table.mix(self, ..aaz.libhpsocket.helper.agent);
+
+var wsHelper = ..aaz.libhpsocket.helper.websocket;
+
+var defaultSaveWsUpgradeRequestKey = function(component, connId, key){
+	self.reallocString(component, connId, #key);
+	self.appendString(component, connId, key, #key)
+}
+
+var defaultGetWsUpgradeRequestKey = function(component, connId){
+	var requestKey = self.getString(component, connId); 
+	self.reallocString(component, connId, 0);
+	return requestKey; 
+}
+
+getUrlHost = function(component, connId){
+	var ip, port = component.getRemoteHost(connId);
+	if(!(ip&&port) )return;
+	if(ip=="0.0.0.0") ip = "localhost";
+	return ..string.format("%s:%d", ip, port); 
+}
+
+getUrl = function(component, connId, path, scheme="http"){
+	var host = self.getUrlHost(component, connId);
+	if(!host) return;
+	var url =  ..string.format("%s://%s", scheme, host ); 
+	if(path){
+		path = ..string.replace(path,"\\","/");
+		if(path[1]!='/'#) path= "/" + path;
+		return url + path;
+	}
+	return url;
+}
+
+getWsUrl = function(component, connId, path){
+	return self.getUrl(component, connId, path, "ws");
+}
+
+getWssUrl = function(component, connId, path){
+	return self.getUrl(component, connId, path, "wss");
+}
+
+sendWsUpgradeRequest = function(component, connId, path="/", baseHeaders, saveWsUpgradeRequestKey){
+	saveWsUpgradeRequestKey := defaultSaveWsUpgradeRequestKey;
+	
+	var host = self.getUrlHost(component, connId);
+	var origin = self.getUrl(component, connId, path);
+	var headers, requestKey = wsHelper.genHeaders(host, origin, baseHeaders);
+	
+	if(component.sendGet(connId, path, headers)){
+		saveWsUpgradeRequestKey(component, connId, requestKey);
+		return true; 
+	}
+}
+
+checkWsUpgradeResponse = function(component, connId, getWsUpgradeRequestKey){
+	getWsUpgradeRequestKey := defaultGetWsUpgradeRequestKey;
+	
+	var acceptKey = component.getHeader(connId, "Sec-WebSocket-Accept");
+	if(!acceptKey) return ; 
+
+	var requestKey = getWsUpgradeRequestKey(component, connId);
+	if(wsHelper.getSecAccept(requestKey) == acceptKey) return true;
+}
+
+sendWsPong = function(component, connId, mask){
+	component.sendWsMessage(connId, null, 0xA, mask);
+}

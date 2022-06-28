@@ -1,0 +1,47 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=319;bottom=103)
+winform.add(
+button={cls="button";text="发送";left=184;top=24;right=296;bottom=64;z=1};
+edit={cls="edit";text="Edit";left=32;top=24;right=160;bottom=64;edge=1;multiline=1;z=2}
+)
+/*}}*/
+
+io.open()
+
+import aaz.libhpsocket.app.simpleWebsocketClient;
+
+var ws = aaz.libhpsocket.app.simpleWebsocketClient();
+
+// 回调函数均为线程函数，里面用到的库可以在这里导入
+ws.onThreadCreated = function(){
+	import thread.command;
+}
+
+ws.onOpen = function(){
+	io.print("已连接");	
+}
+
+ws.onClose = function(){
+	io.print("已关闭");
+}
+
+ws.onMessage = function(msg){
+	io.print("接收", msg);
+}
+
+/*
+ws.origin = "http://coolaf.com";
+ws.connect("ws://123.207.136.134:9010/ajaxchattest");
+*/
+
+
+ws.origin = "https://www.websocket.org";
+ws.connect("wss://echo.websocket.org");
+
+winform.button.oncommand = function(id,event){
+	io.print( "发送", ws.send(winform.edit.text) );
+}
+
+winform.show();
+win.loopMessage();

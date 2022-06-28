@@ -1,0 +1,114 @@
+//格式化代码
+
+import winex;
+import win.ui;
+import win.ui.atom;
+import console;
+import ide;
+var hwndStatusBar = winex.findEx(ide.getMainHwnd(), , "Afx\:RibbonStatusBar", "");
+var hwnd = winex.findEx(hwndStatusBar,,,"格式化代码");
+if(hwnd){
+	return ; 	
+}
+win.modifyStyle(hwndStatusBar, , 0x2000000 /*_WS_CLIPCHILDREN*/ );
+/*DSG{{*/
+mainForm = win.form(text="格式化代码";right=20;bottom=20;bgcolor=16777215;border="none";exmode="none";max=false;min=false;mode="child";parent=hwndStatusBar)
+mainForm.add(
+btn_format={cls="button";text="{}";left=0;top=0;right=22;bottom=22;z=1}
+)
+/*}}*/
+
+import web.script;
+var vm = web.script();
+
+vm.addCode("window=this;");
+js = string.load("\beautify.js");
+// js-beautify v1.2.0
+vm.addCode(js);
+
+mainForm.btn_format.oncommand = function(id, event) {
+
+    var ed = ide.getActiveCodeEditor();
+    if (!ed) return;
+
+    var opt = {
+        space_before_conditional = true;
+        keep_array_indentation = true;
+        preserve_newlines = true;
+        end_with_newline = true;
+        comma_first = false;
+        indent_size = "4";
+        break_chained_methods = false;
+        max_preserve_newlines = "2";
+        brace_style = "collapse";
+        indent_scripts = "normal";
+        e4x = false;
+        unescape_strings = false;
+        indent_inner_html = false;
+        wrap_line_length = "0";
+        jslint_happy = false;
+        indent_empty_lines = false;
+        indent_char = " "
+    }
+
+    var text = ed.selText;
+    if (#text) {
+        var formatCode = vm.script.js_beautify(text, opt);
+        formatCode = string.replace(formatCode,'"\s*[\\r\\n]\\s*"','""');
+        ed.selText = formatCode;
+    } else {
+        text = ed.text;
+        var formatCode = vm.script.js_beautify(text, opt);
+        formatCode = string.replace(formatCode,'"\s*[\\r\\n]\\s*"','""');
+        ed.selectAll();
+        ed.selText = formatCode;
+    }
+}
+
+var cxprev;        
+var intervalId = mainForm.setInterval( 
+    500,function(hwnd,msg,id,tick){
+        var x,y,cx,cy = win.getPos(hwndStatusBar) 
+        if(cx!=cxprev){
+            mainForm.setPos(cx - mainForm.width - 191, 2);
+            cxprev = cx;
+            mainForm.redraw();
+        } 
+    } 
+)
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    mainForm.clearInterval(intervalId);
+}
+
+mainForm.enableDpiScaling(false);
+
+import win.ui.menu;
+mainForm.btn_format.wndproc = function(hwnd,message,wParam,lParam){
+	
+	select( message ) { 
+		case 0x205/*_WM_RBUTTONUP*/{
+			//鼠标右键弹起,下面获取坐标
+			var x,y = win.getMessagePos(lParam);
+			var menu = win.ui.popmenu(mainForm);
+			menu.addTable( {
+				{ "重新加载beautify.js";  function(id){
+					vm.reset();
+					vm.addCode("window=this;");
+					js = string.load("~\beautify.js");
+					// js-beautify v1.2.0
+					vm.addCode(js);
+				} }; { /*分隔线*/ }
+				{ "退出程序"; function(id){  
+					mainForm.close() 
+			 	} };
+			} )
+			
+			menu.popup(x,y);
+			return true; 
+		}
+	}
+}
+
+mainForm.show()
+win.loopMessage();

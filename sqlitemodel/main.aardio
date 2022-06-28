@@ -1,0 +1,2683 @@
+import win.ui;
+import win.inputBox;
+import win.ui.menu;
+import win.ui.statusbar;
+import win.ui.accelerator;
+import win.cur;
+import win.ui.toolbar;
+
+import fsys;
+import fsys.dlg;
+import sqlite;
+import time;
+import config;
+import com.excel;
+import mouse;
+import process;
+
+import console
+//console.open()
+
+import sqlitemodel;
+import sqlitemodel.modelForm; //如果不导入, 后面调用就会报错 modelForm是null
+//===//
+/*DSG{{*/
+mainForm = win.form(text="简易进销存";right=945;bottom=617)
+mainForm.add(
+btnGotoNPage={cls="button";text="转到第N页";left=650;top=353;right=724;bottom=374;db=1;dl=1;z=10};
+btnNext={cls="button";text="下一页";left=385;top=353;right=450;bottom=374;db=1;dl=1;z=8};
+btnPrev={cls="button";text="上一页";left=305;top=353;right=370;bottom=374;db=1;dl=1;z=7};
+btnRefresh={cls="button";text="刷新";left=490;top=28;right=554;bottom=51;dl=1;dt=1;z=11};
+button={cls="button";text="搜索";left=417;top=28;right=481;bottom=51;dl=1;dt=1;z=4};
+button7={cls="button";text="选择显示字段";left=563;top=28;right=660;bottom=51;dl=1;dt=1;z=12};
+comboCurrPage={cls="combobox";left=562;top=353;right=643;bottom=374;db=1;dl=1;edge=1;items={};mode="dropdown";z=9};
+comboItemsPerpage={cls="combobox";left=215;top=354;right=293;bottom=374;db=1;dl=1;edge=1;items={"10";"20";"30";"50";"100"};mode="dropdown";z=5};
+edit={cls="edit";left=163;top=28;right=408;bottom=51;dl=1;dt=1;edge=1;z=13};
+listbox={cls="listbox";left=161;top=377;right=941;bottom=592;db=1;dl=1;dr=1;edge=1;hscroll=1;items={};vscroll=1;z=2};
+listview={cls="listview";left=162;top=56;right=934;bottom=346;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(name='Consolas');fullRow=1;gridLines=1;hscroll=1;vscroll=1;z=3};
+static={cls="static";text="每页条数";left=160;top=354;right=211;bottom=369;db=1;dl=1;transparent=1;z=6};
+treeview={cls="treeview";left=5;top=56;right=156;bottom=592;asel=false;bgcolor=16777215;db=1;dl=1;dt=1;edge=1;vscroll=1;z=1}
+)
+/*}}*/
+
+//=============
+newLine = '\r\n'
+//====
+driver = null;
+browser = null;
+
+var mcur0 = win.cur.load(0x7F00/*_IDC_ARROW*/)
+var mcur1 = win.cur.load(32649/*_IDC_HAND*/)
+var mcur2 = win.cur.load(0x7F02/*_IDC_WAIT*/)
+var mcur3 = win.cur.load(0x7F88/*_IDC_NO*/)
+
+//var ss = win.cur.loadfile("e:\up_rm.cur");//这里可以是你自己制作的鼠标文件
+
+
+default_value = function(value, default){
+	if(value == null){
+		return default
+	}
+	return value
+}
+
+
+log=function(text){
+	mainForm.listbox.add(tostring(text))
+	mainForm.listbox.selIndex=mainForm.listbox.count
+}
+
+help = function(text){
+	if(text != null and text != ""){
+		mainForm.msgbox(tostring(text))
+	}else {
+		mainForm.msgbox("如需帮助 "++newLine++newLine++"请发邮件至330906552@QQ.com")
+	}
+}
+
+
+// 全局变量
+
+
+// 全局变量, 数据库路径
+DEFAULT_DB_PATH = "/data/biz.db"
+dbpath = config.settings.dbpath;
+
+
+var exists = io.exist(io.fullpath(dbpath))
+if(exists){
+	log("    数据库文件是否存在: 是", dbpath);
+}else {
+	log("    数据库文件是否存在: 否", dbpath);
+}
+
+DEFAULT_ITEMS_PERPAGE = 200 //默认每页显示100条
+LAST_ITEMS_PERPAGE = DEFAULT_ITEMS_PERPAGE;
+
+
+
+
+if( dbpath==null or dbpath=="" or (io.exist(io.fullpath(dbpath))==null) ){
+
+	log("数据库文件路径未设置, 请到config目录设置正确的 dbpath 参数!!!")
+	mainForm.msgbox("数据库文件路径的文件不存在, 程序将创建和使用默认数据库!"++newLine++DEFAULT_DB_PATH)
+
+	dbpath = DEFAULT_DB_PATH
+	parentDir = fsys.getParentDir(dbpath)
+
+	if(!fsys.isDir(parentDir)){
+		fsys.createDir(parentDir)
+	}
+
+	config.settings.dbpath=dbpath;
+	config.saveAll()
+
+}
+
+// 全局变量, 数据库连接
+db = sqlite(dbpath);
+
+// 全局变量，数据库表模型定义
+/*company和model表定义{{*/
+default_company_sql = string.load("/res/models/company.sql.aardio");
+
+//必须的字段，改进中，按照顺序显示
+//这些字段，必须在导入和导出Excel中用到，还要在listview中显示
+//有些字段，虽然不可少， 但是可以用默认值来填充，比如时间
+display_headers = {
+"id";
+"name";
+"created_at";
+}
+
+
+company_required_fields = {
+	//类似于headers, 格式如下
+	name="姓名";
+}
+
+company_filter_fields = {
+	"name";
+}
+
+
+
+
+
+//全局变量headers， 主要是保存中文标题（含英文的字段）
+//用途：
+//   listview的显示标题（中文）
+//   数据导出到Excel的第一行的标题（中文）
+headers = {
+	//类似于 required_headers, 格式如下
+	//zhangtaohao = "账套号";
+	//shebao = "社保"
+}
+
+
+
+
+company_search_fields = {
+"name";
+};
+
+modCompany = sqlitemodel.Model(db, 'company',
+	default_company_sql, company_filter_fields, company_search_fields)
+modCompany.label = "企业";
+/*}}*/
+
+/*goods_category和model表定义{{*/
+default_goods_category_sql = string.load("/res/models/goods_category.sql.aardio");
+
+goods_category_filter_fields = {
+	"parent";
+}
+
+goods_category_search_fields = {
+	"name";
+};
+
+goods_category_string_fields = {
+	"name";
+};
+
+modGoodsCategory = sqlitemodel.Model(db, 'goods_category', default_goods_category_sql,
+goods_category_filter_fields,
+goods_category_search_fields,
+/*display_fields*/,
+/*field_choices*/,
+goods_category_string_fields
+)
+
+/*}}*/
+
+/*store和model表定义{{*/
+default_store_sql = string.load("/res/models/store.sql.aardio");
+
+store_filter_fields = {
+	"cate";
+}
+
+store_search_fields = {
+	"name";"code";
+};
+
+modStore = sqlitemodel.Model(db, 'store', default_store_sql,
+	store_filter_fields,
+	store_search_fields
+)
+modStore.label = "仓库";
+/*}}*/
+
+/*purchase和model表定义{{*/
+default_purchase_sql = /**CREATE TABLE "purchase" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"org" VARCHAR(16) NOT NULL,  /*部门*/
+			"applier" VARCHAR(8) NOT NULL,  /*申请人*/
+			"subject" VARCHAR(16), /*事由*/
+			"position" VARCHAR(16), /*位置*/
+			"cate" VARCHAR(16), /*分类*/
+			"from_store" VARCHAR(40), /*来源仓库*/
+			"to_store" VARCHAR(40), /*去向仓库*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+purchase_filter_fields = {
+	"cate";
+}
+
+purchase_search_fields = {
+	"name";
+};
+
+modPurchase = sqlitemodel.Model(db, 'purchase', default_purchase_sql, purchase_filter_fields, purchase_search_fields)
+modPurchase.label = "采购";
+/*}}*/
+
+/*supplier和model表定义{{*/
+default_supplier_sql = /**CREATE TABLE "supplier" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"position" VARCHAR(16), /*位置*/
+			"cate" VARCHAR(16), /*地址*/
+			"cellphone" VARCHAR(32), /*手机号码*/
+			"tellphone" VARCHAR(32), /*电话号码*/
+			"pos" INTEGER DEFAULT 0, /*排序*/
+			"disabled" BOOLEAN DEFAULT 0,  /*禁用*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+supplier_filter_fields = {
+	"cate";
+}
+
+supplier_search_fields = {
+	"name";
+};
+
+modSupplier = sqlitemodel.Model(db, 'supplier', default_supplier_sql, supplier_filter_fields, supplier_search_fields)
+modSupplier.label = "供应商"
+/*}}*/
+
+/*category和model表定义{{*/
+default_category_sql = /**CREATE TABLE "category" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"parent" INTEGER,  /*父分类*/
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"cate_type" VARCHAR(32) NOT NULL,  /*名称*/
+			"pos" VARCHAR(16), /*排序*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+category_filter_fields = {
+	"cate_type";
+}
+
+category_search_fields = {
+	"name";
+};
+
+modCategory = sqlitemodel.Model(db, 'category', default_category_sql,
+	category_filter_fields,
+	category_search_fields
+)
+modCategory.label = "分类"
+/*}}*/
+
+/*client和model表定义{{*/
+default_client_sql = /**CREATE TABLE "client" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"code" VARCHAR(32),  /*代码*/
+			"cellphone" VARCHAR(16), /*联系电话*/
+			"cid" INTEGER, /*分类ID*/
+			"cate" VARCHAR(16), /*分类*/
+			"org" VARCHAR(64), /*单位*/
+			"orgid" VARCHAR(64), /*单位ID*/
+			"pos" INTEGER DEFAULT 0, /*排序*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+client_filter_fields = {
+	"cate";"org";
+}
+
+client_search_fields = {
+	"name";"code";"cellphone";
+};
+
+modClient = sqlitemodel.Model(db, 'client', default_client_sql, client_filter_fields, client_search_fields)
+modClient.label = "客户"
+/*}}*/
+
+/*purchase_order和model表定义{{*/
+default_purchase_order_sql = /**CREATE TABLE "purchase_order" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"position" VARCHAR(16), /*位置*/
+			"cate" VARCHAR(16), /*地址*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+purchase_order_filter_fields = {
+	"cate";
+}
+
+purchase_order_search_fields = {
+	"name";
+};
+
+modPurchaseOrder = sqlitemodel.Model(db, 'purchase_order',
+	default_purchase_order_sql,
+	purchase_order_filter_fields,
+	purchase_order_search_fields
+)
+modPurchaseOrder.label = "采购订单"
+/*}}*/
+
+/*order_goods和model表定义{{*/
+default_order_goods_sql = /**CREATE TABLE "order_goods" (
+			"id" INTEGER NOT NULL PRIMARY KEY,
+			"name" VARCHAR(32) NOT NULL,  /*名称*/
+			"position" VARCHAR(16), /*位置*/
+			"cate" VARCHAR(16), /*地址*/
+			"created_at" DATE NOT NULL,  /*创建时间*/
+			"updated_at" DATE NOT NULL /*更新时间*/
+			);
+			**/
+
+order_goods_filter_fields = {
+	"cate";
+}
+
+order_goods_search_fields = {
+	"name";
+};
+
+modOrderGoods = sqlitemodel.Model(db, 'order_goods',
+	default_order_goods_sql,
+	order_goods_filter_fields,
+	order_goods_search_fields
+)
+modOrderGoods.label = "订单商品"
+/*}}*/
+
+/*goods和model表定义{{*/
+default_goods_sql = /**CREATE TABLE "goods" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"code" VARCHAR(32) NOT NULL, /*代码*/
+	"cid" INTEGER, /*分类ID*/
+	"specs" VARCHAR(255),  /*规格*/
+	"price" FLOAT DEFAULT 1, /*单价*/
+	"unit" VARCHAR(16), /*单位:个,把,包,盒,只*/
+	"status" VARCHAR(16),  /*状态*/
+	"disabled" BOOLEAN DEFAULT 0,  /*禁用*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+goods_filter_fields = {
+	"cid";"unit";
+}
+
+goods_search_fields = {
+	"name";"code";
+};
+
+goods_field_choices = {
+	["cid"] = modGoodsCategory;
+}
+
+modGoods = sqlitemodel.Model(db, 'goods',
+	default_goods_sql, goods_filter_fields, goods_search_fields,/*display_fields*/,
+	goods_field_choices)
+modGoods.label = "商品";
+/*}}*/
+
+/*goods_price和model表定义{{*/
+default_goods_price_sql = /**CREATE TABLE "goods_price" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"goods_id" INTEGER  NOT NULL, /*排序*/
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"price" FLOAT DEFAULT 1, /*单价*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+goods_price_filter_fields = {
+	"goods_id";"price";
+}
+
+goods_price_search_fields = {
+	"name";
+};
+
+goods_price_field_choices = {
+	["goods_id"] = modGoods;
+}
+
+modGoodsPrice = sqlitemodel.Model(db, 'goods_price',
+	default_goods_price_sql, goods_price_filter_fields, goods_price_search_fields,/*display_fields*/,
+	goods_price_field_choices)
+modGoodsPrice.label = "商品价格";
+/*}}*/
+
+
+/*goods_journal和model表定义{{*/
+default_goods_journal_sql = /**CREATE TABLE "goods_journal" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"ps_id" INTEGER DEFAULT 0, /*单据ID*/
+	"goods_id" INTEGER  NOT NULL, /*商品ID*/
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"unit" VARCHAR(16), /*单位:个,把,包,盒,只*/
+	"quantity" INTEGER NOT NULL, /*数量*/
+	"price" FLOAT DEFAULT 1, /*单价*/
+	"amount" DECIMAL,  /*金额*/
+	"store_id" INTEGER NOT NULL, /*库房ID*/
+	"cate_id" INTEGER, /*分类ID*/
+	"cate_name" VARCHAR(32), /*分类名称*/
+	"trans_dir" VARCHAR(8), /*出入库方向*/
+	"trans_type" INTEGER NOT NULL, /*出入库类型*/
+	"trans_id" INTEGER DEFAULT 0, /*转库ID*/
+	"balance" INTEGER, /*库存*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+goods_journal_filter_fields = {
+	"store_id";"goods_id";
+}
+
+goods_journal_search_fields = {
+	"name";
+};
+
+goods_journal_field_choices = {
+	["goods_id"] = modGoods;
+}
+
+modGoodsJournal = sqlitemodel.Model(db, 'goods_journal',
+	default_goods_journal_sql, goods_journal_filter_fields, goods_journal_search_fields,/*display_fields*/,
+	goods_journal_field_choices)
+modGoodsJournal.label = "出入库记录";
+/*}}*/
+
+
+/*goods_trans和model表定义{{*/
+default_goods_trans_sql = /**CREATE TABLE "goods_trans" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"goods_id" INTEGER  NOT NULL, /*商品ID*/
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"quantity" INTEGER NOT NULL, /*数量*/
+	"amount" DECIMAL,  /*金额*/
+
+	"from_store_id" INTEGER NOT NULL, /*出库ID*/
+	"from_store_name" VARCHAR(32), /*出库名称*/
+	"from_journal_id" INTEGER NOT NULL, /*出库记录ID*/
+
+	"to_store_id" INTEGER NOT NULL, /*入库ID*/
+	"to_store_name" VARCHAR(32), /*入库名称*/
+	"to_journal_id" INTEGER NOT NULL, /*入库记录ID*/
+
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+goods_trans_filter_fields = {
+	"from_store_id";"to_store_id";
+}
+
+goods_trans_search_fields = {
+	"name";
+};
+
+goods_trans_field_choices = {
+	["goods_id"] = modGoods;
+}
+
+modGoodsTrans = sqlitemodel.Model(db, 'goods_trans',
+	default_goods_trans_sql, goods_trans_filter_fields, goods_trans_search_fields,/*display_fields*/,
+	goods_trans_field_choices)
+modGoodsTrans.label = "转库";
+/*}}*/
+
+/*goods_balance和model表定义{{*/
+default_goods_balance_sql = /**CREATE TABLE "goods_balance" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"goods_id" INTEGER  NOT NULL, /*商品ID*/
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+
+	"store_id" INTEGER NOT NULL, /*库房ID*/
+	"in_quantity" INTEGER NOT NULL, /*总入库数量*/
+	"out_quantity" INTEGER NOT NULL, /*总出库数量*/
+	"balance" INTEGER, /*总库存*/
+	"amount" DECIMAL,  /*总金额*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+goods_balance_filter_fields = {
+	"goods_id";"store_id";
+}
+
+goods_balance_search_fields = {
+	"name";
+};
+
+goods_balance_field_choices = {
+	["goods_id"] = modGoods;
+}
+
+modGoodsBalance = sqlitemodel.Model(db, 'goods_balance',
+	default_goods_balance_sql, goods_balance_filter_fields, goods_balance_search_fields,/*display_fields*/,
+	goods_balance_field_choices)
+modGoodsBalance.label = "库存";
+/*}}*/
+
+/*purchase_goods和model表定义{{*/
+default_purchase_goods_sql = /**CREATE TABLE "purchase_goods" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"purchase_id" INTEGER, /*采购单ID*/
+	"goods_id" INTEGER, /*商品ID*/
+	"name" VARCHAR(32),  /*商品名称*/
+	"price" FLOAT DEFAULT 0.0, /*单价*/
+	"quantity" INTEGER, /*数量*/
+	"unit" VARCHAR(16), /*单位:个,把,包,盒,只*/
+	"amount" DECIMAL,  /*金额*/
+	"disabled" BOOLEAN DEFAULT 0,  /*禁用*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+purchase_goods_filter_fields = {
+	"purchase_id";"goods_id";
+}
+
+purchase_goods_search_fields = {
+	"name";
+};
+
+purchase_goods_field_choices = {
+	["purchase_id"] = modPurchase;
+}
+
+modPurchaseGoods = sqlitemodel.Model(db, 'purchase_goods',
+	default_purchase_goods_sql, purchase_goods_filter_fields, purchase_goods_search_fields,/*display_fields*/,
+	purchase_goods_field_choices)
+modPurchaseGoods.label = "采购商品清单";
+/*}}*/
+
+
+/*contact和model表定义{{*/
+default_contact_sql = /**CREATE TABLE "contact" (
+	"id" INTEGER NOT NULL PRIMARY KEY,
+	"cid" INTEGER, /*分类ID*/
+	"name" VARCHAR(32) NOT NULL,  /*名称*/
+	"sfzhm" VARCHAR(32),  /*身份证号码*/
+	"cellphone" VARCHAR(32) NOT NULL, /*手机号码*/
+	"tellphone" VARCHAR(32), /*电话号码*/
+	"shortnum" VARCHAR(6), /*短号*/
+	"note" VARCHAR(64), /*备注*/
+	"created_at" DATE NOT NULL,  /*创建时间*/
+	"updated_at" DATE NOT NULL /*更新时间*/
+	);
+	**/
+
+contact_filter_fields = {
+	"cid";
+}
+
+contact_search_fields = {
+	"name";
+	"cellphone";
+	"tellphone";
+	"shortnum";
+};
+
+modContact = sqlitemodel.Model(db, 'contact', default_contact_sql,
+	contact_filter_fields,
+	contact_search_fields
+)
+modContact.label = "联系人";
+/*}}*/
+
+
+CURR_QUERY = {}; //整个程序中的当前查询query, table数据结构
+CURR_MODEL = modGoods; //整个程序中的当前model
+mainForm.lastListviewSelected = null;
+mainForm.model = modGoods;
+
+mainForm.onDestroy = function(){
+	if(db != null){
+		db.close();
+	}
+}
+
+/*主菜单{{*/
+var menu = win.ui.menu(mainForm);//创建主菜单
+//------------------------------------
+var menuGoods = win.ui.popmenu(mainForm);//创建弹出菜单
+
+
+var idFileNew = menuGoods.add(
+	'添加商品(&A)',
+	function(id){
+		goodsform = sqlitemodel.modelForm(modGoods, mainForm);
+		goodsform.doModal(mainForm);
+		load_model_data(modGoods);
+	}
+);
+
+menuGoods.add(
+	'商品分类(&C)',
+	function(id){
+		goodsCategoryMgr();
+	}
+);
+
+menuGoods.add(
+	'商品管理(&G)',
+	function(id){
+		goodsMgr();
+	}
+);
+
+menuGoods.add(); //添加分隔线
+menuGoods.add(
+	"批量导入商品",
+	function(id){
+		//import_company();
+		var filepath = fsys.dlg.open("Excel文件(*.xsl;*xlsx)|*.xsl;*xlsx","请选择Excel文件",,mainForm)
+		if(filepath){
+			import_model(modGoods, filepath);
+		}
+	}
+)
+
+menuGoods.add(); //添加分隔线
+menuGoods.add(
+	"退出(&X)",
+	function(id){
+		mainForm.close()
+	}
+)
+
+
+menu.add('商品(&G)',menuGoods)
+
+
+
+//-------------------------------------
+var menuFile = win.ui.popmenu(mainForm);//创建弹出菜单
+menuFile.addTable({
+
+	{
+		"采购单(&I)";
+		function(id){
+
+			menu_goods_purchase()
+
+		}
+	};
+
+	{
+		"历史采购单(&I)";
+		function(id){
+
+			menu_goods_purchase_history()
+
+		}
+	};
+
+	{
+		"供应商管理(&E)";
+		function(id){
+			supplierMgr();
+		}
+	};
+
+
+})
+
+menu.add('入库(&R)',menuFile)
+//-------------------------------------
+
+var menuFile = win.ui.popmenu(mainForm);//创建弹出菜单
+menuFile.addTable({
+
+	{
+		"出库单(&O)";
+		function(id){
+		   //import_company();
+		   menu_goods_sell();
+		}
+	};
+
+	{
+		"历史出库单(&I)";
+		function(id){
+
+			menu_goods_sell();
+
+		}
+	};
+
+	{
+		"客户管理(&C)";
+		function(id){
+			clientMgr();
+		}
+	};
+
+
+})
+
+menu.add('出库(&C)',menuFile)
+//-------------------------------------
+var menuFile = win.ui.popmenu(mainForm);//创建弹出菜单
+menuFile.addTable({
+
+	{
+		"库存查询(&I)";
+		function(id){
+		   //import_company();
+		   mainForm.msgbox("批量导入工酬数据")
+		}
+	};
+
+	{
+		"物流情况(&I)";
+		function(id){
+		   goodsTransMgr();
+		}
+	};
+
+	{
+		"仓库管理(&E)";
+		function(id){
+			storeMgr();
+		}
+	};
+
+
+})
+
+menu.add('库存(&K)',menuFile)
+//------------------------------------
+var menuFinance = win.ui.popmenu(mainForm);//创建弹出菜单
+
+
+menuFinance.add(
+	"现金日记账",
+	function(id){
+			mainForm.msgbox("现金日记账")
+	}
+)
+menuFinance.add(); //添加分隔线
+
+menuFinance.addTable( {
+	{ "存款日记账";
+		function(id){
+			mainForm.msgbox("存款日记账")
+		}
+	};
+
+} )
+menu.add('财务(&F)',menuFinance)
+//------------------------------------
+var menuReports = win.ui.popmenu(mainForm);//创建弹出菜单
+
+
+menuReports.add(
+	"采购报表",
+	function(id){
+			mainForm.msgbox("版权所有")
+	}
+)
+
+menuReports.addTable( {
+	{ "销售报表";
+		function(id){
+			mainForm.msgbox("如需帮助 "++newLine++newLine++"请发邮件至330906552@QQ.com")
+		}
+	};
+
+	{};
+
+	{ "客户销量";
+		function(id){
+			help();
+		}
+	};
+
+
+	{ "商品销量";
+		function(id){
+			mainForm.msgbox("如需帮助 "++newLine++newLine++"请发邮件至330906552@QQ.com")
+		}
+	};
+
+} )
+
+menu.add('报表(&B)',menuReports)
+
+//----------------------------------------
+menu.addTable( {
+
+
+	 { "设置(&S)";
+			{
+				{   "选项(&O)";
+					function(id){
+
+						config_setting();
+
+					}
+				};
+
+				{   "商品管理(&G)";
+					function(id){
+						goodsMgr();
+					}
+				};
+
+				{   "客户管理(&Z)";
+					function(id){
+						clientMgr();
+					}
+				};
+				{   "供应商管理(&S)";
+					function(id){
+						supplierMgr();
+					}
+				};
+				{   "仓库设置(&Y)";
+					function(id){
+						storeMgr();
+					}
+				};
+				{   "出入库流水账(&Y)";
+					function(id){
+						journalMgr();
+					}
+				};
+				{   "通讯录(&C)";
+					function(id){
+						contactMgr();
+					}
+				}
+
+			}
+	};
+
+	/**{ "数据库(&R)";
+			{
+				{
+					"备份数据库(&B)";
+					function(id){
+
+						var items = {}
+						items = db.getTable("SELECT * FROM [company] ")
+						export_company(items);
+					}
+				};
+
+				{};
+
+
+			}
+	}; **/
+
+} )
+//------------------------------------
+var menuTools = win.ui.popmenu(mainForm);//创建弹出菜单
+menuTools.addTable({
+
+	{
+		"计算器(&I)";
+		function(id){
+		   process.execute("calc.exe")
+		}
+	};
+
+
+	{ /*---分隔线---*/ };
+
+})
+
+menu.add('工具(&T)',menuTools)
+
+
+
+
+
+
+
+//------------------------------------
+var menuHelp = win.ui.popmenu(mainForm);//创建弹出菜单
+
+
+menuHelp.add(
+	"关于",
+	function(id){
+			mainForm.msgbox("版权所有")
+	}
+)
+menuHelp.add(); //添加分隔线
+
+menuHelp.addTable( {
+	{ "帮助";
+		function(id){
+			mainForm.msgbox("如需帮助 "++newLine++newLine++"请发邮件至330906552@QQ.com")
+		}
+	};
+
+} )
+menu.add('帮助(&H)',menuHelp)
+
+//主菜单构建完成后要用下面这句更新,menu.addTable()会自动调用redraw()
+menu.redraw();
+
+/*}}*/
+
+/*菜单函数{{*/
+clientMgr = function(){
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modClient);
+	frmChild.doModal(mainForm);
+
+
+
+}
+
+
+supplierMgr = function(){
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modSupplier);
+	frmChild.doModal(mainForm);
+}
+
+storeMgr = function(){
+
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modStore);
+	frmChild.doModal(mainForm);
+}
+
+journalMgr = function(){
+
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modGoodsJournal);
+	frmChild.doModal(mainForm);
+}
+
+contactMgr = function(){
+
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modContact);
+	frmChild.doModal(mainForm);
+}
+
+goodsCategoryMgr = function(){
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modGoodsCategory);
+	//使用_metaProperty, modGoodsCategory.filter_fields 不会调用model.get("filter_fields")
+	//console.log("modGoodsCategory.filter_fields",modGoodsCategory.filter_fields);
+	//奇怪的是:
+	//使用_metaProperty, modGoodsCategory.field_choices 会调用model.get("field_choices")
+	//console.log("modGoodsCategory.field_choices", modGoodsCategory.field_choices);
+	
+	frmChild.doModal(mainForm);
+}
+
+goodsMgr = function(){
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modGoods);
+	frmChild.doModal(mainForm);
+}
+
+goodsTransMgr = function(){
+	var frmChild = mainForm.loadForm("\dlg\model_list.aardio");
+	frmChild.init(modGoodsTrans);
+	frmChild.doModal(mainForm);
+}
+
+
+/*}}*/
+
+/*工具条{{*/
+var toolbar = win.ui.toolbar(mainForm);
+toolbar.create( style = 0x1000/*_TBSTYLE_LIST*/ ); // 创建工具条
+toolbar.showLabel = true; //在按钮上显示文字
+toolbar.imageList = win.imageList( 16, 16 ).add($"\res\toolbar.gif",0xFF00FF/*透明色*/) ;
+
+toolbar.add();// 添加分隔条
+toolbar.add( "新建", , 1, idFileNew/*重用现有命令ID*/ );
+
+toolbar.add(
+	"采购",
+	function (id) {
+		menu_goods_purchase();
+	}, 2
+);
+
+toolbar.add(
+	"禁用",
+	function (id) {
+		toolbar.getButton(4).disabled = false;
+		toolbar.getButtonById(id).disabled = true;
+	}, 3
+);
+toolbar.add(
+	"禁用2",
+	 , 4
+);
+
+/*}}*/
+
+/*快捷键{{*/
+var accelerator = win.ui.accelerator({
+	{
+		vkey = 0x70/*_VK_F1*/; //进货
+		oncommand = function(){
+			menu_goods_purchase()
+		};
+	};
+
+	{
+		vkey = 0x71/*_VK_F2*/; //销货
+		oncommand = function() mainForm.msgbox("销货");
+	};
+
+	{
+		vkey = 0x72/*_VK_F3*/; //存货
+		oncommand = function() mainForm.msgbox("存货");
+	};
+
+	{
+		vkey = 0x73/*_VK_F4*/; //财务
+		oncommand = function() mainForm.msgbox("财务");
+	};
+
+	{
+		vkey = 0x74/*_VK_F5*/; //商品
+		oncommand = function(){
+			//发消息到 前面定义好的菜单项, 要转换为pointer
+			::SendMessage(mainForm.hwnd, 0x111/*_WM_COMMAND*/, topointer(idFileNew), topointer(0));
+		}
+	};
+
+	{
+		vkey = 0x75/*_VK_F6*/; //报表
+		oncommand = function() mainForm.msgbox("报表");
+	};
+
+	//F10：用来激活Windows或程序中的菜单，按下Shift+F10会出现右键快捷菜单。
+	//如果你先按了F10, 那么F1, F2按的时候可能会失效, 只要再按一次F10, 或者按ESC退出F10的菜单模式.
+
+	{
+		vkey = 0x7B/*_VK_F12*/; //盘库
+		oncommand = function() mainForm.msgbox("盘库");
+	};
+
+	{
+		ctrl = true; vkey = '1'#; //分类
+		oncommand = function(){
+			goodsform = sqlitemodel.modelForm(modGoods, mainForm);
+			goodsform.doModal(mainForm);
+			load_model_data(modGoods);
+		}
+	};
+
+	{
+		ctrl = true; vkey = '2'#; //
+		oncommand = function() mainForm.msgbox("Ctrl+2");
+	};
+
+	{
+		ctrl = true; vkey = '3'#; //
+		oncommand = function() mainForm.msgbox("Ctrl+3");
+	};
+
+	{
+		ctrl = true; vkey = '`'#; //没反应不知道怎么回事
+		oncommand = function() mainForm.msgbox("Ctrl+`");
+	};
+
+	{
+		ctrl = true; vkey = 'N'#; //没反应不知道怎么回事
+		oncommand = function(){
+			goodsform = sqlitemodel.modelForm(modGoods, mainForm);
+			goodsform.doModal(mainForm);
+			load_model_data(modGoods);
+		};
+	};
+
+	{
+		ctrl = true; vkey = 'A'#; //全选
+		oncommand = function(){
+			mainForm.listview.setFocus();
+			for(i=1;mainForm.listview.count;1){
+				mainForm.listview.setSelected(i)
+			}
+		};
+	};
+
+
+
+
+}, mainForm);
+/*}}*/
+
+
+import_model = function(model, filepath){
+	//  从excel中导入某个model的数据信息，必须的字段，定义在全局变量headers里
+	//  其中的字段，在excel中必须有（主要是中文的标题要一致）
+	//  理想的导入，就是
+	//  1. 【已实现】给一个Excel表，用电脑自带的office的com接口打开
+	//  2. 【已实现】先检查第一行的标题，从第1列检查到最后一列的标题
+	//  3. 如果标题在数据库的字段里，就保留，并登记好对应第几列
+	//  4. 如果标题不在数据库的字段里，就舍弃
+	//  5. 如果数据库中的字段，并不在Excel的标题里，即缺少数据库必须的字段，则终止报错
+	//
+	var TABLE_NAME = model.tablename
+	var header_cols={} //Excel中的标题在第N列, 则model.headers中的英文Key对应在第N列
+	//数据导入用
+	for(k,v in model.headers){
+		//model.headers 是 {"name"="中文" ;...}
+		//标题位于第几列(第1列是A列,第2列是B列...),
+		//初始化默认设置为0列(默认不正常,正常的列应该从1开始).
+		header_cols[k]=0;
+	}
+
+	//导入的时候，忽略以下字段
+	header_cols["id"] = null;
+	header_cols["created_at"] = null;
+	header_cols["updated_at"] = null;
+
+	var required_cols = {
+		//类似与header_cols
+	}
+
+	//数据导入用
+	for(i=1;#model.required_fields;1){
+		k = model.required_fields[i];
+		//标题位于第几列(第1列是A列,第2列是B列...),
+		//初始化默认设置为0列(默认不正常,正常的列应该从1开始).
+		required_cols[k]=0;
+	}
+
+	required_cols["id"] = null;
+	required_cols["created_at"] = null;
+	required_cols["updated_at"] = null;
+
+	if(io.exist(filepath)){
+		var excel = com.excel();
+		excel.Visible = true;
+		var workbook = excel.Open( filepath )
+
+		sheet = workbook.Sheets(1); //默认只处理第一个标签
+
+		var colCount = excel.Sheets(1).UsedRange.Columns.Count; //多少列
+		var rowCount = excel.Sheets(1).UsedRange.Rows.Count; //多少行
+		var cimP     = excel.Sheets(1).Cells(1,colCount).value2;
+		var cellValue;
+
+		var msgs ={info = {};errors={};warning={}}
+		win.cur.setCur(mcur2); //鼠标设置为忙碌状态, 使用户不去进行其他操作
+
+		//【读取第1行】，第1行必须是标题，且标题必须在headers中定义好
+		//根据第1行的标题， 在headers中查找，是否存在
+		//然后反过来设置查header_cols表，该标题对应第几列
+		//比如 假设第5列的标题AAA，在headers的values中， 就在
+		//header_cols中设置header_cols[k]=5, 这个k是headers中headers[k]=AAA的k
+		for(i=1;colCount;1){
+			   var cellValue = excel.Sheets(1).Cells(1,i).value2;
+			   log("第"++i++"列: "++tostring(cellValue)) //第i列是什么标题, 标题是汉字
+
+			   // header_cols, 可选字段所在列, 可选字段是包含全部字段的.
+
+			   for(k,v in model.headers){
+				 //遍历model.headers, 查找excel中的标题是否在headers里
+				 //k 是英文字段名， v是中文字段名
+				 //在 header_cols 设置该标题在headers中的key, 对应第几列数据
+				 //【TODO】: 这里的循环有个逻辑问题, 就是外面的标题(cellValue),
+				 //如果Excel中的标题有重复的, 就会有问题.除非两个同名列内容是一样的。
+				 if(v==cellValue){
+					if(required_cols[k] != null){
+						//看看必须字段中, 是否有这个可选字段, 如果有, 设置所在列为i
+						required_cols[k]=i; //key->123
+					}
+
+					header_cols[k]=i; //key->123
+				 }
+			   }
+		}
+
+
+		for(k,v in required_cols){
+			var msg = ""
+			if(v==0){
+				msg = "!!!!Excel文件不符合规范, 文件第1行标题行缺少 '"++model.headers[k]++"' 列, 程序将无法运行!"
+
+				table.push(msgs.errors, msg)
+			}
+		}
+
+
+
+		for(k,v in header_cols){
+			//
+			//console.log(k,v, headers[k])
+			//
+			var msg = ""
+			if(v==0){
+				msg = "!!!!Excel文件不完善, 文件第1行标题行缺少 '"++model.headers[k]++"' 列, 可以导入, 但是不保证数据完整"
+
+				table.push(msgs.warning, msg)
+			}
+		}
+
+		/*
+		required_cols = {
+
+			key1 = 0;
+			key2 = 2;
+			key3 = 1;
+			...
+		}
+		*/
+
+
+		if(#msgs.errors>0){
+			for(i=1;#msgs.errors;1){
+			   log(msgs.errors[i])
+			}
+			return;
+
+		}
+
+		if(#msgs.warning>0){
+			for(i=1;#msgs.warning;1){
+			   log(msgs.warning[i])
+			}
+		}
+
+		var items = {} //每次导入都初始化一次
+
+
+		//从第2行开始读取数据
+		for(iRow=2;sheet.UsedRange.Rows.Count;1){
+			//////log("第"++ iRow ++ "行")
+			data = {}
+			for(k,v in header_cols){
+				var currentKeyCol = header_cols[k]
+
+				//log(k++"当前列:"++currentKeyCol)
+
+				if(currentKeyCol==0){
+					msg = "!!!!列的index为0，跳过忽略第 '"++iRow++"' 行数据!"
+					table.push(msgs.warning, msg)
+					continue; //列的index为0, 会出错, 跳过, 即忽略这一行数据
+				}
+
+				data[k] = default_value(sheet.Cells(iRow, currentKeyCol).getValue2(), "");
+
+			}
+
+			//////for(k,v in data){
+			//////	log(headers[k] ++ ":" ++ tostring(v) +" ") // + tostring(type(v)))
+			//////}
+			//////log("")
+
+			table.push(items, data);
+
+
+		}
+
+		for(i=1;#items;1){
+			var item = items[i]
+
+			//var tab_text = {tostring(i)} //初始化序号id, 因为前面剔除了
+			//for(j=1;#display_headers;1){
+			//	var v = data[display_headers[j]]
+			//	if(v != null){
+			//		table.push(tab_text, v)
+			//	}
+			//}
+
+
+			var r = model.create(item);
+
+			//if(r){//添加成功, 就加到listview中
+			//	mainForm.listview.addItem({
+			//		text=tab_text
+			//	});
+			//}
+
+		}
+
+		//不再一条一条的往listview中添加. 直接加载数据库
+		//因为一条一条添加, 未能正确设置id
+		//load_model_data(model)
+		mainForm.msgbox("导入成功，请刷新窗口数据")
+
+		win.cur.setCur(mcur0);//复原鼠标
+
+	}else {
+		mainForm.msgbox("未选择数据表！")
+	}
+
+}
+
+
+/*export_model{{*/
+export_model = function(model, items, fields){
+	// 导出公司数据
+	// 1. 根据model.headers中定义的字段进行导出（必须包含的字段）
+	// 2. 根据items进行导出， 每个item都是一个table
+	// 是不是要给个框框， 让用户选择字段？
+
+	var flat_items = {}
+	var display_fields = {} //获取全部显示的fields， 或者用户自定义的fields
+
+
+	if(fields == null){
+		var ub = #model.field_names
+
+		//console.log("--------model.field_names");
+		//console.varDump(table.map(model.field_names,lambda(x) x.name));
+
+
+		//从全局变量model.field_names中获取field
+		for(i=1;ub;1){
+			table.push(display_fields, model.field_names[i]["name"])
+		}
+
+		//剔除以下字段
+		table.removeByValue(display_fields, "created_at");
+		table.removeByValue(display_fields, "updated_at");
+
+	}else {
+		if(type(fields)!= type.table){
+			mainForm.msgbox("程序错误, 参数display_fields类型不正确, 应该为table")
+			return
+		}else {
+			display_fields = fields;
+		}
+	}
+
+	console.log("--------display_fields");
+	console.varDump(display_fields);
+
+	//检查是否露了必须的字段, 没有就加进去
+	//比如前面去掉的created_at，这里又加回去了
+	for(i=1;#model.required_fields;1){
+		if(table.find(display_fields, model.required_fields[i])){
+
+		}else {
+			table.push(display_fields, model.required_fields[i])
+		}
+
+	}
+
+	if(#display_fields <= 0){
+		mainForm.msgbox("程序错误, 数据字段display_fields未正确设置")
+		return
+	}
+
+	//
+	//console.varDump(display_fields)
+	//
+
+	//将items变为平展的数据, 即{"";"";"";...""}这种，可以快速给excel的一行赋值
+	for(i=1;#items;1){
+		item = {}
+		for(j=1;#display_fields;1){
+			var k = display_fields[j];
+			var value = string.trimright(default_value(items[i][k], ""));
+			table.push(item, value)
+		}
+		table.push(flat_items, item);
+	}
+
+	if(#flat_items<=0){
+		mainForm.msgbox("无数据,或者未选中数据")
+		return
+	}
+
+	import com.excel;
+
+	var excel = com.excel();
+	excel.Visible = 0xC/*_xlVisible*/;
+	var wkbook = excel.WorkBooks.Add();
+	var sheet = wkbook.Sheets(1);
+
+	excel.ActiveWorkbook.Sheets(1).Select();
+
+	//表头标题行，第1行
+	for(i=1;#display_fields;1){
+		//从全局变量headers中获取field的中文标题
+		sheet.Cells(1,i).value2 = model.headers[display_fields[i]]
+	}
+
+	var item_count = #flat_items + 1
+
+	//cells(row1,col1),cells(row2,col2)
+
+	//sheet.Range("A2:G"+item_count).value2= mainForm.listview.items
+	//
+	//for(k,v in  items){
+	//  console.varDump(v)
+	//}
+	//
+	//console.log(#display_fields,0, #flat_items[1])
+	//起点单元格, 终点单元格,宽度为7,  items的宽度为9
+	//最后导出的数据就只有7列
+	sheet.Range(sheet.Cells(2,1), sheet.Cells(item_count, #display_fields)).value2 = flat_items;//Excel行快速赋值
+	var tm = time.now()
+
+	newFilename = tostring(tm, "\" + model.tablename + "-%Y%m%d%H%M%S.xlsx", "chs");
+
+	log("导出文件至:" + io.fullpath(newFilename))
+
+	wkbook.SaveAs(io.fullpath(newFilename),0x33/*_xlOpenXMLWorkbook*/)
+
+	wkbook.close();
+	excel.Quit();
+
+	process.exploreSelect(io.fullpath(newFilename));
+}
+/*}}*/
+
+shakewindow = function(hwnd,r,s){
+	x,y=win.getPos(hwnd)
+	win.setPos(hwnd,x-r,y-r)
+	win.delay(s)
+	win.setPos(hwnd,x+r,y-r)
+	win.delay(s)
+	win.setPos(hwnd,x+r,y+r)
+	win.delay(s)
+	win.setPos(hwnd,x-r,y+r)
+	win.delay(s)
+	win.setPos(hwnd,x,y)
+}
+
+
+
+/*add_company{{*/
+add_company = function(query, default_sql){
+
+	var field_names = get_field_names(default_sql)
+
+	//
+	//console.log("field_names")
+	//console.varDump(field_names)
+	//
+
+	var field_values = {}
+
+	for(i=1;#field_names;1){
+		table.push(field_values, "@" ++field_names[i]["name"])
+	}
+	var str_field_values = string.join(field_values, ", ")
+	str_field_values = " VALUES (null, " + str_field_values ++ ");"
+
+	//
+	//console.log(str_field_values)
+	//
+
+
+
+
+	var command = db.prepare("INSERT INTO "+ TABLE_NAME + str_field_values ) ;
+
+	//以下非空字段, 要在for循环前绑定, 绑不上去.
+	//command.bind.parameterByName("", "@boss_name")      //给@boss_name 绑定数据 ""
+	//command.bind.parameterByName("", "@boss_cellphone") //给@boss_cellphone 绑定数据 ""
+
+	//command.bind.parameterByName("", "@charger_name")
+	//command.bind.parameterByName("", "@charger_cellphone")
+
+	//command.bind.parameterByName(time.now(), "@created")
+	//command.bind.parameterByName(time.now(), "@updated")
+
+	//给item设置默认值
+	query["boss_name"] = default_value(query["boss_name"], "")
+	query["boss_cellphone"] = default_value(query["boss_cellphone"], "")
+
+	query["charger_name"] = default_value(query["charger_name"], "")
+	query["charger_cellphone"] = default_value(query["charger_cellphone"], "")
+
+	query["created"] = default_value(query["created"], time.now())
+	query["updated"] = default_value(query["updated"], time.now())
+
+
+	for(i=1;#field_names;1){
+
+		var field = field_names[i]["name"]
+		var value = query[field]
+
+		//给 将数据绑定到 @field
+		command.bind.parameterByName(value, '@'+ field )
+
+	}
+
+
+
+
+
+
+	var ret = command.step();
+
+	//console.log("sql insert result ", ret)
+	command.finalize();
+
+	//
+	//console.log(command.sql);
+	//
+
+	//
+	//console.varDump(query)
+	//
+
+	if(ret<100){
+		log(db.lasterr())
+		log("insert failed!")
+		return false;
+	}
+	return true
+}
+/*}}*/
+
+/*edit_company{{*/
+edit_company = function(query){
+	if(query["id"]==null or query["id"]==""){
+		//log("Failed , no query['id']")
+		return false;
+	}
+
+	//
+	//console.varDump(query)
+	//
+
+	old_data = db.stepQuery("SELECT * FROM ["+ TABLE_NAME +"]", { id = query["id"]})
+
+	//console.log("get old data by id")
+	//console.varDump(old_data)
+
+	var stmts = {}
+
+	for(k,v in query){
+		if(k=="created" or k=="updated"){
+			continue
+		}
+		if(old_data[k] != v){
+			table.push(stmts, " "+ k + " = @" ++ k)
+		}
+	}
+
+	//console.log("to be updated fileds:")
+	//console.varDump(stmts)
+
+
+	if(#stmts<=0){
+		//console.log("no fields to be updated")
+		return false;
+	}else {
+		var k = "updated"
+		table.push(stmts, " "+ k + " = @" ++ k)
+		query[k]=time.now()
+	}
+
+
+	var str_set_stmts = string.join(stmts, ", ")
+	str_set_stmts = " SET  " + str_set_stmts ++ " WHERE id = @id;"
+
+	//console.log("str_set_stmts")
+
+	//console.log(str_set_stmts)
+
+
+
+
+	var sql = "UPDATE ["+ TABLE_NAME + "] " + str_set_stmts;
+	//console.log("sql:"+sql);
+	var updated = false;
+	try{
+		db.exec(sql, query);
+		updated = true;
+		//return true; //这里try语句里的 return true 并不能真的返回值, 函数最后返回的是null
+	}
+	catch(e){
+		//console.varDump(e);
+		//console.log(tostring(e))
+		//return false;//这里try的catch语句里的 return false却可以真正使函数返回.函数最后返回的是false
+		updated = false;
+	}
+
+
+
+
+   /*
+
+	command.bind.parameterByName("", "@boss_name")
+	command.bind.parameterByName("", "@boss_cellphone")
+
+	command.bind.parameterByName("", "@charger_name")
+	command.bind.parameterByName("", "@charger_cellphone")
+
+	command.bind.parameterByName(time.now(), "@created")
+	command.bind.parameterByName(time.now(), "@updated")
+
+*/
+	//console.log("updated!!!!")
+
+	return updated
+}
+/*}}*/
+
+/*load_model_data{{*/
+load_model_data = function(model, user_query){
+	var items={};
+	var query = {}
+	if(type(user_query)=="table"){
+		query =  user_query
+	}elseif(type(user_query)=="string"){
+		query["keyword"] = user_query;
+	}
+	query["QUERY_MODE"] = "SEARCH";
+	query["model_name"] = model.tablename;
+	CURR_QUERY = query; //记录到全局变量CURR_QUERY中
+	CURR_MODEL = model;
+	log(table.tostring(CURR_QUERY));
+	items = model.search(query);
+	console.log("items count:" ++ #items)
+
+	reset_listview(model, items);
+	initTreeviewFilters(model)
+
+
+}
+/*}}*/
+
+
+
+/*reset_listview{{*/
+reset_listview = function(model, items){
+
+	mainForm.statusbar.setText("数据总数:" + #items);
+
+	//如果获取了数据, 那么清空listview
+	if(#items>=1){
+		mainForm.listview.clear();
+	}else {
+		mainForm.listview.clear();
+		return
+	}
+
+	var n = mainForm.listview.columnCount;
+	for(i=1;n;1){
+		mainForm.listview.delColumn(n+1-i);//从倒数开始删除, 以免删除前面的, 后面的索引都变了.
+	}
+
+
+	for(i=1;#model.display_fields;1){
+		var k = model.display_fields[i]
+		var caption = model.headers[k]
+		mainForm.listview.insertColumn(caption, 80, i);
+	}
+
+	mainForm.listview.setColumn({cx=40},1)
+	mainForm.listview.setColumn({cx=180},2)
+	mainForm.listview.setColumn({cx=100},3)
+
+
+
+	for(i=1;#items;1){
+
+			var data     ={}
+			for(j=1;#model.display_fields;1){
+				k = model.display_fields[j];
+				//if(k=="id"){
+				//	table.push(data, tostring(i))
+				//	continue
+				//}
+				//console.log('k', k);
+				if(items[i][k]!=null){
+					table.push(data, items[i][k])
+				}else {
+					table.push(data, "")
+				}
+
+
+			}
+			//
+			//console.varDump(items[i])
+			//
+
+			mainForm.listview.addItem({
+				text = data
+			});
+	}
+
+	if(items["ITEMS_PERPAGE"]){
+		mainForm.comboItemsPerpage.text = tostring(items["ITEMS_PERPAGE"])
+	}
+	if(items["PAGES"]){
+		mainForm.comboCurrPage.clear();
+		for(i=1;items["PAGES"];1){
+			mainForm.comboCurrPage.add(tostring(i))
+		}
+	}
+	if(items["CURR_PAGE"]!=null){
+		mainForm.comboCurrPage.text = tostring(items["CURR_PAGE"]+1)
+	}
+}
+/*}}*/
+
+initTreeviewFilters = function(model){
+
+	var filter_fields = model.filter_fields
+	if(#filter_fields>0){
+		mainForm.treeview.clear();
+	}
+
+	var item = {text = "显示全部数据"}
+	var hItem = mainForm.treeview.insertItem(item)
+
+	console.log("filter_fields:")
+	console.varDump(filter_fields)
+
+	for(i=1;#filter_fields;1){
+		var item = {}
+		/*{
+			text = "按区划分";
+			{
+				{  text = "芙蓉区"; filter_field ="furong" };
+				{  text = "天心区"; filter_field ="tianxin" };
+				{  text = "岳麓区" };
+				{  text = "开福区" };
+				{  text = "雨花区" };
+				{  text = "未分区" };
+			}
+		}*/
+
+
+
+		var field = filter_fields[i]
+		var caption = model.headers[field]
+
+		item["text"] = string.format("按%s过滤", caption);
+		item["field"] = ""
+		//query["filter_field"] = field
+
+		var sql = string.format("SELECT DISTINCT %s FROM [%s]", field, model.tablename)
+		var items = model.getTable(sql)
+
+		var data = {}
+		for(i=1;#items;1){
+			var value = items[i][field];
+			if(value == "" or value == null){
+				table.push(data, {text = "空值";filter_field=field})
+			}else {
+				table.push(data, {text = value; filter_field=field})
+			}
+		}
+
+		table.push(item, data)
+
+		var hItem = mainForm.treeview.insertItem(item)
+
+	}
+
+	mainForm.treeview.expandAll()
+}
+
+
+menu_edit_item = function(){
+	var iRow = mainForm.listview.getSelection(); //选中的行
+	if(!iRow){
+		mainForm.msgbox("请选中一项再操作");
+		return
+	}else {
+		var id = mainForm.listview.getItemText(iRow, 1)
+		var mform = sqlitemodel.modelForm(modGoods, mainForm, id);
+		mform.doModal(mainForm);
+		load_model_data(modGoods);
+	}
+}
+
+menu_delete_item = function(){
+
+	var iRow = mainForm.listview.getSelection();
+
+	if(!iRow){
+		return
+	}
+
+	var query = {}
+	var model = mainForm.model;
+	var display_fields = model.display_fields;
+	for(i=1;#display_fields;1){
+		k = display_fields[i]
+		query[k] = mainForm.listview.getItemText(iRow, i)
+	}
+
+	var confirmed = false; //默认不删除
+	if(config.settings.confirm_delete){
+		confirmed = mainForm.msgboxTest(string.format("确认删除%s数据(id=%s)吗?", mainForm.model.label,query["id"])); //看用户选择
+	}else {
+		confirmed = true; //无需确认
+	}
+
+	if(confirmed){
+		model.delete(query);
+		initTreeviewFilters(model);
+		load_model_data(model);
+	}
+}
+
+
+
+mainForm.treeview.onnotify = function(id,code,ptr){
+	if(code = 0xFFFFFFFE/*_NM_CLICK*/){
+		//单击
+		var x,y = mouse.getPos()
+		var hItem,tvht = mainForm.treeview.hitTest(x,y,true);
+
+		if(!hItem){
+			return
+		}
+
+		mainForm.treeview.setSelected(hItem);
+		mainForm.treeview.expandAll()
+
+		var hitem = mainForm.treeview.getSelection()
+		//mainForm.text = mainForm.treeview.getItemData(hitem);
+		var data = mainForm.treeview.getItemData(hitem);
+
+		var filter_field = data["filter_field"];
+		//if(filter_field == null){ //点中了根节点，应该返回全部数据
+		//	return
+		//}
+
+		var keyword = "";
+
+		if(data == null or #data>0){
+			//未选中节点, 或者选中节点有子节点(根节点)
+			keyword =  ""
+			//return
+		}else {
+			//没有子节点的节点,如果是根节点, 那么也是在这里处理, 但是没有filter_field数据, 所以后面的filter
+			// 会因为没有filter_field数据, 而返回全部数据, 忽略keyword
+			keyword = data["text"];
+			if(string.indexOf(keyword, "|")){
+				keyword = string.split(keyword, "<|>")[1]
+			}
+			//mainForm.text = data["text"] ++ " 单位";
+		}
+
+		var query = {};
+		if(filter_field != null){
+			query[filter_field] = keyword; //filter, field = value, field_lt = value
+		}
+
+		var items_perpage = tonumber(mainForm.comboItemsPerpage.text);
+		query["ITEMS_PERPAGE"] = items_perpage
+		query["QUERY_MODE"] = "FILTER";
+
+		CURR_QUERY = query;
+		log(table.tostring(CURR_QUERY));
+
+
+		var model = modGoods;
+		CURR_MODEL = model;
+
+		var items = model.filter(query)
+		reset_listview(model, items);
+		//initTreeviewFilters(CURR_MODEL)
+
+	}
+}
+
+change_model_field = function(model, field, value){
+	var ids = {}
+	for(i=1;mainForm.listview.count;1){
+		if(mainForm.listview.getSelected(i)){
+			table.push(ids, mainForm.listview.getItemText(i, 1));
+		}
+	}
+
+	var str_ids = string.join(table.map(ids,function(v,k,result){
+		return tostring(v)
+	}), ",")
+
+	//console.log(str_ids, value)
+
+	var sql = "UPDATE ["+ model.tablename +"] SET "+ field +"=@value where id in (" + str_ids + ")";
+	var query = {}
+	query["value"] =  value;
+	//console.log("sql:"+sql);
+	var updated = false;
+	try{
+		var command = db.prepare(sql)
+		command.bind.parameterByName(value, "@value")      //给@value 绑定数据 value
+		var ret = command.step()
+		command.finalize();
+
+		//db.exec(sql, query);
+		//console.log("updated success!")
+		updated = true;
+		//return true; //这里try语句里的 return true 并不能真的返回值, 函数最后返回的是null
+	}
+	catch(e){
+		//console.varDump(e);
+		//console.log(tostring(e))
+		//return false;//这里try的catch语句里的 return false却可以真正使函数返回.函数最后返回的是false
+		updated = false;
+	}
+
+	load_model_data(model)
+
+}
+
+mainForm.listview.wndproc = function(hwnd,message,wParam,lParam){
+	//无返回值则继续调用默认回调函数
+	select( message ) {
+		case 0x101/*_WM_KEYUP*/ {
+			if(wParam ==  0x2E/*_VK_DELETE*/ ){
+				var iRow = mainForm.listview.getSelection();
+				menu_delete_item()
+
+				if(mainForm.listview.count>0){
+					if(mainForm.listview.count >= iRow){
+						mainForm.listview.setSelected(iRow)
+					}else {
+						mainForm.listview.setSelected(mainForm.listview.count)
+					}
+				}
+			}
+		}
+		/**
+		case 0x202/*_WM_LBUTTONUP*/{
+			var listview = ::NMLISTVIEW()
+			raw.convert(topointer(lParam), listview);
+
+			//得到选中的列
+			column = listview.iSubItem;
+			hdr = listview.hdr;
+
+			console.varDump(hdr);
+
+
+			//console.log("column",listview.iItem, listview.iSubItem) //, LOWORD(wParam))
+
+			if(hdr.code == 0xFFFFFEBA/*HDN_ENDTRACKW*/ || hdr.code == 0xFFFFFECE/*HDN_ENDTRACKA*/ ){
+			//	console.varDump(hdr);
+				console.log("column",listview.iItem, listview.iSubItem) //, LOWORD(wParam))
+				return true;
+			}
+		}
+		**/
+		case 0x4e/*_WM_NOTIFY*/{
+			//这个片段虽然是mainForm中的,但是居然会影响每个winform中的listview,
+			//导致点击左键,程序就崩溃
+			//原因找到了， 不能直接使用lv = ::NMLISTVIEW(); 使用了就崩溃了。
+			var lv = win.ui.ctrl.listview.NMLISTVIEW();
+			raw.convert(topointer(lParam), lv);
+			//console.varDump(lv)
+
+			//得到选中的列
+			column = lv.iSubItem;
+			hdr = lv.hdr
+
+
+
+			//console.varDump(hdr)
+
+			//console.log("column",listview.iItem, listview.iSubItem) //, LOWORD(wParam))
+
+			if(hdr.code == 0xFFFFFEBA/*HDN_ENDTRACKW*/ || hdr.code == 0xFFFFFECE/*HDN_ENDTRACKA*/ ){
+				console.varDump(lv);
+				console.varDump(hdr)
+				console.log("column",lv.iItem, lv.iSubItem , LOWORD(wParam), HIWORD(wParam))
+				var lvcol = mainForm.listview.getColumn(,lv.iItem)
+				console.varDump(lvcol)
+
+				console.log("lvcol.cx",lvcol.cx)
+
+				return false;
+			}
+			//return true;
+		}
+
+	}
+
+}
+
+mainForm.listview.onnotify = function(id,code,ptr){
+
+	select(code) {
+
+		/**
+case 0xFFFFFFFE/*_NM_CLICK*/ {
+			mainForm.msgbox("单击")
+		}
+
+		case  0xFFFFFFF4  {        // 调整列宽
+			lv = raw.convert( ptr, win.ui.ctrl.listview.NMLISTVIEW() );
+			console.varDump(lv)
+			console.varDump(lv.hdr)
+			console.varDump(lv.ptAction)
+			return true;
+		}
+	**/
+		case 0xFFFFFFFD/*_NM_DBLCLK*/ {
+			var x,y = mouse.getPos()
+			var iRow, iCol  = mainForm.listview.hitTest(x,y,true);
+			if(iRow){
+				mainForm.listview.setSelected(iRow);//利于后面的getSelection();
+				mainForm.lastListviewSelected = iRow;
+				menu_edit_item()
+			}
+		}
+		case 0xFFFFFFFB/*_NM_RCLICK*/ {
+			var x,y = mouse.getPos()
+			var iRow, iCol  = mainForm.listview.hitTest(x,y,true);
+			if(iRow){
+				mainForm.listview.setSelected(iRow);//利于后面的getSelection();
+				mainForm.lastListviewSelected = iRow;
+			}
+
+			var menu = win.ui.popmenu(mainForm)
+
+			menu.add("修改",
+				function(){
+					menu_edit_item()
+				}
+			);
+
+			var model = CURR_MODEL;
+			var filter_fields = model.filter_fields
+
+			var filter_menus = {}
+
+
+
+			for(i=1;#filter_fields;1){
+				var item = {}
+
+				var k = filter_fields[i]
+				var caption = model.headers[k]
+
+				table.push(item, string.format("更改选中项的%s为", caption))
+				var sql = string.format("select distinct %s from %s", k, model.tablename)
+				var items = model.getTable(sql)
+
+				//console.varDump(items)
+
+				var data = {}
+				for(i=1;#items;1){
+					//console.log("items[i][k]", items[i][k]);
+					var x = {
+						tostring(items[i][k]); //tostring() 避免 USTRING ERROR
+						function(id){
+							//mainForm.msgbox(tostring(items[i][k]))
+							change_model_field(model, k, items[i][k]);
+						}
+					}
+					//console.log("       console.varDump(x)")
+					//console.varDump(x)
+					table.push(data, x)
+				}
+
+				if(#data){
+					//console.log("console.varDump(data)")
+					//console.varDump(data)
+					table.push(item, data)
+				}else {
+					continue;
+				}
+
+				//console.log("continue;")
+
+				//console.varDump(item)
+				table.push(filter_menus, item)
+			}
+
+			//console.varDump(filter_menus)
+			if(#filter_menus){
+				menu.addTable(
+					//{filter_menus}
+					filter_menus
+				)
+			}
+
+			menu.add({});
+
+			menu.add("全选 Ctrl+A",
+				function(){
+					for(i=1;mainForm.listview.count;1){
+						mainForm.listview.setSelected(i)
+					}
+				}
+			);
+
+			menu.add("反选",
+				function(){
+					for(i=1;mainForm.listview.count;1){
+						var status = mainForm.listview.getSelected(i);
+						mainForm.listview.setSelected(i,!status);
+					}
+				}
+			);
+
+			menu.add("采购选中商品",
+				function(){
+					var items = {}
+					//console.log(mainForm.listview.columnCount)
+					var ids = {}
+					for(i=1;mainForm.listview.count;1){
+						if(mainForm.listview.getSelected(i)){
+							table.push(ids, mainForm.listview.getItemText(i,1)); //每一行的第1列就是goods_id
+						}
+					}
+					if(#ids){
+						var TABLE_NAME = model.tablename;
+						var sql = "SELECT * FROM [" ++ TABLE_NAME ++ "] where id in (" + string.join(ids, ", ") + ")"
+						items = model.getTable(sql);
+						menu_goods_purchase(items);
+					}
+				}
+			);
+
+
+
+			menu.add("导出选中项数据",
+				function(){
+					var items = {}
+					//console.log(mainForm.listview.columnCount)
+					var ids = {}
+					for(i=1;mainForm.listview.count;1){
+
+						if(mainForm.listview.getSelected(i)){
+							table.push(ids, mainForm.listview.getItemText(i,1)); //每一行的第1列就是id
+						}
+					}
+					if(#ids){
+						var TABLE_NAME = model.tablename;
+						var sql = "SELECT * FROM [" ++ TABLE_NAME ++ "] where id in (" + string.join(ids, ", ") + ")"
+						items = model.getTable(sql);
+						export_model(model, items);
+					}
+
+				}
+			);
+
+			menu.add({});
+
+			menu.add("删除",
+				function(){
+					menu_delete_item();
+				}
+			);
+			menu.popup(x,y,true);
+		}
+
+
+		//case _lvn_
+		/*
+case _hdn_
+		HD_NOTIFY* pHDN = (HD_NOTIFY*)lParam;
+		switch(((NMHDR*)lParam)->code)
+		{
+		HDN_ENDTRACKW
+
+		case HDN_BEGINTRACKW:
+		case HDN_BEGINTRACKA:
+		case HDN_DIVIDERDBLCLICKA:
+		case HDN_DIVIDERDBLCLICKW:
+			for(int i=0; i<len; i++)
+			{
+				if(pHDN->iItem == m_vFrozenCols[i]) //如果拖动的列是设定固定列宽的列之一
+				{
+					*pResult = TRUE;
+					return TRUE;
+				}
+			}
+		}
+*/
+
+		case !=0 {
+		}
+		else {
+		}
+	}
+}
+
+menu_goods_add = function(){
+	var data = {};
+	var field_names = sqlitemodel.Model.get_field_names(modGoods.sql,true); //要包含id
+	//
+	//console.varDump(field_names)
+	//
+
+	//for(i=1;#field_names;1){
+	//	console.varDump(field_names[i])
+	//}
+
+
+
+	var iRow = mainForm.listview.getSelection(); //选中的行
+	if(!iRow){
+		mainForm.msgbox("请选中一项再操作")
+		return
+		form_caption = "添加数据"
+		btn_text = "添加"
+	}else {
+		//var id = mainForm.listview.getItemText(3, 1)//第三行, 第一列的数据
+		var id = mainForm.listview.getItemText(iRow, 1)
+		var query = {}
+		query["id"] = id
+		data = modGoods.get(query)
+
+		form_caption = "修改数据"
+		btn_text = "保存"
+
+	}
+
+	var frmChild = mainForm.loadForm("\dlg\model_form.aardio");
+
+	var frmChild_width = 0
+	var COLS_PADDING = 5 //列与列之间的间隔， 每列由一个标签和一个文本框组成
+	var ROWS_PER_COL = 15;
+	var LABEL_WIDTH = 84;
+	var EDIT_WIDTH = 320; // 420;
+
+	var ROW_WIDTH =  EDIT_WIDTH + COLS_PADDING*2;
+
+	var LABEL_HEIGHT = 20;
+	var EDIT_HEIGHT = 20;
+
+	var ROW_HEIGHT = LABEL_HEIGHT + EDIT_HEIGHT + 5;
+
+	frmChild.width = COLS_PADDING*2 + (math.floor((#field_names-1) / ROWS_PER_COL)+1) * ROW_WIDTH;
+
+	for(i=1;#field_names;1){
+
+		var k     = field_names[i]["name"]
+		var label = field_names[i]["label"]
+		var value = ""
+
+		if(data[k]!=null){
+			value = tostring(data[k])
+		}
+
+		//
+		//log(k++":"++label)
+		//
+
+		var ctrl = frmChild["edit_"+k]
+		if(ctrl!=null){
+			ctrl.text = value
+		}else {
+
+			var staticLeft = COLS_PADDING + math.floor((i - 1) / ROWS_PER_COL) * ROW_WIDTH; //每一列的left是相同的。
+			var staticTop =  13 + 22 * (i - (math.floor((i - 1) / ROWS_PER_COL) * ROWS_PER_COL + 1));
+			//console.log(staticLeft,", ", staticTop)
+
+
+			frmChild.add(
+				["static_" + k ] = {
+					//border=1;
+					cls="static"; text=label; notify=1; dl=1;dt=1;font=LOGFONT( name='宋体' );bottom=staticTop + LABEL_HEIGHT;right=staticLeft+LABEL_WIDTH;left=staticLeft;top=staticTop;z=1;
+				};
+			)
+
+			if(k=="id" or k=="taxno" or k=="created" or k=="updated"){
+				frmChild.add(
+					["edit_" + k ] = {
+						cls="edit"; text=value; disabled=1;notify=1; dl=1;dt=1;font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+					};
+				)
+			}else {
+				frmChild.add(
+					["edit_" + k ] = {
+						cls="edit"; text=value; tabstop=i; notify=1; dl=1;dt=1;font=LOGFONT(name='Consolas');bottom=staticTop+EDIT_HEIGHT;right=staticLeft + EDIT_WIDTH;left=staticLeft+LABEL_WIDTH + COLS_PADDING;top=staticTop;z=1;
+					};
+				)
+			}
+
+
+
+
+			//
+			//log("ctrl edit_" + k + " 不存在!创建一个")
+			//
+		}
+	}
+
+	frmChild.text = form_caption
+	frmChild.button.text = btn_text
+
+	frmChild.show();
+}
+
+
+
+menu_goods_purchase = function(items){
+
+	var frmChild,wb = mainForm.loadForm("\dlg\goods_purchase.aardio");
+
+	var user_define_fields = {"id"; "goods_id"; "name"; "specs"; "unit";  };
+	frmChild.user_define_fields = user_define_fields;
+
+	for(i=1;#items;1){
+		items[i]["goods_id"] = items[i]["id"];
+		items[i]["id"] = "";
+	}
+
+	if(items and #items>0){
+		frmChild.reset_listview(modGoods, items, user_define_fields)
+	}
+	frmChild.doModal();
+}
+
+
+menu_goods_purchase_history = function(items){
+
+	var frmChild,wb = mainForm.loadForm("\dlg\goods_purchase_history.aardio");
+	frmChild.doModal();
+}
+
+
+menu_goods_sell = function(items){
+
+	var frmChild, wb = mainForm.loadForm("\dlg\goods_sell.aardio");
+	if(items and #items>0){
+		var user_define_fields = {"id"; "name"; "specs"; "unit"}
+		frmChild.reset_listview(modGoods, items, user_define_fields)
+	}
+	frmChild.doModal();
+
+}
+
+
+
+mainForm.button.oncommand = function(id,event){
+	var query={}
+	var items_perpage = tonumber(mainForm.comboItemsPerpage.text);
+	query["ITEMS_PERPAGE"] = items_perpage;
+	query["keyword"] = string.trim(mainForm.edit.text);
+	CURR_QUERY = query;
+	CURR_MODEL = modGoods;
+	load_model_data(CURR_MODEL, CURR_QUERY);
+	//mainForm.listview.setSelected(1);
+	//mainForm.listview.setFocus();
+}
+
+mainForm.btnRefresh.oncommand = function(id,event){
+	load_model_data(mainForm.model);
+}
+
+restoreListviewPos = function(){
+	 if(mainForm.lastListviewSelected){
+		mainForm.listview.setFocus();
+		mainForm.listview.setSelected(mainForm.lastListviewSelected);
+		if(mainForm.lastListviewSelected+8<mainForm.listview.count){
+			if(mainForm.lastListviewSelected>25){
+				mainForm.listview.ensureVisible(mainForm.lastListviewSelected+8);
+			}else {
+				mainForm.listview.ensureVisible(mainForm.lastListviewSelected);
+			}
+		}else {
+			mainForm.listview.ensureVisible(mainForm.listview.count);
+		}
+	}
+}
+
+mainForm.button7.oncommand = function(id,event){
+
+
+	var frmChild = mainForm.loadForm("\dlg\select_fields.aardio");
+	//var field_names = sqlitemodel.Model.get_field_names(modGoods.sql, true)
+	var field_names = modGoods.field_names;
+	for(i=1;#field_names;1){
+		frmChild.checklist.addItem(field_names[i]["label"])
+	}
+
+	var reservedTopN = 7
+	for(i=1;reservedTopN;1){
+		frmChild.listbox.add(frmChild.checklist.getItemText(i));
+
+	}
+	for(i=1;reservedTopN;1){
+		frmChild.checklist.delItem(reservedTopN+1-i);
+	}
+
+
+	selected_labels = frmChild.doModal(mainForm);
+
+	var selected_fields = {}
+	for(i=1;#selected_labels;1){
+		for(j=1;#field_names;1){
+			if(selected_labels[i] == field_names[j]["label"]){
+				table.push(selected_fields, field_names[j]["name"])
+			}
+		}
+	}
+
+	//修改全局变量
+	if(#selected_fields){
+		CURR_QUERY = {};
+
+		modGoods.display_fields = selected_fields;
+		CURR_MODEL = modGoods;
+
+		load_model_data(CURR_MODEL, CURR_QUERY);
+	}
+
+
+}
+
+config_setting = function(id,event){
+
+
+	var frmChild = mainForm.loadForm("\dlg\settings.aardio");
+
+	var x = frmChild.doModal(mainForm);
+
+
+}
+
+
+init=function(){
+	//初始化
+	var model = modGoods;
+	var headers = {};
+	var header_cols = {};
+	var required_cols = {};
+
+	for(k,v in model.field_names){
+		//field_names有id
+		headers[v.name]=v.label
+	}
+
+	headers["id"]="ID"
+
+	//数据导入用, 根据optional_headers(即数据库的字段)重新初始化header_cols
+	for(k,v in headers){
+		//标题位于第几列(第1列是A列,第2列是B列...), 初始化默认设置为0列(默认不正常,正常的列应该从1开始).
+		header_cols[k]=0;
+	}
+	header_cols["id"]=null; //导入的时候剔除 id 字段
+	required_cols["id"]=null; //导入的时候剔除 id 字段
+
+
+	win.ui.statusbar( mainForm ).addItem("公司:", 100/*宽度*/)
+
+	mainForm.statusbar.addItem("数据库:"+io.fullpath(dbpath), 500);
+	mainForm.text = mainForm.text ++ " - 商品管理"
+
+	/*
+	SELECT column-list
+	FROM table_name
+	WHERE [ conditions ]
+	GROUP BY column1, column2....columnN
+	ORDER BY column1, column2....columnN
+	*/
+
+	for(i=1;#model.display_fields;1){
+		var caption = headers[model.display_fields[i]]
+		mainForm.listview.insertColumn(caption, 60);
+	}
+
+
+	mainForm.listview.setColumn({cx=40},1)
+	mainForm.listview.setColumn({cx=160},2)
+	mainForm.listview.setColumn({cx=320},3)
+	mainForm.listview.setColumn({cx=80},4)
+	mainForm.listview.setColumn({cx=140},5)
+	mainForm.listview.setColumn({cx=140},6)
+	mainForm.listview.setColumn({cx=140},7)
+	mainForm.listview.setColumn({cx=140},8)
+	mainForm.listview.setColumn({cx=140},9)
+
+
+	initTreeviewFilters(model);
+	load_model_data(model);
+
+	mainForm.edit.setFocus();
+
+}
+
+
+mainForm.btnNext.oncommand = function(id,event){
+
+	var model = CURR_MODEL;
+	var query = CURR_QUERY;
+
+	var curr_page = mainForm.comboCurrPage.text
+	var pages = table.map(mainForm.comboCurrPage.items,function(v,k,result){
+		return tonumber(v);
+	})
+	var min, max = table.range(pages)
+	var next_page = tonumber(curr_page) + 1;
+	if(next_page>max){
+		next_page = max
+	}
+
+	query["CURR_PAGE"] = next_page;
+	var items = {}
+	select(query["QUERY_MODE"]) {
+		case "FILTER" {
+			items = model.filter(query);
+		}
+		case "SEARCH" {
+			items = model.search(query);
+		}
+		else {
+
+		}
+	}
+
+	reset_listview(model, items)
+
+	log(table.tostring(query))
+}
+
+mainForm.btnPrev.oncommand = function(id,event){
+	var curr_page = mainForm.comboCurrPage.text
+	var prev_page = tonumber(curr_page) - 1;
+	if(prev_page<0){
+		prev_page = 0
+	}
+	var model = CURR_MODEL;
+	var query = CURR_QUERY;
+	query["CURR_PAGE"] = prev_page
+	var items = {}
+	select(query["QUERY_MODE"]) {
+		case "FILTER" {
+			items = model.filter(query);
+		}
+		case "SEARCH" {
+			items = model.search(query);
+		}
+		else {
+
+		}
+	}
+
+	reset_listview(model, items)
+
+	log(table.tostring(query))
+}
+
+mainForm.btnGotoNPage.oncommand = function(id,event){
+	var curr_page = mainForm.comboCurrPage.text
+	var model = CURR_MODEL;
+	var query = CURR_QUERY;
+	query["CURR_PAGE"] = tonumber(curr_page)
+	var items = {}
+	select(query["QUERY_MODE"]) {
+		case "FILTER" {
+			items = model.filter(query);
+		}
+		case "SEARCH" {
+			items = model.search(query);
+		}
+		else {
+
+		}
+	}
+
+	reset_listview(modGoods, items)
+
+	log(table.tostring(query))
+}
+
+mainForm.onMouseClick = function(wParam,lParam){
+	var x,y = win.getMessagePos(lParam);
+	mainForm.comboItemsPerpage.setFocus(false);
+	mainForm.edit.setFocus();
+}
+
+mainForm.comboItemsPerpage.oncommand = function(id,event){
+	if(event = 4/*_CBN_KILLFOCUS*/){
+		var n = LAST_ITEMS_PERPAGE;
+
+		try{
+			n = tonumber(mainForm.comboItemsPerpage.text)
+			if(n != LAST_ITEMS_PERPAGE){
+				var model = CURR_MODEL;
+				var query = CURR_QUERY;
+
+				query["CURR_PAGE"] = 1;
+				query["ITEMS_PERPAGE"] = n;
+				var items = {}
+				select(query["QUERY_MODE"]) {
+					case "FILTER" {
+						items = model.filter(query);
+					}
+					case "SEARCH" {
+						items = model.search(query);
+					}
+					else {
+
+					}
+				}
+
+				reset_listview(model, items)
+
+				log(table.tostring(query))
+				LAST_ITEMS_PERPAGE = n;
+			}
+		}
+		catch(e){
+			log(tostring(e))
+		}
+
+	}
+}
+
+mainForm.edit.translateAccelerator = function( msg ){
+   //edit搜索框回车键，相当于点击“搜索”按钮
+   if( msg.wParam == 0xD/*_VK_ENTER*/ ){
+		if( msg.message == 0x101/*_WM_KEYUP*/ ){
+			 mainForm.button.oncommand()
+		}
+		return true;
+	}
+}
+
+mainForm.edit.oncommand = function(id,event){
+	if(event=0x300/*_EN_CHANGE*/){
+		mainForm.button.oncommand();
+	}
+}
+
+init()
+
+mainForm.enableDpiScaling();
+//mainForm.show(3/*_SW_MAXIMIZE*/);
+mainForm.show();
+return win.loopMessage();

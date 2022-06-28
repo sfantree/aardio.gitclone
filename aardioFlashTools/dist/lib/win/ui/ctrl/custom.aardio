@@ -1,0 +1,159 @@
+//custom 自定义控件演示
+namespace win.ui.ctrl; 
+class custom { 
+	ctor(parent,tParam){
+		if(tParam.bkImage || (tParam.repeat == "stretch")){ 
+			tParam.image = tParam.bkImage;
+			
+			if(!tParam.repeat || !tParam.bkImage ){ 
+				..table.mix(tParam,{
+					bkTop = 0;
+					bkLeft = 0;
+					bkRight = 0;
+					bkBottom = 0;
+				})
+			}
+		}
+		
+		this = ..win._form(border="none";exmode="none";mode="child";parent=parent;
+			left=tParam.left;top=tParam.top;right=tParam.right;bottom=tParam.bottom;tParam=tParam);
+	}
+	loadForm = loadForm;
+	showChildren = showChildren;
+	preTranslateAccelerator = function(msg){
+		if( owner.parent[["preTranslateAccelerator"]] ) return owner.parent.preTranslateAccelerator(msg);
+	};
+	_afterDpiChanged = function(scaleX,scaleY){
+		for(i,frm in this._forms){
+			frm.enableDpiScaling(scaleX,scaleY) 
+		} 
+	}; 
+	/*
+	onCreate = function(){
+		//创建窗口后触发此函数 
+	} 
+	onCreated = function(){
+		//窗口初始化属性设置完成后触发此函数
+	}
+	_onDestroy = function(){ 
+		//销毁窗口前触发此函数  
+	}
+	*/
+}
+
+namespace custom {
+
+	showChildren = function(f){
+		for(i,form in owner._forms){
+			form.show(f)
+		}
+		owner.selForm = null;
+	};
+	
+	loadForm = function( code, ... ){
+		var this = owner;
+		if( ! this._adjust ){
+			this._adjust = function(){ 
+				var rc = this.getClientRect();
+				for(i,form in this._forms){
+					form.setRect(rc);
+					form.invalidate();
+				}
+			} 
+			this.onMoveForm = function(){
+				for(i,form in this._forms){
+					form.onMoveForm();
+				}	
+			};
+			this.onEraseBkgnd  = function() if(this.selForm)return 0;
+		} 
+		if( !this._forms ){ this._forms = {}; };
+		
+		if( type(code) == type.table ){
+			
+			if( code[["hwnd"]] ){
+				..win.setParent(code[["hwnd"]],owner.hwnd);
+				..win.modifyStyle(code[["hwnd"]],0x80840000/*_WS_POPUP  |_WS_BORDER  |_WS_TILED  | _WS_SIZEBOX*/,0x40000000/*_WS_CHILD*/);
+				
+				..table.push( this._forms,code ); 
+    		
+    			code.setRect(this.getClientRect());
+    			code.invalidate(); 
+    			
+    			return code;
+			} 
+			
+			var tParam = code;
+    		tParam.parent = owner ;
+    		tParam.mode="child";
+    		tParam.exmode="none";
+    		tParam.border="none"
+    		tParam.title=false;
+    		
+    		var form,wb = ..win.form(tParam);
+    		if(!form) return;
+    		
+    		form._beforeShowWindowInCustom = function(shown,status){
+    			if(shown){
+    				for(i,f in this._forms){ if(f!=form) f.show(false); }
+    				this.selForm = form;
+    			} 
+    			elseif(this.selForm == form) {
+    				this.selForm = null;
+    			}
+    		} 
+    		form._onDestroyInTabs = function(){
+    			..table.removeByValue(this._forms,form);
+    		}
+    		
+    		..table.push( this._forms,form );  
+			form.setRect(this.getClientRect());
+    		form.invalidate(); 
+    		
+    		return form,wb;
+		};
+		
+		var frmCreated;
+		var form,wb =  ..win.loadForm(code,function(tParam){
+    		tParam.parent = this ;
+    		tParam.mode="child";
+    		tParam.exmode="none";
+    		tParam.border="none";
+    		tParam.title=false;   
+    		
+    		var form = ..win.form(tParam);
+    		if(frmCreated===null) frmCreated = form;
+    		
+    		if(form){
+    			form._beforeShowWindowInCustom = function(shown,status){
+    				if(shown){
+    					for(i,f in this._forms){ if(f!=form) f.show(false); }
+    					this.selForm = form;
+    				}
+    				elseif(this.selForm == form) {
+    					this.selForm = null;
+    				}
+    			} 
+    			form._onDestroyInTabs = function(){
+    				..table.removeByValue(this._forms,form);
+    			}
+    			
+    			..table.push( this._forms,form ); 
+    		}
+    		return form;							
+		},this,...);
+		
+		if( form === null ) form = frmCreated; 
+		if( form ) { 
+			form.setRect(this.getClientRect());
+	    	form.invalidate(); 
+    	}
+		
+		return form,wb;
+    };
+}
+
+/*intellisense(win.ui.ctrl)
+custom = 自定义控件演示类
+custom() = !winform.
+end intellisense*/

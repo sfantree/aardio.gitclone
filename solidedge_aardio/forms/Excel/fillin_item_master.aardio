@@ -1,0 +1,161 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="专用号填入itemmaster";right=759;bottom=469)
+winform.add(
+button={cls="button";text="填入";left=552;top=368;right=752;bottom=408;z=1};
+combobox2={cls="combobox";left=136;top=40;right=728;bottom=64;edge=1;items={};mode="dropdownlist";z=3};
+edit={cls="edit";left=0;top=416;right=760;bottom=472;autohscroll=false;aw=1;db=1;dl=1;dr=1;edge=1;multiline=1;vscroll=1;z=4};
+listview={cls="listview";left=0;top=120;right=760;bottom=360;edge=1;fullRow=1;gridLines=1;msel=false;z=2}
+)
+/*}}*/
+
+import tarray;
+import com.excel;
+
+import config;
+
+//	import console
+//	console.open()
+var fileTab = {
+	[1] = {"名称" = "service counter"; workbook = "Service Counter Item_Master.xlsx"; sheet = "part list"};
+	[2] = {"名称" = "Monaxis"; workbook = "Monaxis_Item_Master.xlsx"; sheet = "part list"};
+	[3] = {"名称" = "Monaxis A"; workbook = "Monaxis_EP_Item_Master.xlsx"; sheet = "part list"};
+	fields = { [1] = "名称"; [2] = "workbook"; [3]="sheet" };
+}
+winform.listview.setTable(fileTab);
+
+winform.bindConfig( config.itemMasterAppendNew,{	//绑定控件值, 在setTable之后, 否则失效
+    listview = "selIndex"
+} );
+
+
+var excel = com.excel(false);
+if !excel.ActiveWorkbook win.msgbox("excel存在未完全退出的进程,需要手动处理");
+
+import string.keywords;
+
+for (i=1; excel.WorkBooks.Count) {
+	var wbname = excel.WorkBooks(i).Name;
+	if string.keywords('新增--专用号申请|图纸明细|图纸下发').findOne(wbname)
+		winform.combobox2.add(wbname);
+}
+	
+if winform.combobox2.count {
+	var findActiveWB = table.indexOf(winform.combobox2.items, excel.ActiveWorkbook.Name)
+	winform.combobox2.selIndex = findActiveWB ? findActiveWB : 1;
+}
+winform.button.oncommand = function(id,event){
+	if !#winform.listview.selected return ; 
+	if !#winform.combobox2.selText return ; 
+	config.itemMasterAppendNew.save();
+	/*getTabFromRange{{*/
+	var getTabFromRange = function(range){
+    	var eArr = range.value2;
+		var fields = table.shift(eArr);
+		eArr.fields = fields
+		return eArr; 	
+	}
+	/*}}*/
+	var itemMaster = excel.WorkBooks(
+			winform.listview.getItemText(winform.listview.selIndex, 2)
+		).Sheets(
+			winform.listview.getItemText(winform.listview.selIndex, 3)
+		);
+	itemMaster.AutoFilterMode = false;
+	itemMaster.ListObjects("表1").AutoFilter.ShowAllData();
+
+	var itemCount = itemMaster.usedRange.rows.count;
+	var etab = getTabFromRange(itemMaster.range("A2:E" ++ itemCount));
+
+	if string.startWith(winform.combobox2.selText, "新增") {
+		var sht = excel.WorkBooks(winform.combobox2.text).sheets("申请表");
+		var isThisShtMatch = function(){
+			if !sht.Columns("A:A").find("4.基本计量:后附") return false;
+			if !sht.Rows("2:2").find("产品大类") return false;
+		}
+		if !isThisShtMatch return;
+
+		var etr = function(){
+			for (i=sht.range("A:A").find("4.基本计量:后附").row-4; 3; -1){
+				if (sht.cells(i,"F").value2) return i;
+			}
+		}
+		var otab = getTabFromRange(sht.Range("$E$2:$K$" ++ etr()));
+	
+
+		var tarTab = {};
+		for (i=1; #otab){
+			if tarray.indexOfCol(etab, otab[i][1],1) {
+				winform.edit.print(i,otab[i][1],"专用号存在了");
+				continue;
+			}
+			table.push(tarTab, {
+				otab[i][1];
+				otab[i][2];
+				otab[i][4];
+				otab[i][6];
+				otab[i][7] == "配置" ? "配置" : "";
+			})
+		}
+		if #tarTab {
+			var tar_b = itemCount + 1;
+			var tar_e = tar_b + #tarTab -1;
+			itemMaster.Range(tar_b ++ ":" ++ tar_e).EntireRow.insert();
+			tarRng = itemMaster.range("A" ++ tar_b ++ ":E" ++ tar_e);
+			
+			tarRng.value2 = tarTab;
+		}
+		winform.edit.print("专用号导入完成");
+	}
+	elseif string.keywords('图纸明细|图纸下发').findOne(winform.combobox2.selText) {
+
+		var sht = excel.WorkBooks(winform.combobox2.text).sheets("下发台账模板");
+		var range_str = (sht.cells(6,"N").value2) == "团队" ? "$B$6:$R$" : "$A$1:$N$";
+		//如果删除首列会无法正确识别
+		var otab = getTabFromRange(sht.Range(range_str ++ table.pop(string.split(sht.usedrange.address(),"$"))))
+
+		otab = tarray.mapfields(otab);
+		
+		var vc = {
+			["00"] = "U";
+			["01"] = "V";
+			["02"] = "W";
+			["03"] = "X";
+			["04"] = "U";
+			["05"] = "V";
+			["06"] = "W";
+			["07"] = "X";
+		}
+		
+		for(i=1; #otab){
+			
+    		if !#otab[i].物料号码 continue;
+    		var dr = itemMaster.columns("A").find(otab[i].物料号码);
+    		if !dr {
+				winform.edit.print(i, otab[i].物料号码, "在ItemMaster内找不到");
+				continue;
+    		}
+    		//else winform.edit.print(i, otab[i].物料号码);
+    		var r =	dr.row;
+
+    		itemMaster.cells(r,"R").value2 = otab[i].图纸号;
+
+    		if !#otab[i].图纸版次 otab[i].图纸版次 = "00";
+    		if !#itemMaster.cells(r,"S").value2 or tonumber(itemMaster.cells(r,"S").value2) < tonumber(otab[i].图纸版次)
+    			itemMaster.cells(r,"S").value2 = otab[i].图纸版次;    		
+    		itemMaster.cells(r,vc[otab[i].图纸版次]).value2 = string.replace(otab[i].图纸下发时间,"@.","/");
+		}
+		winform.edit.print("图纸明细导入完成");
+	}
+	
+	//console.dumpTable(tarTab)
+	//console.pause(true);
+	//winform.close();
+}
+winform.onDestroy = function(){
+   	if excel excel.alerts = true;    //防止意外关闭后Excel假死
+}
+winform.show();
+
+win.loopMessage();
+return winform;

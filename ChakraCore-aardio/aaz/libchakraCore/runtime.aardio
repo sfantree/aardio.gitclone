@@ -1,0 +1,85 @@
+﻿import util.metaProperty;
+
+var _dll = aaz.libchakraCore._dll;
+
+namespace aaz.libchakraCore;
+class runtime{
+	ctor(handle){
+		if(!handle) return ;
+		this.handle = handle;
+	}
+	
+	@_metaProperty;
+}
+namespace runtime{	
+	_properties = {
+		_topointer = function(){
+			return owner.handle; 
+		}
+		
+		memoryUsage = {
+			_get = function(){
+				var memoryUsage = {INT value};
+				_dll.JsGetRuntimeMemoryUsage(owner.handle, memoryUsage);
+				return memoryUsage.value;  
+			}
+		}
+		
+		memoryLimit = {
+			_get = function(){
+				var memoryLimit = {INT value};
+				_dll.JsGetRuntimeMemoryLimit(owner.handle, memoryLimit);
+				return memoryLimit.value;  
+			}
+			
+			_set = function(v){
+				_dll.JsSetRuntimeMemoryLimit(owner.handle, v);
+			}
+		}
+		
+		executionDisabled = {
+			_get = function(){
+				var disabled = {bool value};
+				_dll.JsIsRuntimeExecutionDisabled(owner.handle, disabled);
+				return disabled.value;  
+			}
+			
+			_set = function(v){
+				if(v){
+					_dll.JsEnableRuntimeExecution(owner.handle);
+				}
+				else {
+					_dll.JsDisableRuntimeExecution(owner.handle);
+				}	
+			}
+		}
+		
+		dispose = function(){
+			if(owner.handle){
+				_dll.JsDisposeRuntime(owner.handle);
+				owner.handle = null;
+			}	
+		}
+		
+		collectGarbage = function(){
+			_dll.JsCollectGarbage(owner.handle);
+		}
+		
+		setMemoryAllocationCallback = function(callbackState, allocationCallback){
+			_dll.JsSetRuntimeMemoryAllocationCallback(owner.handle, callbackState, allocationCallback);
+		}
+		
+		setBeforeCollectCallback = function(callbackState, beforeCollectCallback){
+			_dll.JsSetRuntimeBeforeCollectCallback(owner.handle, callbackState, beforeCollectCallback);
+		}
+		
+		createContext = function(){
+			var context = {ptr value};
+			_dll.JsCreateContext(owner.handle, context);
+			return ..aaz.libchakraCore.context(context.value);
+		}
+	}
+	
+	_metaProperty = ..util.metaProperty(_properties);
+}
+

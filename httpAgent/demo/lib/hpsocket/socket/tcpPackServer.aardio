@@ -1,0 +1,20 @@
+﻿import hpsocket.socket.tcpServer;
+namespace hpsocket.socket;
+
+class tcpPackServer{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpServer(obj);
+	};
+	getMaxPackSize = function(){
+		return ::HPSocket.HP_TcpPackServer_GetMaxPackSize(this.pSocket);
+	}
+	setMaxPackSize = function(size){
+		::HPSocket.HP_TcpPackServer_SetMaxPackSize(this.pSocket,size);
+	}
+	getPackHeaderFlag = function(){
+		return 0xFFFF & ::HPSocket.HP_TcpPackServer_GetPackHeaderFlag(this.pSocket);
+	}
+	setPackHeaderFlag = function(flag){
+		::HPSocket.HP_TcpPackServer_SetPackHeaderFlag(this.pSocket,flag);
+	}
+}

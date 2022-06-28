@@ -1,0 +1,45 @@
+﻿var _dll = aaz.libchakraCore._dll;
+
+namespace aaz.libchakraCore.value;
+class object{
+	ctor(){
+	
+	}
+}
+namespace object{
+	getPropertyIdFromName = function(name){
+		var id = {ptr value};
+		_dll.JsGetPropertyIdFromName(name, id);
+		return ..aaz.libchakraCore.value(id.value); 
+	}
+	
+	getPropertyNameFromId = function(id){
+		var name = {ustring value};
+		_dll.JsGetPropertyNameFromId(id, name);
+		return name.value; 
+	}
+	
+    _meta = {
+        __get = function(k){
+        	var tt = type(k);
+        	if(tt == type.number){
+        		
+        	}
+        	elseif(tt == type.string){
+        		var id = getPropertyIdFromName(k);
+        		if(owner.hasProperty(id)){
+        			return owner.getProperty(id);
+        		}
+        	}
+        }
+        
+        __set = function(k, v){
+        	var tt = type(k);
+        	if(tt == type.number){
+        	}
+        	elseif(tt == type.string){
+        		var id = getPropertyIdFromName(string);	
+        	}
+        }
+    }	
+}

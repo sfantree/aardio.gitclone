@@ -1,0 +1,195 @@
+﻿
+//dataGrid 列表视图编辑框
+import win.ui.menu;//导入的是D:\aardio\lib\win\ui路径下的menu.aardio文件，不是menu类或名字空间
+///import win.ui.popmenu;//无法导入，因为没有popmenu.aardio文件
+import win.ui.ctrl.edit;
+//import win.ui.ctrl.metaProperty;
+
+namespace yybCtrl;
+
+class dataGrid{
+	ctor(listview) {
+		this = listview; 
+		this.fullRow = 1;
+		this.gridLines = 1;
+		this.readonlyColums = {};		
+		this.addCtrl(
+            editBox = { 
+                cls="edit";font = LOGFONT( h = 12 );left = 0;top = 0;
+                right = 50;bottom = 50;autoResize = false ;hide = 1;edge = 1;
+                wndproc = function( hwnd, message, wParam, lParam ){
+                    var update;
+                    var event = owner.event;
+                    
+                    if( ( message = 0x8/*_WM_KILLFOCUS*/)  || (message == 0x101/*_WM_KEYUP*/ && wParam == 0xD/*_VK_RETURN*/ ) ) {
+                        update = true;
+                    }
+                    elseif(message == 0x201/*_WM_LBUTTONDOWN*/ ){
+                        var x,y = ..win.getMessagePos(lParam)
+                        var rc = this.editBox.getClientRect();
+                       
+                        if( ! ::PtInRect(rc,x,y) ) update = true;
+                        this.editBox.capture = !update;
+                    } 
+                    elseif(message == 0x101/*_WM_KEYUP*/){
+                    	if( wParam == 0xD/*_VK_RETURN*/ ) update = true;
+                    	elseif( wParam == 0x1B/*_VK_ESC*/){
+                    		owner.text = this.getItemText(event.iItem,event.iSubItem );
+                    		update = true;
+                    	}
+                    }
+                    
+                    if( update ){
+                    	owner.show(false);
+                        var t = this.getItemText(event.iItem,event.iSubItem );
+                        if( t!= owner.text ){
+                        	if( this.onEditChanged ) {
+	                        		if( false === this.onEditChanged(owner.text, event.iItem, event.iSubItem)) 
+	                        			return;
+                        	}
+                        		
+                        	this.setItemText( owner.text, event.iItem, event.iSubItem );
+                        }
+                    }
+                }  
+            }
+        )
+        
+        var beginEdit = function(){		
+				var edit = this.editBox;
+       			if( ..win.isVisible(edit.hwnd) ) return; 
+       			if( this.readonlyColums[edit.event.iSubItem] ) return; 
+       			
+        		var event = this.editBox.event;
+        		edit.text=this.getItemText(event.iItem,event.iSubItem);
+        		var rc=this.getItemRect( event.iItem,event.iSubItem,,2/*_LVIR_LABEL*/ );
+        		
+        		rc.inflate(2,2);
+        		edit.setRect(rc);
+        		edit.show(); 
+        		edit.setFocus();
+        		edit.capture = true;
+        		return true;	
+			};	
+        
+		var popmenu = ..win.ui.popmenu(this.parent);//this.parent即listview所在的winform
+		//声明一个私有函数，只在类内使用
+		var itemRevise = function(option,pos){//修改对应的Items表
+				var tabItems = this.items;
+				select(option){
+					case 1 {//新增行
+						..table.push(tabItems,{#tabItems+1});
+					}			
+					case 2 {//插入行
+						..table.insert(tabItems,{pos},pos);
+						for(i=pos+1;#tabItems;1){ tabItems[i][1] = i }
+					}
+					case 3 {//删除行
+						..table.remove(tabItems,pos);
+						if(pos<=#tabItems){
+							for(i=pos;#tabItems;1){ tabItems[i][1] = i };
+						}
+						else{ pos = #tabItems}
+					}
+				}
+				this.items = tabItems;
+				this.setSelected(pos);
+				this.selIndex=pos;
+				this.ensureVisible(pos);//保证显示选中项，滚动条随着选中项滚动
+			}; 
+
+	};
+
+/////////////用于首列为No.序号列时的函数操作///////////////////////////
+	dtSetColumns = function(fields){//增加No.表头为第1列
+		if (#fields) { ..table.insert(fields, "No.") };
+		this.setColumns(fields);		
+	};		
+	
+	dtSetItems = function(items){//为输入的表项增加序号列
+		for (i=1;#items;1) { ..table.insert(items[i],i) };
+		this.items = items;	
+	};
+	
+	dtGetItems = function(){//删除序列号后返回列表项
+		var tbItem = this.items;
+		for (i=1;#tbItem;1) { ..table.remove(tbItem[i]) };
+		return tbItem; 
+	}
+
+	popmenu.addTable( {
+		{ "新增行";  function(id){
+			itemRevise(1, this.count+1);} }; 
+		{ "插入行";  function(id){
+			itemRevise(2, this.getSelection());} }; 		
+		
+		{ };//菜单内分割线
+		
+		{ "删除行"; function(id){
+			itemRevise(3, this.getSelection());} };	 	
+	} );
+	
+/////以上用于首列为No.序号列时的函数操作///////////////////////////
+	
+	_prenotify = function(id,code,ptr){ 
+		select(code) {
+    		case 0xFFFFFFFD/*_NM_DBLCLK*/ {
+    			var event = this.getNotifyMessage(code,ptr);
+        		if( ! event.iItem && event.iSubItem ) return ;
+        		
+        		this.editBox.event = event; 
+        		beginEdit();  
+    		}
+    		case 0xFFFFFF65/*_LVN_KEYDOWN*/ {
+    			var nmkey = ..raw.convert(ptr,{
+  					struct hdr = ::NMHDR();
+  					WORD vkey;
+  					INT flags;
+				});
+	
+				var vk = nmkey.vkey;
+				var edit = this.editBox;
+				if(!edit.event) edit.event = {};
+				edit.event.iItem = this.getSelection();
+				
+				if( vk == 0x20/*_VK_SPACE*/ ){
+					if(!edit.event.iSubItem)edit.event.iSubItem=1;
+					beginEdit(); 
+				}			    		
+     		}
+    		case 0xFFFFFFFB/*_NM_RCLICK*/ {
+    			/*此处不能用listview.selIndex，该属性默认返回的是上次焦点所在的选项的索引，
+    			虽然点击空白会使选项变为未选取样式，但焦点不会因为点击空白而失去，
+    			selIndex也是很有用的，比如可以获取在多选模式下，取得最后一次点击处的索引。*/
+    			if(this.getSelection()) {
+    				var x,y = ..win.getMessagePos();
+    				popmenu.enable(2, true);
+    				popmenu.enable(4, true);
+    				popmenu.popup(x,y,true);//弹出菜单
+    			}
+    			else{
+    				var x,y = ..win.getMessagePos();
+    				popmenu.enable(2, false);//禁用菜单第2项，即禁用插入
+    				popmenu.enable(4, false);//禁用菜单第4项，即禁用删除
+    				popmenu.popup(x,y,true);    				
+    			}
+    		}     		
+ 
+    	}
+	}
+		
+};
+
+/**intellisense()
+win.ui.grid(__) = 参数必须指定一个listview控件对象\n返回一个可编辑单元格的列表视图对象,\n\n鼠标左键单击单元格、或者按空格键开始编辑,\n回车完成编辑,ESC键撤消编辑,回车+上下方向键快速移动到其他项,\n用户完成编辑后会触发onEditChanged事件.\n!listview.
+win.ui.grid() = !win_ui_grid.
+!win_ui_grid.editBox = 实现编辑功能的edit控件\n此功能需要扩展listview并实现了编辑功能的的控件才能支持\n!edit.
+!win_ui_grid.onEditChanged(text,iItem,iSubItem) = @.onEditChanged = function(text,iItem,iSubItem){
+	__/*控件完成编辑\ntext为更新后的文本,iItem为行号,iSubItem为列号\n此功能需要扩展listview并实现了编辑功能的的控件才能支持*/
+}
+!win_ui_grid.setTable(__) = 用listview控件显示数据表\n此函数会自动清空控件之前的所有项,\n如果没有创建任何列,则自动创建列\n\n数据表应当包含行组成的数组,\n每行的数据列必须是由列名和列值组成的键值对\n数据表应使用fields包含需要显示的列名称数组\n可以通过fields控制要显的列、以及要显示的顺序\n\n使用sqlite,access,sqlServer等数据库对象提供的getTable函数可获取符合此规格的数据表 
+!win_ui_grid.setColumns(__) = 用一个字符串数组指定要显示的列\n如果参数为空则清空所有列
+!win_ui_grid.clear() = 清空所有行
+!win_ui_grid.clear(true) = 清空所有行,并且清空所有列
+!win_ui_grid.readonlyColums = @.readonlyColums = { [1] = true;__/*设置禁止编辑的列序号*/ }
+end intellisense**/

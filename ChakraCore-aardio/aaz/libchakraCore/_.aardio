@@ -1,0 +1,23 @@
+﻿//libchakraCore javascript 脚本引擎
+namespace aaz;
+namespace libchakraCore{
+    // https://github.com/chakra-core/ChakraCore
+    // https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore
+    // https://github.com/Microsoft/Chakra-Samples
+    // https://github.com/robpaveza/jsrt-dotnet
+	_dll = ..raw.loadDll( "~\lib\aaz\libchakraCore\.res\ChakraCore.dll", null, "stdcall,unicode");
+	
+	namespace ..global{
+		import aaz.libchakraCore.errCode;
+		import aaz.libchakraCore.runtime;
+		import aaz.libchakraCore.context;
+		import aaz.libchakraCore.value;
+		import aaz.libchakraCore.host;
+	}
+	
+	createRuntime = function(attributes=0, threadService){
+		var handle = {ptr value};
+		_dll.JsCreateRuntime(attributes, threadService, handle);
+		return ..aaz.libchakraCore.runtime(handle.value);
+	}		
+}

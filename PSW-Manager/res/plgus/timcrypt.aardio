@@ -1,0 +1,43 @@
+//登录时间验证，防止拦截数据，数据被假服务器应答，并重复使用同一个数据来应答。
+
+getTimes=function(){
+	var csp = crypt();
+	csp.setPassword(enpsw);
+	return inet.url.encode(crypt.bin.encodeBase64(csp.encrypt(""+time.tick())));
+}
+
+
+
+timeVerify=function(oTime){
+var b=false;
+	try{
+			var csp = crypt();
+			csp.setPassword(enpsw);
+			oTime=csp.decrypt(crypt.bin.decodeBase64(oTime));
+			var cTime= time.tick();
+			var i=tonumber(cTime)-tonumber(oTime);
+			//console.log(maxVerifyTime,i, i>maxVerifyTime);
+			if( i> maxVerifyTime){
+			//console.log('---------false');
+			}else{
+				//console.log('--------true');
+				b=true;
+			}
+		
+	}
+	catch(e){
+	console.log(e);
+	}
+	
+return  b;
+	
+}
+
+
+
+
+
+
+
+
+

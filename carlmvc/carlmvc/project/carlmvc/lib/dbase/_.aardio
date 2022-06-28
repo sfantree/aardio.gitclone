@@ -1,0 +1,188 @@
+﻿//_ 数据库访问层
+// +----------------------------------------------------------------------
+// | carlmvc [ aardio's in,just do it. ]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2016-2017 http://aardio.org All rights reserved.
+// +----------------------------------------------------------------------
+// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
+// +----------------------------------------------------------------------
+// | Author: carl <45212348@qq.com>
+// +----------------------------------------------------------------------
+
+namespace dbase
+
+connect = function(dbconfig){
+	var connection,err;
+	connection = dbconfig.cache ? dbconfig.connection;
+	if(!connection){
+		try{
+			if(dbconfig.driver == "mssql"){
+				var name = "";
+				if( #dbconfig.msname ) name = "\" + dbconfig.msname;
+				connection,err = ..carl.mssql(dbconfig.host ++ "," ++ dbconfig.port ++ name,dbconfig.dbname,dbconfig.username,dbconfig.password);
+			}
+			elseif( dbconfig.driver == "mysql" ){
+				connection,err = ..carl.mysql(dbconfig.host ++ ":" ++ dbconfig.port,dbconfig.dbname,dbconfig.username,dbconfig.password);
+				if( connection && #dbconfig.charset ) connection.conn.charset = dbconfig.charset;
+			}
+			elseif( dbconfig.driver == "oracle" ){
+				connection,err = ..carl.oracle(dbconfig.host,dbconfig.dbname,dbconfig.username,dbconfig.password,dbconfig.port,dbconfig.provider);
+			}
+		}
+		catch(e){
+			err = e;
+		}
+		if(connection) dbconfig.connection = connection;
+	}
+	return connection,err;
+}
+
+exec = function(dbconfig, sql, ... ){
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	if( ... !== null ) sql = formatSqlParameters(dbconfig, sql, ...);
+	var bool,sqlerr = sqlBefore(sql)
+	if( bool === false) return false,sqlerr;
+	var ok,err = connection.exec( sql );
+	if(ok && dbconfig.lastInsertId){
+		if(dbconfig.driver == "mysql"){
+			ok = connection.conn.lastInsertId();
+		}
+		elseif(dbconfig.driver == "mssql"){
+			var t = connection.getTableFirst("SELECT @@IDENTITY as lastInsertId");
+			ok = t.lastInsertId;
+		}
+	}
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	if(ok) sql = null;
+	return ok,err,sql; 
+}
+
+getTable = function(dbconfig, sql, ... ){
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	if( ... !== null ) sql = formatSqlParameters(dbconfig, sql, ...);
+	var bool,sqlerr = sqlBefore(sql)
+	if( bool === false) return false,sqlerr;
+	var t,err = connection.getTable( sql );
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	if(t) sql = null;
+	return t,err,sql;
+}
+
+getTableFirst = function(dbconfig, sql, ... ){
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	if( ... !== null ) sql = formatSqlParameters(dbconfig, sql, ...);
+	var bool,sqlerr = sqlBefore(sql)
+	if( bool === false) return false,sqlerr;
+	var t,err = connection.getTableFirst( sql );
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	if(t) sql = null;
+	return t,err,sql;
+}
+
+getTables = function(dbconfig, tsql, ... ){//执行多个select语句,参数table对像
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	var tab,err,sql = {};
+	for(i=1;#tsql;1){
+		sql = tsql[i];
+		if( ... ) sql = formatSqlParameters(dbconfig, sql, ...);
+		var bool,sqlerr = sqlBefore(sql)
+		if( bool === false) return false,sqlerr;
+		var t,e = connection.getTable(sql);
+		if(!t){
+			tab = null;
+			err = e;
+			break;
+		}
+		..table.push(tab,t);
+	}
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	if(tab) sql = null;
+	return tab,err,sql;
+}
+
+transaction = function(dbconfig, tsql, ... ){//事务执行，参数table对像
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	var sql = (type.table == type(tsql)) ? ..string.join(tsql,';\r\n') : tsql;
+	if( ... ) sql = formatSqlParameters(dbconfig, sql, ...);
+	var bool,sqlerr = sqlBefore(sql)
+	if( bool === false) return false,sqlerr;
+	var ok,err = connection.transaction( tsql );
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	if(ok) sql = null;
+	return ok,err,sql;
+}
+
+storedProcedures = function(dbconfig, ... ){//存储过程
+	var connection,err = connect(dbconfig);
+	if(!connection) return null,err;
+	var targ = {"存储过程";...};
+	var sql = ..string.join(targ,",");
+	var bool,sqlerr = sqlBefore(sql);
+	if( bool === false) return false,sqlerr;
+	var t,err = connection.storedProcedures( ... );
+	if(!dbconfig.cache){
+		connection.close();
+		connection = null;
+	}
+	return t,err;
+}
+
+getInsertSql = function(driver, tabname, tab){
+	if(driver == "mysql" || driver == "sqlite"){
+		return ..carl.sql.my.getInsertSql(tabname, tab); 
+	}
+	elseif(driver == "mssql" || driver == "oracle"){
+		return ..carl.sql.ms.getInsertSql(tabname, tab); 
+	}
+}
+
+getUpdateSql = function(driver,tabname, tab, where){
+	if(driver == "mysql" || driver == "sqlite"){
+		return ..carl.sql.my.getUpdateSql(tabname, tab, where); 
+	}
+	elseif(driver == "mssql" || driver == "oracle"){
+		return ..carl.sql.ms.getUpdateSql(tabname, tab, where); 
+	}
+}
+
+formatSqlParameters = function(dbconfig,sql,...){
+	if( dbconfig.driver == "mysql" ){
+		var connection,err = connect(dbconfig);
+		if(!connection) return null,err;
+		sql = connection.conn.formatSqlParameters(sql,...);
+		if(!dbconfig.cache){
+			connection.close();
+			connection = null;
+		}
+	}
+	elseif(dbconfig.driver == "mssql"){
+		sql = ..sqlServer.formatSqlParameters(sql,...);
+	}
+	return sql; 
+}
+
+//执行sql之前回调函数，如果返回false，将不再执行sql,根据需要重写此函数,可用于sql过滤，记录等
+sqlBefore = function(sql){
+	if( ..config[["webconfig"]][["printSql"]] )
+		..printlog("sqlBefore>>",sql);
+}

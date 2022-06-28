@@ -1,0 +1,19 @@
+import win.ui;
+/*DSG{{*/
+var frmTabPage3 = win.form(text=" 帮助";right=759;bottom=499)
+frmTabPage3.add(
+edit={cls="edit";left=21;top=24;right=738;bottom=482;autohscroll=false;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-17;name='宋体');multiline=1;readonly=1;vscroll=1;z=1}
+)
+/*}}*/
+
+import frmDataFunc;
+
+var helpTxt = string.load(frmDataFunc.helpName);//帮助.txt
+helpTxt = string.fromto(helpTxt, 936, 65001);//转为UTF8
+frmTabPage3.edit.text = helpTxt;
+
+
+
+frmTabPage3.show();
+win.loopMessage();
+return frmTabPage3;

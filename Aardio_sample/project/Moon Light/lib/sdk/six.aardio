@@ -1,0 +1,52 @@
+﻿import inet.http;
+import web.json;
+import utilTool;
+
+var err = utilTool.err;
+
+namespace sdk;
+class six{
+	ctor(url){
+		var http = ..inet.http()
+	};
+	getStreamInfo = function(){
+		var html = http.get( url )
+		if( !html ){
+			return null, err.network; 
+		}
+		var page = ..string.match( html,  "<@page =@>.+?(\{.+?\})\;" )
+		if( !page ){
+			return null, err.parse; 
+		}
+
+		var ret = {
+			website = "six";
+			roomId = ..string.match( page, "<@rid: '@>(\d+?)\'" ) ;
+			ownerName = ..string.match( page, "<@masterName: '@>(.+?)\'" );
+			roomUrl = url;
+			avatarUrl = ..string.match( page, "<@picuser: '@>(.+?)\'" ); 
+			isLive = ..string.match( page, "<@liveType: '@>(\d+?)\'" ) == "10"; 
+		} 
+		if( ret.isLive ){
+			var flvtitle = ..string.match( page, `<@"flvtitle":"@>(v\d+\-\d+)` ); 
+			ret.streamUrl = "rtmp://183.2.219.133/liverepeater/" ++ flvtitle;
+		} import console console.dumpJson(ret)
+		return ret; 
+	}
+}
+namespace six{
+    info = {
+        name = "六房间";
+        url = "https://www.6.cn/";
+    }      
+    canHandle = function(url){
+    	return ..string.match( url, "<@v.6.cn/@>\d+" ) ; 	
+    }
+}
+
+/*
+..io.open()
+..io.print( ..table.tostring( six( "https://v.6.cn/5605" ).getStreamInfo()))
+execute("pause")
+*/
+

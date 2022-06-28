@@ -1,0 +1,78 @@
+import fonts.fontAwesome;
+import win.ui;
+import fsys.table;
+/*DSG{{*/
+winForm = win.form(text="qtip Admin";right=638;bottom=502)
+winForm.add(
+button={cls="button";text='\uF09C \r 解密';left=400;top=64;right=496;bottom=160;flat=1;font=LOGFONT(name='FontAwesome');z=7};
+button2={cls="button";text="安装驱动";left=40;top=472;right=126;bottom=495;db=1;dl=1;z=1};
+button3={cls="button";text="手动映射图号";left=288;top=232;right=384;bottom=328;color=10789024;db=1;dl=1;flat=1;z=8};
+button4={cls="button";text="更新图号库";left=56;top=232;right=152;bottom=328;color=10789024;db=1;dl=1;flat=1;z=2};
+button6={cls="button";text="更新目录库";left=56;top=64;right=152;bottom=160;color=10789024;db=1;dl=1;flat=1;z=3};
+button7={cls="button";text='\uF084 \r 加密';left=288;top=64;right=384;bottom=160;flat=1;font=LOGFONT(name='FontAwesome');z=4};
+edit={cls="edit";text="CCL100100";left=288;top=168;right=384;bottom=192;multiline=1;z=5};
+edit2={cls="edit";left=416;top=232;right=576;bottom=256;edge=1;tabstop=1;z=9};
+edit3={cls="edit";left=416;top=256;right=576;bottom=328;autohscroll=false;edge=1;multiline=1;tabstop=1;z=10};
+static={cls="static";text="按CTRL键执行";left=64;top=160;right=152;bottom=184;color=255;transparent=1;z=6}
+)
+/*}}*/
+
+/*加密{{*/
+var dbmm = function(dbpath, old_password, new_password){
+	import sqlite.aes256;
+	var mm = sqlite.aes256(dbpath, old_password)
+	mm.rekey(new_password); //用rekey加密的数据库无法用Cipher解密, wxsqlite最新版已经修复这个问题了.
+	mm.close();
+	win.msgbox("加密成功, 即将退出")
+	win.quitMessage()
+}
+/*}}*/
+//TODO: 单独录入图纸map记录
+/*生成文件清单{{*/
+winForm.button4.oncommand = function(id,event){
+    import fsys.dlg;
+    import win.inputBox;
+    
+	var path = fsys.dlg.open('Excel文件|*.xlsx',,,winForm);
+	if !(path) return ;
+	var inputbox = win.inputBox(winForm.hwnd,false);
+	inputbox.text = "输入要分析的Sheet名称"
+	inputbox.info.text = "请输入Sheet表名称, 此表内必须包含[专用号]和[图号]列"
+	inputbox.input.text = "part list"
+	var sht = inputbox.doModal();
+	if !(sht) return ;
+	import getList;
+    getList.appendDrawingMapFromExcel(path, sht);
+
+}
+winForm.button6.oncommand = function(id,event){
+    import key;
+    if !(key.getState(key.VK.CTRL)) return ; 
+    import getList;
+    getList.saveFolderDB();
+    win.msgbox("done");
+ //   winForm.close();
+}
+/*}}*/
+winForm.button7.oncommand = function(id,event){
+    import fsys.dlg;
+	var path = fsys.dlg.open('DB文件|*.db',"打开","S:\Admin\SAP\db", winForm);
+	if !(path) return ;
+	dbmm(path, "", winForm.edit.text);	
+}
+
+winForm.button.oncommand = function(id,event){
+    import fsys.dlg;
+	var path = fsys.dlg.open('DB文件|*.db',"打开","S:\Admin\SAP\db", winForm);
+	if !(path) return ;
+	dbmm(path, winForm.edit.text, "");	
+}
+
+winForm.button3.oncommand = function(id,event){
+	var prtLists = string.split(winForm.edit3.text, '\r\n');
+	import getList;
+    getList.appendDrawingMapFromTable(winForm.edit2.text, prtLists)
+}
+
+winForm.show();
+win.loopMessage();

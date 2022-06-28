@@ -1,0 +1,454 @@
+﻿import key.hook;
+import mouse.hook
+import win.ui;
+import win.ui.menu;
+import win.util.tray;
+import win.clip;
+import win.image;
+import winex;
+import web.form;
+import fsys.dlg;
+import web.msxml;
+import string;
+import io;
+import win.ui.atom;
+import skin.sharp;
+/*DSG{{*/
+var winform = ..win.form( min=false;parent=...;bottom=209;max=false;right=181;edge=1;text="脚本录制" )
+winform.add( 
+btnPause={ disabled=1;bottom=123;text="停止录制";left=33;top=88;z=2;right=144;cls="button" };
+buttonSave={ disabled=1;bottom=184;text="保存";left=32;top=149;z=3;right=143;cls="button" };
+btnStart={ bottom=59;right=145;left=34;top=24;z=1;text="开始录制";cls="button" }
+)
+/*}}*/
+
+//io.open();
+
+/*窗口初始化定义{{*/
+var mousehook;
+var keyhook;
+
+var pressTime = time.tick();
+
+var filePath = null;
+
+var xmltop =/*<?xml version="1.0" encoding="UTF-8"?>*/
+var xmlroots =/*<script>*/
+var xmlcontent = "";
+var xmlroote =/*</script>*/
+
+var tray;
+
+//去掉小衣服
+import process; 
+var prcs = process(); 
+var pBase = tonumber( skin.sharp._dll.gethandle()  ) +  0x1000;
+prcs.writeString( pBase + 0x2276D,'\x6A\0\x90\x90\x90\x90\x90' )
+prcs.writeString( pBase + 0x4034,'\x6A\0\x90\x90\x90\x90\x90' )
+prcs.writeString( pBase + 0xF4DE,'\x6A\0\x6A\0' )
+prcs.free();
+
+/*上一个皮肤库id*/
+var idstr = 0;
+/*是否第一次加载皮肤*/
+var idstrcount = 0;
+
+/*}}*/
+
+/*MOUSEHOOK定义及捕获事件{{*/
+var mousehookproc = function(msg,x,y,mouseData,injected,flags,timeStamp,extraInfo){
+
+	
+	//io.print("msg=" + msg + "xy=" + x+","+y+"data=" + mouseData+"injected="+injected+"flags="+flags)
+	//io.print("msg=" + msg + " xy=" + x+","+y+" data=" + mouseData+" injected="+injected+" flags="+flags+" timeStamp="+timeStamp+" extraInfo="+extraInfo)
+	if( injected ) return;//模拟鼠标不处理
+	
+ 	select(msg) {
+ 		case 512{
+    	   recordButton("mouseMove",x,y);
+    	}
+    	case 0x201{
+    	   recordButton("mouseDownL",x,y);
+    	}
+    	case 0x202{
+    	 	recordButton("mouseUpL",x,y);
+    	}
+    	case 0x20A {
+    		
+    	   recordButtonCenter("mouseS",x,y,mouseData);
+    	}
+		case 0x204{
+    		recordButton("mouseDownR",x,y);
+    	}
+    	case 0x205{
+    		recordButton("mouseUpR",x,y);
+    	}
+        case 0x207{
+        	recordButton("mouseDownC",x,y);
+    	}
+    	case 0x208{
+    		recordButton("mouseUpC",x,y);
+    	}  	
+    }   
+}
+/*}}*/
+
+/*KEYHOOK定义及捕获事件{{*/
+var keyhookproc=function(msg,vkcode,scancode){
+
+	//io.print("["+vkcode + "==" + scancode+":"+key.getName(vkcode) +"]")
+
+	if(key.getName(vkcode) != "ESC"){
+		select(msg) {
+		
+    		case 0x100/*_WM_KEYDOWN*/ ,0x104/*_WM_SYSKEYDOWN*/ {
+    	    	recordDown(vkcode);
+    	    	//return win.getForeground()==winform.hwnd
+    		}
+    		case 0x101/*_WM_KEYUP*/,0x105/*_WM_SYSKEYUP*/ {
+    	    	recordUp(vkcode);
+    	    	//return win.getForeground()==winform.hwnd
+    	 	}  
+   		} 
+	}else {
+		//如果按键为ESC
+		if(msg == 256){//down
+		
+		}elseif(msg == 257){//up
+			closeEscShowFun();
+		}
+	}
+}
+
+/*}}*/
+
+/*KEYHOOK事件的处理{{*/
+recordDown = function(vk){
+
+	var timedelay = time.tick()- pressTime ; 
+	if(timedelay > 0){
+		xmlcontent = xmlcontent + "<winDelay>"+timedelay+"</winDelay>  ";
+		xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	}
+	
+	//获取案件名称
+	var kname = key.getName(vk);
+	
+	xmlcontent = xmlcontent + "<keyDown code='"+vk+"'>"+kname+"</keyDown>  ";
+	xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	
+	pressTime = time.tick()
+	
+}
+
+
+recordUp = function(vk){
+
+	var timedelay = time.tick()- pressTime ; 
+	if(timedelay > 0){
+		xmlcontent = xmlcontent + "<winDelay>"+timedelay+"</winDelay>  ";
+		xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	}
+	
+	var kname = key.getName(vk)
+	
+	xmlcontent = xmlcontent + "<keyPress code='"+vk+"'>"+kname+"</keyPress>  ";
+	xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+
+	pressTime = time.tick()
+}
+
+/*}}*/
+
+/*MOUSEHOOK事件的处理{{*/
+recordButton = function(buttonname,x,y){
+
+	var timedelay = time.tick()- pressTime ; 
+	if(timedelay > 0){
+		xmlcontent = xmlcontent + "<winDelay>"+timedelay+"</winDelay>  ";
+		xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	}
+		
+	xmlcontent = xmlcontent + "<"+tostring(buttonname)+">"+tostring(x) + ","+ tostring(y)+"</"+tostring(buttonname)+">  ";
+	xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	
+	pressTime = time.tick()
+}
+
+recordButtonCenter = function(buttonname,x,y,data){
+
+	var timedelay = time.tick()- pressTime ; 
+	if(timedelay > 0){
+		xmlcontent = xmlcontent + "<winDelay>"+timedelay+"</winDelay>  ";
+		xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	}
+
+	xmlcontent = xmlcontent + "<"+tostring(buttonname)+" mouseData='"+data+"' >"+tostring(x) + ","+ tostring(y)+"</"+tostring(buttonname)+">  ";
+	xmlcontent = string.replace(xmlcontent,"  ",'\r\n');
+	
+	pressTime = time.tick()
+}
+
+/*}}*/
+
+/*WINFORM窗体方法体及事件{{*/
+
+/*判断只能运行一个程序*/
+var atom,hwndConflict = winform.atom("5D40545A-E3F7-4004-9C7C-704C7DC675FF");
+if(!atom){
+  
+    win.msgbox("已有一个实例在运行,请不要重复运行本程序!","信息提示");
+    win.quitMessage();
+    return;
+}
+
+/*设置图标*/
+winico = win.image.loadIconFromFile("/res/126com.ico",true);
+::SendMessage(winform.hwnd,0x0080,,winico);
+
+/*隐藏窗口*/
+setMinWindowS = function(){
+	winform.show(false);
+}
+/*显示窗口*/
+setOpenWindowS = function(){
+	winform.show(true);
+}
+
+/*加载皮肤*/
+setSkin = function(skinName,id){
+	skin.sharp.attach("\res\skin\"+skinName+".she");
+	
+	if(idstrcount == 0 && null == idstr){
+		winform.menu.check(id,winform.true,0);
+		idstrcount = idstrcount + 1;
+	}else {
+		if(idstr != id){
+			winform.menu.check(id,true,0);
+			winform.menu.check(idstr,false,0);
+		}
+	}
+	
+	idstr = id;
+}
+
+
+/*创建弹出菜单*/
+winform.popmenu = win.ui.popmenu(winform);
+
+winform.popmenu.add('默认主题',function(id){
+	setSkin("blue",id);
+});
+
+winform.popmenu.add('红色主题',function(id){
+setSkin("red",id);	
+});
+winform.popmenu.add();//分隔线
+winform.popmenu.add('Office主题',function(id){
+	setSkin("office",id);
+});
+winform.popmenu.add();//分隔线
+winform.popmenu.add('绿色主题',function(id){
+	setSkin("green",id);
+});
+winform.popmenu.add();//分隔线
+winform.popmenu.add('黑色主题',function(id){
+	setSkin("black",id);
+});
+winform.popmenu.add();//分隔线
+winform.popmenu.add('清新主题',function(id){
+	setSkin("qx",id);
+});
+/*添加菜单*/
+var menus = win.ui.menu(winform);
+menus.add("换 肤",winform.popmenu);
+menus.add(
+	text = "关于(About)";
+	proc = function(id){
+		winform.msgbox("本作品只适用于本地测试，不用于商业运作，如需源代码请联系作者" +string.replace("  ","  ",'\r\n')+ "邮箱：longtutengfei@gmail.com"+string.replace("  ","  ",'\r\n')+"电话：18660857971","关于作者")
+	};
+);
+/*
+menus.add( "关于(About)", { 
+	{"自动清屏";
+		function(id){
+			winform.msgbox("本作品只适用于本地测试，不用于商业运作，如需源代码请联系作者" +string.replace("  ","  ",'\r\n')+ "邮箱：longtutengfei@gmail.com"+string.replace("  ","  ",'\r\n')+"电话：18660857971","关于作者")
+		}
+	}    
+} )
+*/
+
+
+
+//创建托盘图标
+openTray = function(){
+	tray = win.util.tray(winform,"/res/126com.ico","按键脚本录制工具"); 
+	//设置气泡提示 
+	tray.pop("点击开始录制按钮开始录制，按ESC键停止录制","温馨提示");
+	
+	//_WM_TRAYMESSAGE*/ //设置托盘图标回调消息
+	tray.message = 0x400+9981;
+	
+    return true;//阻击默认消息传递，取消最小化过程  
+    
+}
+
+/*系统关闭后关闭钩子*/
+closeFullFun = function(){
+	if(null != keyhook && null != mousehook){
+	
+		keyhook.proc = null;
+		mousehook.proc = null;
+	
+		keyhook.close();
+		mousehook.close();
+		io.close();
+	}else {
+		io.close();
+	}
+	
+}
+
+/*按ESC键关闭钩子并显示窗口*/
+closeEscShowFun = function(){
+	keyhook.proc = null;
+	mousehook.proc = null;
+	
+	keyhook.close();
+	mousehook.close();
+	
+	setOpenWindowS();
+	openBsave();
+	
+	tray.delete();
+}
+
+/*显示开始录制按钮*/
+openBst = function(){
+	//禁用停止录制、保存按钮
+	winform.btnPause.disabled = true
+	winform.buttonSave.disabled = true
+	//显示开始录制按钮
+	winform.btnStart.disabled = false
+}
+
+/*显示停止录制按钮*/
+openBpt = function(){
+	//显示停止录制按钮
+	winform.btnPause.disabled = false
+	//禁用开始录制、保存按钮
+	winform.btnStart.disabled = true
+	winform.buttonSave.disabled = true
+}
+/*显示保存按钮*/
+openBsave = function(){
+	//显示保存按钮
+	winform.buttonSave.disabled = false
+	//禁用开始录制、停止录制按钮
+	winform.btnStart.disabled = true
+	winform.btnPause.disabled = true
+}
+
+/*保存XML*/
+savaXml = function(filePathObj){
+	var xmlDoc = web.msxml();
+	xmlDoc.loadXml(xmltop + xmlroots + xmlcontent + xmlroote );
+	
+	xmlDoc.save(filePathObj);
+	
+	openBst();
+}
+
+/*检查XML存储路径*/
+checkFilePath = function(filePathObj){
+	if(null == filePathObj){
+		winform.msgbox("脚本保存失败，请重新点击保存脚本按钮","信息提示");
+	} else if(io.exist(filePathObj)){
+			winform.msgbox("文件已存在,请输入一个新的文件名","信息提示");
+			filePath = fsys.dlg.save("脚本文件(*.xml)|*.xml||*.xml||", "脚本文件保存至", "/project", winform.hwnd, , "脚本文件1" + ".xml");
+			
+			checkFilePath(filePath);
+			
+	}else {
+		savaXml(filePathObj);
+		
+	}
+}
+
+/*第一次打开选择保存脚本路径*/
+saveOpenXML = function(){
+	try{
+		filePath = fsys.dlg.save("脚本文件(*.xml)|*.xml||*.xml||", "脚本文件保存至", "/project", winform.hwnd, , "脚本文件1" + ".xml");
+		if(null == filePath){
+			winform.msgbox("脚本保存失败，请重新点击保存脚本按钮","信息提示");
+		}else {
+			checkFilePath(filePath);
+		}
+	}
+	catch(e){
+		winform.msgbox(e,"错误信息");
+	}
+	
+}
+
+/*停止录制脚本点击事件*/
+winform.btnPause.oncommand = function(id,event){
+		closeEscShowFun();
+}
+/*保存脚本点击事件*/
+winform.buttonSave.oncommand = function(id,event){
+		saveOpenXML();
+}
+/*开始录制脚本点击事件*/
+winform.btnStart.oncommand = function(id,event){
+		pressTime = time.tick()
+		
+		openTray();
+		mousehook = mouse.hook();
+		keyhook = key.hook();
+		keyhook.proc = keyhookproc
+		mousehook.proc = mousehookproc
+		
+		openBpt();
+		
+	   	setMinWindowS();	
+}
+
+/*窗口事件*/
+winform.wndproc = function(hwnd,message,wparam,lparam){
+
+	//if(message != 0x100 && message != 0x101 && message != 135 && message != 512  && message != 132 && message != 32){
+	//	io.print("message=["+message+"]" + "wparam=["+wparam+"]" + "lparam=["+lparam+"]");
+	//}
+		
+	select(message) {//判断消息类型
+	
+        case(0x400+9981/*_WM_TRAYMESSAGE*/){//托盘图标消息
+        
+            if(lparam = 0x203/*_WM_LBUTTONDBLCLK)*/){  //鼠标双击
+               setOpenWindowS();
+               tray.delete();
+            }
+            //elseif(lparam =0x205/*_WM_RBUTTONUP*/){ //鼠标右键
+            // }
+        }
+        
+        case(0xA1){/*_WM_NCLBUTTONDOWN*/
+        	if( wparam == 20/*_HTCLOSE*/ ){ 
+        		closeFullFun();
+        	}
+        }
+        case(0x10){/*_WM_CLOSE*/
+        		closeFullFun();
+        }
+        
+     }
+}//endproc
+
+/*}}*/
+
+setSkin("blue",5000);
+winform.show(true);
+win.loopMessage();
+
+return winform;

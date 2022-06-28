@@ -1,0 +1,339 @@
+
+namespace simulator
+
+class helper{
+
+	
+	ctor( ){
+		import process;
+		import process.popen;
+		import winex;
+		import fsys.config;
+		import web.json;
+		import web.rest.jsonLiteClient;
+		import string.list;
+		import thread.command;
+		import console;
+		import table;
+		import inet.http
+		import inet.httpFile;
+		import web.msxml;
+		
+		var cfg = fsys.config("/res/")
+		this.p_id = cfg.config.p_id;//电脑编号
+		this.api_url = "http://bot.leesrobots.com:8081";//接口域名
+		//console.varDump(this.p_id);
+	} 
+	
+	
+	//检测拷贝模拟器
+	copy_device = function(d_code){
+		var source_path = "z:/roms/";
+		var copy_path = "d:/roms/";
+		
+		fsys.createDir(copy_path);
+		//获取本地已注册模拟器列表,判断是否存在镜像
+		var prcs = process.popen("MEmuManage.exe list vms");
+		var res = prcs.read(-1);//读取全部返回值
+		res = string.list(res,'\r\n'," ");//换行分割，空格分割键值对
+		var device_list = {};
+		var exist = false;
+		for i,k,v in res.each() { 
+			var device,time = string.replace(k,'"',"");
+		
+    		if(device == d_code)
+    		{
+    			exist = true;
+    			break;
+    		}	
+		}
+		if(exist)//如果存在，返回true，否则从主机拷贝镜像
+			return true; 
+			
+
+		//判断主机是否存在镜像，不存在返回false，否则开始拷贝镜像
+		if(fsys.searchFile(d_code+'.memu',source_path+d_code+'/')==null)
+			return false; 
+			
+		console.log(d_code+"镜像拷贝中...");
+		if(fsys.copy(source_path+d_code+'/',copy_path)){
+			//拷贝成功，镜像注册
+			console.log(d_code+"镜像拷贝成功");
+			var prcs = process.popen("MEmuManage.exe registervm "+copy_path+'/'+d_code+'/'+d_code+'.memu');
+			sleep(1000);
+			return true; 
+			
+		}else {
+			console.log(d_code+"镜像拷贝失败");
+			return false; 	
+		}
+		
+		
+	}
+	
+	
+	//开启模拟器
+	open_device = function(d_code,wx_nick,d_id){
+		//先拷贝注册镜像文件
+		if(!this.copy_device(d_code))
+			return false; 
+		
+		var rs = false;
+		var i = 0;
+		while(i<3){
+			process("MEmuConsole.exe "+d_code);
+			sleep(5000)//等待5秒查找是否开启
+			var window = winex.find(,wx_nick)
+			if(window){
+				thread.command.post("add_device",d_code,wx_nick,d_id);
+				//add_device(d_code,wx_nick,d_id);
+				rs = true;
+				break;
+			}	
+			i++
+		}
+		return rs; 
+	}
+	//关闭模拟器
+	close_device = function(d_code,wx_nick,d_id){
+		var rs = false;
+		var i = 0;
+		while(i<3){
+			var window = winex.find(,wx_nick)
+			if(window){
+				winex.quit(window)
+			}	
+			sleep(5000)//等待5秒查找是否关闭
+			window = winex.find(,wx_nick)
+			if(!window){
+				rs = true;
+				thread.command.post("del_device",d_id);
+				//del_device(d_id);
+				break;
+			}	
+			i++
+		}
+		return rs; //返回真假成功结果
+	}
+	
+	//修改模拟器运行信息，cpu，内存，显存，经纬度
+	device_config = function(v,path="D:/roms/"){
+		//var xmlDoc = web.msxml();
+		
+		var d_code = v.d_code;
+		var cpu_num = v.cpu;
+		var memory = v.memory;
+		var wx_nick = v.wx_nick;
+		var longitude = v.longitude;
+		var latitude = v.latitude;
+		var resolution_height = v.resolution_height;
+		var resolution_width = v.resolution_width;
+		var vbox_dpi = v.vbox_dpi;
+		
+		var height_cmd = "MEmuManage.exe guestproperty set "+d_code+" "+"resolution_height "+tostring(resolution_height);
+		process.popen(height_cmd);
+			sleep(1000);
+		var width_cmd = "MEmuManage.exe guestproperty set "+d_code+" "+"resolution_width "+tostring(resolution_width);
+		process.popen(width_cmd);
+			sleep(1000);
+		var dpi_cmd = "MEmuManage.exe guestproperty set "+d_code+" "+"vbox_dpi "+tostring(vbox_dpi);
+		process.popen(dpi_cmd);
+			sleep(1000);
+		var longitude_cmd = "MEmuManage.exe guestproperty set "+d_code+" "+"longitude "+tostring(longitude);
+		process.popen(longitude_cmd);
+			sleep(1000);
+		var latitude_cmd = "MEmuManage.exe guestproperty set "+d_code+" "+"latitude "+tostring(latitude);
+		process.popen(latitude_cmd);
+			sleep(1000);
+		var window = winex.find(,wx_nick)
+		if(window){//已开机，关机然后重启
+			sleep(1000);
+			winex.quit(window);//关机
+			sleep(3000);
+			process.popen("MEmuConsole.exe "+d_code);//开机
+		}else {//未开机 设置cpu内存
+			var cpu_cmd = "MEmuManage.exe modifyvm "+d_code+" "+"--cpus "+tostring(cpu_num);
+			process.popen(cpu_cmd);
+				sleep(1000);
+			var mem_cmd = "MEmuManage.exe modifyvm "+d_code+" "+"--memory "+tostring(memory);
+			process.popen(mem_cmd);
+		}
+		
+		/*else { //未开机修改配置文件
+			var file = path+d_code+"/"+d_code+".memu";
+			xmlDoc.load(file);
+			//经纬度,高宽dpi
+			for(k,xnode in xmlDoc.eachNode( "GuestProperty") ){ 
+				if(xnode.attributes(0).nodeValue == "latitude")
+				{
+					xnode.attributes(1).nodeValue = latitude;
+					console.varDump("latitude:"+xnode.attributes(1).nodeValue);
+				}
+				if(xnode.attributes(0).nodeValue == "longitude")
+				{
+					xnode.attributes(1).nodeValue = longitude;
+					console.varDump("longitude:"+xnode.attributes(1).nodeValue);
+				}
+				if(xnode.attributes(0).nodeValue == "resolution_height")
+				{
+					xnode.attributes(1).nodeValue = resolution_height;
+					console.varDump("resolution_height:"+xnode.attributes(1).nodeValue);
+				}
+				if(xnode.attributes(0).nodeValue == "resolution_width")
+				{
+					xnode.attributes(1).nodeValue = resolution_width;
+					console.varDump("resolution_width:"+xnode.attributes(1).nodeValue);
+				}
+				if(xnode.attributes(0).nodeValue == "vbox_dpi")
+				{
+					xnode.attributes(1).nodeValue = vbox_dpi;
+					console.varDump("vbox_dpi:"+xnode.attributes(1).nodeValue);
+				}
+			}
+			//cpu
+			cpu_node = xmlDoc.queryNodes( tagName="CPU" );
+			cpu_node.attributes(0).nodeValue = cpu_num;
+			console.varDump("cpu_num："+cpu_node.attributes(0).nodeValue);
+			//memory
+			mem_node = xmlDoc.queryNodes( tagName="Memory" );
+			mem_node.attributes(0).nodeValue = memory;
+			console.varDump("memory："+mem_node.attributes(0).nodeValue);
+			//Display
+			display_node = xmlDoc.queryNodes( tagName="Display" );
+			display_node.attributes(0).nodeValue = 12;
+			console.varDump("VRAMSize:"+display_node.attributes(0).nodeValue);
+			xmlDoc.save(file);
+		}*/
+		
+		return true; 
+	}
+	
+	
+	//安装apk（更新软件，并且打开）
+	install_apk = function(apk_name,activity,d_code,path="d:/apk/"){
+		if(!d_code)
+			return false;
+		var device,time = string.replace(d_code,'MEmu_',"");//获取模拟器序号
+		if(!device||device=="MEmu")
+			device = 0;
+		device = "127.0.0.1:"+tostring((2150+tonumber(device)))+"3";
+		var intall_cmd = "adb -s "+device+" install -r "+path+apk_name;
+		process(intall_cmd);//执行覆盖安装命令
+		sleep(10000)//等待10s后 应用开启
+		var start_cmd = "adb -s "+device+" shell am start "+activity;
+		process(start_cmd);//执行应用开启命令
+		
+		return true; 
+	}
+	
+	//文件下载（apk下载）
+	download_file = function(url,path,filename){
+		import inet.util;
+		//1、判断路径下文件是否已存在
+		//if(fsys.searchFile(filename,path))
+		//	return true;
+		//2、创建路径
+		fsys.createDir(path)
+		//3、开始下载
+		if(!inet.util.getWebServer(url))
+			return false; 
+		var remoteFile = inet.httpFile(url ,path)
+		if(remoteFile.test())//检测文件是否已下载完毕,最新文件
+			return true; 
+		remoteFile.onReceiveBegin = function(statusCode,contentLength,fileSize){
+			if( statusCode == 206/*断点续传*/ ){
+				console.log("正在断点续传")
+			}
+			elseif(fileSize){
+				console.log("正在重新下载")
+			}
+			//console.log("未下载长度",contentLength,"已下载长度",fileSize, "HTTP状态码", statusCode )
+		}
+		var ok,err,fileSize = remoteFile.download() 
+		console.log( "download:"+filename+" "+tostring(ok),fileSize,err )
+		return ok; 
+	}
+	 
+	
+
+	//获取任务api,p_id
+	api_get_task = function(){
+		
+		var apiClient = web.rest.jsonLiteClient(); 
+		var params = {
+			p_id = this.p_id
+		};
+		var data = web.json.stringify(params,true);
+		
+		var res = apiClient.post(this.api_url+"/pc/get_task",{ params = data } );
+		if(res)
+		{
+			thread.command.post("update_api",res.task_id,res.task_type);
+			console.dumpJson(res);
+		}	
+		//update_api(res.task_id,res.task_type)
+		return res;//返回数组
+	} 
+	//返回任务执行结果
+	api_res_task = function(d_id,task_id,task_type,result,msg){
+		
+		var apiClient = web.rest.jsonLiteClient(); 
+		var params  ={
+			d_id = d_id;
+			p_id = this.p_id;
+			task_id = task_id;
+			task_type = task_type;
+			result = result;
+			msg = msg;
+		}
+		thread.command.post("update_api",task_id,"res_task");
+		//update_api(task_id,"res_task")
+		var data = web.json.stringify(params,true);
+		var res = apiClient.post(this.api_url+"/pc/res_task",{ params = data } );
+		console.dumpJson(res);
+		return res;//返回数组
+	}
+
+	//获取在线的模拟器数量
+	get_online_device = function(){
+		
+		var prcs = process.popen("MEmuManage.exe list runningvms");
+		var res = prcs.read(-1);//读取全部返回值
+		res = string.list(res,'\r\n'," ");//换行分割，空格分割键值对
+		var device_list = {};
+		for i,k,v in res.each() { 
+			var device,time = string.replace(k,'"',"");
+    		table.push(device_list,device)
+		}
+		thread.command.post("refresh_list",device_list);
+		return device_list; 
+	} 
+	
+
+	//返回在线模拟器和系统信息
+	api_upload_status = function(){
+		import sys.cpu;
+		import sys.mem;
+		import web.json;
+		import web.rest.jsonLiteClient;
+		var apiClient = web.rest.jsonLiteClient(); 
+		var device_list = this.get_online_device();
+		var memory = sys.mem.getInfo();
+		var params = {
+			p_id = this.p_id;
+			cpu = sys.cpu.getBrand();
+			memory = memory.totalPhys.formatSize;
+			avail_memory = memory.availPhys.formatSize;
+			device_list = device_list;
+		}
+		//console.varDump( params )
+		//console.pause()
+		var data = web.json.stringify(params,true);
+		var res = apiClient.post(this.api_url+"/pc/upload_status",{ params = data } );
+		thread.command.post("update_api","空","upload_status");
+		//update_api("空","upload_status")
+		console.dumpJson(res);
+		return res;//返回数组
+		
+	}
+}

@@ -1,0 +1,48 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=757;bottom=467;border="none")
+winform.add()
+/*}}*/
+
+import win.ui.simpleWindow3;
+win.ui.simpleWindow3(winform)
+
+
+import web.form.util
+web.form.util.crossDomain() 
+
+import console;
+import web.form;
+var wb = web.form( winform,0x40000/*_UIFLAG_THEME*/ ) 
+wb.noScriptErr = true;
+
+
+winform.setUrl=function(title,url){
+	var html = /**
+	<!DOCTYPE html>
+	<html>
+	<head>
+	   <script src="http://localhost:8080/firebug-lite.js#overrideConsole"></script>
+   		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+	    <style type="text/css">
+	    html,body,video{ width:100%;height:100%; margin:0;padding:0;overflow:hidden } 
+	    </style>
+	    <script type="text/javascript"></script>
+	</head>
+	<body>
+	    <video src="###" controls="true" autoPlay="true"></video>
+	</body>
+	</html>
+	**/
+	html = string.replace(html,"###",url)
+	wb.html = html;
+	string.save("C:\Users\tm01510\Desktop\11.html",html)
+	winform.text = title;
+}
+
+winform.setUrl("123","http://video.study.163.com/edu-video/nos/mp4/2018/03/18/1008818142_675f950b80b34a18b701abd7d852b81d_shd.mp4")
+//winform.setUrl("123","e:/1.mp4");
+//wb.go("http://localhost:8080/11.html")
+winform.show();
+win.loopMessage();
+return winform;

@@ -1,0 +1,154 @@
+import console; 
+console.open();
+
+import com.excel;
+import etip;
+import tarray;
+console.log("正在打开Excel, 如果长时间无响应, 请在Excel中退出编辑模式")
+var excel = com.excel(false);
+console.clearScreen();
+_od_list_sht = "_od_list_sht";
+
+console.log("打开数据库连接...")
+import config;
+import sqlite;
+var db, err = sqlite(config.dbServer.path + "qhc_OD_lib.db");	
+if err win.msgbox(err);
+
+
+/*filterDeleted{{*/
+var filterDeleted = function(t){
+	var z = {};
+	if t.fields z.fields = t.fields;
+	for (i=1; #t) {
+		if t[i].更改标记
+			if string.find(t[i].更改标记,"删") continue;
+		table.push(z, t[i])
+	}		
+	return z;
+}
+/*}}*/
+var searchOption = function(str){
+	if !str return null; 
+	var t = db.getTable("SELECT * FROM [特性参数规划表新]", { 特性 = string.upper(str) });
+	return filterDeleted(t);
+}
+
+var wb = excel.ActiveWorkbook;
+console.log("当前文档...", wb.name)
+var setdbsheet = function(wb){
+	var sht;
+	for (i=1; wb.sheets.count) {
+		if (wb.sheets(i).name == _od_list_sht) {
+				sht = wb.sheets(i);
+				break;
+		}
+	}
+	if !sht{
+		sht = wb.sheets.add();
+		sht.name = _od_list_sht;
+	}
+	else sht.usedrange.clear();
+	return sht; 
+}
+
+console.log("设置特性值数据表...", _od_list_sht)
+var odsht = setdbsheet(wb);
+
+var odtab = table.create(,{ fields = {[1] = "特性", [2] = "特性描述", [3] = "特性值", [4] = "特性值描述"}});
+
+
+console.log("获取OD数据表...", _od_list_sht) 
+var od = {};
+for(i=1; wb.sheets.count){
+	var sht = wb.sheets(i);
+	if sht.name == _od_list_sht continue; 
+	for (k=10; sht.usedrange.rows.count){
+		if sht.Cells(k, 4 /* D */).value2 !== "SAP选项" continue;
+		var code = sht.Cells(k, 2 /* B */).value2
+		if !#code break;
+		code = string.left(code, 4);
+		table.push(od, code)
+	}
+	
+}
+od = table.unique(od);
+for (i=1; #od){
+	var tab = searchOption(od[i]);
+	tab = tarray.sliceCol(tab,1,4);
+	table.append(odtab, tab);
+}
+console.log("获取颜色数据表...") 
+var colortab = db.getTable("SELECT * FROM [颜色分组]", { 颜色分组 = "1.0" });
+var ctab = {}
+ctab.fields = odtab.fields
+var trimColorDesp = function(desp){
+	if #desp<11 return desp;
+	var d = string.match(desp, "^\d+");
+	if d {
+		d = string.trimleft(desp, d);
+		d = string.trimleft(d);
+		if string.startWith(d, "粉末")
+			d = string.trimleft(d, "粉末");
+		d = string.trimleft(d);
+		return d; 
+	}
+	else return desp; 
+}
+
+for(i=1; #colortab){
+	table.push(ctab, { 
+		特性 = "1" , 
+		特性描述 = "颜色分组" , 
+		特性值 = colortab[i].默认颜色可选项类别, 
+		特性值描述 = trimColorDesp(colortab[i].特性值描述)
+	})
+}
+
+
+table.append(odtab, ctab);
+
+odsht.range("A1:D" ++ #odtab).value2 = tarray.serialize(odtab);
+odsht.Visible = 0 /* xlSheetHidden  */
+
+//从odsht获取地址填入下拉列表
+var getRef = function(code){
+	var t = table.filter(odtab,function(v, index){
+		return v.特性 == code;
+	});
+
+
+	var min = table.indexOf(odtab, t[1]);
+	var max = min + #t -1;
+	return "=" ++ _od_list_sht ++ "!$D$" ++ min ++ ":$D$" ++ max; 
+}
+
+for(i=1; wb.sheets.count){
+	var sht = wb.sheets(i);
+	if sht.name == _od_list_sht continue; 
+	if (sht.Visible !== -1 /* xlSheetVisible  */) continue; 
+	console.log("开始添加下拉菜单...", sht.name ) 
+	for (k=10; sht.usedrange.rows.count){
+		var code;
+		select(sht.Cells(k, 4 /* D */).value2) {
+			case "SAP选项"  {
+				code = sht.Cells(k, 2 /* B */).value2;
+				code = string.left(code, 4);
+			}
+			case "颜色选项" {
+				code = "1";
+			}
+		}
+		if !code continue;
+        var ocell = sht.Cells(k, 3 /* C */);
+        ocell.Validation.Delete();
+        ocell.Validation.Add(
+        	/* xlValidateList */ 3,
+        	/* AlertStyle */ null,
+        	/* Operator */ null,
+        	/* Formula1 */ getRef(code),
+        );
+	}
+}
+
+console.pause(true);

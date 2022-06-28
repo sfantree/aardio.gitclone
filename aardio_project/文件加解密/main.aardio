@@ -1,0 +1,183 @@
+import win;
+import win.ui;
+import fsys;
+import fsys.file;
+import process;
+import process.popen;
+/*DSG{{*/
+mainForm = win.form(text="文件加解密";right=311;bottom=239;max=false)
+mainForm.add(
+button={cls="button";text="浏览..";left=264;top=16;right=304;bottom=40;z=3};
+button2={cls="button";text="加密";left=80;top=126;right=264;bottom=150;font=LOGFONT(weight=700);z=4};
+button3={cls="button";text="密码";left=264;top=90;right=304;bottom=114;z=14};
+combobox={cls="combobox";left=80;top=53;right=264;bottom=77;edge=1;items={"默认加密模式"};mode="dropdown";z=5};
+edit={cls="edit";text="选择文件..";left=80;top=16;right=264;bottom=40;acceptfiles=1;bgcolor=16777215;edge=1;readonly=1;z=2};
+edit2={cls="edit";text="密码";left=80;top=90;right=264;bottom=114;acceptfiles=1;bgcolor=16777215;edge=1;readonly=1;z=12};
+progress={cls="progress";left=80;top=163;right=264;bottom=187;edge=1;max=100;min=0;z=7};
+static={cls="static";text="文件";left=0;top=16;right=72;bottom=40;align="right";center=1;color=255;transparent=1;z=1};
+static2={cls="static";text="加密模式";left=0;top=53;right=72;bottom=77;align="right";center=1;transparent=1;z=6};
+static3={cls="static";text="处理进度";left=0;top=163;right=72;bottom=187;align="right";center=1;transparent=1;z=8};
+static4={cls="static";text="文件大小";left=8;top=200;right=80;bottom=224;align="center";border=1;center=1;transparent=1;z=10};
+static5={cls="static";left=80;top=200;right=304;bottom=224;border=1;transparent=1;z=9};
+static6={cls="static";text="0%";left=264;top=163;right=304;bottom=187;align="center";center=1;transparent=1;z=11};
+static7={cls="static";text="随机密码";left=0;top=90;right=72;bottom=114;align="right";bgcolor=16777215;center=1;color=255;transparent=1;z=13}
+)
+/*}}*/
+
+mainForm.button.oncommand = function(id,event){
+	import fsys.dlg 
+	var str= fsys.dlg.open("*.*;所有文件|*.*","",,mainForm.hwnd) 
+	mainForm.edit.path=""
+	if(io.exist(str)){
+		mainForm.edit.path=..io.fullpath(str)
+		mainForm.edit.text=..fsys.getFileName(str) 
+		var fsysfileObject=fsys.file(mainForm.edit.path)
+		var size64=fsysfileObject.size64()
+		mainForm.edit.size64=tonumber(size64)
+		mainForm.static4.text=fsys.formatSize(size64) 
+	}
+}
+
+subscribe("处理文件",function( obj ){
+	
+	thread.invoke( 
+		function(mainForm,obj){
+			import fsys;
+			import win;
+			import process;
+			import process.popen;
+			import console;
+								
+			var is_running=thread.get("处理文件_running"):false;
+			if(is_running){ return; }
+			else { thread.set("处理文件_running",true) }
+			
+			var table1={};
+			//rar a -hpfGzq5yKw secret report.txt    #将添加文件 report.txt 到加密的压缩文件secret.rar中，使用密码'fGzq5yKw'
+			var rarexe=..io.fullpath("~/rar.exe");
+			//var rar=..io.fullpath( "c:/rar.exe");
+			var outrar=obj.file+".rar"
+			for(i=1;1000;1){
+				if(..io.exist(outrar)){ outrar=outrar+".rar"}
+				else{break;}
+			}
+			if(!..io.exist(rarexe)){
+				mainForm.msgboxErr("RAR.exe不存在!","错误",mainForm.hwnd)
+				return
+			}
+			//console.dump(outrar)
+			var dir= fsys.getParentDir(obj.file)
+ 			table.push(table1,"cd "++ dir ++" && ") 
+			table.push(table1,rarexe) //rar.exe
+			table.push(table1,"a") //表示增加到压缩文件
+			table.push(table1," -hp"""++mainForm.edit2.text+"""") //密码
+			table.push(table1,outrar)	// rar文件
+			table.push(table1, fsys.getFileName(obj.file) ) //添加的文件
+			var cmdline=string.join(table1, " ");
+			//console.dump(cmdline)
+			///mainForm.msgboxTest(cmdline); 
+			thread.set("rarRunning",true )
+			thread.set("outrar",outrar )
+    		var prcs = process.popen.cmd(cmdline) // 创建进程     
+   			for(i=1;100;1){
+   				sleep(100)  //阻塞主线程
+   				var code,exits=prcs.getExitCode()
+   				if(exits) {thread.set("rarRunning",false );break;}
+   			}
+   			prcs.waitOne(200)  
+   			prcs.close();
+   			prcs=null; 
+   			
+   			import crypt;
+   			import crypt.bin;
+   			var passwd=crypt.bin.encodeBase64(mainForm.edit2.text)
+   			string.save(outrar++".密码.txt",passwd )  //把密码保存到文件中	 		
+			
+			thread.set("处理文件_running", )
+		},mainForm,obj
+	)
+	
+} )
+
+subscribe("进度条",function( obj ){
+	import console;
+	var one30=1024*1024*3
+	var k=obj.size64/one30
+	var t=k>1?k+1:1
+	var v=math.roundToEven(100/t)-1	
+	mainForm.progress.total=0
+	mainForm.progress.pos=0
+	mainForm.progress.min=0
+	mainForm.progress.max=100
+	mainForm.progress.step =v
+	var interval=mainForm.setInterval( 
+		function(mainForm){
+			if(mainForm.progress.total>=mainForm.progress.max){
+				if(!(thread.get("rarRunning" ):true)){				
+				}else{  
+    				var outrar= thread.get("outrar" ):"";
+    				if(..io.exist(outrar)){
+						import process;
+						process.exploreSelect(outrar)
+						mainForm.button2.disabledText=null
+						mainForm.button3.disabled=false
+						mainForm.clearInterval( interval );interval=null
+						return false;  
+    				} 	
+				}
+			}
+			var is_running=thread.get("处理文件_running"):false;
+			mainForm.progress.total+=mainForm.progress.step
+			mainForm.progress.pos=mainForm.progress.total
+			if(is_running && mainForm.progress.pos>=mainForm.progress.max){
+				mainForm.progress.pos=99;
+			}
+			mainForm.static6.text=100*(mainForm.progress.pos/mainForm.progress.max)+"%"			 
+		},1000 ,mainForm
+	)	
+} )
+
+mainForm.button2.oncommand = function(id,event){
+	var file=mainForm.edit.path
+	if(!io.exist(file)){
+		mainForm.button.oncommand();
+		 file=mainForm.edit.path
+	}
+	var size64=mainForm.edit.size64:0
+	if(size64>0){
+		if(mainForm.edit2.old==mainForm.edit2.text){
+			mainForm.button3.oncommand();
+		}	
+		var t=win.msgboxTest("确认要加密该文件?"+file,mainForm.edit2.text,mainForm.hwnd) 
+		if(!t){return ;}	
+				
+		mainForm.edit2.old=mainForm.edit2.text
+		mainForm.progress.show(true)
+		mainForm.static3.show(true)
+		mainForm.static6.show(true)
+		mainForm.progress.pos =mainForm.progress.min
+		mainForm.button2.disabledText = {"✶";"✸";"✹";"✺";"✹";"✷"}
+		mainForm.button3.disabled=true
+		
+		publish("处理文件",{file=file;})	
+		win.setTimeout(
+			function(){
+				publish("进度条",{size64=size64;} )			
+			},200
+		)
+		
+	}
+	
+}
+
+
+mainForm.button3.oncommand = function(id,event){
+	var als=math.random(12,16);
+	var rstr=/*qwertyQWERTYUIOPASDFGHJKLZXCVBNM,uiopasdfghjklzxcvbnm,[];',./12345677890~!@#$%^&*()-=/*-+0.123456789*/
+	mainForm.edit2.text=string.random(als,rstr);
+}
+
+mainForm.button3.oncommand();
+
+mainForm.show();
+return win.loopMessage();

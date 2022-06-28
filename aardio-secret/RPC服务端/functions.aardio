@@ -1,0 +1,89 @@
+
+namespace functions//空间名字不能改名和删除
+import crypt.bin;
+import crypt.aes;
+import Google2FA;
+/*
+需让客户端调用的函数,请在以下自定义函数
+*/
+getServerTime = function(){//返回服务器时间
+	var t = ..time();
+	t.format = "%Y-%m-%d %H:%M:%S";
+	return tostring(t);
+}
+
+authcode = function(code , operation = 'DECODE' ,totp='000000', pass = 'BOB' , expiry =0) {
+    if( operation== 'DECODE' ){
+		var otp = Google2FA();
+		if(not otp.verify_key("OWERW221ASDFE",totp)){
+			return '','otperr';
+		}    	
+    }
+    
+    var ckey_length = #pass;
+    var crypt = ..crypt;
+    var string = ..string;
+    var time = ..time;
+    pass = crypt.md5(pass,false);
+    var passa = crypt.md5(string.sub(pass,0,16),false);
+    var passb = crypt.md5(string.sub(pass,17),false);
+    var passc = ckey_length ? (operation == 'DECODE' ? string.sub(code,0,ckey_length) : string.sub (crypt.md5(tostring(tonumber(time.now())) , false), -ckey_length)) : '';
+    var cryptkey = passa + crypt.md5(passa + passc,false);
+    var key_length = #cryptkey;
+    var kk = {}
+    if( operation== 'DECODE' ){ 
+        var ss = crypt.bin.decodeBase64(string.sub( code , ckey_length+1 ));
+        for(i=1;#ss;1){
+            kk[ i ] = string.unpack(ss,i);
+        }
+    }
+    code = operation == 'DECODE' ? kk: string.format("%010d", expiry ? expiry + tonumber(time.now()) : 0 ) + string.sub(crypt.md5(code + passb,false),0,16) + code;
+    var code_length = #code;
+    var result = "";
+    var box = {} ;
+    var rndkey = {};
+    for(i=0;255;1){
+        box[ i ] = i;
+    }
+    for(i=0;255;1){
+        var j = i;
+        j = j % key_length; 
+        rndkey[ i ] = cryptkey[j+1];
+    }
+    k = 0;
+    for(i=0;255;1){
+        k = ( k + box[ i ] + rndkey[ i ] ) % 256;
+        var tmp = box[ i ];
+        box[ i ] = box[k];
+        box[k] = tmp;
+    }
+    a = 0;
+    j = 0;
+    for(i=1;code_length;1){
+        a = (a + 1) % 256;
+        j = (j + box[a]) % 256;
+        var tmp = box[a];
+        box[a] = box[j];
+        box[j] = tmp;
+        result = result ++ string.pack(code[ i ] ^ (box[(box[a] + box[j]) % 256 ]));
+    }
+    if( operation == 'DECODE' ){
+        if(( string.sub(result,1,10) == 0 || string.sub(result,1,10) - tonumber(time.now()) > 0 ) && string.sub(result,11,26) == string.sub(crypt.md5(string.sub(result,27) + passb,false),0,16))  {
+            return string.sub(result,27) ; 
+        } else {
+            return '';
+        }
+    } else {
+        return passc + string.replace(crypt.bin.encodeBase64(result),'=','');
+    }
+}
+
+aescode = function(code,operation='DECODE',key="BOB"){
+	var aes = crypt.aes();
+	aes.setPassword(key);
+	if( operation == 'DECODE' ){
+        return aes.decrypt(crypt.bin.decodeUrlBase64(code)); 
+    } else {
+        return crypt.bin.encodeUrlBase64(aes.encrypt(code));
+    }
+}

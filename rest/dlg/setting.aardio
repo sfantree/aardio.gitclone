@@ -1,0 +1,170 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="休息一下 - 设置";right=351;bottom=567;max=false)
+winform.add(
+anap={cls="checkbox";text="小憩 - 稍作休息";left=24;top=48;right=264;bottom=72;checked=1;disabled=1;font=LOGFONT(h=-13;name='微软雅黑');z=2};
+anapFree={cls="static";text="1";left=264;top=80;right=296;bottom=96;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=11};
+anapTime={cls="static";text="1";left=264;top=104;right=296;bottom=120;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=20};
+apple={cls="button";text="应用修改";left=8;top=528;right=344;bottom=560;font=LOGFONT(h=-13;name='微软雅黑');z=36};
+checkbox3={cls="checkbox";text="开机启动";left=24;top=480;right=160;bottom=504;disabled=1;font=LOGFONT(h=-13;name='微软雅黑');z=28};
+groupbox={cls="groupbox";text="设置时间";left=8;top=16;right=344;bottom=280;font=LOGFONT(h=-13;name='微软雅黑');z=1};
+groupbox2={cls="groupbox";text="允许稍后提醒";left=8;top=288;right=344;bottom=360;edge=1;font=LOGFONT(h=-13;name='微软雅黑');z=21};
+groupbox3={cls="groupbox";text="允许跳过提醒 - 稍后提醒两次后显示";left=8;top=368;right=344;bottom=440;edge=1;font=LOGFONT(h=-13;name='微软雅黑');z=24};
+groupbox4={cls="groupbox";text="其他设置";left=8;top=448;right=344;bottom=520;edge=1;font=LOGFONT(h=-13;name='微软雅黑');z=27};
+isAnapMode={cls="radiobutton";text="Radiobutton";left=32;top=216;right=48;bottom=232;z=32};
+isTimeMode={cls="radiobutton";text="Radiobutton";left=32;top=192;right=48;bottom=208;disabled=1;group=1;z=31};
+lateAnap={cls="checkbox";text="小憩";left=24;top=320;right=160;bottom=344;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=22};
+lateRest={cls="checkbox";text="休息";left=192;top=320;right=328;bottom=344;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=23};
+passAnap={cls="checkbox";text="小憩";left=24;top=400;right=160;bottom=424;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=25};
+passRest={cls="checkbox";text="休息";left=192;top=400;right=328;bottom=424;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=26};
+reset={cls="button";text="重置";left=272;top=32;right=336;bottom=56;z=29};
+rest={cls="checkbox";text="休息";left=24;top=160;right=336;bottom=184;checked=1;font=LOGFONT(h=-13;name='微软雅黑');z=3};
+restFree={cls="static";text="1";left=264;top=192;right=296;bottom=208;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=16};
+restFreeAnap={cls="static";text="1";left=264;top=216;right=296;bottom=232;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=34};
+restTime={cls="static";text="1";left=264;top=248;right=296;bottom=264;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=13};
+static={cls="static";text="每间隔";left=48;top=216;right=88;bottom=232;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=30};
+static10={cls="static";text="小憩";left=32;top=104;right=72;bottom=120;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=14};
+static12={cls="static";text="休息";left=32;top=248;right=72;bottom=264;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=17};
+static13={cls="static";text="——————————————————————";left=24;top=136;right=328;bottom=152;align="center";transparent=1;z=19};
+static16={cls="static";text="次小憩";left=296;top=216;right=336;bottom=232;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=35};
+static2={cls="static";text="每";left=32;top=80;right=72;bottom=96;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=4};
+static3={cls="static";text="每";left=48;top=192;right=88;bottom=208;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=5};
+static4={cls="static";text="分钟";left=296;top=80;right=336;bottom=96;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=6};
+static5={cls="static";text="分钟";left=296;top=192;right=336;bottom=208;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=7};
+static6={cls="static";text="秒";left=296;top=104;right=336;bottom=120;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=8};
+static7={cls="static";text="分钟";left=296;top=248;right=336;bottom=264;font=LOGFONT(h=-13;name='微软雅黑');transparent=1;z=9};
+trackbar={cls="trackbar";left=64;top=72;right=264;bottom=102;max=100;min=1;z=10};
+trackbar2={cls="trackbar";left=64;top=96;right=264;bottom=126;max=100;min=1;z=12};
+trackbar3={cls="trackbar";left=64;top=184;right=264;bottom=214;disabled=1;max=100;min=1;z=15};
+trackbar4={cls="trackbar";left=88;top=208;right=264;bottom=238;max=100;min=1;z=33};
+trackbar5={cls="trackbar";left=64;top=240;right=264;bottom=270;max=100;min=1;z=18}
+)
+/*}}*/
+
+import transaction;
+import thread.event;
+
+
+// 重置
+winform.reset.oncommand = function(id,event){	
+    transaction.stop()
+	transaction.resetConfig()
+	getConfig()
+}
+
+function getConfig(){
+	var config = transaction.getConfig();
+	winform.anap.checked=config.setting.anap.userd;
+	winform.trackbar.pos=config.setting.anap.free_m;
+	winform.anapFree.text=config.setting.anap.free_m;
+	
+	winform.trackbar2.pos=config.setting.anap.time_s;
+	winform.anapTime.text=config.setting.anap.time_s;
+	
+	
+	// 休息
+	winform.rest.checked=config.setting.rest.userd;
+	if(config.setting.rest.mode!="anap"){
+		winform.trackbar3.pos=config.setting.rest.free_m;
+		winform.restFree.text=config.setting.rest.free_m;
+		winform.isTimeMode.checked=true;
+	}else {
+		winform.trackbar4.pos=config.setting.rest.free_anap;
+		winform.restFreeAnap.text=config.setting.rest.free_anap;
+		winform.isAnapMode.checked=true;
+		
+	}
+	winform.trackbar5.pos=config.setting.rest.time_m;
+	winform.restTime.text=config.setting.rest.time_m;
+	
+	//稍后提醒
+	winform.lateAnap.checked=config.setting.late.anap;
+	winform.lateRest.checked=config.setting.late.rest;
+	
+	//跳过提醒
+	winform.passAnap.checked=config.setting.pass.anap;
+	winform.passRest.checked=config.setting.pass.rest;
+	
+	
+	
+}
+
+function setConfig(){
+    
+    var config = transaction.getConfig();
+	config.setting.anap.userd=winform.anap.checked;
+	//config.setting.anap.free_m=winform.trackbar.pos;
+	config.setting.anap.free_m=winform.anapFree.text;
+	
+	//config.setting.anap.time_s=winform.trackbar2.pos;
+	config.setting.anap.time_s=winform.anapTime.text;
+	
+	
+	//休息
+	config.setting.rest.userd=winform.rest.checked;
+	if(winform.isAnapMode.checked==false){
+		//config.setting.rest.free_m=winform.trackbar3.pos;
+		config.setting.rest.free_m=winform.restFree.text;
+		config.setting.rest.mode="time";
+	}else {
+		//config.setting.rest.free_anap=winform.trackbar4.pos;
+		config.setting.rest.free_anap=winform.restFreeAnap.text;
+		config.setting.rest.mode="anap";
+	}
+	//config.setting.rest.time_m=winform.trackbar5.pos;
+	config.setting.rest.time_m=winform.restTime.text;
+	
+	//稍后提醒
+	config.setting.late.anap=winform.lateAnap.checked;
+	config.setting.late.rest=winform.lateRest.checked;
+	
+	//跳过提醒
+	config.setting.pass.anap=winform.passAnap.checked;
+	config.setting.pass.rest=winform.passRest.checked;
+	
+	config.saveAll();
+	
+
+	
+}
+
+
+
+winform.trackbar.oncommand = function(id,event,pos){
+	winform.anapFree.text = winform.trackbar.pos;
+}
+
+winform.trackbar2.oncommand = function(id,event,pos){
+	winform.anapTime.text = winform.trackbar2.pos;
+}
+
+winform.trackbar3.oncommand = function(id,event,pos){
+	winform.restFree.text = winform.trackbar3.pos;
+}
+
+winform.trackbar4.oncommand = function(id,event,pos){
+	winform.restFreeAnap.text = winform.trackbar4.pos;
+}
+
+winform.trackbar5.oncommand = function(id,event,pos){
+	winform.restTime.text = winform.trackbar5.pos;
+}
+
+
+
+winform.apple.oncommand = function(id,event){
+	setConfig();
+	
+	
+	transaction.stop();
+	//thread.create(anap,winform,transaction.getConfig())
+	transaction.start();
+}
+
+
+
+getConfig();
+
+winform.show();
+win.loopMessage();
+return winform;

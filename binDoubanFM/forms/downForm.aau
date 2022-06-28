@@ -1,0 +1,192 @@
+/*
+ **************************
+ *
+ * 豆瓣FM MP3下载窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import win.ui.menu;
+import win.util.tray;
+import mouse;
+import fsys;
+import fsys.dlg;
+import process;
+import com;
+
+import binFM.string;
+import binFM.db;
+/*DSG{{*/
+var downForm = ..win.form(text="文件下载器 - "++_app;right=498;bottom=232;border="thin";exmode="none";frame=1;max=false;min=false)
+downForm.add(
+checkDefaultFolder={cls="checkbox";text="不再询问";left=333;top=187;right=404;bottom=220;z=5};
+checkOntop={cls="checkbox";text="总在最前";left=414;top=187;right=485;bottom=220;z=4};
+displayFolder={cls="edit";left=83;top=190;right=262;bottom=216;edge=1;font=LOGFONT( h=-14 );multiline=1;readonly=1;z=3};
+listview={cls="listview";left=17;top=20;right=482;bottom=172;asel=false;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;edge=1;fullRow=1;msel=false;vscroll=1;z=1};
+selFolder={cls="button";text="保存到 :";left=16;top=190;right=77;bottom=216;z=2};
+toOpenFolder={cls="button";text="打开";left=268;top=190;right=319;bottom=215;z=6}
+)
+/*}}*/
+
+/* 
+ * 初始化listview控件
+ */
+downForm.listview.insertColumn("文件名称",200);
+downForm.listview.insertColumn("大小",70);
+downForm.listview.insertColumn("下载进度",110);
+downForm.listview.insertColumn("状态",70);
+downForm.listview.adjust = function(cx,cy){
+    downForm.listview.fillParent(1);
+}
+
+
+
+
+/* 
+ * 为listview加入progress控件
+ * -- 若此处代码下载binFM.download.aau中，则运行通过，编译后报错
+ */
+function addProgress() {
+	var itemId, rc;
+	itemId = ..downForm.listview.count;
+	..downForm.listview.addCtrl(
+    	["progress" ++ itemId] = {  
+			cls="progress";left=0;top=0;right=40;bottom=30;autoResize=false;min=0;max=100;pos=0;edge=1;
+		}
+   	);		
+   	rc = ..downForm.listview.getItemRect(itemId,3,,2);
+	..downForm.listview["progress" ++ itemId].setRect(rc);
+}
+
+
+/* 
+ * 列表框右击弹出的菜单
+ */
+downForm.popmenu = win.ui.popmenu(downForm);//创建弹出菜单
+downForm.popmenu.add('打开文件夹',function(id){
+	var selectedId = downForm.listview.selIndex;
+	process.explore_select(filePath_tab[selectedId]);
+});
+downForm.popmenu.add();
+downForm.popmenu.add('清空列表',function(id){
+	var selectedId = downForm.listview.selIndex;
+	downForm.listview.clear();
+});
+downForm.popmenu.add('移除记录',function(id){
+	var selectedId = downForm.listview.selIndex;
+	if(downForm.listview["progress"++selectedId].pos==100) {
+		downForm.listview["progress"++selectedId].close();
+		downForm.listview.delItem(selectedId);
+	}
+});
+downForm.popmenu.add('删除（包括文件）',function(id){
+	var selectedId = downForm.listview.selIndex;
+	if(downForm.listview["progress"++selectedId].pos==100) {
+		fsys.delete(filePath_tab[selectedId]);
+		downForm.listview["progress"++selectedId].close();
+		downForm.listview.delItem(selectedId);
+		filePath_tab[selectedId] = '';
+	}
+});
+
+
+
+
+/* 
+ * 列表框事件
+ */
+downForm.listview.onnotify = function(id,code,ptr){
+	var selectedId;
+	var nm;
+    select(code) {
+    	case 0xFFFFFFFD/*_NM_DBLCLK*/ { // 双击选定
+    		if(downForm.listview.selIndex){
+    			var selectedId = downForm.listview.selIndex;
+            	if(downForm.listview["progress"++selectedId].pos==100 && !string.find(filePath_tab[selectedId],"@@doubanFM_lastest.exe")) {
+					binFM.to.play("pause");
+            		process.execute(filePath_tab[selectedId]);
+	       		}
+	       	}
+    	}
+    	case 0xFFFFFFFB/*_NM_RCLICK*/  { // 右键弹出菜单
+    		var notifyMessage = downForm.listview.getNotifyMessage(code,ptr);
+        	if(!notifyMessage.iItem && notifyMessage.iSubItem) return ; 
+    		var x,y = mouse.getPos();
+    		if(downForm.listview.selIndex){
+    			downForm.popmenu.popup(x,y,true);//弹出菜单
+    		}
+    	}
+    	case 0xFFFFFFFE/*_NM_CLICK*/ {
+    	   	if(downForm.listview.selIndex){
+    			selectedId = downForm.listview.selIndex;
+	       		var rc = downForm.listview.getItemRect(selectedId,3,,2);
+				downForm.listview["progress" ++ selectedId].setRect(rc);
+	       	}
+    	}
+    }
+}
+
+
+
+
+/* 
+ * 窗口置顶复选框
+ */
+downForm.checkOntop.oncommand = function(id,event){
+	if(downForm.checkOntop.checked) win.setTopmost(downForm.hwnd);
+	else win.setTopmost(downForm.hwnd,false);
+}
+
+
+
+
+/* 
+ * 点击选择文件夹按钮
+ */
+downForm.selFolder.oncommand = function(id,event){
+	var temp = fsys.dlg.opendir();
+	if(temp != null) {
+		saveFolder = temp;
+		downForm.displayFolder.text = saveFolder;
+	}
+}
+
+
+
+
+/* 
+ * 打开保存文件夹按钮
+ */
+downForm.toOpenFolder.oncommand = function(id,event){
+	process.execute(downForm.displayFolder.text);	
+}
+
+
+
+
+/* 
+ * 窗口事件
+ */
+downForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x10/*_WM_CLOSE窗口关闭消息*/{
+			downForm.show(false);
+			win.setForeground(mainForm.hwnd);
+			return "noclose";
+		}
+		else{
+			
+		}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+
+//downForm.show();
+
+win.loopMessage(); 
+
+return downForm;

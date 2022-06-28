@@ -1,0 +1,73 @@
+import fsys.hosts;
+import chrome.app;
+import hosts;
+
+var theApp = chrome.app();
+
+/*
+external定义的对象可以通过aardio进行调用
+*/
+theApp.external = {
+
+	//获取本地hosts
+	getSystemHosts = hosts.getSystemHosts;
+	
+	//获取本地hosts
+	saveSystemHosts = hosts.saveSystemHosts;
+	
+	//手动刷新dns缓存
+	clearDnsCache = hosts.clearDnsCache;
+	
+	// 发送请求获取网络HOSTS
+	requestHosts = hosts.requestHosts;
+	
+	// 备份系统文件
+	backupLocalHosts = hosts.backupLocalHosts;
+	
+	// 获取配置信息
+	getConfigData = hosts.getConfigData;
+	
+	// 保存配置信息
+	saveConfigData = hosts.saveConfigData;
+	
+}
+
+/*
+// 加载一个页面完成会触发这个事件(要求引用了"/aardio.js")
+theApp.onUrlReady = function($,url){ 
+
+}
+
+// 窗口关闭时触发
+theApp.onQuit = function($,url){ 
+
+}
+*/
+
+//WebSocke/RPC中遇到的错误都会触发这个函数，可以在这里自定义错误处理方式
+theApp.ws.onError = function(hSocket,err){
+	errput(err, "chrome/rpc error");//当然也可以在 global.onError 里自定义全部的错误信息怎么显示
+}
+
+var url = "/web/index.aardio" 
+
+// 调试模式
+if(_STUDIO_INVOKED){
+	import web.rest.client;
+	if( web.rest.client().api("http://localhost:6060/",,"HostsSwitch").get() ){
+		url = "http://localhost:6060/";	
+	} 
+}
+
+// 窗口大小
+theApp.indexReady(
+	function(){
+		//theApp.setPos(,,820,430)
+	} 
+)
+
+// 正式的启动chrome进程，aardio会自动把下面的文件转换为服务端请求
+theApp.start(url);
+
+// 网页中可以调用 aardio.quit() 退出，也可以直接关闭chrome窗口退出
+win.loopMessage();

@@ -1,0 +1,40 @@
+﻿//listener 监听器
+namespace aaz.libhpsocket;
+class listener{
+    ctor(){
+        ..table.push(__gcProtectTable__, this);
+    };   
+	createThreadCallback = function(callback, proto){
+		if(!callback) error("线程回调函数不能为空", 2);
+		if(!this.componentClassPath) error("对象的 componentClassPath 属性，即组件类路径不能为空", 2);
+		
+		return ..thread.tostdcall( 
+			function(pSocket, ...){	
+				if(!__componentClass__){
+					global.import(owner.componentClassPath);
+					__componentClass__ = eval(owner.componentClassPath);
+
+
+					if(owner.threadGlobal){
+						..table.mix(global, owner.threadGlobal);
+						owner.threadGlobal = null;
+					}
+					if(owner.onThreadCreated){
+						owner.onThreadCreated();
+						owner.onThreadCreated = null;
+					}
+				}
+				return owner.callback(__componentClass__(null, pSocket), ...);
+			},
+			proto,
+			{
+				callback = callback;
+				componentClassPath = "aaz.libhpsocket." ++ this.componentClassPath;
+				onThreadCreated = this.onThreadCreated;
+				threadGlobal = this.threadGlobal;
+			});	
+	};
+}
+namespace listener{
+    __gcProtectTable__ = {};	
+}

@@ -1,0 +1,46 @@
+import console; 
+console.open();
+
+import console.progress;
+var bar = console.progress();
+
+
+import sqlite.aes256;
+bar.setProgress(1, "打开数据库");
+var db = sqlite.aes256("S:\Admin\SAP\db\qhcsap.db");
+bar.setProgress(10, "删除现有数据表...");
+if (db.existsTable("所有物料") and db.existsTable("备份所有物料"))
+	db.exec("DROP table 备份所有物料;");
+if db.existsTable("所有物料") db.exec("ALTER TABLE 所有物料 RENAME TO 备份所有物料;");
+bar.setProgress(20, "合并数据...");
+db.exec("CREATE TABLE 所有物料 AS
+SELECT all_cost.物料, all_cost.物料描述, all_cost.MTyp, all_cost.物料组, all_cost.BUn, all_cost.价格, qhc_export.物料是可配置的, qhc_export.禁用
+FROM all_cost LEFT JOIN qhc_export ON all_cost.物料 = qhc_export.物料;")  
+bar.setProgress(80, "更新索引...");
+
+var t= db.getTable("SELECT name from [sqlite_master] where type='index';")
+import tarray;
+var x = tarray.transpose(t)
+if table.find(x,"物料"){
+	db.exec("REINDEX 物料;")
+	db.exec("REINDEX 物料描述;")
+	db.exec("REINDEX MTyp;")
+	db.exec("REINDEX 物料组;")
+	db.exec("REINDEX BUn;")
+//	db.exec("REINDEX 物料是可配置的;") //避免大量NULL值的索引
+//	db.exec("REINDEX 禁用;")
+}else{
+	db.exec("CREATE UNIQUE INDEX 物料 on 所有物料 (物料);")
+	db.exec("CREATE INDEX 物料描述 on 所有物料 (物料描述);")
+	db.exec("CREATE INDEX MTyp on 所有物料 (MTyp);")
+	db.exec("CREATE INDEX 物料组 on 所有物料 (物料组);")
+	db.exec("CREATE INDEX BUn on 所有物料 (BUn);")
+//	db.exec("CREATE INDEX 物料是可配置的 on 所有物料 (物料是可配置的);")
+//	db.exec("CREATE INDEX 禁用 on 所有物料 (禁用);")
+}
+
+bar.setProgress(100, "完成");
+
+db.close();
+
+console.pause(true);

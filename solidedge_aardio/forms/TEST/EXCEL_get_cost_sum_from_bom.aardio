@@ -1,0 +1,20 @@
+import console; 
+import com.excel;
+var excel = com.excel(false);
+var asht = excel.ActiveWorkbook.ActiveSheet
+_path = "C:\Users\ccl100100\Desktop\New folder (6)\";
+
+import fsys;
+var flist = fsys.list(_path, ,"*.xlsx");
+var cost_sum = {};
+for (i=1; #flist) {
+	var wb = excel.Open(flist[flist[i]]);
+	var sht = wb.Sheets(1);
+	if !#cost_sum table.push(cost_sum, table.shift(sht.Range("A1:J1").value2));
+	table.push(cost_sum, table.shift(sht.Range("A2:J2").value2));
+	wb.close();	
+}
+//运行前先打开空白sheet
+asht.Range("A1:J"++ #cost_sum).value2 = cost_sum;
+
+console.pause(true);

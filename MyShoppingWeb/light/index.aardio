@@ -1,0 +1,152 @@
+?>
+<!DOCTYPE <html>
+<head>
+	<title>index</title>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<style type="text/css">
+		body {
+		}
+		header {
+			background-color: rgba(0,0,0,.2);
+		}
+		#content {
+			height: 90%;
+		}
+		footer {
+			text-align: center;
+		}
+		aside {
+			float: left;
+			margin-left: 5%;
+			background-color: rgba(0,255,0,.1);
+			height: 85%;
+			width: 20%;
+			margin-top: 2%;
+		}
+		section {
+			width: 60%;
+			float: right;
+			height: 80%;
+			margin-top: 2%;
+			margin-right: 5%;
+		}
+		.info {
+			box-sizing: border-box;
+			width: 45%;
+			height: 35%;
+			background-color: rgba(0,0,255,.3);
+			padding-bottom: 10%;
+			text-align: center;
+			float: left;
+			border-bottom: 1px solid rgba(0,0,0,.2);
+			border-right: 1px solid rgba(0,0,0,.2);
+			margin: 1px;
+		}
+		.info:nth-child(odd){
+			border-left: 1px solid rgba(0,0,0,.2);
+		}
+		.info:nth-child(1){
+			border-top: 1px solid rgba(0,0,0,.2);
+		}
+		.info:nth-child(2){
+			border-top: 1px solid rgba(0,0,0,.2);
+		}
+		.container {
+
+		}
+		.container > ul{
+			margin-left: 80%;
+		}
+		.info >a > img {
+			height:120px;
+			width:120px;
+			padding-top: 20px;
+		}
+		.info > a {
+			text-decoration:none;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<div class="container">
+			<ul class="nav nav-tabs">
+				<?
+				if(!request.cookies["usertype"]){
+				?>
+					<li><a href="#">注册</a></li>
+					<li><a href="login.aardio">登录</a></li>
+				<?
+				}
+				elseif (request.cookies["usertype"] == "user") {				
+				?>
+					<li><a href="user.aardio">会员：<?=request.cookies["username"]?></a></li>
+					<li><a href="login.aardio">重新登录</a></li>	
+				<?
+				}
+				else {
+				?>
+					<li><a href="admin.aardio">管理员：<?=request.cookies["username"]?></a></li>
+					<li><a href="login.aardio">重新登录</a></li>
+				<?
+				}				
+				?>
+			</ul>
+		</div>
+	</header>
+	<div id="content">
+		<aside>
+			<img src="images/lightsmile.png">
+		</aside>
+		<section>
+		<?
+		import dblink;
+		import img;
+		var goodInfo = dblink.goodInfo();
+		for(i=1;#goodInfo;1){
+		?>
+			<div class="info">
+			<a href="detail.aardio" id="<?=goodInfo[i].id?>">
+				<img src="<?=img.path(goodInfo[i].goodname)?>">
+				<h3><?=goodInfo[i].goodname?></h3>
+				<p><?=goodInfo[i].description?></p>
+			</a>
+			</div>
+		<?
+		}	
+		?>
+		</section>
+	</div>
+	<footer>
+		<p>Writen by lightsmile</p>
+	</footer>
+	<script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$('.info > a').click(function(event) {
+				/* Act on the event */
+				event.preventDefault();
+				var requestData = {goodname : $(this).children()[1].innerHTML};
+				$.extend({
+    				StandardPost:function(url,args){
+        				var form = $("<form method='post'></form>"),
+            				input;
+        				form.attr({"action":url});
+        				$.each(args,function(key,value){
+            				input = $("<input type='hidden'>");
+            				input.attr({"name":key});
+            				input.val(value);
+            				form.append(input);
+        				});
+        				form.submit();
+    				}
+				});
+				$.StandardPost('detail.aardio',requestData);
+
+			});
+		});
+	</script>
+</body>
+</html>

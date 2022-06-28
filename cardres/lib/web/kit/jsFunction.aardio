@@ -1,0 +1,557 @@
+﻿import web.kit;
+import sqlite;
+import console;
+import table;
+import log4a;
+
+namespace web.kit.jsFunction{};
+
+//预定义JS函数
+..web.kit.jsBindFunction("windowCommand",1,function(cmd){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    select(cmd) {
+    	case "min" {
+    		winform.hitmin();
+    	}
+    	case "max" {
+    		return winform.hitmax();
+    	}
+    	case "close" {
+    		return winform.close();
+    	}
+    	case "drag" {
+    		return winform.hitCaption()
+    	}
+    }
+});
+
+..web.kit.jsBindFunction("getPic",1,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..InfoDB;
+    var count=db.stepQuery("SELECT count(*) ct FROM A01",{Id=id});
+    if(count.ct==0){
+    	return "";
+    }else{
+    	var model=db.stepQuery("SELECT * FROM A01",{Id=id});
+    	return model.A01C1; 
+    }
+});
+
+
+//打开编辑
+..web.kit.jsBindFunction("editCommand",1,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..InfoDB;
+    var model=db.stepQuery("SELECT * FROM A01",{Id=id});
+    model.A04=db.getTable("SELECT * FROM A04",{ProfileId=id});
+    model.A79=db.getTable("SELECT * FROM A79",{ProfileId=id});
+    wkeWebView.external = {
+    	editId=id;
+    	model=model;
+    };
+    wkeWebView.go("\html\edit.html");
+});
+
+
+//获取标准数据
+..web.kit.jsBindFunction("getStandards",1,function(name){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..ConfigDB;
+    var result=db.getTable("SELECT * FROM VStandard",{
+     	Code=name
+    });
+   	return result;
+});
+
+..web.kit.jsBindFunction("addNew",1,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    wkeWebView.external = {
+    	editId=0;
+    	model={
+    		Id=0;
+    		A04={};
+    		A79={};
+    	};
+    };
+    wkeWebView.go("\html\edit.html");
+    
+});
+
+//获取标准文字
+..web.kit.jsBindFunction("getStandard",2,function(code,value){
+	if(value==""||value==null){
+		return "";
+	}
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..ConfigDB;
+    var count=(db.stepQuery("SELECT count(*) ct FROM VStandard",{Code=code;Value=value})).ct;
+    if(count==0){
+    	return value; 
+    }else{
+    	var row=db.stepQuery("SELECT ShortText,Text FROM VStandard",{Code=code;Value=value});
+    	var result=value;
+    	if(row.ShortText== null ||row.ShortText== ""){
+    		result=  row.Text; 
+    	}else{
+    		result= row.ShortText;
+    	}
+    	return result;
+    }
+});
+
+//选择照片
+..web.kit.jsBindFunction("selectPic",1,function(id){
+	import fsys;
+	import fsys.file;
+	import fsys.size;
+    import fsys.dlg;
+    import string;
+    import string.base64;
+    var str= fsys.dlg.open("jpg照片|*.jpg|jepg照片|*jepg|png照片|*.png|gif照片|*.gif|bmp照片|*.bmp");
+    if(str== null || str==""){
+    	return {
+    		message="取消选择选择!";
+    		imgstr="";
+    		success=false;
+    	}; 
+    }else{
+    	var file=fsys.file(str);
+    	var fsize=file.size(fsys.size.KB);
+    	if(fsize>1024){
+    		return {
+    			message="选择的照片大小必须在1MB以内!";
+    			imgstr="";
+    			success=false;
+    		};
+    	}else{
+    		var b64Str=string.base64.encode(string.load(str));
+    		var fullb64Str = "data:image/jpg;base64,"+b64Str;
+    		var db=..InfoDB;
+    		db.exec("UPDATE A01 SET A01C1 = '"+fullb64Str+"' WHERE Id = '"+id+"';");
+    		var result={
+    			success=true;
+    			message="选择照片成功!";
+    			imgstr= b64Str;
+    		};
+    		return result; 
+    	}
+    }
+});
+
+//测试
+..web.kit.jsBindFunction("jsTest",1,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db = ..InfoDB; 
+    var a01=db.stepQuery("SELECT * FROM A01",{Id=id});
+    var value=tostring(a01.A0111);
+    if(value!=null&&value!=""){
+    	try{
+    		import string;
+    		var tv=string.replace(value,"-",".");
+    		tv=string.replace(tv,"/",".");
+    		var rvArr=string.split(tv,".");
+    		console.dump(rvArr[1]+""+(rvArr[2]!=null?"."+rvArr[2]:""));
+    	}
+    	catch(e){
+    		console.dump("无");
+    	}
+    }else{
+    	console.dump("无");
+    }
+})
+
+//导出word
+..web.kit.jsBindFunction("saveWord",1,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    
+    var getText=function(code,value){
+    	if(value==""||value==null){
+			return "";
+		}
+    	var cdb=..ConfigDB;
+    	var count=(cdb.stepQuery("SELECT count(*) ct FROM VStandard",{Code=code;Value=value})).ct;
+    	if(count==0){
+    		return value; 
+    	}else{
+    		var row=cdb.stepQuery("SELECT ShortText,Text FROM VStandard",{Code=code;Value=value});
+    		var result=value;
+    		if(row.ShortText== null ||row.ShortText== ""){
+    			result=  row.Text; 
+    		}else{
+    			result= row.ShortText;
+    		}
+    		return result;
+    	}
+    };
+    
+    var getDateText=function(datavalue){
+    	if(datavalue==false){
+    		return "";
+    	}else{
+    		var value=tostring(datavalue);
+    		if(value!=null&&value!=""){
+    			import string;
+    			var tv=string.replace(value,"-",".");
+    			tv=string.replace(tv,"/",".");
+    			var rvArr=string.split(tv,".");
+    			var month=(rvArr[2]!=null?rvArr[2]:"");
+    			if(string.len(month)==0){
+    				month="01";
+    			}else if(string.len(month)==1){
+    				month ="0"+month;
+    			}
+    			return rvArr[1]+"."+month;
+    		}else{
+    			return "";
+    		}
+    	}
+    };
+    
+    
+    import crypt.bin;
+    import io;
+    import fsys;
+    import fsys.file;
+    import fsys.dlg;
+    import fsys.codepage;
+    
+    var db=..InfoDB;
+    var a01=db.stepQuery("SELECT * FROM A01",{Id=id});
+    var savePath=fsys.dlg.save("word 2003文档文件|*.doc","生成Word文档","",null,null,a01.A0101);
+    if(savePath== null || savePath==""){
+		winform.msgbox("取消保存","提示信息");
+    }else{
+    	//var wapp=word();
+    	
+    	try{
+    		log4a.info('export:'+a01.A0101);
+    		var sourcePath=io.fullpath("/db/tmpl.xml");
+    		fsys.copy(sourcePath,savePath);
+    		var xmlText=fsys.codepage.load(sourcePath,"utf-8");
+    		xmlText = string.replace(xmlText,"A0101-",a01.A0101);
+    		if(a01.A01C1!=false&&a01.A01C1!=""){
+    			var b64Arr=string.split(a01.A01C1,',');
+    			var b64Str=b64Arr[2];
+    			xmlText = string.replace(xmlText,"A01C1-",b64Str);
+    		}
+    		
+    		xmlText = string.replace(xmlText,"A0107-",getText('GBT2261.1',a01.A0107));
+    		xmlText = string.replace(xmlText,"A0111-",getDateText(a01.A0111));//date
+    		xmlText = string.replace(xmlText,"A0121-",getText("GBT3304",a01.A0121));
+    		xmlText = string.replace(xmlText,"A01CC-",getDateText(a01.A01CC));//date
+    		xmlText = string.replace(xmlText,"A0141-",getDateText(a01.A0141));//date
+    		xmlText = string.replace(xmlText,"A0114-",getText("GBT2260",a01.A0114));
+    		xmlText = string.replace(xmlText,"A0117-",getText("GBT2260",a01.A0117));
+    		xmlText = string.replace(xmlText,"A01A1005-",getText("GBT8561",a01.A01A1005));
+    		xmlText = string.replace(xmlText,"A0177-",a01.A0177);
+    		xmlText = string.replace(xmlText,"A01CPhone-",a01.A01CPhone);
+    		xmlText = string.replace(xmlText,"A01CUnit-",a01.A01CUnit+"  "+a01.A01CJob);
+    		xmlText = string.replace(xmlText,"A01CWork-",a01.A01CWork);
+    		xmlText = string.replace(xmlText,"A01CReward-",a01.A01CReward);
+    		
+    		var eduMark=1;
+    		for rowid,Id,ProfileId,A0405,A0410,A0430,A0435,A0440,A0449 in db.each("SELECT rowid,* from A04",{ProfileId=id}) {
+    			var eduKey=(("A04Edu"+eduMark)+"-");
+    			var schoolKey=(("A04School"+eduMark)+"-");
+    			xmlText = string.replace(xmlText,eduKey,getText("GBT4658",A0405)+" "+getText("GBT6864",A0440));
+    			xmlText = string.replace(xmlText,schoolKey ,getDateText(A0430)+" "+A0435+" "+getText("GBT16835",A0410));
+    			eduMark++;
+    		}
+    		
+    		var a79Mark=1;
+    		for rowid,Id,ProfileId,A7905,A7908,A7910,A7915,A7920,A7925 in db.each("SELECT rowid,* from A79",{ProfileId=id}) {
+    			xmlText = string.replace(xmlText,("A7910"+a79Mark+"-"),getText("GBT4761",A7910));
+    			xmlText = string.replace(xmlText,("A7905"+a79Mark+"-"),A7905);
+    			xmlText = string.replace(xmlText,("A7915"+a79Mark+"-"),getDateText(A7915));
+    			xmlText = string.replace(xmlText,("A7925"+a79Mark+"-"),getText("GBT4762",A7925));
+    			xmlText = string.replace(xmlText,("A7920"+a79Mark+"-"),A7920);
+    			a79Mark++;
+    		}
+    		
+    		xmlText=string.replace(xmlText,">\r\n",">");
+    		xmlText=string.replace(xmlText,">\r",">");
+    		var file=io.open(savePath,"w+,ccs=UTF-8");
+    		xmlText=string.toUnicode(xmlText,0,false);
+    		file.write(xmlText);
+    		file.close();
+    		winform.msgbox("文档生成成功!","提示信息");
+    	}catch(e){
+    		log4a.info(e);
+    		winform.msgbox("文档生成失败!","提示信息");
+    	}
+    }
+});
+
+//导出json文件
+..web.kit.jsBindFunction("saveJson",,function(){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..InfoDB;
+    import web.json;
+    import fsys.dlg;
+    var a01s=db.getTable("SELECT * FROM A01");
+    var a04s=db.getTable("SELECT * FROM A04");
+    var a79s=db.getTable("SELECT * FROM A79");
+    var model={
+    	A01=a01s;
+    	A04=a04s;
+    	A79=a79s;
+    };
+    var text=web.json.stringify(model,true,true);
+    var path=fsys.dlg.save("干部数据文件|*.nzinfo","生成上报数据文件","",null,null,"您的单位");
+    if(path== null || path==""){
+    	winform.msgbox("取消导出","提示信息");
+    }else{
+    	try{
+    		log4a.info('导出JSON数据;')
+    		string.save(path,text);
+    		winform.msgbox("数据文件导出成功","提示信息");
+    	}catch(e){
+    		log4a.info(e);
+    		winform.msgbox("数据文件导出失败","提示信息");
+    	}
+    	
+    }
+})
+
+//返回列表
+..web.kit.jsBindFunction("backList",,function(){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    wkeWebView.go("\html\main.html");
+});
+
+//获取列表
+..web.kit.jsBindFunction("getList",3,function(pindex,psize,param){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..InfoDB;
+    var ofs=psize*(pindex-1);
+    var cdt="";
+    
+    if(param!=null&&param.kw!=null){
+    	cdt=" WHERE A0101 LIKE '%"+param.kw+"%'";
+    }
+    var countSql="SELECT count(*) ct FROM A01";
+    countSql =countSql+cdt+" ORDER BY A0101";
+    var count=(db.stepQuery(countSql)).ct;
+    
+    var querySQL="SELECT rowid,* FROM A01";
+    querySQL=querySQL+cdt+" ORDER BY A0101 limit "+psize+" offset "+ofs;
+    var result=db.getTable(querySQL);
+    if(count==0){
+    	return {
+    		total=count;
+    		rows=null
+    	}; 
+    }else{
+    	return {
+    		total=count;
+    		rows=result 
+    	};
+    }
+});
+
+//删除
+..web.kit.jsBindFunction("deleteRow",,function(id){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    var db=..InfoDB;
+    var count=db.stepQuery("SELECT count(*) ct FROM A01",{Id=id});
+    if(count.ct>0){
+    	var entity=db.stepQuery("SELECT * FROM A01",{Id=id});
+    	log4a.info("删除信息："+entity.A0101);
+    	db.exec("DELETE FROM A04 WHERE ProfileId = '"+id+"'");
+    	db.exec("DELETE FROM A79 WHERE ProfileId = '"+id+"'");
+    	db.exec("DELETE FROM A01 WHERE Id = '"+id+"'");
+    }
+    return true;
+});
+
+//提交
+..web.kit.jsBindFunction("postModel",1,function(data){
+    var wkeWebView = owner;
+    var winform = wkeWebView.getForm();
+    import inet;
+    import inet.url;
+    var db=..InfoDB;
+    var result Rid=data.Id;
+    try{
+    	if(data.isedit==1){
+    		log4a.info('更新数据：'+inet.url.decode(data.A0101,false));
+    		var sql="UPDATE A01 SET ";
+    		sql = sql +"A0101='"+inet.url.decode(data.A0101,false)+"',";
+    		sql = sql +"A0107='"+inet.url.decode(data.A0107,false)+"',";
+    		sql = sql +"A0111='"+inet.url.decode(data.A0111,false)+"',";
+    		sql = sql +"A0114='"+inet.url.decode(data.A0114,false)+"',";
+    		sql = sql +"A0117='"+inet.url.decode(data.A0117,false)+"',";
+    		sql = sql +"A0121='"+inet.url.decode(data.A0121,false)+"',";
+    		sql = sql +"A0141='"+inet.url.decode(data.A0141,false)+"',";
+    		sql = sql +"A0177='"+inet.url.decode(data.A0177,false)+"',";
+    		sql = sql +"A01CC='"+inet.url.decode(data.A01CC,false)+"',";
+    		sql = sql +"A01CUnit='"+inet.url.decode(data.A01CUnit,false)+"',";
+    		sql = sql +"A01CReward='"+inet.url.decode(data.A01CReward,false)+"',";
+    		sql = sql +"A01CJob='"+inet.url.decode(data.A01CJob,false)+"',";
+    		sql = sql +"A01CWork='"+inet.url.decode(data.A01CWork,false)+"',";
+    		sql = sql +"A01CPhone='"+inet.url.decode(data.A01CPhone,false)+"',";
+    		sql = sql +"A01A1005='"+inet.url.decode(data.A01A1005,false)+"'";
+    		sql = sql +" WHERE Id='"+data.Id+"';";
+    		db.exec(sql);
+    		//A04
+    		var a04List=data.A04;
+    		var mark=0;
+    		while(a04List[mark]!=null){
+    			var v=a04List[mark];
+    			if(v.Id=="0"){
+                	var a04Id=tostring(win.guid.create());
+                	var a04Sql="INSERT INTO A04(Id,ProfileId,A0405,A0410,A0430,A0435,A0440,A0449,DisplayOrder,IsDefault) VALUES(";
+                	a04Sql = a04Sql+"'"+a04Id+"',";
+                	a04Sql = a04Sql+"'"+data.Id+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0405,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0410,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0430,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0435,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0440,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0449,false)+"',";
+                	a04Sql = a04Sql+v.DisplayOrder+",";
+                	a04Sql = a04Sql+v.IsDefault+")";
+                	db.exec(a04Sql);
+            	}else{
+                	var a04Sql="UPDATE A04 SET ";
+                	a04Sql = a04Sql+"A0405='"+inet.url.decode(v.A0405,false)+"',";
+                	a04Sql = a04Sql+"A0410='"+inet.url.decode(v.A0410,false)+"',";
+                	a04Sql = a04Sql+"A0430='"+inet.url.decode(v.A0430,false)+"',";
+                	a04Sql = a04Sql+"A0435='"+inet.url.decode(v.A0435,false)+"',";
+                	a04Sql = a04Sql+"A0440='"+inet.url.decode(v.A0440,false)+"',";
+                	a04Sql = a04Sql+"A0449='"+inet.url.decode(v.A0449,false)+"'";
+                	a04Sql = a04Sql+" WHERE Id='"+v.Id+"';";
+                	db.exec(a04Sql);
+            	}
+    			mark++;
+    		}
+    		//A79
+    		var a79List=data.A79;
+    		var mark79=0;
+    		while(a79List[mark79]!=null){
+    			var v=a79List[mark79];
+    			if(v.Id=="0"){
+                	var a79Id=tostring(win.guid.create());
+                	var a79Sql="INSERT INTO A79(Id,ProfileId,A7905,A7925,A7910,A7915,A7920,IsDefault) VALUES(";
+                	a79Sql = a79Sql+"'"+a79Id+"',";
+                	a79Sql = a79Sql+"'"+data.Id+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7905,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7925,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7910,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7920,false)+"',1)";
+                	db.exec(a79Sql);
+            	}else{
+                	var a79Sql="UPDATE A79 SET ";
+                	a79Sql = a79Sql+"A7905='"+inet.url.decode(v.A7905,false)+"',";
+                	a79Sql = a79Sql+"A7925='"+inet.url.decode(v.A7925,false)+"',";
+                	a79Sql = a79Sql+"A7910='"+inet.url.decode(v.A7910,false)+"',";
+                	a79Sql = a79Sql+"A7915='"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"A7915='"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"A7920='"+inet.url.decode(v.A7920,false)+"'";
+                	a79Sql = a79Sql+" WHERE Id='"+v.Id+"';";
+                	db.exec(a79Sql);
+            	}
+    			mark79++;
+    		}
+    		result= data.Id;
+    	}else{
+    		log4a.info("添加数据："+inet.url.decode(data.A0101,false));
+    		var entityId=tostring(win.guid.create());
+    		var sql="INSERT INTO A01(Id,A0101,A0107,A0111,A0114,A0117,A0121,A0141,A0177,A01CC,A01CUnit,A01CReward,A01CJob,A01CWork,A01CPhone,A01A1005) VALUES(";
+    		sql = sql +"'"+entityId+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0101,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0107,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0111,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0114,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0117,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0121,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0141,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A0177,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CC,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CUnit,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CReward,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CJob,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CWork,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01CPhone,false)+"',";
+    		sql =sql +"'"+inet.url.decode(data.A01A1005,false)+"')";
+    		db.exec(sql);
+    		var a04List=data.A04;
+    		var mark=0;
+    		while(a04List[mark]!=null){
+    			var v=a04List[mark];
+    			if(v.Id=="0"){
+                	var a04Id=tostring(win.guid.create());
+                	var a04Sql="INSERT INTO A04(Id,ProfileId,A0405,A0410,A0430,A0435,A0440,A0449,DisplayOrder,IsDefault) VALUES(";
+                	a04Sql = a04Sql+"'"+a04Id+"',";
+                	a04Sql = a04Sql+"'"+entityId+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0405,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0410,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0430,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0435,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0440,false)+"',";
+                	a04Sql = a04Sql+"'"+inet.url.decode(v.A0449,false)+"',";
+                	a04Sql = a04Sql+v.DisplayOrder+",";
+                	a04Sql = a04Sql+v.IsDefault+")";
+                	db.exec(a04Sql);
+            	}else{
+                	var a04Sql="UPDATE A04 SET ";
+                	a04Sql = a04Sql+"A0405='"+inet.url.decode(v.A0405,false)+"',";
+                	a04Sql = a04Sql+"A0410='"+inet.url.decode(v.A0410,false)+"',";
+                	a04Sql = a04Sql+"A0430='"+inet.url.decode(v.A0430,false)+"',";
+                	a04Sql = a04Sql+"A0435='"+inet.url.decode(v.A0435,false)+"',";
+                	a04Sql = a04Sql+"A0440='"+inet.url.decode(v.A0440,false)+"',";
+                	a04Sql = a04Sql+"A0449='"+inet.url.decode(v.A0449,false)+"'";
+                	a04Sql = a04Sql+" WHERE Id='"+v.Id+"';";
+                	db.exec(a04Sql);
+            	}
+    			mark++;
+    		}
+    		//A79
+    		var a79List=data.A79;
+    		var mark79=0;
+    		while(a79List[mark79]!=null){
+    			var v=a79List[mark79];
+    			if(v.Id=="0"){
+                	var a79Id=tostring(win.guid.create());
+                	var a79Sql="INSERT INTO A79(Id,ProfileId,A7905,A7925,A7910,A7915,A7920,IsDefault) VALUES(";
+                	a79Sql = a79Sql+"'"+a79Id+"',";
+                	a79Sql = a79Sql+"'"+entityId+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7905,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7925,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7910,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"'"+inet.url.decode(v.A7920,false)+"',1)";
+                	db.exec(a79Sql);
+            	}else{
+                	var a79Sql="UPDATE A79 SET ";
+                	a79Sql = a79Sql+"A7905='"+inet.url.decode(v.A7905,false)+"',";
+                	a79Sql = a79Sql+"A7925='"+inet.url.decode(v.A7925,false)+"',";
+                	a79Sql = a79Sql+"A7910='"+inet.url.decode(v.A7910,false)+"',";
+                	a79Sql = a79Sql+"A7915='"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"A7915='"+inet.url.decode(v.A7915,false)+"',";
+                	a79Sql = a79Sql+"A7920='"+inet.url.decode(v.A7920,false)+"'";
+                	a79Sql = a79Sql+" WHERE Id='"+v.Id+"';";
+                	db.exec(a79Sql);
+            	}
+    			mark79++;
+    		}
+    		result= entityId;
+    	}
+    }catch(e){
+    	log4a.info(e);
+    }
+    return result; 
+});

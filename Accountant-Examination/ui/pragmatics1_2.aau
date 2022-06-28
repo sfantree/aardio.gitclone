@@ -1,0 +1,277 @@
+import win.ui;
+import win.ui.atom;
+import win.ui.ctrl.splitter;
+/*DSG{{*/
+var pragmaticsForm = ..win.form(text="实务操作题";right=1024;bottom=800;border="thin";exmode="none";max=false;min=false;sysmenu=false)
+pragmaticsForm.add(
+custom={cls="picturebox";right=1024;bottom=201;ah=1;aw=1;bgcolor=49188;clip=1;clipch=1;image=$"\res\images\333.jpg";left=0;top=0;z=2};
+custom2={cls="custom";left=141;top=165;right=165;bottom=181;autosize=1;bgcolor=16744448;center=1;color=32768;dl=1;dt=1;z=7};
+custom3={cls="custom";left=83;top=164;right=107;bottom=180;autosize=1;bgcolor=255;center=1;color=16777215;dl=1;dt=1;z=6};
+custom_buttons={cls="custom";text="custom4";left=8;top=80;right=200;bottom=144;bgcolor=8388608;z=13};
+custom_flash={cls="static";text="custom_flash";top=200;right=800;bottom=800;ah=1;aw=1;bgcolor=32768;left=0;notify=1;transparent=1;z=1};
+edit_title_desc={cls="custom";text="desc";left=229;top=16;right=953;bottom=180;ah=1;aw=1;clipch=1;dr=1;z=10};
+picturebox={cls="picturebox";left=120;top=8;right=208;bottom=48;dl=1;dt=1;image=$"\res\images\jj.jpg";notify=1;z=5};
+picturebox_dd={cls="picturebox";left=960;top=119;right=1008;bottom=143;dr=1;image=$"\res\images\dd.jpg";notify=1;z=11};
+picturebox_wc={cls="picturebox";left=960;top=153;right=1008;bottom=177;dr=1;image=$"\res\images\wc.jpg";notify=1;z=12};
+static={cls="static";text="考试剩余时间";left=8;top=8;right=112;bottom=32;color=16777215;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=3};
+static3={cls="static";text="待定";left=112;top=168;right=144;bottom=184;bgcolor=15793151;color=8388736;dl=1;dt=1;font=LOGFONT( name='黑体' );transparent=1;z=8};
+static4={cls="static";text="完成";left=168;top=168;right=200;bottom=184;bgcolor=15793151;color=8388736;dl=1;dt=1;font=LOGFONT( name='黑体' );transparent=1;z=9};
+static5={cls="picturebox";left=578;top=184;right=658;bottom=200;ah=1;aw=1;image=$"\res\images\sp.jpg";notify=1;transparent=1;z=14};
+static_time={cls="static";text="00:58:01";left=24;top=32;right=104;bottom=56;clipch=1;color=16777215;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=4};
+static_tips={cls="static";text="提示：";left=812;top=202;right=1015;bottom=536;font=LOGFONT( h=-14 );transparent=1;z=15}
+)
+/*}}*/
+
+import ssexam.db;
+import console;
+
+
+
+
+import web.layout;
+
+var question_desc_layout=web.layout(pragmaticsForm.edit_title_desc);
+var wblayout=web.layout(pragmaticsForm.custom_buttons);
+
+question_desc_layout.html = /**
+	<div id="title_desc"></div> 
+**/
+
+question_desc_layout.css = /**
+html{ 
+   background:transparent;
+} 
+**/
+
+
+
+wblayout.html = /**
+    <input type="button" class="button_t" id="button_t1"  value="第一题"/>
+    <input type="button" class="button_t" id="button_t2"  value="第二题"/>
+    <input type="button" class="button_t" id="button_t3"  value="第三题"/>
+    <input type="button" class="button_t" id="button_t4"  value="第四题"/>
+    <input type="button" class="button_t" id="button_t5"  value="第五题"/>
+    <input type="button" class="button_t" id="button_t6"  value="第六题"/>
+
+**/	
+
+
+wblayout.css = /**
+     html{
+         background: url("/res/images/gbg.png") repeat-x;
+      }
+        .button_t{
+            behavior:button;
+            background:transparent;
+            border:1px solid transparent;
+            margin-top:5px;
+            margin-left:5px;
+
+        }
+        .button_t:hover {
+            border:1px solid black;
+        }
+ 
+**/
+
+//查 - 返回数据表
+var dataTable = ssexam.db.实务操作题(1);
+//console.dump( dataTable[1] );
+
+
+
+var total_score=0;
+var current_question=1;//默认第一题开始
+
+//flash控件
+import com.flash;
+var flash = com.flash( pragmaticsForm.custom_flash ); 
+
+flash.scale="ExactFit";
+flash.wMode="Opaque";
+
+import win.subclass;
+win.subclass(
+    flash.hwndControl, 
+    function (hwnd,message,wParam,lParam) { 
+         if(message==0x204/*_WM_RBUTTONDOWN*/)return 0;
+    }
+)
+
+flash.movie=dataTable[1].simulate_file;
+
+flash.external = {
+	examination = function(answer){
+		
+
+		//ans=string.split(answer,'|');
+		//dataTable[current_question].score=ans[3];
+		
+		pragmaticsForm.picturebox_wc.oncommand(); //完成
+	} 
+}
+
+
+
+
+for(i=1;#dataTable;1){
+           //console.dump(question_desc_layout);
+	     wblayout.getEle("button_t"+i).onButtonClick = function( ltTarget,ltEle,reason,behaviorParamss ) {
+           ltEle.style["border-color"]="red";
+           pragmaticsForm.static_tips.text="操作提示："+dataTable[i].simulate_tips;
+	       flash.movie="\data\"+dataTable[i].simulate_file;
+	       flash.play();
+	       current_question=i;
+		   
+		   current_question=i;
+		    
+	
+		   question_desc_layout.getEle("title_desc").innerHTML=dataTable[i].question_desc;
+	
+    }
+    //调用此函数启用事件函数
+    wblayout.getEle("button_t"+i).attachEventHandler();
+
+}
+
+
+wblayout.getEle("button_t"+1).click();
+
+
+
+
+
+
+
+
+
+pragmaticsForm.picturebox_wc.oncommand = function(id,event){
+	dataTable[current_question].complete=1;
+	//pragmaticsForm.msgbox("此题获得分："+dataTable[current_question].score);
+	//console.varDump(dataTable[current_question]);
+	wblayout.getEle("button_t"+current_question).style["border-color"]="blue";
+	pragmaticsForm.custom_flash.redraw();
+}
+
+
+pragmaticsForm.picturebox_dd.oncommand = function(id,event){
+	dataTable[current_question].complete=0;
+	wblayout.getEle("button_t"+current_question).style["border-color"]="red";
+}
+
+
+pragmaticsForm.picturebox.oncommand = function(id,event){
+	pragmaticsForm.close();
+	
+	
+	 
+}
+
+
+
+var expend=0;//是否点击static5放大
+var flash_top=pragmaticsForm.custom_flash.top;
+var form_bottom=pragmaticsForm.bottom;
+pragmaticsForm.static5.oncommand = function(id,event){
+	//pragmaticsForm.msgbox( pragmaticsForm.static5.text );
+		if(expend!=0){
+
+    		pragmaticsForm.edit_title_desc.hide=0;
+    		pragmaticsForm.picturebox_dd.hide=0;
+    		pragmaticsForm.picturebox_wc.hide=0;
+    		pragmaticsForm.custom_buttons.hide=0;
+    		pragmaticsForm.bottom=form_bottom;
+    		pragmaticsForm.custom_flash.top=flash_top;
+    		pragmaticsForm.static_tips.top=flash_top;
+    		expend=0;
+		
+		}else {
+		    flash_top=pragmaticsForm.custom_flash.top;
+    		pragmaticsForm.custom_flash.top=pragmaticsForm.picturebox.bottom+20;
+    		pragmaticsForm.static_tips.top=pragmaticsForm.custom_flash.top;
+            pragmaticsForm.edit_title_desc.hide=1;
+            pragmaticsForm.picturebox_dd.hide=1;
+    		pragmaticsForm.picturebox_wc.hide=1;
+    		pragmaticsForm.custom_buttons.hide=1;
+    		pragmaticsForm.bottom=pragmaticsForm.bottom-(flash_top-pragmaticsForm.custom_flash.top);
+            expend=1;
+    		
+		}
+		//pragmaticsForm.custom.bottom=pragmaticsForm.custom_flash.top-10;
+		pragmaticsForm.custom.height=pragmaticsForm.custom_flash.top;
+		
+		
+		c1x,c1y,c1w,c1h = pragmaticsForm.static5.getPos();
+		pragmaticsForm.static5.setPos(c1x,pragmaticsForm.custom.bottom-c1h);
+
+		pragmaticsForm.edit_title_desc.bottom=pragmaticsForm.custom.bottom-24;
+		
+        
+		//pragmaticsForm.custom_flash.redraw();
+		//pragmaticsForm.custom_buttons.redraw();
+		pragmaticsForm.redraw();
+		
+	
+}
+
+
+
+var time_over=0;
+pragmaticsForm.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {   //判断消息类型
+        case 0x10/*_WM_CLOSE*/  //窗口关闭消息
+        {
+        	hasDo=0;
+			
+			for(i=1;6;1){	
+	  		  if(dataTable[i]){
+	       		hasDo+=dataTable[i].complete;
+	       		total_score+=dataTable[i].score;
+	  		   }
+			
+			  }
+        	if(pragmaticsForm.msgboxTest("你还有"+6-hasDo+"道题没做，总分:"+total_score+",确定要退出提交?","确定要退出提交?")){
+	             //return true; 
+	               //if(!answerForm) answerForm = pragmaticsForm.loadForm("\ui\答案查看.aau");
+	               var indexForm = pragmaticsForm.loadForm("\ui\index.aau");
+	          }else
+	           {
+	              if(time_over==1){
+	              	var indexForm = pragmaticsForm.loadForm("\ui\index.aau");
+	              	//return true; 
+	              }else{
+	                 return false;
+	              }
+	          }
+        
+            
+          
+        }
+    }
+}
+
+import ssexam;
+if(!countdown) countdown= 3600;//倒计时秒
+var tmId = pragmaticsForm.addtimer( 
+    1000, function(hwnd,msg,id,tick){
+        
+        if(countdown>0){
+        	pragmaticsForm.static_time.text = ssexam.formatTime(countdown);
+        	countdown--;
+        }
+        
+        if(countdown==0){
+            countdown=-1;
+        	pragmaticsForm.msgbox("时间到了，已经自动提交!");
+        	time_over=1;
+        	pragmaticsForm.close();
+        	
+        }
+        
+    } 
+);
+
+	
+pragmaticsForm.show() 
+win.loopMessage();
+return pragmaticsForm;

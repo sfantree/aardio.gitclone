@@ -1,0 +1,19 @@
+import console; 
+ 
+
+ var v='UvBwe2w0KICAiMzY0NzEzNDc4QHFxLmNvbSI6ICI0NzU3NjIwLnhpIg0KfQ==';
+ v+='1';
+ var tab={[1]=1;[2]=123};
+ console.log(#tab,tab[1]);
+ table.remove(tab,1);
+ console.log(#tab,tab[1]);
+ 
+ 
+ console.log(v);
+
+ console.log(..string.sub(v,5,5)+..string.sub(v,7,#v));
+
+
+
+
+ console.pause(true);

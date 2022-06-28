@@ -1,0 +1,46 @@
+﻿import aaz.libhpsocket.component.properties.server;
+
+namespace aaz.libhpsocket.component.properties.udpServer;
+..table.mix(self, ..aaz.libhpsocket.component.properties.server);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+maxDatagramSize = {
+    _get = function(){
+    	return _dll.HP_UdpServer_GetMaxDatagramSize(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpServer_SetMaxDatagramSize(owner.pSocket, v);
+    } 
+}
+
+postReceiveCount = {
+    _get = function(){
+    	return _dll.HP_UdpServer_GetPostReceiveCount(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpServer_SetPostReceiveCount(owner.pSocket, v);
+    } 
+}
+
+detectAttempts = {
+    _get = function(){
+    	return _dll.HP_UdpServer_GetDetectAttempts(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpServer_SetDetectAttempts(owner.pSocket, v);
+    } 
+}
+
+detectInterval = {
+    _get = function(){
+    	return _dll.HP_UdpServer_GetDetectInterval(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_UdpServer_SetDetectInterval(owner.pSocket, v);
+    } 
+}

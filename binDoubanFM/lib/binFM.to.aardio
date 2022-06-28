@@ -1,0 +1,348 @@
+﻿//to 响应主要用户操作
+namespace binFM.to{
+
+
+	/* 
+ 	 * 加红心 动作
+ 	 */
+	like = function(noCancel,sid,todo="like") {
+		var song,i;
+		// if(noCancel) 于热键发起加红心动作
+		if(sid) {
+			song = ..binFM.song(sid);
+			if(!song) return false;
+		}
+		else {
+			song = ..binFM.song();
+			if(song) sid = song["sid"];
+			else return false;
+		}
+
+		if(!song["sid"] || song["like"]==null) { // 需要加红心的歌曲不在当前播放列表中
+			if(todo=="like") song["like"] = 0;
+			else song["like"] = 1;
+			song["sid"] = sid;	
+		}
+		
+		i = tonumber(song["i"]);
+
+		if(song["like"]=="0" || !song["like"]) {
+			..binFM.ui.like("loading",sid,..now_i==i);
+			if(..songs_noAd[i])..songs_noAd[i]["clike"] = 1;
+			..binFM.db.recordSong(sid,1);
+		}
+		else if(!noCancel) {
+			..binFM.ui.like("loading",sid,..now_i==i);
+			if(..songs_noAd[i]) ..songs_noAd[i]["clike"] = 2;
+			..binFM.db.recordSong(sid,2);
+		}
+		
+		if(..login) ..binFM.douban.like(song,noCancel);
+		else {
+			..win.msgboxTimeout('亲，登录后才可以在红心兆赫中收听哦~\r\n未登录则只在[我的收听历史]中标记。',.._app,6000);			
+			..binFM.ui.like("toLike");
+		}
+	}
+	
+	
+	/* 
+	 * 删除歌曲 动作
+ 	 */
+ 	del = function(delSid) {
+		/*if(!..login) {
+			..win.msgboxTimeout("亲，登录后才可以标记不想再听的歌曲哦~",.._app,3000);
+			return;
+		}*/
+		
+		if(#..songs_noAd<=1) return;
+		
+		var nowSid;
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) nowSid =  nowPlaying["sid"];
+		else return false;
+		
+		..timer.disable();
+		if(..fftShowing) ..fftForm.close();
+				
+		if(delSid) { // 从列表右键菜单选择删除
+			..binFM.db.recordSong(delSid,-2); 
+			if(..binFM.ui.$("option[value='" ++ delSid ++"']")) ..binFM.ui.$("option[value='" ++ delSid ++"']").delete();
+			var del_i = ..binFM.song(delSid)["i"];
+			if(delSid==nowSid) ..binFM.ui.showNext(nowPlaying);
+			..table.remove(..songs_noAd,del_i);
+			..binFM.reIndexSongs();
+			if(del_i<..now_i) ..now_i--;
+			..binFM.douban.del(delSid);
+			collectgarbage("collect"); // 内存回收
+			if(delSid==nowSid) ..binFM.play.start(..now_i);
+		}
+		else if(nowSid) { // 通过删除按钮触发删除 - 删除正在播放的歌曲
+			..binFM.db.recordSong(nowSid,-2); 
+			..binFM.ui.showNext(nowPlaying);
+			if(..binFM.ui.$("option[value='" ++ nowSid ++"']")) ..binFM.ui.$("option[value='" ++ nowSid ++"']").delete();
+			..table.remove(..songs_noAd,..now_i);
+			..binFM.reIndexSongs();
+			..binFM.douban.del(nowSid);
+			collectgarbage("collect"); // 内存回收
+			..binFM.play.start(..now_i);
+			..single = false;
+			..binFM.ui.toggleSingle(false);	
+			..binFM.play.loop(false);
+		} 	
+ 	}
+ 	
+	
+	
+	
+	/* 
+	 * 下一首 动作
+ 	 */
+	next = function() {
+		if(#..songs_noAd==1) return;
+		..binFM.monitor.info("用户动作：下一首，当前：",..now_i);
+		..timer.disable();
+		if(..fftShowing) ..fftForm.close();
+
+		if(#..songs_noAd<=1) return;
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var sid =  nowPlaying["sid"];
+		else return false;
+		
+		..single = false;
+		..binFM.ui.toggleSingle(false);
+		..binFM.play.loop(false);
+		
+		..binFM.douban.historyString(sid,"skip");
+
+		..binFM.ui.playlistItem(nowPlaying["sid"]); // 取消列表中当前歌曲的正在播放标记			
+		..binFM.ui.showNext(nowPlaying);
+
+		..binFM.play.start(..now_i+1);
+
+
+		collectgarbage("collect"); // 内存回收
+	}
+	
+	
+	
+	/* 
+	 * 上一首 动作
+	 */
+	back = function() {
+		if(#..songs_noAd==1) return;
+		..binFM.monitor.info("用户动作：上一首，当前：",..now_i);
+		..timer.disable();
+		if(..fftShowing) ..fftForm.close();
+		
+		if(#..songs_noAd<=1) return;
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var sid =  nowPlaying["sid"];
+		else return false;
+		
+		..single = false;
+		..binFM.ui.toggleSingle(false);
+		..binFM.play.loop(false);
+		
+		..binFM.ui.playlistItem(nowPlaying["sid"]); // 取消列表中当前歌曲的正在播放标记			
+		..binFM.ui.showPre(nowPlaying);
+
+		..binFM.play.start(..now_i-1);
+
+		collectgarbage("collect"); // 内存回收
+	}
+	
+	
+	/* 
+	 * 播放 / 暂停 动作
+	 */
+	play = function(todo) {
+		if(!..binFM.play.state()) return;
+		if(..binFM.play.state() == "playing") {
+			if(todo=="play") return;
+			..binFM.ui.playToggle("pause");
+			..binFM.play.pause();
+			..timer.disable();
+		}
+		else {
+			if(todo=="pause") return;
+			..binFM.ui.playToggle("play");
+			..binFM.play.resume();
+			..timer.enable();
+		}
+	}
+	
+	
+	/*
+	 * 转到指定频道
+	 * -- 红心兆赫 提示登录
+	 */
+	channel = function(cId) {
+		if(!cId) return false;
+		..channelId = cId;
+ 		
+		if(..channelId != ..channelId_now) {
+			if(..login || (!..login && cId != -3)) ..binFM.ui.channel(..channelId_now,cId);
+			if(cId == -3 && !..login) {
+				login();
+				return;
+			}
+			
+			..songs_json = '';
+			..binFM.douban.getSongs(cId,true);
+			
+			..binFM.ui.css("#play_artist","background","url(/res/images/play-artist_a.png)");
+			..binFM.ui.css("#play_album","background","url(/res/images/play-album_a.png)");
+			
+			if(..fftShowing) ..fftForm.close(); 
+		}
+	}
+	
+	
+	/* 
+	 * 转到红心兆赫 动作
+	 * -- 红心兆赫 不提示登录
+	 */
+	favChannel = function() {
+		if(..login && ..channelId_now!=-3) {
+			..binFM.ui.channel(..channelId_now,-3);
+			..channelId_now = -3;
+			..channelId = -3;			
+			..binFM.douban.getSongs(-3,true);
+			..binFM.ui.css("#play_artist","background","url(/res/images/play-artist_a.png)");
+			..binFM.ui.css("#play_album","background","url(/res/images/play-album_a.png)");
+		}
+	}
+	
+
+	/*
+	 * 只听此歌手的歌
+	 * 流程：
+	 * playArtist -(call)-> douban.getSongs -(call)-> wget2 -(call) listener.callback -(call)-> douban.getSons -(call)-> playArtist
+	 * !id || !name 取正在播放的歌手id及name
+	 * name 为必须，用于核对结果是否与id相对应
+	 */
+	playArtist = function(id,name,succeed) {
+		if(!succeed) {
+			if(!id || !name) id,name = ..binFM.artistId(); // 取正在播放的id和name
+			id = ..string.replace(id,"@@artist","");
+			..binFM.ui.channel(..channelId_now,-100);
+			..songs_json = '';
+			..binFM.douban.getSongs(-100,true,id,name);
+		}
+		else if(succeed=='ok') {
+			..channelId = -100;
+			..binFM.monitor.info("听歌手频道",id);
+			..binFM.ui.playArtist(id);
+			..binFM.db.saveArtist(id,name,,,,"fav");
+		}
+	}
+	
+		
+	/*
+	 * 只听此专辑的歌
+	 */
+	playAlbum = function(id,name,succeed) {
+		if(!succeed) {
+			if(!id || !name) id,name = ..binFM.albumId(); 
+			id = ..string.replace(id,"@@album","");
+			..binFM.ui.channel(..channelId_now,-10);
+			..songs_json = '';
+			..binFM.douban.getSongs(-10,true,id,name);
+		}
+		else if(succeed=='ok') {
+			..channelId = -10;
+			..binFM.monitor.info("听专辑频道",id);
+			..binFM.ui.playAlbum(id);
+			..binFM.db.saveAlbum(id,name,,,,,"fav");
+		}	
+	}
+	
+	
+	/*
+	 * 删除收藏项目
+	 */
+	favDel = function(cids,group) {
+		if(group=="channel") {
+			if(..binFM.db.saveChannel(cids,"_","del")) ..binFM.ui.favDel(cids,group);	
+		}
+		if(group=="artist") {
+			if(..binFM.db.saveArtist(cids,"_",,,,"del")) ..binFM.ui.favDel(cids,group);
+		}
+		if(group=="album") {
+			if(..binFM.db.saveAlbum(cids,"_",,,,,"del")) ..binFM.ui.favDel(cids,group);
+		}
+	} 
+	 
+	 
+	/* 
+	 * 登录豆瓣
+	 */
+	login = function(check,succeed) {
+		if(!check) ..binFM.ui.showLoginForm();
+		if(check) { // 检查是否登录成功
+			if(!succeed) {
+				..binFM.db.saveAuto(); // 保存当未登录用户的自动加红心、屏蔽选项
+				
+				var email = ..string.trim(..binFM.ui.$("#input_name",..wbLayout_login).value);
+				var pass = ..string.trim(..binFM.ui.$("#input_pass",..wbLayout_login).value);
+				if(user=='' || pass=='') return false;
+				
+				..binFM.ui.$("#toLogin",..wbLayout_login).disabled = "disabled";
+				..binFM.ui.hide("#login_error",..wbLayout_login);
+				if(!..noAPNG) ..binFM.ui.show("#login_loading",..wbLayout_login);
+				else ..binFM.ui.show("#login_loading2",..wbLayout_login);
+				..binFM.douban.getToken(email,pass);
+			}
+			else {
+				if(succeed=="ok") { 
+					..login = true;
+					// 记录当前播放的歌曲到当前用户
+					var nowPlaying = ..binFM.song();
+					if(nowPlaying) var sid = nowPlaying["sid"];
+					if(sid) ..binFM.db.recordSong(sid,-1);
+					// 获取当前用户的自动加红心、屏蔽选项
+					..binFM.db.getAuto(); 
+					// 更新ui
+					..binFM.ui.afterLogin();
+					// 如果是通过点击红心兆赫登录的，则转到红心兆赫
+					if(..channelId == -3) favChannel();
+					return true;
+				}
+				else {
+					..login = false;
+					..binFM.ui.hide("#login_loading",..wbLayout_login);
+					..binFM.ui.hide("#login_loading2",..wbLayout_login);
+					..binFM.ui.show("#login_error",..wbLayout_login);
+					..binFM.ui.$("#toLogin",..wbLayout_login).disabled = null;
+					return false;
+				}
+			}
+		}
+	}
+
+	
+	/*
+	 * 退出登录
+	 */
+	logout = function() {
+		..binFM.db.saveAuto(); // 保存当前用户的自动加红心、屏蔽选项
+		
+		..login = false;
+		..userName = '';
+		..userId = '';
+		..token = '';
+		..expire = '';
+		
+		if(..channelId==-3) channel(61); 
+		// 如果是收听红心兆赫时推出登录的，则转到新歌兆赫
+		..binFM.db.set("userId","");
+		// 记录当前播放的歌曲到当前用户（userId=0 游客）
+		var nowPlaying = ..binFM.song();
+		if(nowPlaying) var sid = nowPlaying["sid"];
+		if(sid) ..binFM.db.recordSong(sid,-1);
+		 // 获取未登录用户的自动加红心、屏蔽选项
+		..binFM.db.getAuto();
+		// 更新ui
+		..binFM.ui.afterLogout();
+	}
+}

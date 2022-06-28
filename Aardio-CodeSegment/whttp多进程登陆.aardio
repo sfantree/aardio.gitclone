@@ -1,0 +1,90 @@
+﻿//whttp多进程登陆
+import inet.whttp;
+clsUser = class {
+    ctor (username, password) {
+        this.username = username;
+        this.password = password;
+        
+        this._whttp = ..inet.whttp();
+    }
+    
+    login = function () {
+        this._whttp.beginRequest("http://passport.115.com/?ac=login", "POST", "http://www.115.com/");
+        this._whttp.writeHeader("Content-Type: application/x-www-form-urlencoded");
+        this._whttp.disableRedirects();
+        var re, status = this._whttp.send(
+            ..string.format(
+                "%s=%s&%s=%s&back=http%%3A%%2F%%2Fwww.115.com&goto=http%%3A%%2F%%2F115.com",
+                "login%5Baccount%5D", encode(this.username),
+                "login%5Bpasswd%5D", encode(this.password)
+            )
+        );
+        this._whttp.endRequest();
+        return status == 302;
+    }
+    
+    logout = function () {
+        this._whttp.beginRequest("http://passport.115.com/?ac=logout&goto=http%3A%2F%2F115.com");
+        this._whttp.send();
+        this._whttp.endRequest();
+    }
+    
+    getInfo = function () {
+        var str = this._whttp.get("http://my.115.com/");
+        var re = {};
+        if (str) {
+            re.islogin = !!..string.match(str, "is_login\:1");
+            if ( ! re.islogin) return re;
+            
+            re.userid = ..string.match(str, "user_id\: ""(\d+)");
+            re.username = ..string.match(str, "user_name\: ""([^""]+)");
+            re.email = ..string.match(str, "email\: ""([^""]+)");
+            re.isvip = !!..string.match(str, "is_vip\:  Number('1')");
+        }
+        return re;
+    }
+}
+
+namespace clsUser {
+    encode = function (str) {
+        return ..inet.url.encode( ..string.fromto(str, 65001, 0) );
+    }
+}
+
+io.open();
+
+var passports = {
+    { username = "aardiotest"; password = "asd123" };
+    { username = "aautest2"; password = "asd123" };
+    { username = "Not_Existing"; password = "123123" };
+};
+
+var users = {};
+
+// 遍历所有账户信息，登录所有用户
+for (k, v in passports) {
+    var username, password = v["username"], v["password"];
+    
+    var user = clsUser(username, password);
+    // 登录用户
+    io.stdout.write("正在登录 " + username + "...");
+    io.print( user.login() ? "成功" : "失败" );
+    
+    // 记录到 users 表中
+    table.push(users, user);
+}
+
+// 遍历所有用户，显示信息，并且登出
+for (i = 1; #users) {
+    var user = users[ i ];
+    
+    // 显示用户信息
+    var userInfo = user.getInfo();
+    if (userInfo.islogin) {
+        io.print( userInfo["username"], table.tostring(userInfo) );
+        
+        // 登出
+        user.logout();
+        io.print( userInfo["username"] + "已登出" );
+    }
+}

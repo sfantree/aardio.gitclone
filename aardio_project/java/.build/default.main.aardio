@@ -1,0 +1,9 @@
+//此触发器在生成EXE以后执行
+import ide;
+import fsys; 
+
+//获取生成的EXE文件路径
+var publishFile = ide.getPublishPath();
+var dir=..fsys.getParentDir(publishFile);
+var javadir=..io.joinpath(dir,"java")
+if(..io.exist(javadir)){  ..fsys.delete(javadir) ;}

@@ -1,0 +1,10 @@
+import dblink;
+var username = request.query("username");
+var goodname = request.query("goodname");
+var num = request.query("num");
+import console;
+console.log(username,goodname,num);
+res = {
+	result : dblink.newGoodOrder(username,goodname,num)
+}
+response.write(res);

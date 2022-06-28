@@ -1,0 +1,329 @@
+import win.ui;
+import win.ui.menu;
+import win.ui.minmax;
+import console;
+import win.ui.atom;
+import win.clip.viewer;
+import web.json;
+import web.form;
+import web.mshtml;
+import web.util;
+import inet;
+import fsys;
+import fsys.file;
+import fsys.table;
+import string.html;
+import sqlite;
+/*DSG{{*/
+mainForm = win.form(text="aardio form";right=928;bottom=814;max=false)
+mainForm.add(
+button={cls="button";text="保存设置";left=391;top=568;right=511;bottom=603;z=13};
+combobox={cls="combobox";left=115;top=502;right=209;bottom=522;edge=1;items={"utf-8"};mode="dropdown";z=14};
+custom={cls="custom";text="custom";left=14;top=12;right=900;bottom=420;autosize=1;center=1;transparent=1;z=4};
+custom2={cls="custom";text="custom";left=14;top=12;right=900;bottom=420;autosize=1;center=1;edge=1;hide=1;transparent=1;z=3};
+edit={cls="edit";left=115;top=580;right=147;bottom=603;edge=1;num=1;z=6};
+edit2={cls="edit";left=115;top=458;right=558;bottom=481;edge=1;z=11};
+edit3={cls="edit";left=115;top=539;right=344;bottom=562;edge=1;password=1;z=12};
+groupbox={cls="groupbox";text="异步通知";left=14;top=430;right=900;bottom=624;edge=1;z=1};
+listbox={cls="listview";left=14;top=12;right=900;bottom=420;edge=1;fullRow=1;gridLines=1;z=2};
+static={cls="static";text="刷新时间：";left=47;top=586;right=112;bottom=603;transparent=1;z=5};
+static2={cls="static";text="秒";left=155;top=586;right=195;bottom=603;transparent=1;z=7};
+static3={cls="static";text="接口地址：";left=47;top=464;right=112;bottom=481;notify=1;transparent=1;z=8};
+static4={cls="static";text="接口编码：";left=47;top=505;right=112;bottom=522;transparent=1;z=9};
+static5={cls="static";text="接口密钥：";left=47;top=545;right=112;bottom=562;transparent=1;z=10}
+)
+/*}}*/
+
+import config;
+config.mainForm.load();
+
+var iAddress = config.mainForm.edit2;
+var iAddressKey = config.mainForm.edit3;
+
+fsys.file("/logs.txt", "a+");
+string.load("/logs.txt");
+
+mainForm.edit.setParent(mainForm.groupbox);
+mainForm.edit2.setParent(mainForm.groupbox);
+mainForm.edit3.setParent(mainForm.groupbox);
+mainForm.static.setParent(mainForm.groupbox);
+mainForm.static2.setParent(mainForm.groupbox);
+mainForm.static3.setParent(mainForm.groupbox);
+mainForm.static4.setParent(mainForm.groupbox);
+mainForm.static5.setParent(mainForm.groupbox);
+mainForm.combobox.setParent(mainForm.groupbox);
+mainForm.combobox.add("gbk");
+
+config = fsys.config("/config/");
+
+mainForm.bindConfig( config.mainForm,{
+    edit = "text";
+    combobox = "selIndex";
+} );
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+     
+}
+
+mainForm.button.oncommand = function(id,event){
+	config.setting.mixin( config.mainForm )
+	mainForm.msgbox("设置保存成功！");
+}
+
+mainForm.listbox.show(false);
+
+var wb = web.form( mainForm.custom ); 
+var wb2 = web.form( mainForm.custom2 );
+wb.noScriptErr = true;
+
+wb.post("https://consumeprod.alipay.com/record/advanced.htm","");
+
+//导航事件执行函数
+wb.NavigateComplete2 = function(pDisp, url) {
+	i,j = string.find(url, "@https://consumeprod.alipay.com/record/advanced.htm");
+	i2,j2 = string.find(url, "@my.alipay.com/wealth");
+	i3,j3 = string.find(url, "@https://consumeprod.alipay.com/record/standard.htm");
+	if(i || i2){
+		runGetData();	
+	} elseif(i3){
+		wb.go("https://consumeprod.alipay.com/record/switchVersion.htm");
+	}
+}
+
+var tmIdWb = mainForm.addtimer( 
+	60000,
+	function(hwnd,msg,id,tick){	
+		try{
+			import thread.command;
+			var listener = thread.command();
+			listener.refreshWb = function(){
+				wb.go("https://custweb.alipay.com/account/index.htm");
+			}	
+		
+			thread.invoke( 
+				function(){
+					import thread.command;
+					thread.command.refreshWb();
+				}
+			)
+		}
+		catch(e){
+			string.save("/logs.txt", e, true );
+		}
+	} 
+)
+
+function runGetData(){
+	mainForm.custom.show(false);
+	mainForm.listbox.show(true);
+	if(mainForm.edit.text!=""){
+		var tmId = mainForm.addtimer( 				//创建自动刷新函数
+			(tonumber(mainForm.edit.text))*1000,	//获取edit控件中的值进行转化成number，这里是毫秒为单位，所以乘上1000
+			function(hwnd,msg,id,tick){
+				mainForm.listbox.show(true);
+				mainForm.add( 
+					custom2={cls="custom";text="custom";left=14;top=12;right=900;bottom=420;autosize=1;center=1;hide=1;edge=1;transparent=1;z=3};
+				);
+				wb2 = web.form( mainForm.custom2 );
+				wb2.noScriptErr = true;
+				wb2.post("https://consumeprod.alipay.com/record/advanced.htm","");
+				wb2.wait("");
+				setTradeStatus();
+				run();
+				mainForm.custom2.close();
+			} 			
+		)
+	} else {
+		//mainForm.msgbox("请设置刷新时间！");
+		string.save("/logs.txt", "请设置刷新时间！",true);
+	}
+}
+
+
+//限制交易记录条件（交易状态，资金流向，交易分类）
+function setTradeStatus(){
+	try{
+		var tradeStatus = wb2.jQuery("li[data-value='success']");
+		tradeStatus[0].click();
+		var fundFlow = wb2.jQuery("li[data-value='in']");
+		fundFlow[0].click();
+		var TradeType = wb2.jQuery("li[data-value='TRANSFER']");
+		TradeType[0].click();
+		
+		var setQueryForm = wb2.getEle("J-set-query-form");
+		setQueryForm.click();
+		
+		return;
+	}
+	catch(e){
+		//mainForm.msgbox("错误信息："+e);
+		string.save("/logs.txt", e, true );
+	}
+}
+
+var sqlConnection = sqlite("/data.db");
+
+if( not sqlConnection.existsTable("tradedata") ){
+	sqlConnection.exec("create table tradedata(
+		tradeNum TEXT NOT NULL UNIQUE,
+		cTime TEXT NOT NULL,
+		tradeName TEXT NOT NULL,
+		theOtherSide TEXT NOT NULL,
+		money TEXT NOT NULL,
+		status TEXT NOT NULL,
+		result TEXT
+	);");
+}
+
+//进行数据保存
+function run(){
+	wb2.wait(""); //等待指定网址
+	
+	var tradesTable = {};
+	getTradesTable(tradesTable);
+	mainForm.listbox.clear();
+	
+	for k,v in tradesTable  { 
+	//k为键,v是匹配的值,在这里键值对无序的随机出现。
+		cTime, tradeName, tradeNum, theOtherSide, money, status = table.unpack(v);//获取table中列数据
+		
+		//这里去除一些不必要的字符,注意点：table加入只有数字的字符串时会自动转换成number类型
+		theOtherSide = string.replace(theOtherSide,"@<span>","");
+		theOtherSide = string.replace(theOtherSide,"@</span>","");
+		money = string.replace(money,"@+","");
+		tradeNum = string.replace(tradeNum,"@流水号:","");
+		
+		tOSStr = string.html.toText(theOtherSide);
+		
+		results = "";
+		
+		var http = inet.http();
+		header = { ApiKey =  iAddressKey  };
+		var postData = "tradeNo=" + tradeNum + "&tradeAmount=" + money;
+		var urlByGet = iAddress+postData
+		
+		var html,err,errCode = http.post(iAddress,postData,header);
+		
+		http.close();
+		
+		if(html){
+			var strHtml = string.html.toText(html);
+			string.trim(strHtml);
+			results = strHtml;
+		} else {
+			if(http.statusCode){
+				results = http.lastResponse() + "HTTP错误代码：" + http.statusCode;
+				string.save("/logs.txt", err, true );
+			} else {
+				results = err;
+				string.save("/logs.txt", err, true );
+			}
+		}
+		
+		
+		mainForm.listbox.addItem({tradeNum; cTime; tradeName; tOSStr; money; status; results});//将数据加载到列表视图
+		sqlConnection.exec("INSERT OR IGNORE INTO tradedata(tradeNum,cTime,tradeName,theOtherSide,money,status) VALUES ('%s','%s','%s','%s','%s','%s');",tradeNum,cTime,tradeName,theOtherSide,money,status);	
+	};
+}
+
+//获取交易记录数据
+function getTradesTable(tradesTable){
+	try{
+		var oTable = wb2.getEle("tradeRecordsIndex");	//获取指定列表
+		var aTr = oTable.getElementsByTagName("tr");	//当前页的总tr元素
+		for( i=1;aTr.length-1;1) {						//循环tr元素
+			var aTd = aTr[i].getElementsByTagName("td");	//获取当前tr的总td元素
+			var oTradeCell = {};							//创建table类型局部变量，存储当前列的数据
+			for (j=0;aTd.length-1;1) {						//循环当前tr的td元素
+				if(j!=1 && j!=6 && j!=8){					//去除memo列、detail列、action列
+					var oCell = aTd[j];
+					var content = "";
+					var oCellChild = oCell.firstChild;		//获取当前行的当前列的子节点
+					for (k=0;oCell.childNodes.length-1;1) {
+						if(oCellChild.innerHTML && string.trim(oCellChild.innerHTML)!=""){
+							content += string.trim(oCellChild.innerHTML) + " ";
+						}
+						if(oCellChild.nextSibling){
+							oCellChild = oCellChild.nextSibling;
+						}
+					}
+					table.push(oTradeCell, content);		//将当前列的数据储存到oTradeCell
+				}
+			}
+			table.push(tradesTable,oTradeCell);		//将当前行的数据储存到tradesTable
+		}
+		var nextPage = wb2.queryEles( className="page-next" );
+		if(nextPage.hasChildNodes){
+			nextPage.click();
+			wb2.wait("");
+			getTradesTable(tradesTable);
+		}
+		return;
+	}
+	catch(e){
+		string.save("/logs.txt", e, true );
+	}
+}
+
+//创建列名
+mainForm.listbox.insertColumn("交易号",280,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("创建时间",130,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("交易名称",100,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("对方",80,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("金额",80,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("交易状态",100,,0x0/*_LVCFMT_LEFT*/);
+mainForm.listbox.insertColumn("HTTP通知结果",100,,0x0/*_LVCFMT_LEFT*/);
+
+//创建弹出菜单
+mainForm.popmenu = win.ui.popmenu(mainForm); 
+mainForm.popmenu.add('复制交易号',function(id){ 		
+	var num = mainForm.listbox.getItemText(mainForm.listbox.selIndex,1);		
+	win.clip.write(num);
+	mainForm.msgbox("复制成功："+num);
+} ) 
+mainForm.popmenu.add('重新发送HTTP通知',function(id){ 
+		var num = mainForm.listbox.getItemText(mainForm.listbox.selIndex,1);
+		var acount = mainForm.listbox.getItemText(mainForm.listbox.selIndex,5);
+		
+		var http = inet.http();
+		header = { apikey = iAddressKey }
+		var postData = "tradeNo=" + tradeNum + "&tradeAmount=" + money;
+		var html,err,errCode = http.get(urlByGet,header);
+		http.close();
+		
+		results = "";
+		
+		if(html){
+			results = html
+		} else {
+			if(http.statusCode){
+				results = http.lastResponse() + "HTTP错误代码：" + http.statusCode;
+				string.save("/logs.txt", err, true );
+			} else {
+				results = err;
+				string.save("/logs.txt", err, true );
+			}
+		}
+		
+		mainForm.listbox.setItemText(results,mainForm.listbox.selIndex,7);
+		
+		var sqlConnection = sqlite("/data.db");
+		
+		sqlConnection.exec("UPDATE tradedata SET result='%s' WHERE tradeNum='%s'",results, num);
+} ) 
+
+mainForm.listbox.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0x204/*_WM_RBUTTONDOWN*/{
+			var x,y = win.getMessagePos();  
+			var item = mainForm.listbox.hitTest(x,y,true); 
+			if( item ){
+				mainForm.listbox.selIndex = item;
+				mainForm.popmenu.popup(x,y,true)
+			}
+		} 
+	}
+}
+
+mainForm.show() 
+return win.loopMessage(); 

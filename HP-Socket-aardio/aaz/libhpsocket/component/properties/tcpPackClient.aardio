@@ -1,0 +1,26 @@
+﻿import aaz.libhpsocket.component.properties.tcpClient;
+
+namespace aaz.libhpsocket.component.properties.tcpPackClient;
+..table.mix(self, ..aaz.libhpsocket.component.properties.tcpClient);
+
+var _dll = ..aaz.libhpsocket._dll;
+
+maxPackSize = {
+    _get = function(){ 
+    	return _dll.HP_TcpPackClient_GetMaxPackSize(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_TcpPackClient_SetMaxPackSize(owner.pSocket, v);
+    } 	
+}
+
+packHeaderFlag = {
+    _get = function(){ 
+    	return 0xFFFF & _dll.HP_TcpPackClient_GetPackHeaderFlag(owner.pSocket);
+    }
+    
+    _set = function(v){
+    	_dll.HP_TcpPackClient_SetPackHeaderFlag(owner.pSocket, v);
+    } 	
+}	

@@ -1,0 +1,122 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="BOM Tree View";right=984;bottom=589;bgcolor=16777215)
+winform.add(
+button={cls="button";text='\uF07C';left=8;top=544;right=80;bottom=584;bgcolor=11580047;color=8388608;db=1;dl=1;font=LOGFONT(h=-21;name='FontAwesome');z=2};
+button2={cls="button";text="读取当前文件:(请先保存)
+";left=88;top=544;right=512;bottom=584;align="left";aw=1;bgcolor=11580047;color=32768;db=1;dl=1;flat=1;font=LOGFONT(name='宋体');hide=1;z=3};
+treeview={cls="treeview";left=0;top=0;right=984;bottom=536;asel=false;aw=1;bgcolor=16777215;db=1;dl=1;dr=1;dt=1;fullRow=1;infoTip=1;vscroll=1;z=1}
+)
+/*}}*/
+
+/*
+import console;
+console.open();
+*/
+
+winform.show();
+import access;
+import win.imageList;
+var wimg = win.imageList(16,16);
+wimg.addIcon("\res\part-m.ico"); 	/* 0	HALB 01 */
+wimg.addIcon("\res\ROH01.ico"); 	/* 1 	ROH 01*/
+wimg.addIcon("\res\ROH02.ico"); 	/* 2 	ROH 02*/
+wimg.addIcon("\res\ROH07.ico"); 	/* 3 	ROH 07*/
+wimg.addIcon("\res\ROH14.ico"); 	/* 4 	ROH 14*/
+wimg.addIcon("\res\ROH40.ico"); 	/* 5 	ROH 40*/
+wimg.addIcon("\res\asm-m.ico"); 	/* 6 	HALB 08*/
+wimg.addIcon("\res\KMAT09.ico"); 	/* 7 	KMAT 09*/
+wimg.addIcon("\res\part-sh.ico"); 	/* 8 	UNSPECIFIC*/
+wimg.addIcon("\res\ROH04.ico"); 	/* 9 	ROH 04*/
+wimg.addIcon("\res\ROH05.ico"); 	/* 10 	ROH 05*/
+wimg.addIcon("\res\ROH06.ico"); 	/* 11 	ROH 06*/
+
+
+winform.onDestroy = function(){
+    wimg.destroy();    
+}
+/*getICON{{*/
+var getIconIndex = function(str,pn){
+	select(str) {
+		case "ROH" { 
+			select(string.left(pn,6)) {
+				case "H00801", "H00808" { return 1;}
+				case "H00802" { return 2;}
+				case "H00807" { return 3;}
+				case "H00814" { return 4;}
+				case "H00840" { return 5;}
+				case "H00804" { return 9;}
+				case "H00815", "H00816" { return 10;}
+				case "H00806" { return 11;}
+				else { return 8;}
+			}
+		}
+		case "HALB" {
+			select(string.left(pn,6)) {
+				case "H00801" { return 0;}
+				case "H00808" { return 6;}
+				else { return 8;}
+			}
+		}
+		case "KMAT" { return 7;}
+		else { return 8;}
+	}	
+}
+/*}}*/
+var importFromXlsx = function(path){
+	var wk = access(path);
+ 	var sht = wk.getTable("SELECT * FROM [Sheet1$]");
+	var level = table.array(0,1,2,3,4,5,6,7,8,9,10);
+	level[0] = winform.treeview.insertItem( {
+		text = fsys.getFileName(path);
+		iImage = 7;
+		iSelectedImage = 7;
+	});	
+	for (i=1; #sht) {
+    	var n = tonumber(string.trimleft(sht[i].展开层, "."));	//数字和字符会创建不同数组项
+		var imgIndex = getIconIndex(sht[i].物料类型, sht[i].对象标识);
+		level[n] = winform.treeview.insertItem({
+				text = "[" ++ sht[i].对象标识 ++"] " ++ sht[i].对象描述;
+				iImage = imgIndex;
+				iSelectedImage = imgIndex;
+			}, level[n-1]);
+
+	}	
+	//winform.treeview.expandTo( level[1] );
+	winform.treeview.setImageList( wimg, 0 /*_TVSIL_NORMAL*/ );
+	winform.treeview.redraw();
+	wk.close();
+}
+
+winform.button.oncommand = function(id,event){
+    import fsys;
+    import fsys.dlg;
+	var path = fsys.dlg.openEx('Excel文件|*.xlsx',,, winForm);		//指定文件类型,对话框标题,默认目录,父窗口,选项参数,缓冲区大小
+	if !(path) return ;
+	for (i=1; #path) {
+		importFromXlsx (path[i]);
+	}
+
+}
+
+winform.button2.oncommand = function(id,event){
+	importFromXlsx (winform.button2.tag);	
+}
+winform.updateExcelStatus = function(){
+	import com.excel;
+	var excel = com.excel(false);
+	if excel
+		if excel.ActiveWorkbook
+			if string.startWith(excel.ActiveWorkbook.Name,"BG") {
+				winform.button2.hide = false;
+				winform.button2.text = "读取当前文件:" ++ '\n' ++ excel.ActiveWorkbook.Name;
+				winform.button2.tag = excel.ActiveWorkbook.FullName;
+				return ; 
+			};
+	winform.button2.hide = true;	
+}
+
+winform.updateExcelStatus();
+win.loopMessage();
+return winform;

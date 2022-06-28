@@ -1,0 +1,24 @@
+import aaz.libxl;
+
+var book = aaz.libxl.createBook();
+book.setKey();
+
+var font = book.addFont();
+font.
+	setName("Impact").
+	setSize(36);
+
+var format = book.addFormat()
+format.config = {
+    alignH = 2;
+    border = 12;
+    borderColor = 2;
+    font = font;
+}
+
+var sheet = book.addSheet("Custom");
+sheet.writeStr(2, 1, "Format", format);
+sheet.setCol(1, 1, 50);
+
+book.save("\format.xls");
+book.release();

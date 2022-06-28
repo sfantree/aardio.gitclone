@@ -1,0 +1,44 @@
+//popup 弹出面板
+import web.sciter.event;
+namespace web.sciter.behavior.popup;
+
+onButtonClick = function (scTarget,scOwner,reason,behaviorParams) {
+	scOwner.popupHide()
+}
+
+onHyperlinkClick = function (scTarget,scOwner,reason,behaviorParams) {
+	scOwner.popupHide()	
+}
+
+onMouseDown = function (scTarget,scOwner,x,y,mouseParams) {
+	return true;
+}
+
+onMouseUp = function (scTarget,scOwner,x,y,mouseParams) {
+	scOwner.popupHide();
+}
+
+onFocusLost = function (scTarget,scOwner,focusParams) {
+	if( scOwner.isChild(scTarget) )
+		scOwner.popupHide();	
+}
+ 
+namespace handled {
+
+	onButtonClick = function (scTarget,scOwner,reason,behaviorParams) {
+		scOwner.popupHide()
+	}
+	
+	nHyperlinkClick = function (scTarget,scOwner,reason,behaviorParams) {
+		scOwner.popupHide()	
+	}
+	
+	onMouseUp = function (scTarget,scOwner,x,y,mouseParams) {
+		scOwner.popupHide();
+	}
+	
+	onFocusLost = function (scTarget,scOwner,focusParams) {
+		if( scOwner.isChild(scTarget) )
+			scOwner.popupHide();
+	}
+}

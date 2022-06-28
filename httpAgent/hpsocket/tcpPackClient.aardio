@@ -1,0 +1,98 @@
+﻿import hpsocket;
+import hpsocket.socket.tcpPackClient;
+import hpsocket.listen.client;
+namespace hpsocket
+
+class tcpPackClient{
+	ctor( pSocket ){
+		if(type(pSocket)!=type.pointer){
+			var pListener = ::HPSocket.Create_HP_TcpPackClientListener();  
+			pSocket = topointer( ::HPSocket.Create_HP_TcpPackClient(pListener) );
+			this = ..hpsocket.listen.client(pListener,"tcpPackClient"); 
+		}
+		this.pSocket = pSocket;
+		..hpsocket.socket.tcpPackClient(this);
+		
+		if(!this.pListener){this.start = null;this.stop=null };
+		else{ ..table.gc(this,"destroy"); }
+	};
+	destroy = function(){
+		if(this.pSocket){
+			::HPSocket.Destroy_HP_TcpPackClient(this.pSocket);
+			::HPSocket.Destroy_HP_TcpPackClientListener(this.pListener);
+			this.pSocket = null;
+			this.pListener = null;
+		}
+	}
+	
+}
+
+/**intellisense()
+hpsocket.tcpPackClient() = 创建 TCP Pack 客户端\n!hpTcpPackClient.
+end intellisense**/
+
+/**intellisense(!hpTcpPackClient)
+pSocket = 组件句柄
+setExtra(pExtra) = 对连接ID绑定指针\n如果使用了reallocString函数，不应再调用此函数
+getExtra() = 返回连接ID绑定的指针\n如果使用了reallocString函数，返回的是动态指针
+reallocString(__/*长度*/) = 预分配内存并将动态指针用setExtra函数绑定到指定连接\n长度为0时释放内存,使用此函数后不应再使用setExtra函数
+appendString(pData,len) = 保存数据\n参数分别为连接ID,内存指针,内容长度\n该函数自动调用getExtra获取可用的动态指针\n使用reallocString函数分配动态指针给指定连接
+getString() = 从指定连接绑定的动态指针中获取appendString函数保存的所有数据
+start(.("ip",端口,是否异步连接) = 启动连接\n省略参数@3时默认为使用异步连接
+lasterr() = 返回错误代码以及错误信息\n系统错误请直接调用..lasterr获取
+stop() = 关闭服务端通信组件\n成功返回true
+send(.(buffer,length) = 发送数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n成功返回true
+sendPart(.(buffer,length,offset) = 发送部分数据，参数:\n@connId:连接ID\n@buffer:发送数据，字符串或缓冲区\n@length:发送长度，省略发送全部数据\n@offset:开始位置,默认为1\n成功返回true
+hasStarted() = 检查通信组件是否已启动 
+getState() = 查看通信组件当前状态 
+getConnectionId() = 获取所有连接ID
+getLocalAddress() = 获取某个连接的本地地址,端口号\n注意有2个返回值 
+getRemoteAddress() = 获取某个连接的远程地址,端口号\n注意有2个返回值
+getRemoteHost() = 获取某个连接的远程主机名
+getPendingDataLength() = 获取连接中未发出数据的长度
+freeBufferPoolSize = 内存块缓存池大小\n通常设置为 -> PUSH 模型：5 - 10；PULL 模型：10 - 20
+freeBufferPoolHold = 内存块缓存池回收阀值\n通常设置为内存块缓存池大小的 3 倍
+sendSmallFile = function(filename,head,tail) = 向服务端发送 4096 KB 以下的小文件\nhead,tail为可选参数
+setSocketBufferSize = 设置通信数据缓冲区大小\n根据平均通信数据包大小调整设置，\n通常设置为： N * 1024 - TBufferObj大小
+getSocketBufferSize = 获取通信数据缓冲区大小
+setKeepAliveTime = 设置正常心跳包间隔\n毫秒，0 则不发送心跳包，默认：30 * 1000）
+getKeepAliveTime = 获取正常心跳包间隔
+setKeepAliveInterval = 设置异常心跳包间隔\n毫秒，0 不发送心跳包，，默认：10 * 1000，\n如果超过若干次 [默认：WinXP 5 次, Win7 10 次] \n检测不到心跳确认包则认为已断线）
+getKeepAliveInterval = 获取异常心跳包间隔
+getMaxPackSize() = 获取数据包最大长度
+setMaxPackSize(__) = 设置数据包最大长度\n设置值不能超过 4194303/0x3FFFFF 字节\n默认值：262144/0x40000
+getPackHeaderFlag() = 获取包头标识
+setPackHeaderFlag(__) = 设置包头标识\n有效包头标识取值范围 0 ~ 1023/0x3FF,\n当包头标识为 0 时不校验包头，默认：0
+sslSetupContext(.(mode,certFile,keyFile,password,ca) = 初始化通信组件 SSL 环境参数\n仅SSL组件支持此函数接口
+sslCleanup() = 清理通信组件 SSL 运行环境\n仅SSL组件支持此函数接口
+threadGlobal = @.threadGlobal = {\n    winform = winform;\n    __/*添加变量到监听线程全局名字空间*/\n}
+onThreadCreated = @.onThreadCreated = function(){
+	__/*监听线程首次回调前触发*/
+}
+onThreadEnd = @.onThreadEnd = function(){
+	__/*监听线程退出前触发*/
+}
+onPrepareConnect = @.onPrepareConnect = function(hpTcpPackClient,connId,soListen){
+	__/*准备建立连接前触发*/
+}
+onHandShake = @.onHandShake = function(hpTcpPackClient,connId){
+	__/*握手完成触发*/
+}
+onConnect = @.onConnect = function(hpTcpPackClient,connId){
+	__/*建立连接后触发*/
+}
+onSend = @.onSend = function(hpTcpPackClient,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*数据发送成功后触发*/
+}
+onReceive = @.onReceive = function(hpTcpPackClient,connId,pData,length){
+	var data = ..raw.tostring(pData,1,length)
+	__/*接收到数据时触发*/
+};
+onClose = @.onClose = function(hpTcpPackClient,connId,enOperation,errCode){
+	__/*连接正常或异常关闭时触发*/
+}
+onShutdown = @.onShutdown = function(hpTcpPackClient){
+	__/*关闭通信组件触发*/
+}
+end intellisense**/

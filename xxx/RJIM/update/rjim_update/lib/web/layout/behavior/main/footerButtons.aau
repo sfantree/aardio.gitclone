@@ -1,0 +1,8 @@
+import process;
+namespace web.layout.behavior.main.footerButtons
+	
+onButtonClick = {
+	help = function (ltTarget,ltOwner,reason,behaviorParams) {
+		..process.execute("http://bbs.aau.cn/forum.php?mod=viewthread&tid=10507");
+	}
+}

@@ -1,0 +1,129 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=892;bottom=709;bgcolor=16777215)
+winform.add(
+btnUpdate={cls="plus";text="保 存";left=457;top=603;right=560;bottom=639;align="left";bgcolor=11580047;db=1;dl=1;font=LOGFONT(h=-13);iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=22}};iconText='\uF0C7';notify=1;textPadding={left=40};z=7};
+checkLan={cls="plus";text="允许来自局域网的连接";left=338;top=514;right=545;bottom=545;align="left";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome')};iconText='\uF0C8';notify=1;textPadding={left=19};z=1};
+chkAutoPacPort={cls="plus";text="自动分配空闲PAC端口";left=432;top=365;right=653;bottom=396;align="left";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome')};iconText='\uF0C8';notify=1;textPadding={left=19};z=5};
+chkAutoPort={cls="plus";text="自动分配空闲代理端口";left=432;top=305;right=642;bottom=336;align="left";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome')};iconText='\uF0C8';notify=1;textPadding={left=19};z=6};
+editLanPacUrl={cls="plus";left=342;top=465;right=756;bottom=489;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};db=1;dl=1;editable="edit";font=LOGFONT(h=-16);textPadding={bottom=1};z=11};
+editPacPort={cls="plus";left=340;top=364;right=420;bottom=388;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};db=1;dl=1;editable="edit";font=LOGFONT(h=-16);textPadding={bottom=1};z=2};
+editPacUrl={cls="plus";left=340;top=416;right=659;bottom=440;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};db=1;dl=1;editable="edit";font=LOGFONT(h=-16);textPadding={bottom=1};z=9};
+editPort={cls="plus";left=340;top=306;right=420;bottom=330;align="left";bgcolor=16777215;border={bottom=1;color=-8355712};db=1;dl=1;editable="edit";font=LOGFONT(h=-16);textPadding={bottom=1};z=3};
+static={cls="static";text="代理服务端口：";left=202;top=312;right=332;bottom=338;align="right";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);transparent=1;z=4};
+static2={cls="static";text="PAC 端口：";left=198;top=369;right=328;bottom=395;align="right";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);transparent=1;z=8};
+static3={cls="static";text="本机 PAC 地址：";left=171;top=421;right=329;bottom=447;align="right";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);transparent=1;z=10};
+static4={cls="static";text="局域网 PAC 地址：";left=173;top=470;right=331;bottom=496;align="right";bgcolor=16777215;db=1;dl=1;font=LOGFONT(h=-16);transparent=1;z=12}
+)
+/*}}*/
+
+import style;
+winform.checkLan.skin(style.checkBox);  
+winform.chkAutoPort.skin(style.checkBox);
+winform.chkAutoPacPort.skin(style.checkBox);
+winform.btnUpdate.skin(style.primaryButton);
+winform.editPort.skin(style.edit);
+winform.editPacPort.skin(style.edit);
+winform.editPacUrl.editBox.readonly = true;
+
+import v2ray.core;
+var onConfigJsonUpdate = function(){
+	winform.editPort.text = v2ray.core.getPort();
+	winform.editPacPort.text = v2ray.core.getPacPort();
+	winform.checkLan.checked = config.core.default.inbounds[1]["listen"] !== "127.0.0.1"
+	winform.chkAutoPort.checked = ! config.core.default.inbounds[1]["port"]
+	winform.chkAutoPacPort.checked =  ! config.core.default.inbounds[1]["pacPort"] 
+	winform.editPort.disabled = winform.chkAutoPort.checked
+	winform.editPacPort.disabled = winform.chkAutoPacPort.checked
+	winform.editPacUrl.text = v2ray.core.getPacUrl();
+	if(winform.checkLan.checked){
+		winform.editLanPacUrl.text = v2ray.core.getPacUrl(true);
+	}	
+	winform.editLanPacUrl.disabled = !winform.checkLan.checked
+}
+onConfigJsonUpdate();
+
+subscribe("config.proxy.core.config.json.changed",function(){
+    onConfigJsonUpdate();
+})  
+
+import wsock.tcp.client;
+winform.btnUpdate.oncommand = function(id,event){
+	winform.btnUpdate.disabledText = {'\uF254';'\uF251';'\uF252';'\uF253';'\uF250'};
+	
+	var client = wsock.tcp.client();  
+	var oldPort = v2ray.core.getPort();
+	if( !winform.chkAutoPort.checked 
+		&& tonumber(winform.editPort.text)
+		&& tonumber(winform.editPort.text) != oldPort
+		&& client.connectTimeout("127.0.0.1",tonumber(winform.editPort.text) ,0.5) ){
+		winform.editPort.editBox.showErrorTip(,"端口已被占用");
+		winform.btnUpdate.disabledText = null;
+		return client.close(); 
+	} 
+	client.close();  
+	
+	var client = wsock.tcp.client();  
+	var oldPacPort = v2ray.core.getPacPort();
+	if( !winform.chkAutoPacPort.checked 
+		&& tonumber(winform.editPacPort.text)
+		&& tonumber(winform.editPacPort.text) != oldPacPort
+		&& client.connectTimeout("127.0.0.1",tonumber(winform.editPacPort.text) ,0.5) ){
+		winform.editPacPort.editBox.showErrorTip(,"PAC端口已被占用");
+		winform.btnUpdate.disabledText = null;
+		return client.close(); 
+	} 
+	client.close(); 
+	
+
+	if(!winform.chkAutoPacPort.checked ){
+		config.core.default.inbounds[1]["pacPort"]  = !winform.chkAutoPacPort.checked ? tonumber(winform.editPacPort.text) : 0;
+		if(oldPacPort!=tonumber(winform.editPacPort.text)){ 
+			v2ray.core.restartPac();
+		}
+	}
+	else {
+		config.core.default.inbounds[1]["pacPort"]  = 0;
+	}
+	
+	var restartCore = false;
+	var port = !winform.chkAutoPort.checked ? tonumber(winform.editPort.text) : 0
+	config.core.default.inbounds[1]["port"]  = port;
+	if(!winform.chkAutoPort.checked){ 
+		if(port!=oldPort){
+			v2ray.core.setPort(port);
+			restartCore = true;
+		}		
+	}
+
+	var listen = winform.checkLan.checked ? "0.0.0.0" : "127.0.0.1"; 
+	if(listen!=config.core.default.inbounds[1]["listen"]){
+		config.core.default.inbounds[1]["listen"]= listen;
+		restartCore = true;
+	}		 
+    
+    config.core.save();
+    publish("v2rayCore.updateConfigJson");
+    if(restartCore) publish("v2ray.core.reload");    
+    
+    onConfigJsonUpdate();
+    winform.btnUpdate.disabledText = null;
+	winform.msgOk("配置已更新",1200);
+}
+
+winform.chkAutoPort.oncommand = function(id,event){
+	winform.editPort.disabled = winform.chkAutoPort.checked
+}
+
+winform.chkAutoPacPort.oncommand = function(id,event){
+	winform.editPacPort.disabled = winform.chkAutoPacPort.checked
+}
+
+winform.checkLan.oncommand = function(id,event){
+	winform.editLanPacUrl.disabled = !winform.checkLan.checked
+}
+
+winform.show();
+win.loopMessage();
+return winform;

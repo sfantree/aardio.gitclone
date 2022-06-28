@@ -1,0 +1,111 @@
+/*
+检查密码是否泄漏的小工具软件
+原理见:
+Pwned检查密码是否泄漏工具: https://www.wwwbuild.net/gh_70d3f225d0bb/18950.html
+python 版参考: https://github.com/sameera-madushan/Pwned.git
+*/
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="密码泄露检测工具";right=523;bottom=276)
+mainForm.add(
+button={cls="button";text="检测";left=437;top=70;right=501;bottom=94;dr=0.04;z=3};
+edit={cls="edit";text="123456";left=68;top=71;right=420;bottom=94;dl=0.13;dr=0.2;edge=1;z=1};
+lbIcon={cls="static";left=230;top=110;right=294;bottom=146;align="center";db=0.47;dt=0.4;font=LOGFONT(h=-40;name='FontAwesome');notify=1;transparent=1;z=5};
+lbResult={cls="static";left=18;top=149;right=506;bottom=253;align="center";db=0.09;dl=0.03;dr=0.03;dt=0.54;font=LOGFONT(h=-19;weight=700);transparent=1;z=4};
+lbTips={cls="static";text="当前，全球已有超过6.13亿个账号的密码被脱库泄露。通过该已泄露密码库，黑客们可以轻松破解各处账号！
+本工具可以帮您检测您的密码是否已泄露，请避免使用已被公开泄露的密码！";left=16;top=10;right=496;bottom=68;dl=1;dr=1;dt=1;transparent=1;z=6};
+static={cls="static";text="密码:";left=15;top=73;right=62;bottom=92;dl=0.03;dr=0.88;transparent=1;z=2}
+)
+/*}}*/
+
+import console;
+import fonts.fontAwesome;
+import crypt;
+import inet.tls;	//win7以下支持https
+import web.rest.client;
+
+var http = web.rest.client();
+var api = http.api("https://api.pwnedpasswords.com/range/{hash}");
+
+var check = function(pwd){
+	var hash = crypt.sha1(pwd, true/*大写*/);
+	var prefix = string.slice(hash, 1, 5);	//取前5位
+	var suffix = string.slice(hash, 6);	//第6位开始剩下的全部
+	//console.debug('hash=', hash, prefix, '-', suffix);
+	var resp,errMsg,errCode = api[prefix].get();
+
+	if(errCode) {
+		//返回错误信息
+		return -1, errMsg;
+	}
+	var count = 0;
+	//检测异常文本: "The hash prefix was not in a valid format"
+	var i, j = string.indexOf(resp, "The hash prefix was not in a valid format");
+	//找到这个字符串, 代表无效
+	if(i) {
+		return -2, "HASH 前缀不是有效的格式";	// 无效的HASH字符串
+	}
+	//先断行
+	var lines = string.split(resp, '<\r\n>');
+	//console.debug('#lines=', #lines);
+	//然后以冒号拆分,前面是HASH, 后面是泄露数量
+	var splitted = table.map(lines, function(v,k) {
+		return string.split(v, ':');
+	});
+	//console.debug(table.tostring(splitted));
+	//再匹配HASH(后缀)
+	var matched = table.filter(splitted, function(v,index){
+		return v[1] == suffix;	// 匹配 HASH 的后缀部分
+	})
+	//console.log(table.tostring(matched));
+	if(#matched > 0) {
+		count = tonumber(matched[1][2]);//匹配到的第1行第2列-是泄露次数
+	}
+	return 1, count;
+};
+
+mainForm.button.oncommand = function(id,event){
+	//console.log('button onclick: id, owner.id, event=', id, owner.id, event);
+	var txtPwd = mainForm.edit.text;
+	txtPwd = string.trim(txtPwd);
+	if(#txtPwd == 0) {
+		win.msgboxTimeout("请输入待检测的密码!",,5000, 0x30/*_MB_ICONEXCLAMATION*/);
+		mainForm.edit.setFocus(0, -1);//全选并设为焦点
+		return false;
+	}
+	mainForm.lbIcon.color = 0x000;		//black
+	mainForm.lbIcon.text = '...';
+	mainForm.lbResult.text = '正在检测...';
+	var ok, res = check(txtPwd);
+	if(ok < 0) {	//-1, -2 等错误
+		mainForm.lbIcon.color = 0x00ff;		//brown
+		mainForm.lbIcon.text = '\uF12A';	//'!'
+		mainForm.lbResult.text = '检测失败: ' ++ tostring(res);	//错误信息
+		return;
+	}
+	if(res == 0) {
+		mainForm.lbIcon.color = 0x00FF33;	//green
+		mainForm.lbIcon.text = '\uF00C';	//'√'
+		mainForm.lbResult.text = '恭喜, 该密码尚未被泄露 :)';
+	} else {
+		mainForm.lbIcon.color = 0x0000ff;	//red
+		mainForm.lbIcon.text = '\uF00D';	//'X'
+		mainForm.lbResult.text = '该密码已被泄露或使用 ' ++ tostring(res) ++ ' 处, 请谨慎使用!';
+	}
+};
+
+mainForm.edit.wndproc = function(hwnd,message,wParam,lParam){
+	//回车键确认(注:回车键是对话框快捷键, 其 _WM_KEYDOWN 消息已被对话框截获处理, 
+	// 故须用 _WM_KEYUP 消息来响应回车键)
+    if(message == 0x101/*_WM_KEYUP*/ and wParam == 0xD/*_VK_RETURN*/) {
+        //console.debug('edit.keydown.', wParam, 'pressed');
+		var id = ::LOWORD(wParam);	// edit.id
+		var event = ::HIWORD(wParam);	//VK_RETURN
+		//console.log('KeyUp: id, event=', id, event);
+    	mainForm.button.oncommand(id, event);
+    }
+    //无返回值则继续调用默认回调函数
+};
+
+mainForm.show();
+return win.loopMessage();

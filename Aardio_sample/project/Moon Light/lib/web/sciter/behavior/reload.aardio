@@ -1,0 +1,9 @@
+﻿//reload 重新加载直播间
+import public;
+import web.sciter.behavior;
+
+namespace web.sciter.behavior.reload{
+	onMouseClick = function( scTarget,scOwner,x,y,ltMouseParams ) {
+		..public.reload()
+	}	
+}

@@ -1,0 +1,6 @@
+﻿import console
+if(string.find("114514 recovery","recovery")!='\n'){
+	console.log(1)
+}
+console.log(string.find("114514 sideload","recovery"))
+console.pause()

@@ -1,0 +1,89 @@
+import win.ui;
+/*DSG{{*/
+var winform = ..win.form(text="AAuto Form";right=1024;bottom=768;parent=...)
+winform.add(
+button_last={cls="button";text="上一题";left=936;top=168;right=1004;bottom=201;db=1;dr=1;z=6};
+button_next={cls="button";text="下一题";left=936;top=216;right=1004;bottom=249;db=1;dr=1;z=5};
+button_update={cls="button";text="更新";left=936;top=272;right=1003;bottom=308;db=1;dr=1;z=3};
+custom={cls="custom";text="custom";left=16;top=168;right=816;bottom=768;db=1;dl=1;edge=1;transparent=1;z=4};
+edit_beizhu={cls="edit";text="备注";left=840;top=416;right=992;bottom=544;db=1;dr=1;edge=1;multiline=1;vscroll=1;z=9};
+edit_tips={cls="edit";text="提示";left=16;top=128;right=1016;bottom=160;ah=1;aw=1;dl=1;edge=1;multiline=1;vscroll=1;z=2};
+edit_title_desc={cls="custom";text="题目";left=16;top=8;right=1016;bottom=120;ah=1;aw=1;dl=1;dt=1;edge=1;multiline=1;z=1};
+static_filename={cls="static";text="static";left=936;top=320;right=1000;bottom=360;db=1;dr=1;transparent=1;z=7};
+static_id={cls="static";text="id";left=936;top=376;right=1007;bottom=415;db=1;dr=1;transparent=1;z=8}
+)
+/*}}*/
+
+import ssexam.db;
+//查 - 返回数据表
+var dataTable = ssexam.db.实务操作题(2);
+var i=1;
+//flash控件
+import com.flash;
+import web.layout;
+var flash = com.flash( winform.custom); 
+flash.scale="ExactFit";
+flash.wMode="Opaque";
+
+import win.subclass;
+win.subclass(
+    flash.hwndControl, 
+    function (hwnd,message,wParam,lParam) { 
+         if(message==0x204/*_WM_RBUTTONDOWN*/)return 0;
+    }
+)
+
+var  question_desc_layout =web.layout(winform.edit_title_desc); ; 
+question_desc_layout.html = /**
+	<div id="title_desc"></div> 
+**/
+
+question_desc_layout.css = /**
+html{ 
+   background:transparent;
+} 
+**/
+
+
+
+winform.button_update.oncommand = function(id,event){
+	//winform.msgbox( winform.button_update.text );
+	dataTable[i].simulate_tips=winform.edit_tips.text;
+	dataTable[i].beizhu= winform.edit_beizhu.text;
+	ssexam.db.实务操作题更新(dataTable[i]);
+	
+}
+
+
+winform.button_next.oncommand = function(id,event){
+	//winform.msgbox( winform.button_next.text );
+	 i=i==#dataTable?#dataTable:i+1;
+	question_desc_layout.getEle("title_desc").innerHTML=i+"、"+dataTable[i].question_desc;
+	 winform.edit_tips.text=dataTable[i].simulate_tips;
+	  winform.edit_beizhu.text=dataTable[i].beizhu;
+	 winform.static_id.text=i+"/"+#dataTable;
+	 winform.static_filename.text="id:"+dataTable[i].id;
+	 flash.movie="\data\"+dataTable[i].simulate_file;
+	 flash.play();
+	
+}
+
+
+winform.button_last.oncommand = function(id,event){
+	//winform.msgbox( winform.button_last.text );
+	 i=i==1?1:i-1;
+	 question_desc_layout.getEle("title_desc").innerHTML=i+"、"+dataTable[i].question_desc;
+	 winform.edit_tips.text=dataTable[i].simulate_tips;
+	   winform.edit_beizhu.text=dataTable[i].beizhu;
+	 winform.static_id.text=i+"/"+#dataTable;
+	 winform.static_filename.text="id:"+dataTable[i].id;
+	 flash.movie="\data\"+dataTable[i].simulate_file;
+	 flash.play();
+	
+}
+
+winform.button_last.oncommand();
+
+winform.show() 
+win.loopMessage();
+return winform;

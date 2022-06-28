@@ -1,0 +1,127 @@
+﻿//JS压缩库
+namespace jscompressor;
+
+io = ..io
+fsys = ..fsys
+table = ..table
+string = ..string
+process = ..process
+
+var swapfolder = global.swapfolder //配置目录
+
+closure_pack = function(purifylist){
+	var packcommand = {} //保存压缩用的命令
+	for(n,filepath in purifylist){
+		filename = io.splitpath(filepath).file
+		table.push(packcommand,
+			"@echo ====================", '\r\n', /*分隔符*/
+			"@echo", filename, '\r\n', /*当前被压缩文件，用于表明进度*/
+			"@java -jar",'"'++swapfolder++"/closure.jar"++'"', 
+			"--warning_level QUIET", /*固定参数*/
+			'"'++filepath++'"', ">", /*载入被压缩的JS文件*/
+			'"'++swapfolder++"/codepack/"++filename++'"', '\r\n' /*输出到目标文件*/
+		)
+	}
+	packcommand = string.replace(string.join(packcommand," "), "@\", "/") //改路径的显示
+	string.save(swapfolder++"/jspack.cmd", " "++packcommand++' @echo ==================== \r\n @pause') //加空格是为了对齐好看
+	sleep(1) //等待上面的文件写入完成
+	process.execute_wait(swapfolder++"/jspack.cmd",,,,"c:/")
+	return mergeCodeFile("js") //调用返回函数
+}
+
+jsmin_pack = function(purifylist){
+	var packcommand = {} //保存压缩用的命令
+	for(n,filepath in purifylist){
+		filename = io.splitpath(filepath).file
+		table.push(packcommand,
+			"@echo", filename, '\r\n', /*当前被压缩文件，用于表明进度*/
+			'@"'++swapfolder++'/jsmin.exe" <', '"'++filepath++'"', ">", /*载入被压缩的JS文件*/
+			'"'++swapfolder++"/codepack/"++filename++'"', '\r\n' /*输出到目标文件*/
+		)
+	}
+	packcommand = string.replace(string.join(packcommand," "), "@\", "/") //改路径的显示
+	string.save(swapfolder++"/jspack.cmd", " "++packcommand) //前面加空格是为了对齐好看
+	sleep(1) //等待上面的文件写入完成
+	process.execute_wait(swapfolder++"/jspack.cmd",,,,"c:/")
+	return mergeCodeFile("js") //调用返回函数
+}
+
+shrinksafe_pack = function(purifylist){
+	var packcommand = {} //保存压缩用的命令
+	for(n,filepath in purifylist){
+		filename = io.splitpath(filepath).file
+		table.push(packcommand,
+			"@echo", filename, '\r\n', /*当前被压缩文件，用于表明进度*/
+			'@"'++swapfolder++'/jsmin.exe" <', '"'++filepath++'"', "|", /*载入被压缩的JS文件*/
+			"java -jar", '"'++swapfolder++'/shrinksafe.jar"', "|", /*进行SHRINK处理*/
+			'"'++swapfolder++'/jsmin.exe" >', /*再次JSMIN处理*/
+			'"'++swapfolder++"/codepack/"++filename++'"', '\r\n' /*输出到目标文件*/
+		)
+	}
+	packcommand = string.replace(string.join(packcommand," "), "@\", "/") //改路径的显示
+	string.save(swapfolder++"/jspack.cmd", " "++packcommand) //前面加空格是为了对齐好看
+	sleep(1) //等待上面的文件写入完成
+	process.execute_wait(swapfolder++"/jspack.cmd",,,,"c:/")
+	return mergeCodeFile("js") //调用返回函数
+}
+
+
+
+//合并压缩后的单文件
+mergeCodeFile = function( filetype ){
+	var compress_content = "" //保存压缩成单文件后的最终内容
+	
+	if( global.mainForm.combo_compress_flag.selIndex==1 ){ //「忽略」操作，不用管顺序
+		fsys.enum( swapfolder++"/codepack/", tostring("*."++filetype),
+			function(dir,filename,fullpath,findData){ 
+				if(filename){
+					compress_content ++= (string.load(fullpath) ++ '\n')
+				}
+			}
+		);
+	} else { //「包含」操作，需要按顺序合并
+		for(n,jsfile in (string.split(global.mainForm.edit_compress_filter.text,"|"))){
+			if(string.trim(jsfile)==""){break} //空文件名（连续的分号）则跳过
+			compress_content ++= ( string.load(swapfolder++"/codepack/"++jsfile) ++ '\n')
+		}
+	}
+	
+	compress_content = string.replace(compress_content,'\r','')
+	compress_content = string.replace(compress_content,'\n\n+','\n')
+	if (io.exist(swapfolder++"/uglifyjs.web")) { //使用在线混淆
+		io.open()
+		io.print('\n\t发现UglifyJS的在线调用接口，正在压缩混淆...')
+		io.print('\t（如果接口调用完成，则本窗口会自动关闭）\n')
+		import uglifyjs;
+		compress_content = uglifyjs.mixfc( compress_content )
+		io.close()
+	}
+	return compress_content; //返回最终压缩内容
+}
+
+
+
+//处理用于压缩JS的库
+/*
+if not( io.exist(swapfolder++"/shrinksafe.jar") ){
+	string.save(
+		swapfolder++"/shrinksafe.jar",
+		string.load("/res/shrinksafe.jar")
+	) //释放SHRINKSAFE库
+}
+*/
+if not( io.exist(swapfolder++"/jsmin.exe") ){
+	string.save(
+		swapfolder++"/jsmin.exe",
+		string.load("/res/jsmin.exe")
+	) //释放JSMIN库
+}
+
+//判断需要用到的库
+if( io.exist(swapfolder++"/closure.jar") ){
+	pack = closure_pack
+} elseif (io.exist(swapfolder++"/shrinksafe.jar") and io.exist(swapfolder++"/js.jar")) {
+	pack = shrinksafe_pack
+} else {
+	pack = jsmin_pack //使用JSMIN的压缩方式
+}

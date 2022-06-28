@@ -1,0 +1,120 @@
+﻿//string 字符串相关
+namespace binFM.string{
+	/*
+ 	 * 转换UTF-8编码为GB2312
+ 	 */
+	toGB2312 = function(strUTF8) {
+		if(!strUTF8) return "";
+		return ..string.fromto(strUTF8,65001,0) 
+	}
+
+	
+	/*
+ 	 * 转换GB2312编码为UTF8
+ 	 */
+	toUTF8 = function(strGB2312) {
+		if(!strGB2312) return "";
+		return ..string.fromto(strGB2312,0,65001);
+	}
+
+	
+	/* 
+	 * 转换10进制颜色字符串为16进制RRGGBB格式，不带#
+	 */
+	toHexColor = function(colorNum) {
+		var hexColor = ..string.format("%6X",tonumber(colorNum)); //此时为BBGGRR
+        hexColor = hexColor[[5]]++hexColor[[6]]++hexColor[[3]]++hexColor[[4]]++hexColor[[1]]++hexColor[[2]];
+        hexColor = ..string.trim(hexColor) ++ "000000";
+        hexColor = ..string.sub(hexColor,1,6);
+        return hexColor;
+	}
+
+	
+	/* 
+	 * 去除标题、艺术家文本中的括号、引号等
+	 */
+	doTitleArtist = function(title="",artist="",split=" ") {
+		title = ..string.replace(title,"（.*?）","");
+		title = ..string.replace(title,"\(.*?\)","");
+		title = ..string.replace(title,"“.*?”","");
+		title = ..string.replace(title,"【.*?】","");
+		title = ..string.replace(title,'\".*?\"',"");
+		title = ..string.replace(title,"\[.*?\]","");
+		title = ..string.replace(title,"@@*"," ");
+		title = ..string.replace(title,"@@<"," ");
+		title = ..string.replace(title,"@@>"," ");
+		title = ..string.replace(title,"@@\"," ");
+		title = ..string.replace(title,"@@/"," ");
+		title = ..string.replace(title,"@@?"," ");
+		title = ..string.replace(title,"@@:"," ");
+		title = ..string.replace(title,"@@|"," ");
+		title = ..string.replace(title,"@@  "," ");
+		title = ..string.trim(title);
+		
+		artist = ..string.replace(artist,"@@ / ",split);
+		artist = ..string.replace(artist,"@@ /",split);
+		artist = ..string.replace(artist,"\\.*?","");
+		artist = ..string.replace(artist,"/.*?","");
+		artist = ..string.replace(artist,"@@*"," ");
+		artist = ..string.replace(artist,"@@<"," ");
+		artist = ..string.replace(artist,"@@>"," ");
+		artist = ..string.replace(artist,"@@\"," ");
+		artist = ..string.replace(artist,"@@?"," ");
+		artist = ..string.replace(artist,"@@:"," ");
+		artist = ..string.replace(artist,"@@|"," ");
+		artist = ..string.replace(artist,"@@  "," ");
+		artist = ..string.trim(artist);
+
+		return title, artist;
+	}
+
+	
+	/*
+ 	 * 计算时间差
+ 	 */
+	timeInterval = function(sTime){
+		sTime = ..string.trim(sTime);
+		sTime_ = tonumber(sTime);
+		if(!sTime_) return sTime;
+		if(sTime_<=0) return false; 
+		var result = "";
+		var eTime = tonumber(..time.now());
+		var difference = eTime - sTime_;
+		if(difference <= 0){ 
+			if(difference<0) return false;
+			else result="刚刚";
+		}
+		else { 
+			if(difference>=60*60*24) { // 大于一天
+				var day = ..math.floor(difference/(60*60*24));
+				if(day==1) result = "昨天" ++ tostring(..time(sTime_,"%H:%M"));
+				else if(day==2) result = "前天" ++ tostring(..time(sTime_,"%H:%M"));
+				else if(day==3) result = "三天前"
+				else result = tostring(..time(sTime_,"%Y-%m-%d"));
+			}
+			else{ // 小于一天
+				if(difference>=60*60) result = tostring(..math.floor(difference/(60*60))) ++ "小时前";
+				else{
+					if(difference>=60) result = tostring(..math.floor(difference/60)) ++ "分钟前";
+					else {
+						if(difference>=30) result = tostring(difference) ++ "秒前";
+						else result = '刚刚';
+					}
+				}
+			}
+		} 
+		return result;
+	}
+
+
+	/*
+ 	 * 将毫秒转换为hh:mm:ss
+ 	 */	
+	formatTime = function(ms) {
+		var s = ..math.floor(ms / 1000);
+		var hh = ..math.floor(s/3600);
+		var mm = ..math.floor((s-hh*3600)/60);
+		var ss = s-hh*3600-mm*60;
+		return ..string.format("%02i",mm) ++ ":" ++ ..string.format("%02i",ss);
+	}
+}

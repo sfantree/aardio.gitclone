@@ -1,0 +1,51 @@
+
+namespace mvc.controller.web.reg
+
+base = ..mvc.controller.web.base();//继承基类控制器
+webUserSvc = ..svc.web.webUserSvc;
+
+//注册
+index = function(){
+	if(request.method == "POST") return save(); 
+	var tabParam = {};
+	tabParam.title = "注册";
+	owner.view.loadcode("web.user.reg",tabParam);
+}
+
+//注册保存
+save = function(){
+	var tpost = request.post;
+
+	if( !..common.checkEmail(tpost.email) )
+		return false,"邮箱格式不正确";
+		
+	if( #tpost.email >30 )
+		return false,"邮箱在30个字符之内";
+	
+	tpost.username = string.trim(tpost.username:"");
+	if( #tpost.username < 4 || #tpost.username > 20)
+		return false,"呢称在4到20个字符之间";
+		
+	if( #tpost.pass < 6 || #tpost.pass > 16)
+		return false,"密码在6到16个字符之间";
+		
+	if( tpost.pass != tpost.repass )
+		return false,"两次密码输入不一致"; 
+
+	var ok,err = ..common.code.check(tpost.vercode);//校验验证码
+	if(!ok) return false,err; 
+	
+	tpost.regip = request.environ.REMOTE_ADDR;
+	var ok,err = webUserSvc.regSave(tpost);
+	if(!ok) return false,err; 
+	
+	webUserSvc.checkLogin(tpost.email,tpost.pass);//注册成功,自动登录
+	
+	return true,"注册成功",..mvcapp.urlAction("index","web.user");
+}
+
+forget = function(){
+	var tabParam = {};
+	tabParam.title = "忘记密码";
+	owner.view.loadcode("web.user.forget",tabParam);
+}

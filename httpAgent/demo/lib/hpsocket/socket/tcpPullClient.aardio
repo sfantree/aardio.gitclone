@@ -1,0 +1,16 @@
+﻿import hpsocket.socket.tcpClient;
+namespace hpsocket.socket;
+
+class tcpPullClient{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpClient(obj);
+	};
+	fetch = function(buf,len){ 
+		if(len===null)len=#buf;
+		return ::HPSocket.HP_TcpPullClient_Fetch(this.pSocket,buf,len); 
+	}
+	peek = function(buf,len){
+		if(len===null)len=#buf;
+		return ::HPSocket.HP_TcpPullClient_Peek(this.pSocket,buf,len);
+	}
+}

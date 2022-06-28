@@ -1,0 +1,142 @@
+/*
+ *	tv
+ *  https://github.com/hikdo
+ *	January 1,2017
+ */
+namespace web.layout.behavior.main.player{
+
+	aPlayer = null;
+	playtimer = null;
+	timeCount = 0;
+
+	init = function() {	
+		var channel = ..wbLayout.getEle("channelListUl");
+		..wbLayout.getEle("channelListUl").innerHTML = "";
+		..math.randomize(..time.tick());
+		import fsys;
+		fsys.enum( "/config", "*.ini",
+			function(dir,filename,fullpath,findData){ 
+				if(filename){ 
+					try {
+						for line in ..io.lines(fullpath) {
+							var c = ..string.split(..string.trim(line),',');
+							if(#c == 2) {
+								var html = '<li link="'+c[2]+'"><a>'+c[1]+'</a></li>';
+								channel.insertAdjacentHTML("beforeEnd",html);
+							}
+						}
+					} catch (e) {}					
+				}				
+			} 
+			,false /* ignore subdir */
+		);	
+		//..console.debug("inited");
+	}
+
+	onElementControlCreated = function (ltTarget,ltOwner,reason,behaviorParams) {		
+		import thunder.aPlayer;
+		aPlayer = thunder.aPlayer(ltOwner.getCtrl()) 
+		aPlayer.setConfig(8,1);
+		aPlayer.setVolume(80);
+		import gdip.bitmap;
+		var logo = gdip.bitmap($"/res/styles/images/logo.jpg");		
+		aPlayer.setCustomLogo(logo.copyHandle());
+ 		
+		aPlayer.OnDownloadCodec =  function(strCodecPath){ 
+    		if( ltOwner.getForm().msgboxTest("当前视频缺少必须的解码器文件，是否现在下载？","TV") ) {
+    		    import zlib.httpFile; 
+   				zlib.httpFile.download("http://aplayer.open.xunlei.com/codecs.zip","正在下载解码器","/download","~\lib\thunder\aPlayer\.res\codecs",,..mainForm);
+         	}	
+    		aPlayer.setConfig( 19 ); 
+		}	
+		
+		aPlayer.OnBuffer =  function(percent){ 
+		    var progress = aPlayer.getBufferProgress();
+		    if(progress < 0 || progress > 99） {
+		    	..wbLayout.getEle("buffertips").innerHTML = "";		    	
+		    } else {
+		    	..wbLayout.getEle("buffertips").innerHTML = " - buffering..("+progress+"%)";
+		    }
+		}
+		
+		aPlayer.OnOpenSucceeded =  function(){
+			killPlayTimer(true);		    
+		    addPlayTimer();
+		    var duration = aPlayer.getDuration();		    
+			if(duration < 1) {
+				return;
+			}		   
+		    duration    = ..math.floor(duration/1000);
+		    var hours   = ..math.floor(duration/3600);
+		    var minutes = ..math.floor((duration - hours*3600)/60);
+		    var seconds = duration % 60;		    		    
+		    ..wbLayout.getEle("timeDuration").innerHTML = (hours>9?hours:"0"+hours)+":"+(minutes>9?minutes:"0"+minutes)+":"+(seconds>9?seconds:"0"+seconds);
+		};
+		
+		aPlayer.OnStateChanged =  function(oldState,newState){
+			select(newState) {
+				case 5/*_APLAYER_PS_PLAY*/ {
+					import console;
+					addPlayTimer();
+					..wbLayout.getEle("ctrlPlay").style.background = "url(/res/styles/images/pause.png)";
+				}
+				case 3/*_APLAYER_PS_PAUSED*/ {
+					killPlayTimer();
+					..wbLayout.getEle("ctrlPlay").style.background = "url(/res/styles/images/play.png)";
+				}
+				case 1/*_APLAYER_PS_OPENING*/,6/*_APLAYER_PS_CLOSING*/ {
+					killPlayTimer(true);									
+				}				
+				else {
+				}
+			}
+		}
+		
+		init();
+	} 
+	
+	onSize = function (ltOwner) {
+		var ltCtrl = ltOwner.getCtrl();
+		if( ltCtrl ) {
+			ltCtrl.adjust(0,0,0);
+		}
+	};
+	
+	updateTimeCount = function() {
+		var duration = ..math.floor(aPlayer.getDuration()/1000);   
+		if(duration == 0 || timeCount > duration){
+			return; 
+		}
+		var hours   = ..math.floor(timeCount/3600);
+		var minutes = ..math.floor((timeCount - hours*3600)/60);
+		var seconds = timeCount % 60;				    
+		..wbLayout.getEle("timePlayed").innerHTML = (hours>9?hours:"0"+hours)+":"+(minutes>9?minutes:"0"+minutes)+":"+(seconds>9?seconds:"0"+seconds);
+		..wbLayout.getEle("ctrlProgress").value = ..math.round(timeCount/duration,2)*100;		
+	};
+	
+	addPlayTimer = function() {
+		var duration = aPlayer.getDuration();		    
+		if(duration < 1) {
+			return;
+		}		   
+		if(playtimer == null) {
+			playtimer = ..mainForm.addtimer(1000,function(hwnd,msg,id,tick){
+				timeCount++;
+				..web.layout.behavior.main.player.updateTimeCount();		
+			}); 
+		}	
+	};
+	
+	killPlayTimer = function(reInit) {
+		if(playtimer !== null) {
+			..mainForm.killtimer(playtimer);
+			playtimer = null;
+		}
+		if(reInit) {
+			timeCount = 0;		
+			..wbLayout.getEle("ctrlProgress").value = 0;			
+			..wbLayout.getEle("timePlayed").innerHTML = "00:00:00";
+			..wbLayout.getEle("timeDuration").innerHTML = "00:00:00";
+		}
+	}	
+}

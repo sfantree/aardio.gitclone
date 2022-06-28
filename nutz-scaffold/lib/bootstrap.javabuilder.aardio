@@ -1,0 +1,41 @@
+﻿namespace bootstrap{
+	class javabuilder{
+		ctor(path, packageName, projectName) {
+			this.path = path;
+			this.packageName = packageName;
+			this.projectName = projectName;
+		}
+		
+		build = function(){
+			this.buildBase();
+			this.buildModules();
+		}
+		
+		buildBase = function(){
+			this.createFile("/res/templates/src/main/java/bootstrap.java.erb", this.path + "/" + this.projectName +".java");
+			this.createFile("/res/templates/src/main/java/main_config.java.erb", this.path + "/MainConfig.java");
+			this.createFile("/res/templates/src/main/java/main_launcher.java.erb", this.path + "/MainLauncher.java");
+			this.createFile("/res/templates/src/main/java/main_module.java.erb", this.path + "/MainModule.java");
+			this.createFile("/res/templates/src/main/java/main_setup.java.erb", this.path + "/MainSetup.java");
+		}
+		
+		buildModules = function(){
+//			..fsys.createDir(this.path + "/modules");
+			this.createFile("/res/templates/src/main/java/modules/base_module.java.erb", this.path + "/modules/BaseModule.java");
+			this.createFile("/res/templates/src/main/java/modules/home_module.java.erb", this.path + "/modules/HomeModule.java");
+		}
+		
+		createFile = function(templatePath, saveFilePath){
+			import string.erb;
+			import string.utils;
+			
+			var template = string.erb(string.load(templatePath));
+			var option = {
+				class_package = string.lower(this.packageName) + "." + string.lower(this.projectName);
+				java_style_project_name_downcase = string.lower(this.projectName);
+				java_style_project_name = this.projectName
+			};
+			string.utils.saveFile(saveFilePath, template.format(option));
+		}
+	}
+}

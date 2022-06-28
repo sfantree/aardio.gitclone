@@ -1,0 +1,55 @@
+import libxl;
+import console;
+
+
+var writeDataTime = function(){
+	io.open()
+	var start = time.tick()
+	
+	var file = "export/datetime.xlsx"
+	var xlExcel,err = libxl()
+	
+	var format1 = xlExcel.addFormat();
+	format1.numStyle = 15/*_NUMFORMAT_DATE*/;
+	
+	var format2 = xlExcel.addFormat();
+	format2.numStyle = 23/*_NUMFORMAT_CUSTOM_MDYYYY_HMM*/;
+	
+	var format3 = xlExcel.addFormat();
+	format3.numStyle = xlExcel.addNumFormat("d mmmm yyyy");
+	
+	var format4 = xlExcel.addFormat();
+	format4.numStyle = 19/*_NUMFORMAT_CUSTOM_HMM_AM*/;
+	
+	var xlSheet = xlExcel.addSheet("Sheet1");
+    
+    if xlSheet{
+    	
+    	xlSheet.Column(2).width = 15
+    	
+    	xlSheet.Cell(3,2).value = xlExcel.datePack(2010,3,11);
+    	xlSheet.Cell(3,2).format = format1;
+    	
+    	xlSheet.Cell(4,2).setValue(xlExcel.datePack(2010,3,11,10,25,55),format2);
+    	xlSheet.Cell(5,2).setValue(xlExcel.timeValue("2010-03-11 0:0:0"),format3);
+    	xlSheet.Cell(6,2).setValue(xlExcel.timeValue("2010-03-11 10:25:55"),format4);
+
+    	var date = xlExcel.time(xlSheet.Cell(3,2).value);
+    	console.log("date",date)
+    	
+    	var date = xlExcel.time(xlSheet.Cell(4,2).value);
+    	console.log("date",date)
+    	
+		io.print(xlExcel.Save(file))
+		io.print(xlExcel.getErrMsg())
+		
+		xlExcel.Close()
+		
+		io.print("use " + (time.tick() - start + " ms"));
+	}
+
+};
+
+writeDataTime()
+
+console.pause(true);

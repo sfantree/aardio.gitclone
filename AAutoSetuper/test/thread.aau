@@ -1,0 +1,22 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="AAuto Form";right=599;bottom=399 )
+winform.add(
+button={cls="button";text="button";left=222;top=186;right=402;bottom=271;z=1}
+)
+/*}}*/
+
+winform.button.oncommand = function(id,event){
+    win.invoke(
+        function(){ 
+            import console;
+            for(i=1;10;1){ 
+                console.log("Ïß³ÌID",thread.getId(),time() )
+                sleep(1000)
+            } 
+        } 
+    ) 
+}
+
+winform.show() 
+win.loopMessage();

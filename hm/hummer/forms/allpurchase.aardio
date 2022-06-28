@@ -1,0 +1,136 @@
+import win.ui;
+import sqlite;
+import time;
+import debug.log4a;
+
+debug.log4a.init("allpurchase", "/log/allpurchase");
+var db = sqlite("/hummer.dll");//打开数据库连接
+/*DSG{{*/
+var winform = win.form(text="全部抢购";right=829;bottom=479)
+winform.add(
+buttonCopy={cls="button";text="复制";left=522;top=187;right=632;bottom=217;z=15};
+buttonQuery={cls="button";text="查询";left=372;top=121;right=482;bottom=151;z=9};
+buttonReset={cls="button";text="重置";left=522;top=120;right=632;bottom=150;z=10};
+comboboxPurchaseStatus={cls="combobox";left=97;top=68;right=223;bottom=94;edge=1;items={"全部";"未执行";"成功";"失败"};mode="dropdown";z=4};
+datetimeBegin={cls="datetimepick";left=372;top=22;right=497;bottom=48;edge=1;z=6};
+datetimeEnd={cls="datetimepick";left=522;top=21;right=647;bottom=47;edge=1;z=7};
+editPurchaseId={cls="edit";left=96;top=23;right=223;bottom=49;edge=1;z=13};
+groupbox2={cls="groupbox";text="操作";left=4;top=165;right=830;bottom=223;edge=1;z=14};
+groupboxQuery={cls="groupbox";text="查询";left=4;top=0;right=830;bottom=163;edge=1;z=1};
+listview={cls="listview";left=4;top=224;right=830;bottom=475;edge=1;z=2};
+static={cls="static";text="Static";left=122;top=136;right=123;bottom=137;transparent=1;z=11};
+static2={cls="static";text="-";left=506;top=24;right=518;bottom=44;transparent=1;z=8};
+staticPurchase={cls="static";text="编号:";left=56;top=27;right=90;bottom=53;transparent=1;z=12};
+staticPurchaseStatus={cls="static";text="状态:";left=52;top=73;right=86;bottom=99;transparent=1;z=3};
+staticPurchaseTime={cls="static";text="起止时间:";left=304;top=22;right=369;bottom=53;transparent=1;z=5}
+)
+/*}}*/
+
+winform.datetimeBegin.setFormat("yyyy-MM-dd");
+winform.datetimeEnd.setFormat("yyyy-MM-dd");
+
+//动态表格
+winform.listview.insertColumn("编号",86);
+winform.listview.insertColumn("抢购名称",150);
+winform.listview.insertColumn("抢购时间",120);
+winform.listview.insertColumn("平台",40);
+winform.listview.insertColumn("状态",50);
+winform.listview.insertColumn("备注",150);
+winform.datetimeBegin.time = time.now().addday(-30);
+winform.datetimeEnd.time = time.now();
+
+winform.listview.setExtended(0x4/*_LVS_EX_CHECKBOXES*/);
+winform.listview.setExtended(0x20/*_LVS_EX_FULLROWSELECT*/);
+winform.listview.setExtended(0x8000000/*_LVS_EX_AUTOCHECKSELECT*/);
+
+//关闭窗口
+winform.wndproc = function(hwnd,message,wparam,lparam){
+    select(message) {//判断消息类型
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+            debug.log4a.close();
+        }   
+    }
+    //无返回值则继续调用默认回调函数
+}
+
+//查询登录用户信息
+queryPurchaseInfo = function(queryParam){
+    winform.listview.clear();
+    sqlStr = "SELECT purchase_id, platform, user_id, status, purchase_time, remark from purchase_info where 1=1";
+    if(queryParam["user_id"]){
+        sqlStr = string.concat(sqlStr," and user_id='",queryParam["user_id"],"'");
+    }
+    if(queryParam["status"]){
+        sqlStr = string.concat(sqlStr," and status='",queryParam["status"],"'");
+    }
+    if(queryParam["datetimeBegin"]){
+        sqlStr = string.concat(sqlStr," and purchase_time>='",queryParam["datetimeBegin"]," 00:00:00'");
+    }
+    if(queryParam["datetimeEnd"]){
+        sqlStr = string.concat(sqlStr," and purchase_time<='",queryParam["datetimeEnd"]," 23:59:59'");
+    }
+    sqlStr = string.concat(sqlStr," ORDER BY purchase_time DESC");
+
+    //console.debug(sqlStr);
+    //console.pause();
+    
+    //db.getTable(sqlStr);
+     
+    //迭代方式查询数据 
+	for purchase_id, platform, user_id, status, purchase_time, remark in db.each(sqlStr) {
+	  var statusDesc = (status=="0"?"未执行": (status=="1"?"成功":"失败"));
+      winform.listview.addItem({purchase_id; purchase_time; platform; statusDesc; remark});
+	}
+
+	//分页大小 
+	//var pagesize = 10;
+	//for( page=1;10 ){
+    //    	for(rs,fields in db.each("select * from (
+    //            	select top " + pagesize + " * from (select top " + pagesize * page + " * from tbl order by id desc) order by id
+    //            	) order by id desc") ){ 
+    //            	console.log( rs("id").value,rs("comment").value )  
+    //            	console.more( 10 ) //分页显示
+    //    	} 
+	//}
+
+
+}
+queryPurchaseInfo({});
+
+//查询
+winform.buttonQuery.oncommand = function(id,event){
+    var queryParam = {};
+    if(""!=string.trim(winform.editPurchaseId.text)){
+       queryParam["purchase_id"] = winform.editPurchaseId.text;
+    }
+    if(""!=winform.comboboxPurchaseStatus.text && "全部"!=winform.comboboxPurchaseStatus.text){
+       var status = (winform.comboboxPurchaseStatus.text=="未执行"?"0": 
+       (winform.comboboxPurchaseStatus.text=="成功"?"1":"2"));
+       queryParam["status"] = status;  
+    } 
+    if(""!=string.trim(winform.datetimeBegin.text)){
+       queryParam["datetimeBegin"] = winform.datetimeBegin.text;
+    }
+    if(""!=string.trim(winform.datetimeEnd.text)){
+       queryParam["datetimeEnd"] = winform.datetimeEnd.text;
+    }
+    //判断查询开始日期不能大于结束日期
+    if(queryParam["datetimeBegin"] && queryParam["datetimeEnd"]){
+        if(time(queryParam["datetimeBegin"])>time(queryParam["datetimeEnd"])){
+           winform.msgbox("开始日期不能大于结束日期");
+           return;
+        }
+    }
+	queryPurchaseInfo(queryParam);
+}
+
+//重置
+winform.buttonReset.oncommand = function(id,event){
+	winform.editPurchaseId.text = "";
+	winform.datetimeBegin.text = "";
+	winform.datetimeEnd.text = "";
+}
+
+winform.show();
+win.loopMessage();
+return winform;

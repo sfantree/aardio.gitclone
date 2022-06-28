@@ -1,0 +1,208 @@
+﻿import inet.http;
+import zlib.httpFile;
+import process.popen;
+import wsock.tcp.simpleHttpServer;
+import v2ray.config; 
+import inet.conn;
+import config;
+import wsock;
+
+namespace v2ray.core;
+
+var getV2rayCoreUrl = function(){
+	var http = ..inet.http();
+	var url = http.location("https://github.com/v2fly/v2ray-core/releases/latest");
+	http.close();
+	
+	if(!url)return;
+	
+	var tag = ..string.match(url,"[^/]+$")
+	if(!tag) return;
+	
+	return "https://github.com/v2fly/v2ray-core/releases/download/" 
+		+ tag + "/v2ray-windows-" +	(..process().isWow64() ? "64" : "32") + ".zip",tag
+}
+
+getPath = function(hwnd){
+	var path = ..io.fullpath("/v2ray-core/v2ray.exe");
+	if(..io.exist(path)){
+		return path;
+	}
+		
+	var path = ..io.appData("/win2ray-v2/core/v2ray.exe");
+	if(..io.exist(path)){
+		return path;
+	}
+	
+	var url = getV2rayCoreUrl();
+	if(!url) return null;
+	
+	if( ..zlib.httpFile.download(url,"正在下载 V2ray Core"
+		,..io.appData("/win2ray-v2/download/")
+		,..io.appData("/win2ray-v2/core/"),,hwnd) )
+		return ..io.exist(path);
+} 
+
+updateCore = function(){
+	var coreDir = ..io.exist("/v2ray-core/v2ray.exe") ? ..io.fullpath("/v2ray-core/");
+	if(!coreDir){
+		coreDir = ..io.appData("/win2ray-v2/core/");
+	}
+	
+	var url,versionTag = getV2rayCoreUrl();
+	if(!url) return null; 
+	  
+	import fsys;
+	fsys.delete(..io.appData("/win2ray-v2/temp/"))
+	
+	if( ..zlib.httpFile.download(url,"正在下载 V2ray Core"
+		,..io.appData("/win2ray-v2/download/")
+		,..io.appData("/win2ray-v2/temp/"),,..mainForm.hwnd) ){
+			if(..io.exist(..io.appData("/win2ray-v2/temp/v2ray.exe"))){
+
+				import process;
+				process.kill("v2ray.exe");
+				
+				fsys.copy(..io.appData("/win2ray-v2/temp/v2ctl.exe"),..io.joinpath(coreDir,"v2ctl.exe"));
+				fsys.copy(..io.appData("/win2ray-v2/temp/v2ray.exe"),..io.joinpath(coreDir,"v2ray.exe")); 
+				
+				import inet.conn;
+				inet.conn.setProxy();
+				
+				return versionTag;
+			}
+		} 	 
+}
+
+var serverMain = ..wsock.tcp.simpleHttpServer.mainThread( 
+	function(response,request,session){ 
+
+		if(request.path=="/proxy.pac"){
+			var pacData = ..string.replace(..string.load(pacPath)
+				,"var\s+proxy\s+=\s+%''","var proxy = 'SOCKS "+ request.environ.SERVER_NAME +":"+inboundPort.get()+";'");
+			response.contentType = "application/x-ns-proxy-autoconfig";
+
+			response.write(pacData);  
+		}
+		elseif(request.path=="/config.json"){
+			import v2ray.config; 
+			response.contentType = "text/json"; 
+			response.write( v2ray.config.get() );
+		} 
+		else {
+			response.write("hello")
+		}
+		
+	} 	
+);
+
+var pacPath = ..io.appData("/win2ray-v2/proxy.pac.txt");
+if( ! ..io.exist(pacPath) ){
+	..string.save(pacPath,$"/pac.txt" )
+}
+
+var inboundPort = ..thread.var();
+inboundPort.set( ..wsock.getFreePort() );
+serverMain.threadGlobal = {
+	inboundPort = inboundPort;
+	pacPath = pacPath;
+}
+
+getPort = function(){
+	return inboundPort.get();
+}
+
+setPort = function(port){
+	inboundPort.set(port : ..wsock.getFreePort() );
+}
+
+serverMain.threadNum = 50; 
+getPacUrl = function(localIp){
+	return serverMain.getUrl("/proxy.pac?" + ..time.tick(),localIp );
+}
+
+getPacPort = function(){
+	var ip,port = serverMain.getLocalIp();
+	return port;
+}
+
+restartPac = function(){
+	var pacIp,pacPort = serverMain.getLocalIp();
+	if(pacIp!==..config.core.default.inbounds[[1]][["listen"]] 
+		|| pacPort != ..config.core.default.inbounds[[1]][["pacPort"]]){
+		serverMain.stop();
+		var ok,err = serverMain.start(..config.core.default.inbounds[[1]][["listen"]] : "127.0.0.1",..config.core.default.inbounds[[1]][["pacPort"]] : 0 );
+		if(!ok){
+			return false,err;
+		}
+	}
+	
+	return true;
+}
+
+getConfigUrl = function(){
+	return serverMain.getUrl("/config.json");
+}
+
+import wsock.tcp.client;
+var client = wsock.tcp.client();  
+if( client.connectTimeout("127.0.0.1",..config.core.default.inbounds[[1]][["pacPort"]] ,0.5) ){
+	..config.core.default.inbounds[[1]][["pacPort"]] = 0
+} 
+client.close(); 
+
+var client = wsock.tcp.client();  
+if( client.connectTimeout("127.0.0.1",..config.core.default.inbounds[[1]][["port"]] ,0.5) ){
+	..config.core.default.inbounds[[1]][["port"]] = 0
+} 
+client.close(); 
+		
+serverMain.start(..config.core.default.inbounds[[1]][["listen"]] : "127.0.0.1",..config.core.default.inbounds[[1]][["pacPort"]] : 0 );
+
+var prcsv2ray;
+restart = function(editor,outbound){
+	if(prcsv2ray){
+		prcsv2ray.terminate();
+		prcsv2ray = null;
+	}
+	
+	var corePath = getPath(editor.hwnd);
+	if(!corePath) return false,"启动失败,未找到v2ray.exe";
+
+
+	
+
+	..inet.conn.setProxy();
+	..v2ray.config.setOutbound(outbound);
+	
+	var jsonPath = ..io.joinpath(..io.splitpath(corePath).dir,"config.json");
+	..string.save(jsonPath,..v2ray.config.getConfigJson() )
+		
+	prcsv2ray = ..process.popen(corePath,"-format=json","-config=config.json" );
+	prcsv2ray.logResponse(editor);	
+	
+	if(..config.proxy.mode === "pac"){
+		..inet.conn.setProxy(,"SOCKS=127.0.0.1:" + inboundPort.get());
+		..inet.conn.setProxyAutoConfig(,getPacUrl()); 
+	}
+	elseif(..config.proxy.mode === "proxy"){
+		..inet.conn.setProxyAutoConfig(,getPacUrl())
+		..inet.conn.setProxy(,"SOCKS=127.0.0.1:" + inboundPort.get());
+	}
+	else {
+		..inet.conn.setProxy();
+	}
+	return true;
+}
+
+stop = function(){
+	if(prcsv2ray){
+		prcsv2ray.terminate();
+		prcsv2ray = null;
+	}	
+	
+	if(serverMain){
+		serverMain.stop();
+		serverMain = null;
+	}
+}

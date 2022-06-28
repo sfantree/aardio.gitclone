@@ -1,0 +1,11 @@
+import process;
+import console;
+console.log("正在复制文件……");
+import fsys;
+
+fsys.copy("\dist\*","\aardio\project\aardio工程\res\",0x4/*_FOF_SILENT*/);
+console.log("正在打包……");
+process.executeWait("\aardio\aardio.exe");
+console.log("正在清理文件……");
+fsys.delete("\aardio\project\aardio工程\res\*",)
+console.log("成功完成！");

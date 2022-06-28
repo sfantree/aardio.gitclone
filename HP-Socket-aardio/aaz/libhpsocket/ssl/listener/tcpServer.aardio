@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.listener.tcpServer;
+
+namespace aaz.libhpsocket.ssl.listener;
+class tcpServer{
+	ctor(){
+		this = ..aaz.libhpsocket.listener.tcpServer();
+		this.componentClassPath = "ssl.component.tcpServer";
+	};
+}

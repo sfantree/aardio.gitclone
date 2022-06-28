@@ -1,0 +1,50 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=759;bottom=469;parent=...)
+winform.add(
+btn_left={cls="button";text="上一张";left=226;top=431;right=308;bottom=464;ah=1;aw=1;z=2};
+btn_right={cls="button";text="下一张";left=401;top=431;right=483;bottom=464;ah=1;aw=1;z=3};
+plus={cls="plus";left=26;top=2;right=733;bottom=415;ah=1;aw=1;bgcolor=0;color=15793151;font=LOGFONT(name='微软雅黑');valign="bottom";z=1}
+)
+/*}}*/
+
+import win
+import console
+//winform.parent=mainForm;
+import sqlite
+var db=sqlite("\webimg.db") //打开数据库
+var name_tab={} //创建图片名字数组
+var filepath_tab={} //创建图片路径数组
+for name,filepath in db.each("SELECT name,filepath from [t_img] ORDER BY name  ") {
+	table.push(name_tab,name) //将数据库图片名字push进图片名字数组中 orderby 用于将图片排序
+	table.push(filepath_tab,filepath)	
+}
+ y=1 //初始化第几张照片
+winform.btn_right.oncommand = function(id,event){	
+	if(y<=#filepath_tab ){
+	 y=y+1
+	 winform.plus.setBackground(filepath_tab[y])
+	 winform.plus.text=name_tab[y]
+	 
+	
+	}
+winform.btn_left.oncommand = function(id,event){
+	
+	if(y>=1 ){
+	 y=y-1	
+	 winform.plus.setBackground(filepath_tab[y])
+	 winform.plus.text=name_tab[y]
+	 
+	}
+	
+}	
+		
+	
+	
+}
+winform.plus.text=name_tab[1] //打开时默认载入数组中第一张图片
+winform.plus.setBackground(filepath_tab[1])
+winform.enableDpiScaling();
+winform.show()
+win.loopMessage();
+

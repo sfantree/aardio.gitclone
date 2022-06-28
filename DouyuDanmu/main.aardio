@@ -1,0 +1,639 @@
+import win.ui;
+import win.ui.menu;
+import web.form;
+import console;
+/*DSG{{*/
+mainForm = win.form(text="斗鱼弹幕自动回复助手";right=999;bottom=799;bgcolor=16777215;max=false)
+mainForm.add(
+author={cls="static";text="作者：小白";left=15;top=778;right=155;bottom=794;notify=1;transparent=1;z=4};
+auto_reply_gift_checkbox={cls="checkbox";text="自动回复送礼";left=520;top=14;right=618;bottom=37;bgcolor=16777215;z=15};
+auto_reply_speak_checkbox={cls="checkbox";text="自动回复发言";left=384;top=14;right=483;bottom=31;bgcolor=16777215;z=13};
+auto_speak_checkbox={cls="checkbox";text="自动发言";left=384;top=44;right=484;bottom=65;bgcolor=16777215;z=14};
+connBtn={cls="button";text="连接";left=270;top=20;right=330;bottom=50;bgcolor=16777215;z=3};
+custom2={cls="custom";text="custom2";left=438;top=780;right=439;bottom=795;z=7};
+message={cls="static";left=581;top=782;right=879;bottom=797;bgcolor=16777215;center=1;transparent=1;z=9};
+roomid={cls="edit";left=100;top=20;right=250;bottom=50;autovscroll=false;edge=1;font=LOGFONT(h=-16);z=2};
+roomid_title={cls="static";text="房间号：";left=20;top=20;right=90;bottom=50;align="center";bgcolor=16777215;center=1;notify=1;transparent=1;z=1};
+splitter={cls="splitter";left=196;top=781;right=201;bottom=797;z=5};
+status={cls="static";left=322;top=780;right=425;bottom=796;bgcolor=16777215;center=1;transparent=1;z=10};
+status_title={cls="static";text="登陆状态";left=237;top=780;right=299;bottom=796;align="center";bgcolor=16777215;center=1;notify=1;transparent=1;z=6};
+sys_msg={cls="static";text="系统消息";left=478;top=781;right=557;bottom=797;align="center";center=1;transparent=1;z=8};
+tab={cls="tab";left=7;top=66;right=993;bottom=287;bgcolor=16777215;edge=1;tabstop=1;z=11};
+tab2={cls="tab";left=7;top=319;right=994;bottom=770;bgcolor=16777215;edge=1;z=12}
+)
+/*}}*/
+
+/*   tab begin   */
+//添加1个子页面
+var frmTabPage1 = mainForm.tab.add( text="全部弹幕"; left=7;top=66;right=993;bottom=287 )
+frmTabPage1.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=195;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+);
+
+frmTabPage1.listview.insertColumn("昵称",250);
+frmTabPage1.listview.insertColumn("发言内容",710);
+
+
+//添加2个子页面
+var frmTabPage2 = mainForm.tab.add( text="我的弹幕"; left=7;top=66;right=993;bottom=287 )
+frmTabPage2.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=195;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+)
+
+frmTabPage2.listview.insertColumn("昵称",250);
+frmTabPage2.listview.insertColumn("发言内容",710);
+
+//添加3个子页面
+var frmTabPage3 = mainForm.tab.add( text="礼物榜"; left=7;top=66;right=993;bottom=287 )
+frmTabPage3.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=195;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+)
+
+frmTabPage3.listview.insertColumn("昵称",250);
+frmTabPage3.listview.insertColumn("礼物",710);
+
+//添加4个子页面
+var frmTabPage4 = mainForm.tab.add( text="酬勤榜"; left=7;top=66;right=993;bottom=287 )
+frmTabPage4.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=195;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+)
+
+frmTabPage4.listview.insertColumn("昵称",250);
+frmTabPage4.listview.insertColumn("酬勤",710);
+
+for(i=1;29;1){
+    //frmTabPage1.listview.addItem({tostring(i);"点我"+tostring(i)});
+    frmTabPage2.listview.addItem({tostring(i);"点我"+tostring(i)});
+    frmTabPage3.listview.addItem({tostring(i);"点我"+tostring(i)});
+    frmTabPage4.listview.addItem({tostring(i);"点我"+tostring(i)});
+}
+/*   tab begin   */
+
+
+
+/*   tab2 begin   */
+//添加1个子页面
+var secTabPage1 = mainForm.tab2.add( text="回复发言"; left=7;top=319;right=994;bottom=562; )
+secTabPage1.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=220;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=1;};
+		
+	key_title={cls="static";text="关键字";left=1;top=140;right=71;bottom=170;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=17};	
+	key_content={cls="edit";left=71;top=140;right=609;bottom=170;bgcolor=16777215;font=LOGFONT(h=-16);edge=1;z=18};
+	
+	key_addBtn={cls="button";text="添加";left=620;top=140;right=670;bottom=170;bgcolor=16777215;z=19};
+	key_delBtn={cls="button";text="删除";left=680;top=140;right=730;bottom=170;bgcolor=16777215;z=20};
+	key_saveBtn={cls="button";text="修改";left=740;top=140;right=790;bottom=170;bgcolor=16777215;z=21};
+	
+	reply={cls="static";text="回复";left=1;top=190;right=71;bottom=210;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=22};
+	reply_content={cls="edit";left=71;top=170;right=790;bottom=260;bgcolor=16777215;autohscroll=false;vscroll=1;font=LOGFONT(h=-16);edge=1;multiline=1;z=23};
+);
+
+secTabPage1.listview.insertColumn("关键词",250);
+secTabPage1.listview.insertColumn("发言内容",720);
+
+//添加2个子页面
+var secTabPage2 = mainForm.tab2.add( text="自动发言"; left=7;top=319;right=994;bottom=562 )
+secTabPage2.add( 
+	listview={cls="listview";left=1;top=1;right=990;bottom=270;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+	
+	reply_title={cls="static";text="内容";left=1;top=170;right=71;bottom=200;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=17};	
+	reply_content={cls="edit";left=71;top=170;right=609;bottom=200;bgcolor=16777215;font=LOGFONT(h=-16);edge=1;z=18};
+	reply_addBtn={cls="button";text="添加";left=620;top=170;right=670;bottom=200;bgcolor=16777215;z=19};
+	reply_delBtn={cls="button";text="删除";left=680;top=170;right=730;bottom=200;bgcolor=16777215;z=20};
+	reply_saveBtn={cls="button";text="保存";left=740;top=170;right=790;bottom=200;bgcolor=16777215;z=21};
+	
+	reply={cls="static";text="回复";left=1;top=200;right=71;bottom=230;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=22};
+	trackbar={cls="trackbar";left=71;top=200;right=472;bottom=230;max=60;min=1;z=1};
+	trackbar_content={cls="static";left=482;top=200;right=552;bottom=230;align="center";center=1;font=LOGFONT(h=-14);z=18};
+	trackbar_txt={cls="static";text="秒";left=562;top=200;right=582;bottom=230;align="center";center=1;font=LOGFONT(h=-14);z=18};	
+);
+
+secTabPage2.listview.insertColumn("发言内容",970);
+
+//添加3个子页面
+var secTabPage3 = mainForm.tab2.add( text="回复送礼"; left=7;top=319;right=994;bottom=562 )
+secTabPage3.add( 
+	listview={cls="listview";left=71;top=1;right=790;bottom=200;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');fullRow=1;gridLines=1;msel=false;acceptfiles=1;asel=false;};
+	
+	gift_title={cls="static";text="内容";left=1;top=130;right=71;bottom=160;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=17};	
+	gift_content={cls="edit";left=71;top=130;right=609;bottom=160;bgcolor=16777215;font=LOGFONT(h=-16);edge=1;z=18};
+	gift_addBtn={cls="button";text="添加";left=620;top=130;right=670;bottom=160;bgcolor=16777215;z=19};
+	gift_delBtn={cls="button";text="删除";left=680;top=130;right=730;bottom=160;bgcolor=16777215;z=20};
+	gift_saveBtn={cls="button";text="保存";left=740;top=130;right=790;bottom=160;bgcolor=16777215;z=21};
+	
+	help_title={cls="static";text="帮助";left=1;top=155;right=71;bottom=290;align="center";bgcolor=16777215;center=1;font=LOGFONT(h=-14);notify=1;transparent=1;z=17};	
+	//help_content={cls="static";left=71;top=155;right=609;bottom=290;font=LOGFONT(h=-16);notify=1;transparent=1;edge=1;z=23};
+	help_listbox={cls="listbox";left=71;top=155;right=609;bottom=300;items={};bgcolor=16777215;edge=1;z=12;};
+	//help_listview={cls="listview";left=71;top=155;right=609;bottom=300;edge=1;z=12;dl=1;dr=1;font=LOGFONT(name='SimSun');msel=false;acceptfiles=1;asel=false;};
+);
+
+secTabPage3.listview.insertColumn("内容",690);
+
+secTabPage3.help_listbox.items={
+	"添加到列表后，选择其中一个";
+	"";
+	"可用模板：";
+	"${n} 赠送者昵称";
+	"${l} 赠送者等级";
+	"${g} 礼物名字";
+	"${h} xX连击";
+	"";
+	"例如填写： 感谢${n}送给主播的${g}${h}！";
+	"则发言内容是： 感谢某某某送给主播的赞x10连击！"
+};
+/*   tab2 begin   */
+
+
+mainForm.tab.wndproc = function(hwnd,message,wParam,lParam){
+	//无返回值则继续调用默认回调函数
+	
+}
+
+mainForm.tab2.onnotify = function(id,code,ptr){
+	if(code==0xFFFFFDD9/*_TCN_SELCHANGE*/) {
+		//mainForm.msgbox("切换选项卡") 
+	}	
+}
+
+secTabPage2.trackbar.oncommand = function(id,event,pos){
+    if(pos){
+    	secTabPage2.trackbar_content.text = pos;
+    }	
+}
+
+frmTabPage1.listview.onnotify = function(id,code,ptr){ 
+    select(code) {
+    	case  0xFFFFFF9B/*_LVN_ITEMCHANGED*/ {
+    		var nm = frmTabPage1.listview.getNotifyMessage(code,ptr)
+    		if(frmTabPage1.listview.selIndex){
+        		//winform.static.text = "选中了" +  winform.listview.getItemText(nm.iItem,nm.iSubItem)
+        		//mainForm.msgbox(frmTabPage1.listview.getItemText(nm.iItem,2));
+        		//mainForm.msgbox(mainForm.tab2.selIndex)
+        		if(mainForm.tab2.selIndex == 1){
+        			secTabPage1.key_content.text = frmTabPage1.listview.getItemText(nm.iItem,2);
+        			secTabPage1.reply_content.text = "";
+        		}
+        		if(mainForm.tab2.selIndex == 2){
+        			secTabPage2.reply_content.text = frmTabPage1.listview.getItemText(nm.iItem,2);
+        		}
+        	}
+    	}
+    }
+    
+}
+
+/*   获取斗鱼信息 begin   */ 
+ getDouyuMsg = function(mainForm, roomid, danmuTabPage){
+    import wsock.tcp.client;
+	import win.timer;
+	import win.ui;
+	import console;
+	
+	var tcp = wsock.tcp.client();
+	tcp.connect("openbarrage.douyutv.com", 8601)
+
+	sendData = function(str){
+    	var postData = {
+        	int len;
+        	struct msg = {
+            	int len2;
+            	int magic = 0x2b1;
+            	byte body[] = str;
+            	byte e;
+        	}
+    	}
+    	postData.len = raw.sizeof(postData.msg);
+    	postData.msg.len2 = postData.len;
+    	tcp.write(postData);
+	}
+	
+	// 解析服务器端返回的数据
+	function parseMsg(msg){
+    	var message=msg;
+    	var messages={};
+		var lastIndex=..string.lastIndexOf(message,"/");
+		if(lastIndex){
+			message=..string.sub(message, 1, lastIndex-1);
+		}
+		//console.log(message)
+		var msgArray=..string.split(message,"/");
+		for(k,v in msgArray){
+			var values = ..string.split(v,"<@=>");
+			var key = values[1];
+			var value = values[2];
+			if(value&&string.match(value,"\@A")){
+				value=string.replace(value,"\@S","/");
+				value=string.replace(value,"\@A","@");
+			}
+			if(key){
+				messages[key]=value;
+			}
+				
+		}
+		//console.dump(messages)
+		return messages; 
+	}
+
+	//心跳消息 每45秒发送一次
+	var aTimer = win.timer(, 45000)
+	aTimer.onTimer = function(hwnd,msg,id,tick){
+    	sendData("type@=keeplive/tick@="+ tonumber(..time()) +"/\0")
+	}
+	aTimer.enable()
+
+	//登录房间
+	sendData("type@=loginreq/roomid@="+roomid+"/\0");
+	//接收数据
+	var index=0;
+	for(str,size in tcp.eachRead()){
+    	var msg = ..string.fromto(..string.sub(str, 13, #str-1), 65001, 0)
+		var message=parseMsg(msg);
+		if(message.type=="loginres"){ // 登陆成功
+			sendData("type@=joingroup/rid@="+roomid+"/gid@=-9999/\0");
+        	var now = time();
+			var year = now.year;
+			var month = now.month;
+			var day = now.day; 
+			var hour = time().hour;
+			var mins = time().minute;
+			var secs = time().second;  
+			mainForm.message.text = year+"-"+month+"-"+day+" "+hour+":" +mins+":"+secs+ " " + "连接弹幕服务器已成功！";
+			mainForm.status.text = "已登陆";
+		}elseif(message.type=="chatmsg"){ // 聊天
+			console.dump(message)
+			danmuTabPage.listview.addItem({string.fromto(message.nn,936,65001);string.fromto(message.txt,936,65001)});
+        	danmuTabPage.listview.ensureVisible(danmuTabPage.listview.count);
+		}elseif(message.type=="dgb"){ // 礼物
+			
+		}elseif(message.type=="bc_buy_deserve"){ // 酬勤
+		
+		}	
+    
+    	win.delay(1)
+
+	}
+
+ }
+/*  获取斗鱼信息 end   */
+
+
+mainForm.connBtn.oncommand = function(id,event){
+	import string;
+	import time;
+	import thread;
+	
+	var roomid = string.trim(mainForm.roomid.text);
+	if(roomid == ""){
+		mainForm.msgbox( "请填写房间号！" );
+		return ; 
+	}
+	if(!string.match(roomid, "\d")){
+		mainForm.msgbox( "房间号只包含数字！" );
+		return ; 
+	}
+	win.setenv("roomid", roomid);
+	//var douyu=mainForm.loadForm("/res/douyu.aardio");
+	//douyu.show();
+	
+	thread.invoke( getDouyuMsg, mainForm, roomid, frmTabPage1);
+	
+}
+mainForm.show();
+//mainForm.enableDpiScaling();
+
+
+
+/*   读取ini配置文件 begin   */
+//打开文件,支持内嵌资源文件
+//如果文件不存在则自动创建新文件
+import fsys.ini;
+var system=fsys.ini("res\system.ini");
+var system_setting = system.getSection("setting"); //读取小节对象
+var errors = system.getSection("errors");
+//console.dump(system_setting);
+/*   读取ini配置文件 end   */
+
+
+
+/*   初始化checkbox数据 end   */
+mainForm.auto_reply_speak_checkbox.checked=tonumber(system_setting.autoReplySpeak);
+mainForm.auto_speak_checkbox.checked=tonumber(system_setting.autoSpeak);
+mainForm.auto_reply_gift_checkbox.checked=tonumber(system_setting.autoReplyGift);
+mainForm.roomid.text=system_setting.roomid;
+/*   初始化checkbox数据 end   */
+
+
+
+/*   checkbox值变化时，更新ini配置文件数据 begin   */
+mainForm.auto_reply_speak_checkbox.oncommand = function(id,event){
+	//mainForm.msgbox( mainForm.auto_reply_speak_checkbox.text );
+	//mainForm.msgbox(mainForm.auto_reply_speak_checkbox.checked)
+	system_setting.autoReplySpeak=mainForm.auto_reply_speak_checkbox.checked;
+	system_setting.save();
+}
+
+mainForm.auto_speak_checkbox.oncommand = function(id,event){
+	system_setting.autoSpeak=mainForm.auto_speak_checkbox.checked;
+	system_setting.save();	
+}
+
+mainForm.auto_reply_gift_checkbox.oncommand = function(id,event){
+	system_setting.autoReplyGift=mainForm.auto_reply_gift_checkbox.checked;
+	system_setting.save();
+}
+/*   checkbox值变化时，更新ini配置文件数据 begin   */
+
+
+import fsys.table;
+import table;
+var keywords_setting = fsys.table("res\cache\keywords.txt"); //回复发言
+var autoReply_setting = fsys.table("res\cache\autoReply.txt"); //自动发言
+var replyGift_setting = fsys.table("res\cache\replyGift.txt"); //回复礼物
+keywords_setting.load(); //从文件载入表
+autoReply_setting.load(); //从文件载入表
+replyGift_setting.load(); //从文件载入表
+
+//读写成员,象普通table 对象一样使用
+//keywords_setting.小白 = "小白很帅";
+//keywords_setting.小发 = "美美美"; 
+
+//保存配置表
+//keywords_setting.save()
+
+for(k,v in keywords_setting){
+    if(k&&k!="_gc"){
+    	//console.dump(k,v) 
+    	//象普通table对象一样使用 
+    	secTabPage1.listview.addItem({tostring(k);tostring(v)});
+    }
+}
+
+for(k,v in autoReply_setting){
+    //console.log(k,v);
+    if(k&&k!="_gc"){ 
+    	//象普通table对象一样使用 
+    	secTabPage2.listview.addItem({tostring(v)});
+    }
+}
+
+for(k,v in replyGift_setting){
+    //console.log(k,v);
+    if(k&&k!="_gc"){ 
+    	//象普通table对象一样使用 
+    	secTabPage3.listview.addItem({tostring(v)});
+    }
+} 
+
+//console.dump( keywords_setting ) //转换为字符串
+
+
+/*   tab2 begin   */
+/*   tab2-->关键词页面 begin   */
+secTabPage1.listview.onnotify = function(id,code,ptr){ 
+    select(code) {
+    	case  0xFFFFFF9B/*_LVN_ITEMCHANGED*/ {
+    		var nm = secTabPage1.listview.getNotifyMessage(code,ptr)
+    		if(secTabPage1.listview.selIndex){
+        		secTabPage1.key_content.text = secTabPage1.listview.getItemText(nm.iItem,1);;
+        		secTabPage1.reply_content.text = secTabPage1.listview.getItemText(nm.iItem,2);
+        	}
+    	}
+    }
+    
+}
+
+secTabPage1.key_addBtn.oncommand = function(id,event){
+	//mainForm.msgbox("secTabPage1.key_addBtn");
+    if(string.trim(secTabPage1.key_content.text)==""){
+    	mainForm.msgbox("关键字不能为空！");
+    	return ; 
+    }
+    
+    if(string.trim(secTabPage1.reply_content.text)==""){
+    	mainForm.msgbox("回复不能为空！");
+    	return ; 
+    }
+	
+	saveKeywordsData();
+	
+}
+
+function saveKeywordsData(){
+	var keywordsRepeatIndex=checkKeywords(string.trim(secTabPage1.key_content.text), 0);
+    if(keywordsRepeatIndex){
+    	mainForm.msgbox("关键字与'回复发言'第"+keywordsRepeatIndex+"行数据重复！");
+    	return ; 
+    }
+    
+	secTabPage1.listview.addItem({string.trim(secTabPage1.key_content.text);string.trim(secTabPage1.reply_content.text)});
+	keywords_setting[string.trim(secTabPage1.key_content.text)]=string.trim(secTabPage1.reply_content.text);
+	secTabPage1.key_content.text = "";
+    secTabPage1.reply_content.text = "";
+	keywords_setting.save();
+}
+
+secTabPage1.key_delBtn.oncommand = function(id,event){
+	//mainForm.msgbox(secTabPage1.listview.selIndex);
+	if(!secTabPage1.listview.getSelected(secTabPage1.listview.selIndex)){
+		mainForm.msgbox("请选择要删除的'回复发言'行数据");
+		return ; 
+	}
+	
+	var selectedItemText = secTabPage1.listview.getItemText(secTabPage1.listview.selIndex);
+	//mainForm.msgbox(selectedItemText);
+	keywords_setting[selectedItemText]=null;
+	secTabPage1.listview.delItem(secTabPage1.listview.selIndex);
+	secTabPage1.key_content.text = "";
+    secTabPage1.reply_content.text = "";
+	keywords_setting.save();
+	
+}
+
+secTabPage1.key_saveBtn.oncommand = function(id,event){
+    if(!secTabPage1.listview.selIndex){
+    	mainForm.msgbox("请选择要修改的'回复发言'行数据！");
+    	return ; 
+    }
+    
+	if(string.trim(secTabPage1.key_content.text)==""){
+    	mainForm.msgbox("关键字不能为空！");
+    	return ; 
+    }
+    
+    if(string.trim(secTabPage1.reply_content.text)==""){
+    	mainForm.msgbox("回复不能为空！");
+    	return ; 
+    }
+    
+    editKeywordsData();
+    
+}
+
+function editKeywordsData(){
+    var keywordsRepeatIndex=checkKeywords(string.trim(secTabPage1.key_content.text), secTabPage1.listview.selIndex);
+    if(keywordsRepeatIndex){
+    	mainForm.msgbox("关键字与'回复发言'第"+keywordsRepeatIndex+"行数据重复！");
+    	return ; 
+    }
+    
+	var oldKeywords = secTabPage1.listview.getItemText(secTabPage1.listview.selIndex);
+    if(oldKeywords!=string.trim(secTabPage1.key_content.text)){
+        setting[oldKeywords]=null;
+        secTabPage1.listview.setItemText(string.trim(secTabPage1.key_content.text), secTabPage1.listview.selIndex, 1);
+    }
+    
+    setting[string.trim(secTabPage1.key_content.text)]=string.trim(secTabPage1.reply_content.text);
+    secTabPage1.listview.setItemText(string.trim(secTabPage1.reply_content.text), secTabPage1.listview.selIndex, 2);
+	secTabPage1.key_content.text = "";
+    secTabPage1.reply_content.text = "";
+	setting.save();
+}
+
+// 判断当前输入的关键词是否已经存在,
+// 存在返回当前行索引，否则返回0
+function checkKeywords(keywords, index){
+	for(i=1;secTabPage1.listview.count;1){
+		if(i==index){
+			continue ;
+		}
+		
+		if(keywords==secTabPage1.listview.getItemText(i,1)){
+			return i; 
+		}
+	}
+	
+	return 0; 
+	
+}
+/*   tab2-->关键词页面 end   */
+
+
+/*   tab2-->自动发言 begin   */
+secTabPage2.listview.onnotify = function(id,code,ptr){ 
+    select(code) {
+    	case  0xFFFFFF9B/*_LVN_ITEMCHANGED*/ {
+    		var nm = secTabPage2.listview.getNotifyMessage(code,ptr)
+    		if(secTabPage2.listview.selIndex){
+        		secTabPage2.reply_content.text = secTabPage2.listview.getItemText(nm.iItem,1);
+        	}
+    	}
+    }
+    
+}
+
+secTabPage2.reply_addBtn.oncommand = function(id,event){
+    if(string.trim(secTabPage2.reply_content.text)==""){
+    	mainForm.msgbox("内容不能为空！");
+    	return ; 
+    }
+    
+    secTabPage2.listview.addItem({string.trim(secTabPage2.reply_content.text)});
+    table.insert(autoReply_setting,string.trim(secTabPage2.reply_content.text));
+    secTabPage2.reply_content.text = "";
+	autoReply_setting.save();
+	
+}
+
+secTabPage2.reply_delBtn.oncommand = function(id,event){
+	if(!secTabPage2.listview.getSelected(secTabPage2.listview.selIndex)){
+		mainForm.msgbox("请选择要删除的'回复发言'行数据");
+		return ; 
+	}
+	
+	table.remove(autoReply_setting,secTabPage2.listview.selIndex);
+	secTabPage2.listview.delItem(secTabPage2.listview.selIndex);
+    secTabPage2.reply_content.text = "";
+	autoReply_setting.save();
+	
+}
+
+secTabPage2.reply_saveBtn.oncommand = function(id,event){
+    if(!secTabPage2.listview.selIndex){
+    	mainForm.msgbox("请选择要修改的'回复发言'行数据！");
+    	return ; 
+    }
+    
+	if(string.trim(secTabPage2.reply_content.text)==""){
+    	mainForm.msgbox("内容不能为空！");
+    	return ; 
+    }
+    
+    autoReply_setting[secTabPage2.listview.selIndex]=string.trim(secTabPage2.reply_content.text);
+    secTabPage2.listview.setItemText(string.trim(secTabPage2.reply_content.text), secTabPage2.listview.selIndex, 1);
+    secTabPage2.reply_content.text = "";
+	autoReply_setting.save();
+    
+}
+secTabPage2.trackbar_content.text = secTabPage2.trackbar.pos;
+/*   tab2-->自动发言 end   */
+
+
+/*   tab2-->回复送礼 begin   */
+secTabPage3.listview.onnotify = function(id,code,ptr){ 
+    select(code) {
+    	case  0xFFFFFF9B/*_LVN_ITEMCHANGED*/ {
+    		var nm = secTabPage3.listview.getNotifyMessage(code,ptr)
+    		if(secTabPage3.listview.selIndex){
+        		secTabPage3.gift_content.text = secTabPage3.listview.getItemText(nm.iItem,1);
+        	}
+    	}
+    }
+    
+}
+
+secTabPage3.gift_addBtn.oncommand = function(id,event){
+    if(string.trim(secTabPage3.gift_content.text)==""){
+    	mainForm.msgbox("内容不能为空！");
+    	return ; 
+    }
+    
+    if(secTabPage3.listview.count>=1){
+    	mainForm.msgbox("'回复送礼'行项目只能为一条！");
+    	return ; 
+    }
+    
+    secTabPage3.listview.addItem({string.trim(secTabPage3.gift_content.text)});
+    table.insert(replyGift_setting,string.trim(secTabPage3.gift_content.text));
+    secTabPage3.gift_content.text = "";
+	replyGift_setting.save();
+	
+}
+
+secTabPage3.gift_delBtn.oncommand = function(id,event){
+	if(!secTabPage3.listview.getSelected(secTabPage3.listview.selIndex)){
+		mainForm.msgbox("请选择要删除的'回复发言'行数据");
+		return ; 
+	}
+	
+	table.remove(replyGift_setting,secTabPage3.listview.selIndex);
+	secTabPage3.listview.delItem(secTabPage3.listview.selIndex);
+    secTabPage3.gift_content.text = "";
+	replyGift_setting.save();
+	
+}
+
+secTabPage3.gift_saveBtn.oncommand = function(id,event){
+    if(!secTabPage3.listview.selIndex){
+    	mainForm.msgbox("请选择要修改的'回复发言'行数据！");
+    	return ; 
+    }
+    
+	if(string.trim(secTabPage3.gift_content.text)==""){
+    	mainForm.msgbox("内容不能为空！");
+    	return ; 
+    }
+    
+    replyGift_setting[secTabPage3.listview.selIndex]=string.trim(secTabPage3.gift_content.text);
+    secTabPage3.listview.setItemText(string.trim(secTabPage3.gift_content.text), secTabPage3.listview.selIndex, 1);
+    secTabPage3.gift_content.text = "";
+	replyGift_setting.save();
+    
+}
+/*   tab2-->回复送礼 end   */
+/*   tab2 end   */
+//mainForm.enableDpiScaling();
+
+
+//进入消息循环
+win.loopMessage();
+return mainForm;

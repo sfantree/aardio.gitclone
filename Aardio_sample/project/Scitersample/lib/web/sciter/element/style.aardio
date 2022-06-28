@@ -1,0 +1,37 @@
+
+assert(web.sciter.element); 
+namespace web.sciter.element;
+
+class style{
+	ctor(element){
+		this.element = element;
+	}
+	@_meta;
+}
+
+namespace style { 
+
+  	var toUnicode = ..string.toUnicode;
+  	
+	_meta = {
+		_get = function(k){
+			var r,attr = ::Sciter.GetStyleAttribute(owner.element.handle,k);
+			if( r == 0/*_HLDOM_OK*/ )return attr;
+		}
+		_set = function(k,v){
+			::Sciter.SetStyleAttribute(owner.element.handle,k,v!==null ? toUnicode(tostring(v)):null  );
+		};
+	}
+}
+
+/**intellisense()
+!htmsciter_style.visiblity = 可见状态,\n值必须是字符串或null
+!htmsciter_style.display = 显示样式,\n值必须是字符串或null
+!htmsciter_style.cursor = 鼠标指针,\n值必须是字符串或null
+!htmsciter_style.height = 高度,\n值必须是字符串或null
+!htmsciter_style.width = 宽度,\n值必须是字符串或null
+!htmsciter_style.top = 顶部位置,\n值必须是字符串或null
+!htmsciter_style.left = 左侧位置,\n值必须是字符串或null
+!htmsciter_style.margin = 外边距,\n值必须是字符串或null
+!htmsciter_style.padding = 内边距,\n值必须是字符串或null
+end intellisense**/

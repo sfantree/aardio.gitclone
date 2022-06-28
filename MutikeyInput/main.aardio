@@ -1,0 +1,95 @@
+import win.ui;
+import win.ui.atom;
+import win.util.tray;
+
+import frmDataFunc;
+import keySimu;
+/*DSG{{*/
+mainForm = win.form(text="48键并击";right=791;bottom=655;border="dialog frame";max=false)
+mainForm.add(
+button1={cls="button";text="确定";left=305;top=614;right=395;bottom=644;font=LOGFONT(h=-17);z=2};
+button2={cls="button";text="取消";left=469;top=614;right=559;bottom=644;font=LOGFONT(h=-17);z=3};
+button3={cls="button";text="保存";left=633;top=614;right=723;bottom=644;font=LOGFONT(h=-17);z=4};
+button4={cls="button";text="默认配置";left=36;top=614;right=132;bottom=644;font=LOGFONT(h=-17);z=5};
+tab={cls="tab";left=14;top=10;right=779;bottom=602;ah=1;aw=1;db=1;dl=1;dr=1;dt=1;edge=1;font=LOGFONT(h=-17);z=1}
+)
+/*}}*/
+
+//等前面一个进程完全退出，资源完全释放，后面的进程再启动。
+//启动线程中含有命令行参数，参数为wait
+if( _CMDLINE == "wait" ){
+    sleep( 1000 ) //等1秒
+}
+
+//为窗口设置原子值可以避免一个程序重复运行多个实例
+var atom, hwnd  = mainForm.atom("AA6EFCC6-BAAC-4DBE-BB37-20215A93D443"); 
+if(!atom){ 
+	win.quitMessage();   
+    return; 
+} 
+//载入选项卡子窗体
+var frmChild1 = mainForm.tab.loadForm("\dlg\frmTabPage1.aardio");
+var frmChild2 = mainForm.tab.loadForm("\dlg\frmTabPage2.aardio");
+var frmChild3 = mainForm.tab.loadForm("\dlg\frmTabPage3.aardio");
+
+var tray = win.util.tray(mainForm);
+var hook = keySimu.keyGlobalHook(mainForm);
+var popmenu = frmDataFunc.popmenuAdd(mainForm, tray, hook);
+//设置主窗体回调函数
+mainForm.wndproc = frmDataFunc.wndproc(mainForm, popmenu);
+
+/*-------------------------控件响应函数---------------------------*/
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    if(popmenu.isRestart){//如果是重启动时
+    	hook.close();
+    	tray.delete();
+    }
+    else{
+     	var v = win.msgboxTest("您正在关闭48键并击软件，确定要继续吗？","提示") 
+     	if(!v){
+     		return true;//有返回值则不关闭窗口
+     	};
+   		hook.close();//释放钩子
+     	tray.delete();//关闭窗口同时删掉托盘，避免关闭窗口后要鼠标移到托盘图标才消失
+     };
+ }      
+
+mainForm.onMinimize = function(lParam){
+	tray.pop("48键并击正在运行" );
+	mainForm.show(false); //隐藏窗口
+	return true;//阻击默认消息传递,取消最小化过程
+}
+
+//响应命令按钮“确定”
+mainForm.button1.oncommand = function(id,event){
+    if(frmDataFunc.dtSaveLoad()) {
+		mainForm.hitmin();//模拟点击最小化按钮	
+	};
+}
+//响应命令按钮“取消”
+mainForm.button2.oncommand = function(id,event){
+	mainForm.hitmin();
+}
+//响应命令按钮“保存”
+mainForm.button3.oncommand = function(id,event){
+	if(frmDataFunc.dtSaveLoad()) {
+		..win.msgbox("配置文件和略码文件已保存，数据已重新加载。","提示");
+	}
+}
+//响应命令按钮“默认配置”
+mainForm.button4.oncommand = function(id,event){
+	if(frmDataFunc.renewDefault()) {
+		..win.msgbox("已恢复为默认配置，数据已重新加载。","提示");
+	}
+}
+//注册热键
+mainForm.reghotkey( function(id,mod,vk){ popmenu.pause(); },
+					0, key.VK[frmDataFunc.info.HotKey] );
+
+/*---------------------------------------------------------------------*/
+
+hook.open();
+tray.tip = "48键并击";
+tray.pop("48键并击正在运行" );
+mainForm.show(false);
+win.loopMessage();

@@ -1,0 +1,77 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="music demo";right=374;bottom=666;bgcolor=16711422;border="none";max=false;min=false;mode="popup";sysmenu=false;title=false)
+winform.add(
+Formclose={cls="plus";text='\uF00D';left=23;top=23;right=39;bottom=41;color=14737632;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=2};
+open={cls="plus";text='\uF03C';left=331;top=22;right=359;bottom=48;color=14737632;font=LOGFONT(h=-21;name='FontAwesome');notify=1;z=3};
+plus11={cls="plus";left=246;top=566;right=299;bottom=619;background="\img\right.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=16777215;z=15};
+plus3={cls="plus";left=48;top=80;right=327;bottom=359;background="\img\pic.png";border={radius=4};z=4};
+plus8={cls="plus";left=76;top=566;right=129;bottom=619;background="\img\left.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=16777215;iconStyle={align="left";font=LOGFONT(h=-40;name='FontAwesome');padding={left=26}};z=13};
+plus9={cls="plus";left=145;top=547;right=230;bottom=637;background="\img\bo.png";font=LOGFONT(h=-60;name='FontAwesome');iconColor=14900666;z=14};
+progress={cls="plus";left=24;top=491;right=351;bottom=495;bgcolor=14803425;forecolor=12015585;z=9};
+static={cls="static";text="Now Playing";left=0;top=0;right=375;bottom=64;align="center";center=1;color=4473665;font=LOGFONT(h=-24;name='Sofia Pro Semi Bold Condensed');notify=1;transparent=1;z=1};
+static2={cls="static";text="This Girl";left=32;top=416;right=343;bottom=442;align="center";center=1;color=4473665;font=LOGFONT(h=-27;name='Sofia Pro Semi Bold Condensed');transparent=1;z=6};
+static3={cls="static";text="Kung";left=90;top=445;right=284;bottom=469;align="center";center=1;color=11775914;font=LOGFONT(h=-19;name='Sofia Pro Semi Bold Condensed');transparent=1;z=7};
+static4={cls="static";text="1:12";left=21;top=503;right=62;bottom=518;center=1;color=11775914;font=LOGFONT(h=-16;name='Sofia Pro Semi Bold Condensed');transparent=1;z=10};
+static5={cls="static";text="-2:04";left=310;top=503;right=351;bottom=518;align="right";center=1;color=11775914;font=LOGFONT(h=-16;name='Sofia Pro Semi Bold Condensed');transparent=1;z=11};
+xihuan={cls="plus";text='\uF004';left=24;top=430;right=48;bottom=454;color=14737632;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=5};
+乱序={cls="plus";text='\uF074';left=28;top=581;right=52;bottom=605;color=12015585;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=12};
+单曲循环={cls="plus";text='\uF021';left=327;top=581;right=351;bottom=605;color=14737632;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=16};
+更多={cls="plus";text='\uF141';left=331;top=430;right=355;bottom=454;color=14737632;font=LOGFONT(h=-18;name='FontAwesome');notify=1;z=8}
+)
+/*}}*/
+
+//按钮的皮肤
+var bskin = {
+	color={
+		default=0xFFE0E0E0;
+		hover=0xFFB757E1;
+		active=0xFFB757E1;
+	};
+	//被选中状态
+	checked = {
+		color={
+			default=0xFFB757E1;
+		};
+	}
+}
+//应用皮肤
+winform.Formclose.setParent(winform.static);
+winform.open.setParent(winform.static);
+winform.Formclose.skin(bskin);
+winform.open.skin(bskin);
+winform.xihuan.skin(bskin);
+winform.更多.skin(bskin);
+winform.乱序.skin(bskin);
+winform.单曲循环.skin(bskin);
+//头部拖动
+winform.static.wndproc = function(hwnd,message,wParam,lParam){
+	if(message == 0x201/*_WM_LBUTTONDOWN*/){
+		winform.hitCaption()
+	}
+}
+//窗体关闭
+winform.Formclose.onMouseClick = function(wParam,lParam){
+    //有父窗体就关闭它
+    if(winform.parent){
+    	mainForm.close();	
+    }else {
+    	winform.close();
+    } 
+}
+
+//模拟演示切换到右侧
+winform.open.oncommand = function(id,event){
+	publish("切换右",)
+}
+//设置进度区间，可自动切换到进度条显示模式
+winform.progress.setProgressRange(1,100);
+winform.progress.progressPos = 30;
+winform.progress.startProgress(500,3);
+
+winform.乱序.checked = true;
+
+winform.show();
+win.loopMessage();
+return winform;

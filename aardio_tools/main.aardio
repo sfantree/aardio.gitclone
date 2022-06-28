@@ -1,0 +1,46 @@
+import win.ui;
+import process;
+
+//以下自动生成,不用看.
+/*DSG{{*/
+var winform = win.form(text="AAuto Form";right=672;bottom=326)
+winform.add(
+button={cls="button";text="修改";left=177;top=226;right=492;bottom=267;z=1};
+edit1={cls="edit";text="100";left=181;top=41;right=405;bottom=85;edge=1;multiline=1;num=1;tabstop=1;z=3};
+edit2={cls="edit";text="100";left=181;top=92;right=406;bottom=131;edge=1;num=1;tabstop=1;z=5};
+label1={cls="static";left=245;top=116;right=340;bottom=139;ah=1;aw=1;transparent=1;z=6};
+static={cls="static";text="血量:";left=133;top=54;right=170;bottom=70;ah=1;aw=1;transparent=1;z=2};
+static2={cls="static";text="魔力:";left=133;top=102;right=173;bottom=118;ah=1;aw=1;notify=1;transparent=1;z=4}
+)
+/*}}*/
+
+winform.edit1.oncommand = function(id,event){
+	//winform.msgbox( winform.edit1.text );
+	
+	
+}
+
+
+winform.static2.oncommand = function(id,event){
+	//winform.msgbox( winform.static2.text );
+	
+	
+}
+
+//以上自动生成,不用看.
+
+winform.button.oncommand = function(id,event){
+    //winform.msgbox( winform.button.text );//这句也是自动生成的.
+    myproce = process.find("DOA5.exe")//要修改的程序名.
+    if (myproce)
+    {    
+	baseAdress = myproce.readNumber(0x40216c)//0x40315c是游戏的基址,用cheatengine查的.
+	myproce.writeNumber(baseAdress,winform.edit1.text)
+	myproce.writeNumber(baseAdress+0x8,winform.edit2.text)//0x8是偏移.
+    }
+    else {
+    win.msgbox("游戏没有运行","Info");
+    } 
+}
+winform.show() 
+win.loopMessage();

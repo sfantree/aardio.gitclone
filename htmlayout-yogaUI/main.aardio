@@ -1,0 +1,97 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="aardio工程7";right=959;bottom=591;border="none")
+mainForm.add()
+/*}}*/
+
+import console
+console.open()
+
+import web.layout;
+import web.layout.behavior.windowCommand;
+
+
+namespace web.layout.behavior.myShowSkin {
+	onMouseClick = function (ltTarget,ltOwner,x,y,ltMouseParams) {	
+		var frmChild = ..mainForm.loadForm("\dlg\skin.aardio");
+		frmChild.show();
+     }  
+}
+
+var wbLayout = web.layout(mainForm,0xFFFF/*_HL_HANDLE_ALL*/);
+
+wbLayout.go("\html\main.html");
+
+wbLayout.onMenuItemClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+    //获取选中的菜单内容
+    console.log(ltTarget.innerText,ltTarget.index());
+    //获取从哪行tr点击来的
+    var tabChecked = wbLayout.$1("#tab-style >tr:checked");
+    select(ltTarget.index()) {
+        case 2 {//删除
+            console.log("共有多少个孩子=", wbLayout.$1("#tab-style").childCount() );
+            console.log("删除掉这个孩子=", wbLayout.$1("#tab-style").child(tabChecked.index()).delete() );
+        }        
+        case 3 {//插入
+            var tr = wbLayout.createEle("tr");
+            wbLayout.$1("#tab-style").insert(tr,tabChecked.index());
+             tr.innerHTML= "<td>999</td>
+                            <td width=150>上海浦东</td>
+                            <td width=120>14:57</td>
+                            <td width=100>2021.09</td>
+                            <td width=60>165</td>
+                            <td width=80>普通会员</td>
+                            <td width=50>7800</td>
+                            <td width=80>已支付</td>
+                            <td>试试,体验...</td>";
+        }
+        case 4 {//新增
+            wbLayout.$1("#tab-style").insertAdjacentHTML("beforeEnd","<tr>
+            <td>100</td>
+            <td width=150>上海浦东</td>
+            <td width=120>14:57</td>
+            <td width=100>2021.09</td>
+            <td width=60>165</td>
+            <td width=80>普通会员</td>
+            <td width=50>7800</td>
+            <td width=80>已支付</td>
+            <td>试试,体验...</td>
+        </tr>")
+        }
+ 
+        else {
+        }
+    }
+}
+
+subscribe("改变皮肤",function(flag){
+    var ltEleBody = wbLayout.querySelector("body");
+	ltEleBody.style["background-image"]="url(img\"++flag++"\skin.png)";
+} )
+
+
+/*
+mainForm.setInterval(
+	1000,function(){
+		wb.go("\html\main.html");
+	}
+);
+*/
+
+
+if(_STUDIO_INVOKED){
+	import web.layout.debug;
+	wbLayout.attachEventHandler( web.layout.debug );
+} 
+
+
+
+
+
+
+import win.ui.resizeBorder;
+win.ui.resizeBorder(mainForm);
+
+mainForm.setPos(100,100);
+mainForm.show();
+return win.loopMessage();

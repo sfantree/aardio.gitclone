@@ -1,0 +1,25 @@
+//{{# var user = d.session.user || {} }}
+
+var tabParam = ...;
+
+owner.view.loadcode("web.common.header",...);
+
+?>
+
+<div class="main fly-user-main layui-clear">
+
+  <? owner.view.loadcode("web.common.user-nav","message");?>
+  
+  <div class="fly-panel fly-panel-user" pad20>
+	  <div class="layui-tab layui-tab-brief" lay-filter="user" id="LAY_msg" style="margin-top: 15px;">
+	    <button class="layui-btn layui-btn-danger layui-hide" id="LAY_delallmsg">清空全部消息</button>
+	    <div id="LAY_minemsg" style="margin-top: 10px;"></div>
+	  </div>
+	</div>
+
+</div>
+
+<? owner.view.loadcode("web.common.footer");?>
+
+</body>
+</html>

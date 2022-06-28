@@ -1,0 +1,204 @@
+//background 窗口背景
+//此支持库仅供 win.ui 内部调用  
+import util.metaProperty;
+namespace win.ui;
+
+class background {
+
+	ctor( winform ){ {
+		if( ! winform[["hwnd"]] ) error("参数@1必须是窗口对象",2);
+		if( winform.background ) return;
+		 
+		this._form = winform;
+		this.draw = __draw;
+		this.drawRect = __drawRect;
+	} }; 
+	@_metaProperty
+}
+
+namespace background {
+
+	_metaProperty = ..util.metaProperty( 
+
+		update = function(){
+			var form = owner._form;
+			var bgcolor = owner[["(bgcolor)"]]
+			var background = owner[[ "(bitmap)" ]] 
+	 
+	 		if( ..win.isIconic(form.hwnd) ){
+				   	return;
+			};
+			
+			if( bgcolor === null && background === null && !form.hasDirectDrawBackground() ){ 
+				form.hasBackground = false; 
+				return;
+			} 
+		 
+			var rc = form.getClientRect();
+			var width,height = rc.right - rc.left,rc.bottom - rc.top; 
+			if( ( width <= 0 )  || ( height <= 0 ) ) return ; 
+			
+			//创建缓存背景图
+			var hMemBitmap;
+			var hMemDc = owner.compatibleDc; 
+			if(! hMemDc ){
+				var hdc = ::GetDC( form.hwnd );
+				hMemDc = ::CreateCompatibleDC(hdc); 
+				hMemBitmap = ::CreateCompatibleBitmap(hdc, width, height);
+				owner[["(bitmap-default)"]]  = ::SelectObject(hMemDc, hMemBitmap); 
+				::ReleaseDC( form.hwnd,hdc );
+				owner.compatibleDc = hMemDc;
+			}
+			else {
+				hMemBitmap = ::CreateCompatibleBitmap(hMemDc, width, height);
+				::SelectObject(hMemDc, hMemBitmap);
+			}
+			
+			//记录缓背景图
+			if( owner[["(bitmap-use)"]] ) ::DeleteObject( owner[["(bitmap-use)"]] );
+			owner[["(bitmap-use)"]] = hMemBitmap; 
+			 
+			//画缓存背景图
+			if( !background || ( form.bkTop===null /*无拉伸参数*/ ) ){
+			    if( bgcolor===null ) bgcolor = ::GetSysColor(0xF/*_COLOR_3DFACE*/);
+				..gdi.fillRect(hMemDc,bgcolor,rc);
+			} 
+			if( background ){   
+				..gdi.drawBitmap(hMemDc,background ,rc,form.bkTop,form.bkRight,form.bkBottom,form.bkLeft ); 
+			}  
+			 
+			//记录背景图大小
+			owner.width = width;
+			owner.height = height;
+			form.hasBackground = true;
+			
+			::SetBkMode(hMemDc,1/*_TRANSPARENT*/);
+			
+			//考虑回调事件中可能重入win.ui.background
+			if(! owner.updateDrawing ){
+				owner.updateDrawing = true;
+				owner._form.directDrawBackground(hMemDc,null,rc.copy() );
+				owner.updateDrawing = false;	
+			} 
+		};
+		getColor= function(){
+			return owner[["(bgcolor)"]];
+		};
+		setColor = function( clr ){ 
+			owner[["(bgcolor)"]] = clr;
+			owner._form.hasBackground = !( clr === null && owner[[ "(bitmap)" ]]  === null ); 
+			owner.invalidate();
+		}
+		getBitmap = function(){
+			return owner[["(bitmap)"]];
+		};
+		getCacheBitmap = function(){
+			if(!owner._form.hasBackground ) return;
+			if(!owner[["(bitmap-use)"]]) owner.update();
+			return owner[["(bitmap-use)"]];
+		};
+		setBitmap = function(h,delPrev=true){ 
+			if(!h){
+				if( owner[["(bitmap)"]] ){
+					::DeleteObject(  owner[["(bitmap)"]]  )
+					owner[["(bitmap)"]] = null;
+				}
+				owner._form.hasBackground = owner[["(bgcolor)"]] !== null;  
+				owner.update();
+				owner.invalidate();
+				return;
+			}
+			
+			var oldBmp = owner[["(bitmap)"]] ;
+			if( oldBmp ){
+				if(delPrev){
+					::DeleteObject(  owner[["(bitmap)"]]  )
+			    	owner[["(bitmap)"]] = null;
+			    	oldBmp = true;//return true;
+			    }
+			}
+			
+			owner._form.hasBackground = !( owner[["(bgcolor)"]] === null && h === null );	
+			if(type(h) == type.pointer){ 
+                owner[["(bitmap)"]] = h; 
+                owner.update();
+                owner.invalidate();
+                return oldBmp;
+            }
+            
+            owner.update();
+            owner.invalidate();
+		};
+		getLayeredBitmap = function(){
+			if(owner[["(bitmap)"]]) return ..gdip.bitmap(owner[["(bitmap)"]]);
+			return owner.layeredBackground;
+		};
+		getLayeredColor = function(){
+			var color = owner.getColor();
+			if(color!==null) return 0xFF000000 | ..gdi.rgbReverse(color);
+		};
+		loadImage = function(path){
+			if(type(path) == type.string ){  
+			    var bmp,e = ..com.picture.loadBitmap(path);
+			    if(!bmp) {
+			    	try{
+			    		global.import("gdip.bitmap")
+			    		owner.layeredBackground = ..gdip.bitmap(path);
+			    	}
+			    	return null,e;
+			    }
+			    
+			    owner.setBitmap(bmp,true);
+			    return true;
+            }
+		};
+		invalidate = function(){
+			owner.width = null;
+			owner.height = null;
+		};
+		delete = function(){
+			if( owner.compatibleDc  ){
+				::SelectObject(owner.compatibleDc,owner[["(bitmap-default)"]]);
+				::DeleteDC(owner.compatibleDc);
+				owner.compatibleDc = null; 
+			}
+			
+			if( owner[["(bitmap)"]] ){
+				::DeleteObject(  owner[["(bitmap)"]]  );
+				owner[["(bitmap)"]] = null;
+			}
+			
+			if( owner[["(bitmap-use)"]] ){
+				::DeleteObject(  owner[["(bitmap-use)"]]  ) 
+				owner[["(bitmap-use)"]] = null;
+			} 
+		};
+	);
+	
+	__draw = function( hdc ){
+		var rc = owner._form.getClientRect();
+		var width,height = rc.right - rc.left,rc.bottom - rc.top;
+ 
+		//if( ! ( ( owner.width == width ) && ( owner.height == height) ) )owner.update(); 
+		if(!owner.compatibleDc)owner.update();
+		::BitBlt(hdc, 0, 0, width, height,owner.compatibleDc, 0, 0, 0xCC0020/*_SRCCOPY*/); 
+	}; 
+	__drawRect = function( hCtrlDc,rc ){   
+		var form = owner._form;
+		if( !..win.getStyleEx(form.hwnd,0x2000000/*_WS_EX_COMPOSITED*/) ){
+			var width,height = rc.right - rc.left,rc.bottom - rc.top; 
+			if( form.hasBackground ){ 
+				if(!owner.compatibleDc) owner.update();
+				::BitBlt(hCtrlDc, 0, 0, width, height,owner.compatibleDc, rc.left, rc.top, 0xCC0020/*_SRCCOPY*/); 
+			}
+			else {
+				//GCL_HBRBACKGROUND、系统刷子不可用
+				var bgbrush = ::CreateSolidBrush( ::GetSysColor(0xF/*_COLOR_3DFACE*/)  );
+				var oldbrush = ::SelectObject(hCtrlDc,bgbrush ); 
+				::PatBlt(hCtrlDc,0,0,width,height,0xF00021/*_PATCOPY*/); 
+				::SelectObject(hCtrlDc,oldbrush);  
+				::DeleteObject(bgbrush);
+			}
+		}
+	};
+}

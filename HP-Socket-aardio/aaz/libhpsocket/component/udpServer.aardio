@@ -1,0 +1,28 @@
+﻿import util.metaProperty;
+import aaz.libhpsocket.component.properties.udpServer;
+
+namespace aaz.libhpsocket.component;
+var _dll = ..aaz.libhpsocket._dll;
+
+class udpServer{
+	ctor(listener, pSocket){
+		if(pSocket){
+			this.pSocket = pSocket;
+		}
+		elseif(listener){
+			this.pSocket = _dll.Create_HP_UdpServerP(listener);
+			..table.gc(this, "destroy");
+		}
+		else {
+			error("请指定参数@1 pSocket 或参数@2 pListener", 2);
+		}
+	};	
+	destroy = function(){
+		if(this.pSocket){
+			_dll.Destroy_HP_UdpServer(this.pSocket);
+			this.pSocket = null;
+		}
+	};	
+	@_metaProperty;
+}
+udpServer._metaProperty = ..util.metaProperty(..aaz.libhpsocket.component.properties.udpServer); 

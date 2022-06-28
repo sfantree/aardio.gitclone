@@ -1,0 +1,90 @@
+
+namespace mvc.controller.web
+
+user = class {
+	ctor( ){
+		this.base = ..mvc.controller.web.base(true);//继承基类控制器
+		this.cachePage = "user"
+	};
+	
+	getParam = function(title){
+		var tabParam = {};
+		tabParam.title = title;
+		return tabParam; 
+	}
+
+	index = function(){
+		var tabParam = this.getParam("用户中心");
+		owner.view.loadcode("web.user.index",tabParam);		
+	}
+	
+	home = function(uid){
+		var tabParam = this.getParam("我的主页");
+		owner.view.loadcode("web.user.home",tabParam);
+	}
+	
+	set = function(){
+		var tabParam = this.getParam("基本设置");
+		owner.view.loadcode("web.user.set",tabParam);
+	}
+	
+	message = function(){
+		var tabParam = this.getParam("我的消息");
+		owner.view.loadcode("web.user.message",tabParam);
+	}
+	
+	activate = function(){
+		var tabParam = this.getParam("激活邮箱");;
+		owner.view.loadcode("web.user.activate",tabParam);
+	}	
+	
+	save = function(city,gender,usersign){
+		if(!#city) return false,"城市不能为空"; 
+		var tpost = {}
+		tpost.city = city;
+		tpost.gender = gender;
+		tpost.usersign = usersign;
+		var ok,err = webUserSvc.update(tpost,this.base.userId);
+		if(!ok) return false,err; 
+		return true;
+	}	
+	
+	editPwd = function(nowpass,pass,repass){
+		if( !#nowpass ) return false,"当前密码不能为空";
+	
+		if( #pass < 6 || #pass > 16) return false,"密码在6到16个字符之间";
+		
+		if( pass != repass ) return false,"两次密码输入不一致";
+		
+		var ok,err = webUserSvc.editPwd(nowpass,pass,this.base.userId);
+		if(!ok) return false,err; 
+		..carl.session.clear()
+		return true
+	}
+	
+	upload = function(){
+		var imageUrl,err = ..common.uploadFile();//获取上传后的图片
+		if(imageUrl){
+			var t = {".jpg";".gif";".jpeg";".png"}
+			var ext = string.lower(io.splitpath(imageUrl).ext);
+			if(!table.find(t,ext)){
+				io.remove(imageUrl);
+				return false,"不支持图片格式"; 
+			}
+		}
+		if(imageUrl) imageUrl,err = ..common.imageThumbnail(imageUrl,168,168);//生成缩略图
+		if(!imageUrl) return false,err;
+		var tpost = {}
+		tpost.AvatarUrl = imageUrl;
+		var ok,err = webUserSvc.update(tpost,this.base.userId);
+		if(!ok) return false,err;
+		return true
+	}
+	
+	
+}
+
+namespace user{
+	
+	webUserSvc = ..svc.web.webUserSvc;	
+}

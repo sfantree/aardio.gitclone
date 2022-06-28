@@ -1,0 +1,95 @@
+import win.ui;
+/*DSG{{*/
+mainForm = ..win.form( bottom=161;parent=...;right=389;text="获取服务器时间" )
+mainForm.add( 
+ed_locationTime={ bottom=94;right=380;left=88;top=72;z=8;edge=1;cls="edit" };
+btn_getSeverTime={ bottom=144;right=188;left=84;top=109;z=3;text="获取服务器时间";cls="button" };
+static3={ bottom=93;right=81;left=8;text="本地时间:";top=77;z=7;transparent=1;cls="static" };
+static2={ bottom=62;right=81;left=8;text="服务器时间:";top=46;z=5;transparent=1;cls="static" };
+btn_syncLocationTime={ bottom=143;right=317;left=213;top=108;z=4;text="同步本地时间";cls="button" };
+static={ bottom=32;right=81;left=8;text="服务器地址:";top=16;z=2;transparent=1;cls="static" };
+ed_url={ bottom=34;right=380;left=88;top=12;z=1;edge=1;cls="edit" };
+ed_severTime={ bottom=64;right=380;left=88;top=42;z=6;edge=1;cls="edit" }
+)
+/*}}*/
+
+SetLocalTime = ::Kernel32.api("SetLocalTime","int(struct& lpSystemTime)")
+
+getSeverTime = function(url){
+	import inet.whttp;
+	
+	var http = ..inet.whttp();
+	
+	if(!..string.startWith(url,"http://",true)){
+		url = "http://" ++ url
+	}
+	
+	var isOk = http.beginRequest(url,"GET");
+	
+	if(!isOk){
+		return ; 
+	}
+	
+	http.send();
+	
+	var date = http.readHeader("date");
+	
+	http.endRequest();
+	
+	var t = ..time(date,"%a, %d %b %Y %H:%M:%S");
+	
+	t.format="!%Y-%m-%d %H:%M:%S";
+	
+	return t.local();
+}
+
+mainForm.btn_syncLocationTime.oncommand = function(id,event){
+	var url = mainForm.ed_url.text
+	if(#url){
+		var severTime,severTimeOld;
+		for(i=1;10;1){
+			severTime = win.invoke(getSeverTime ,url)
+			
+			if(!severTimeOld){
+				severTimeOld = severTime
+			}
+			
+			if(severTimeOld != severTime){
+				break ;
+			}
+		}
+		
+		if(severTime){
+			SetLocalTime(time(severTime,"%Y-%m-%d %H:%M:%S"))
+			mainForm.ed_severTime.text = tostring(severTime);
+			var tm = time(null,"%Y-%m-%d %H:%M:%S") ;
+			mainForm.ed_locationTime.text = tostring(tm);
+		}
+	}
+}
+
+mainForm.btn_getSeverTime.oncommand = function(id,event){
+	var url = mainForm.ed_url.text
+	if(#url){
+		var severTime = win.invoke(getSeverTime ,url)
+		
+		if(severTime){
+			mainForm.ed_severTime.text = tostring(severTime);
+			var tm = time(null,"%Y-%m-%d %H:%M:%S") ;
+			mainForm.ed_locationTime.text = tostring(tm);
+		}
+	}
+}
+
+/*
+import config;
+mainForm.bindConfig( config.mainForm,{
+	edit = "text"; //绑定edit控件的text属性值到配置文件
+	radiobutton = "checked";
+	checkbox = "checked";
+	combobox = "selIndex";
+} );
+*/
+
+mainForm.show() 
+win.loopMessage(); 

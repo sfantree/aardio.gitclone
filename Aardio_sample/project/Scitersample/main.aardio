@@ -1,0 +1,347 @@
+//界面预览工具
+import win.ui;
+import win.ui.menu;
+/*DSG{{*/
+var winform = win.form(text="web.sciter(Sciter) 界面范例浏览器";right=856;bottom=542;parent=...)
+winform.add(
+tab={cls="tab";left=236;top=9;right=843;bottom=530;db=1;dl=1;dr=1;dt=1;edge=1;z=2};
+treeview={cls="treeview";left=23;top=10;right=231;bottom=527;asel=false;bgcolor=15793151;db=1;dl=1;dt=1;edge=1;hscroll=1;infoTip=1;vscroll=1;z=1}
+)
+/*}}*/
+
+var wsciterTool = "bin.win\x32\wsciter.exe"; 
+
+import fsys.codepage;	
+var IePreview = winform.tab.add( text="IE浏览器"; bottom=140;right=325 ) 
+var frmPreview = winform.tab.add( text="效果预览"; bottom=140;right=325 )
+var frmSourceCode = winform.tab.add( text="编辑源码";right=599;bottom=390 ) 
+frmSourceCode.add( 
+btnHelp={ dr=1;bottom=385;text="Sciter中文教程";left=20;top=353;z=3;db=1;right=159;cls="button" };
+btnExplore={ disabled=1;dr=1;bottom=385;text="浏览 ...";left=200;top=353;z=5;db=1;right=314;cls="button" };
+richedit={ dr=1;dl=1;bottom=346;vscroll=1;right=591;left=7;dt=1;top=6;multiline=1;z=1;db=1;hscroll=1;edge=1;cls="richedit" };
+btnCreateProject={ dr=1;disabled=1;bottom=385;right=473;left=319;top=353;z=2;db=1;text="另存为 Sciter工程";cls="button" };
+btnSave={ dr=1;disabled=1;bottom=385;text="保存更改";left=481;top=353;z=4;db=1;right=587;cls="button" }
+)
+
+frmSourceCode.btnCreateProject.oncommand = function(id,event){
+		createDemoProject();
+}
+frmSourceCode.btnHelp.oncommand = function(id,event){
+	import process;
+	process.openUrl("http://bbs.aardio.com/forum.php?mod=forumdisplay&fid=128&filter=typeid&typeid=132")
+}
+frmSourceCode.richedit.modifyEvent(,0x1/*_ENM_CHANGE*/);
+frmSourceCode.richedit.oncommand = function(id,event){
+	if( event == 0x300/*_EN_CHANGE*/ ){
+		frmSourceCode.btnSave.disabled = false
+	}
+}
+frmSourceCode.btnSave.oncommand = function(id,event){
+	..fsys.codepage.save(explorer.getCurrentFilePath(), frmSourceCode.richedit.text,"UTF-8"); 
+	loadHtmlFile();  
+}
+frmSourceCode.btnExplore.oncommand = function(id,event){
+	exploreFile();
+}
+
+import web.form;
+var wbIe = web.form(IePreview);
+
+import web.sciter;
+import web.sciter.inspector;
+import web.sciter.behavior.tabs;
+import web.sciter.behavior.shellIcon;
+import web.sciter.behavior.lightBoxDialog;
+import web.sciter.behavior.collapsibleByIcon;
+import web.sciter.behavior.grid;
+import web.sciter.behavior.sortableGrid;
+import web.sciter.behavior.scroller;
+import web.sciter.behavior.dropdown; 
+import web.sciter.behavior.popup;
+import web.sciter.behavior.expandableList;
+import web.sciter.behavior.collapsibleList;
+import web.sciter.behavior.sizer;
+import web.sciter.behavior.gripper;
+import web.sciter.behavior.splitter;
+
+if( _STUDIO_INVOKED ){
+	import console;
+	console.open();
+}
+//console.dump(io.fullpath("/"),io.fullpath("~"))
+
+var wbSciter = web.sciter(frmPreview);
+
+//显示调试信息
+if( _STUDIO_INVOKED ){
+	import web.sciter.debug;
+	wbSciter.attachEventHandler( web.sciter.debug );
+} 
+
+import fsys.dlg;
+var templateSciter = /********************
+import win.ui;
+/*DSG{{*/
+var winform = win.form( bottom=399;parent=...;text="aardio form";right=599 ) 
+/*}}*/
+
+import web.sciter;
+import web.sciter.behavior.tabs;
+
+var wbSciter = web.sciter(winform); 
+wbSciter.go("${URL}") 
+
+wbSciter.onButtonClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+	
+}
+
+winform.show() 
+win.loopMessage();
+
+				********************/
+				
+var templateSciterHtml = /********************
+import win.ui;
+/*DSG{{*/
+var winform = win.form( bottom=399;parent=...;text="aardio form";right=599 ) 
+/*}}*/
+
+import web.sciter;
+import web.sciter.behavior.tabs;
+var wbSciter = web.sciter(winform); 
+
+import web.sciter.debug; //导入该库以显示Sciter错误
+wbSciter.attachEventHandler( web.sciter.debug ); //为CSSS!添加全局函数 debug;
+
+wbSciter.html = /*********
+${HTML}
+*********/
+
+wbSciter.onButtonClick = function (ltTarget,ltOwner,reason,behaviorParams) {
+	
+}
+
+winform.show() 
+win.loopMessage();
+
+				********************/
+				
+//import ide;   		
+createDemoProject = function(){ 
+	var targetDir = fsys.dlg.opendir(,,"请选择工程保存目录");
+	if(!targetDir)return; 
+	targetDir = fsys.joinpath(targetDir,"/Sciter范例工程/")
+	fsys.createDir(targetDir);
+	fsys.copy( "~\extensions\wizard\project\win",targetDir)
+	targetDir = fsys.joinpath(targetDir,"win")
+	var samplesPath = explorer.getCurrentFilePath(); 
+	
+	if( wbSciter.loadFileCount>1 ){
+		var samplesDir = fsys.getParentDir(samplesPath); 
+		fsys.copy( samplesDir,fsys.joinpath(targetDir,"\res") ); 
+		
+		var url = fsys.path.relative( samplesPath ,fsys.getParentDir(samplesDir),true)  
+		string.save(fsys.joinpath(targetDir,"default.main.aardio"),( string.replace(templateSciter,"@${URL}",fsys.joinpath("\res",url) ) ) ) 
+	}
+	else {
+			string.save(fsys.joinpath(targetDir,"default.main.aardio"),( string.replace(templateSciterHtml,"@${HTML}",fsys.codepage.load(samplesPath) ) ) ) 
+	}
+	
+	ide.openDocument(fsys.joinpath(targetDir,"default.aproj"))
+}
+
+frmSourceCode.richedit.wndproc = function(hwnd,message,wParam,lParam){
+	if( message == 0x204/*_WM_RBUTTONDOWN*/  ){ 
+		owner.popMenu( { 
+			{ "在IDE中创建Sciter工程"; createDemoProject }
+		} );
+	}
+}
+	
+wbSciter.loadFileCount = 0;
+wbSciter.onDataLoaded = function(lParam) {
+	var dataLoaded = raw.convert(lParam,{
+		INT code; 
+		addr hwnd;
+		ustring  uri; 
+		ptr data;
+		INT dataSize; 
+		INT dataType;
+		INT status; 
+	});
+	if( ! string.startWith(dataLoaded.uri,"data:",true) ){
+		wbSciter.loadFileCount = wbSciter.loadFileCount + 1; 
+	};
+	frmSourceCode.btnCreateProject.disabled = false;
+}
+
+import inet.http;
+var http = inet.http();
+import fsys.codepage;
+import fsys.path;
+loadHtmlFile = function(){
+	var path= explorer.getCurrentFilePath() 
+	if(!#path)return;
+	winform.text = "web.sciter(Sciter) 界面范例浏览器 " + path;
+	
+	win.ui.waitCursor(true)
+	frmSourceCode.richedit.text = "正在加载......"
+	wbSciter.write( "<body>正在加载.......</body>" )   
+	winform.setTimeout( 
+		function(){
+			wbSciter.loadFileCount = 0;
+			
+			//修正UTF8编码，但是又没有UTF8 BOM的文件导致乱码
+			var s = string.load(path);
+			if( ..string.isUtf8(s) && !..string.startWith(s,'\xEF\xBB\xBF')){
+				string.save(path,'\xEF\xBB\xBF'+s);
+			}
+			
+			wbSciter.go(path,,true);
+			wbIe.go(path);
+			frmSourceCode.btnExplore.disabled = false;
+			frmSourceCode.richedit.text = fsys.codepage.load(path); 
+			frmSourceCode.btnSave.disabled = true; 
+			win.ui.waitCursor(false)
+			wbSciter.wait();
+			var templateSciterScript = /***
+	if( view.connectToInspector ) // the view is in debug mode
+		view.connectToInspector(rootElement, "127.0.0.1");
+	
+/*
+	include $url(${URL});
+	function self.ready() {
+		DragDrop2
+		{
+			what      : "#container.main > .right-side .container .room-list .item",
+			where     : "#container.main > .right-side .container .room-list",
+			container : "#container.main > .right-side .container .room-list"
+			//notBefore : "tbody>tr.fixed",
+			//autoScroll: false
+			};
+		}
+*/
+			
+			***/
+		
+			if( _STUDIO_INVOKED ){
+				var tempscript = string.replace(templateSciterScript,"@${URL}",
+							fsys.joinpath(io.fullpath("\"),"res\sciter\ddm2.tis"));
+				wbSciter.doScript(tempscript);
+			}
+		}
+	)	 
+}
+
+import process;
+exploreFile = function(){
+	var path = explorer.getCurrentFilePath() 
+	if(!#path)return;
+	if( fsys.isDir(path) )
+		process.explore(path)
+	else {
+		process.explore_select(path)
+	}
+}
+
+
+import process;
+import process.popen;
+import win.ui.menu;
+import win.ui.explorer;
+
+
+import fsys;
+import fsys.path;
+
+explorer = win.ui.explorer( winform.treeview )
+
+var loadOtherDir = function(){
+	var loaddir = fsys.dlg.opendir("\") : "\samples";
+	var loaddirrel = fsys.path.relative(loaddir,"\");
+	if(!loaddirrel){
+		var loaddirname = fsys.getFileName(loaddir);
+		var ntLinksMaker = process.popen("~\tools\NTLinksMaker\NTLinksMaker.exe",
+						..string.format('%s "%s" "%s"', "/q /n /b /s", loaddir,
+									..io.fullpath("\" ++ loaddirname)));
+
+		var linkstatus = ntLinksMaker.waitOne();
+		console.dump(linkstatus);
+		if(..io.exist("\" ++ loaddirname)){
+			explorer.loadFile("\" ++ loaddirname,
+							{"*.html";"*.htm";"*.tis";"*.css"});
+		}
+
+	} else {
+		explorer.loadFile(loaddirrel, {"*.html";"*.htm";"*.tis";"*.css"});
+	}
+
+
+}
+var rundebugtool = function(){
+	import process;
+	var path= explorer.getCurrentFilePath(); 
+	if(!#path)return;
+
+	if(..io.exist("\" ++ wsciterTool)){
+	process("\" ++ wsciterTool,
+							..io.fullpath(path));	
+	}
+	
+}
+
+if(!io.exist("\samples")){
+	loadOtherDir();
+} else {
+	explorer.loadFile("\samples",{"*.html";"*.htm"}); //也可以在参数中指定要浏览的目录
+}
+
+
+explorer.getCurrentFilePath = function(){
+	var hItem = winform.treeview.getSelection();
+	if( hItem ) return explorer.getFilePath(hItem);
+}
+	
+//用户点选节点
+explorer.onClick = function(filePath,hItem ){
+	if( !..fsys.isDir(filePath) ){
+		winform.treeview.setSelected(hItem);
+		loadHtmlFile();
+	} winform.treeview.getSelection()
+}
+
+//用户右键点击节点
+explorer.onRightClick = function(filePath,hItem,x,y){ 
+	winform.treeview.setSelected(hItem)
+	var menu = win.ui.popmenu(winform)
+	if(..fsys.isDir(filePath)){
+		menu.add("使用资源管理器浏览...",exploreFile )
+		menu.add("载入其他目录...",loadOtherDir )
+		menu.popup(x,y,true);
+	} else {
+		if(..io.exist(filePath)){
+			menu.add("预览效果",loadHtmlFile )
+			menu.add("使用资源管理器浏览...",exploreFile )
+			menu.add("在IDE中创建Sciter工程",createDemoProject )
+			menu.add("在Wsciter.exe中打开",rundebugtool )
+			menu.add("载入其他目录...",loadOtherDir )
+			menu.popup(x,y,true);
+		}
+	}
+}
+
+winform.treeview.wndproc = function(hwnd,message,wParam,lParam){
+	if( message == 0x204/*_WM_RBUTTONDOWN*/  ){ 
+		var flag = !winform.treeview.getRoot() || !winform.treeview.getItem();
+		if(flag){
+			var menu = win.ui.popmenu(winform);
+			menu.add("载入其他目录...",loadOtherDir );
+			menu.popup();	
+		} 
+	}
+
+}
+
+
+winform.show(0x3/*_SW_MAXIMIZE*/) 
+win.loopMessage(); 

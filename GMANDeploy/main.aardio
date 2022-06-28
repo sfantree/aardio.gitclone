@@ -1,0 +1,38 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="MATRIX节点部署";right=959;bottom=591;bgcolor=16711680)
+mainForm.add(
+buttonDownloadGMAN={cls="button";text="步骤1：下载GMAN";left=176;top=31;right=328;bottom=73;z=2};
+buttonGmanInit={cls="button";text="步骤2：GMAN初始化环境";left=176;top=89;right=328;bottom=131;z=1}
+)
+/*}}*/
+
+mainForm.buttonGmanInit.oncommand = function(id,event){
+	mainForm.msgbox("Test for Dog")
+	
+}
+
+import inet.downBox;
+mainForm.buttonDownloadGMAN.oncommand = function(id,event){
+	//var downBox = inet.downBox(mainForm,"下载测试网页...",true )
+	var downBox =inet.downBox(mainForm,"Good",100)
+	
+	// https://github.com/MatrixAINetwork/GMAN_CLIENT/blob/master/MAINNET/0620/windows/gman.exe
+	
+	var ok = downBox.test( "https://github.com/MatrixAINetwork/GMAN_CLIENT/raw/master/MAINNET/0620/windows/gman.exe", "~/work/gman.exe" ) 
+	if( ok ){
+		mainForm.msgbox("文件已下载完成、服务器未更新,无需重新下载")
+		return; 
+	}
+	elseif( ok === null ){
+		mainForm.msgboxErr("下载错误,HTTP错误代码:"+ ( downBox.statusCode : ""));
+		return; 
+	}
+	 
+	if( downBox.download( "https://github.com/MatrixAINetwork/GMAN_CLIENT/raw/master/MAINNET/0620/windows/gman.exe", "~/work/gman.exe" )  ){
+	 	mainForm.msgbox("GMAN download complete");
+	 }
+}
+
+mainForm.show();
+return win.loopMessage();

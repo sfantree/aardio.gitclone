@@ -1,0 +1,25 @@
+import win.ui;
+import fonts.fontAwesome;
+/*DSG{{*/
+var winform = win.form(text="wubiLex - 帮助";right=1040;bottom=607;bgcolor=16777215)
+winform.add(
+lbAbout={cls="plus";text="关于软件";left=255;top=287;right=597;bottom=318;align="left";db=1;dl=1;font=LOGFONT(h=-16);iconColor=2960685;iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome')};iconText='\uF059';textPadding={left=30};z=1};
+lbWebSite={cls="plus";text="官网:";left=296;top=323;right=359;bottom=354;align="right";db=1;dl=1;font=LOGFONT(h=-16);iconColor=3947580;z=2};
+lnkVersion={cls="plus";text="正在检查新版本";left=318;top=398;right=679;bottom=429;align="left";color=8388608;db=1;dl=1;font=LOGFONT(h=-16);iconColor=2960685;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome')};iconText='\uF021';notify=1;paddingLeft=20;z=4};
+lnkWebSite={cls="plus";text="www.aardio.com";left=363;top=327;right=503;bottom=351;align="left";color=8388608;db=1;dl=1;font=LOGFONT(h=-16);iconColor=2960685;notify=1;textPadding={left=5};z=3};
+plus={cls="plus";text="自动更新 :";left=255;top=363;right=597;bottom=394;align="left";db=1;dl=1;font=LOGFONT(h=-16);iconColor=2960685;iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome')};iconText='\uF05A';textPadding={left=30};z=5}
+)
+/*}}*/
+
+import style;
+winform.lnkWebSite.skin(style.link)
+winform.lnkVersion.skin(style.link)
+
+import process;
+winform.lnkWebSite.oncommand = function(id,event){
+	process.openUrl("http://www.aardio.com/")
+}
+
+winform.show();
+win.loopMessage();
+return winform;

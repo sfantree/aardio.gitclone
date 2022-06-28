@@ -1,0 +1,10 @@
+import ide;
+import fsys;
+
+var publisDir = ide.getPublisDir();
+if(!#publisDir)return; 
+
+var pubDir =  fsys.joinpath(publisDir,"/lib/jieba/.res/dicts" ); 
+if( ! io.exist(pubDir) ){
+	..fsys.copy( "~/lib/jieba/.res/dicts/*" ,pubDir,0x10/*_FOF_NOCONFIRMATION*/  | 0x200/*_FOF_NOCONFIRMMKDIR*/); 
+}

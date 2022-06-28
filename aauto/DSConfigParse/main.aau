@@ -1,0 +1,10 @@
+import fsys;
+//管道进程运行jar程序
+
+import process.popen;
+
+prcs = process.popen("cmd.exe")
+cmd = /*
+start javaw -cp ./DessertShopConfigParse.jar com.coding91.ui.ControllerJFrame
+*/
+prcs.write(cmd);

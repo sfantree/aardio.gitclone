@@ -1,0 +1,44 @@
+import console; 
+import libxl;
+import fsys.file;
+import fsys.codepage;
+
+path = "F:\成本底稿\芯片数据底稿\前期数据\201402.XLS"
+
+xlsdata = class {
+	ctor( path ){
+		var loadFFFELine = function(path){
+			if !..io.exist(path) return ; 
+			return ..fsys.codepage.load(path,"unicodeFFFE")
+		};
+		var spliteData = function(data,rule = '<\r\n>'){
+			return ..string.split(data,rule);
+		};
+	
+		this.data = spliteData(loadFFFELine(path));
+		this.seek = 0;
+	};
+	readline = function(){
+		this.seek ++;
+		return this.data[this.seek]; 
+	};
+	writeFile = function(path){
+		var file = ..io.open(path,"wb+");
+		file.write(..string.join(this.data));
+		file.close();
+	}
+}
+
+file = xlsdata(path);
+
+var i=0;
+while(i<30){
+	var line = file.readline()
+	console.log(i,#line,line)
+	i ++;
+}
+
+file.writeFile("F:\成本底稿\芯片数据底稿\前期数据\测试.txt")
+
+
+console.pause();

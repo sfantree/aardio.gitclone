@@ -1,0 +1,44 @@
+//简单数据视图 
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="简单数据视图 - 双击编辑单元格(可指定只读列)";right=1031;bottom=712;bgcolor=16777215;border="dialog frame")
+winform.add(
+edit={cls="edit";left=25;top=584;right=997;bottom=693;db=1;dl=1;dr=1;edge=1;multiline=1;z=2};
+listview={cls="listview";left=24;top=27;right=996;bottom=555;db=1;dl=1;dr=1;dt=1;edge=1;z=1}
+)
+/*}}*/
+
+import win.ui.grid;
+var grid = win.ui.grid(winform.listview);//创建数据视图
+grid.readonlyColums = { [1] = true };//设置禁止编辑的列
+
+import sqlite;
+var db = sqlite(":memory:");
+db.exec( "CREATE TABLE IF NOT EXISTS @tablename(id INTEGER PRIMARY KEY, date, title);",{
+    tablename = "myTableName"
+} ) 
+
+var cmd = db.prepare("INSERT INTO myTableName VALUES (NULL,@date,@title);" );
+for(i=1;10;1){
+	cmd.step(
+    	date = time().addday( math.random(1,30));
+    	title = string.random(15);
+ 	)
+}
+
+//直接支持常用数据库的getTable函数返回的数据格式
+var dataTable = db.getTable("SELECT * FROM [myTableName] ");
+
+////直接让liswview控件显示数据库的查询结果
+grid.setTable( dataTable )
+
+//编辑变更值会触发下面的事件
+grid.onEditChanged = function(text,iItem,iSubItem){
+	var name = dataTable.fields[iSubItem]
+	winform.edit.print(dataTable[iItem][name],"-->",text);
+	dataTable[iItem][name] = text;
+} 
+
+winform.show() 
+win.loopMessage();
+return winform;

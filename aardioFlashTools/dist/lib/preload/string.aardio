@@ -1,0 +1,224 @@
+//string 字符串
+namespace preload;
+self.string = global.string;
+
+namespace string{
+	gfind = function(str,p,f){ 
+		if(!f) f = 0;
+		var r = function(b,e,...){
+			if( b ) f = ( e > b ) ? e : b  ;
+			return b,e,...;
+		};
+		return function(){
+			return r( find(str,p,f+1) ); 
+		} 
+	}; 
+	splitEx = function(s,p,l,f){
+		if(!#s) return {};
+		
+        var a = {{1;1}}
+        var push = ..table.push;
+        for i,j in gfind( s,p:"<\r*\n>|\r",f) if( push(a,{i-1;j+1}) && l && l <= #a ) break ; 
+        
+        for(i=1;#a) a[i] = sub(s,a[i][2],a[[i+1]][[1]]);
+        return a; 
+    };
+    matches = function(s,...){
+    	return ..table.array(gmatch(s,...) );
+    };
+	lines = function(s,line,delims,limit){
+		var t,i = splitEx(s,line),0;
+		if(!delims) {
+			return function(){
+				i = i + 1; return t[i];
+			}
+		}
+		
+		return function(){
+			i = i + 1; if(t[i]) return splitEx(t[i],delims,limit);
+		}
+	};
+	each = function(s,p,line){
+		if(!p) error("请指定参数@2",2)
+		var t,i = splitEx(s,line),0;
+		return function(){
+			var m;
+			while(!#m){
+				i = i + 1;
+				if(!t[i]) return;
+				m = { match(t[i],p) }; 
+			}
+			return ..table.unpack(m);
+		}
+	};
+	crlf = function(s,c){
+		if(s!==null) return ( replace(tostring(s),"<\r\n>|\n|\r",c ?(c===true?'\n':c):'\r\n') );
+	};
+	cmpMatch = function(a,b){
+		return  ( type(a)==type(b) && ( ( cmp( a,b) == 0 ) ||  ( match( a  ,b ) ) ) )  
+	};
+	concatUnicode = function(...){
+		var args = {...};
+		for i,v in ..table.eachArgs(args){
+			args[i] = toUnicode(v);
+		}   
+		return sliceUnicode( (join(args))); 
+	}
+	isUtf8 = function(s){
+		if( !#s ) return;
+		var u = getUtf(s);
+		if( u & 8 ) return true;
+		if( u & 1 ) return;
+		if( u & 16 ) return;
+		var m = match(s,'[\x80-\xFF]+') //'€'# 
+		if( !#m ) return;
+		if( !len(s) ) return false;
+		if( #m > 50 ) return true;
+		if( fromUnicode(toUnicode(m,65001) ,65001) != m ) return false;
+		return true;
+	}
+	self.loadcode = function(c,...){
+		var f,e = loadcode(c,"=(string.loadcode)");
+		if(!f) return null,e;
+		
+		var p = ..print;
+		var t = {};
+		..print = function(s,...){
+			if(s!==null) ..table.push(t,tostring(s));
+			if(...===null) return;
+			return ..print(...);
+		}
+		
+		var r,e = callex(,f,...,...);
+		..print = p;
+		
+		if(!r) return null,e;
+		return join(t);
+	};
+	self.reduce = function(s,p,...){
+		if( type(p) !="table" ) p = {p;...};
+		return reduce(p, lambda(s,p)  s ? match(s,p),s);
+	};
+	search = function(f,s,p,...){
+		var r;
+		if( type(f) === "table" ){
+			r = f;
+			f = function(m,...) ..table.push(r,... ? {m;...} : m);
+		}
+		
+		if( type( p ) === "function" ){
+			if(!s) return r;
+			
+			var m = p(s);
+			if(!m) return r;
+			elseif( type(m) == "string") s = m;
+			
+			if(...) search(f,s,...);
+			else f(s);
+			return r;
+		}
+		
+    	if(!...) replace(s,p,f);
+    	else {
+    		if(p[1]=='^'#) {
+    			m = match(s,p);
+    			if(m) search(f,m,...);
+    			return r; 
+    		}
+    		for m in gmatch(s,p) search(f,m,...);
+    	}
+    	
+    	return r;
+	};
+	map = function(s,p,f){
+		var r,m = {}
+		if( type(p) == "string" ) p = {p};
+		elseif(!p ) {
+			p = {"[-\d]+"};
+			if(!f) f = tonumber;
+		}
+		if(!f) f = lambda(s,...) ... ? {s;...} : s;
+		
+		if(#p){
+			search(function(...){
+				m = f(...);
+				if( m!==null ) ..table.push(r,m);
+			},s,..table.unpack(p) );	
+		}
+		else { 
+			for(k,v in p) r[k] = map(s,v,f)[1];
+		}
+		
+		return r;
+	};
+	repline = function(s,p,r,c){
+		return ( replace(s,"\N+",lambda(line) replace(line,p,r,c) ) ); 
+	};
+	removeBom = function(s){
+		if(!s) return s;
+		var c1 = s[1];
+		
+		if(c1 == 0xEF && s[2] == 0xBB && s[3] == 0xBF) return right(s,-4);
+		elseif(c1 == 0xFF && s[2] == 0xFE) return fromto(right(s,-3),1200,65001);  
+		elseif(c1 == 0xFE && s[2] == 0xFF) return romto(right(s,-3),1201,65001);  
+		return s;
+	};
+	
+	setenv = ::Kernel32.api( "SetEnvironmentVariable", "INT(ustring name,ustring v)"); 
+
+	var getEnvironmentVariable = ::Kernel32.api( "GetEnvironmentVariable", "INT(str name,str &v,INT size)");
+	getenv = function(name){
+		var len,val =  getEnvironmentVariable(name,256,256);
+		if(len > 256) len,val =  getEnvironmentVariable(name, len,len); 
+		if(len) return val;
+	} 
+	
+	expand = function(s,p,r){
+		var c;
+		if(!p){p,r="\%([^%]+)\%",getenv}
+		do{ s,c = replace(s,p,lambda(v)r(v):"") }while(c);
+		if(#s) return s;
+    }
+    
+	subUnicode = sliceUnicode;//@Deprecated
+	sub = slice;//@Deprecated
+}  
+
+type.isString = function(v){
+	var t = type(v);
+	return t == "string" || t == "buffer";
+}
+
+/**intellisense(string)
+splitEx( = 使用模式匹配语法指定分隔符,用于拆分字符串,\n返回拆分后的字符串数组,\n传入null值或空字符串返回空数组
+splitEx(.(字符串,分隔符模式串,最大拆分次数,开始位置) = 使用模式匹配语法指定分隔符,拆分字符串并返回数组,\n参数@1传入null值或空字符串返回空数组,\n用零宽匹配指定分隔符可在拆分的字符串中包含分隔符,\n省略分隔符模式则按行拆分,支持回车、换行、回车换行等不同换行规则,空行不合并,\n拆分次数可省略,默认不限次数,\n开始位置可省略,默认从开始拆分
+gfind(字符串,模式串,开始位置) = @for i,j,group1  in string.gfind( __/*查找字符串*/,"(.)") { 
+	
+}
+each( = 创建适用于 for in 语句的迭代器,\n用于分行匹配字符串,\n可将返回迭代器传入 table.array 生成数组
+each(.(字符串,模式串,行分隔符) = 必须使用参数@2指定模式串,\n查找模式串中可用圆括号创建捕获分组自定义迭代器返回值个数,\n行分隔符支持模式匹配语法,可省略
+lines( = 创建用于for in语句的迭代器按行拆分字符串\n也可将返回迭代器传入 table.array 生成数组,\n按行读取文件请使用 io.lines 函数,\nnull值或空字符串忽略不执行
+lines(.(字符串,行分隔符,列分隔符,最大列数)  = 按行拆分参数@1传入的字符串,\n可选使用参数@2指定行分隔符,支持模式匹配语法,\n如果不指定列分隔符,每次循环返回字符串,\n如果指定列分隔符,使用模式匹配二次拆分,每次循环返回数组,\n可选用参数@4指定最大列数,\n列分隔符支持模式匹配语法
+cmpMatch( __,"" ) = 忽略大小写比较两个字符串\n如果失败则使用模式语法匹配是否相同.\n如果其中一个参数不是字符串则返回false
+concatUnicode(.(str,->->->) = 将所有参数转换为Unicode字符串并连接后返回\n参数可以是数值,字符串,Unicode字符串,\n忽略null值参数
+isUtf8(__) = 快速检测字符串是否包含UTF8编码\n空字符串返回null
+loadcode(  = 加载并执行aardio代码或文件,返回HTML模板输出的HTML代码\n如果当前应用未定义response对象,请使用print函数替代
+loadcode(.("代码文件",->->->) = 加载并执行aardio代码或文件,\n返回HTML模板输出的HTML代码,失败返回空值,错误信息,\n参数@1,与loadcode函数相同,其他参数作为模板参数传给被调用的文件,\n在被调用文件的函数外部可使用owner参数获取首个模板参数,\n也可以使用...获取多个模板参数
+crlf(.(字符串,回车换行) = 自动调用 tostring 函数转换传入参数为字符串,\n此函数格式化文本中的回车换行组合、或单独的回车、换行,\n例如 string.crlf(str,'\r') 格式化所有格式的回车换行为回车符。\n省略参数 @2 默认为回车换行组合。\n\n注意字符串字面值解析换行的规则:\n双引号或反引号内字符串只有换行没有回车,\n单引号内字符串解析时忽略所有回车换号,\n使用/*多行注释*/包含字符串,则总是解析为回车换行组合
+matches(.("字符串","模式表达式") = 全局匹配并将匹配结果返回为数组\n每次匹配成功的多个返回值存为成员数组\n即使没有匹配到任何结果,也会返回一个空数组
+search(.(回调函数,字符串,模式表达式,->->->) = 模式匹配搜索.\n\n可以指定1个或多个模式表达式,\n此函数使用前面表达式的结果作为后面表达式的查询字符串,\n每一个模式表达式都支持全局搜索并可以返回多个匹配结果,\n最后一个表达式的匹配结果作为参数回调参数@1指定的函数.\n\n每一个模式表达式参数都可以使用函数或 lambda表达式替代,\n用于作为筛选器筛选上次的匹配结果,筛选器可以返回新的字符串,\n返回非字符串类型则用于指定是否保留上次的匹配结果,\n\n如果参数@1是一个数组,则将匹配结果添加到该数组,如果有多个捕获分组则返回二维数组,\n如果参数@1是数组则返回该数组,否则函数无返回值
+reduce( = 使用string.match依次匹配多个模式表达式,逐步缩减并返回最终匹配结果
+reduce(.(字符串,模式,->->->) = 参数@1指定要查找的字符串,\n参数@2开始指定一个或多个模式表达式,\n使用前面一个的匹配结果作为后面一次匹配的条件,\n逐步缩减并返回最终匹配结果,\n也可以在参数@2中使用一个数组指定多个模式表达式
+map( =  搜索并返回搜索结果数组,\n并调用映射函数转换数组中的每个匹配结果为新的值,\n\n注意如果模式串中使用括号指定了多个分组,\n映射函数会有多个对应的回调参数
+map(.(字符串,模式,映射函数) = 参数@1指定要查找的字符串,\n参数@2可以指定模式表达式,或包含多个表达式的数组,\n省略则默认为"[-\d]+",并且参数@3的默认值会被更换为tonumber\n可选用参数@3指定映射函数,\n\n返回值为匹配的字符串数组,如果有多个捕获分组则返回二维数组\n如果参数@2不是数组而是表,则返回相同结构的表,\n每个键对应的值更新为参数表中同名键指定的模式表达式的匹配结果。
+repline( = 按行替换字符串,返回替换后的字符串,\n此函数仅返回替换后的新字符串,只有一个返回值
+repline(.(源字符串,模式串,替换串,替换次数) = 模式串用于匹配所有的单行文本,\n替换串与 string.replace 用法相同\n替换次数指的也是每一行内部进行替换的最大次数,不指定则不限制
+repline(.(源字符串,模式串,替换函数,替换次数) = 模式串用于匹配所有的单行文本,\n替换函数与 string.replace 用法相同\n,\n替换次数指的也是每一行内部进行替换的最大次数,不指定则不限制
+repline(.(源字符串,模式串,替换表,替换次数) = 模式串用于匹配所有的单行文本,\n替换表与 string.replace 用法相同\n,\n替换次数指的也是每一行内部进行替换的最大次数,不指定则不限制
+removeBom(.(字符串) = 如果字符串开始为UTF8 BOM，则返回移除该 BOM 的字符串。\n如果字符串开始为 UTF-16 BOM,则移除 BOM 并返回转换为 UTF-8 编码的字符串,\n否则直接返回参数
+getenv(.("变量名") = 读取当前进程环璋变量\n成功返回字符串,失败返回 null
+setenv(.("变量名","变量值") = 设置当前进程环境变量\n参数@2为 null 或省略则删除参数@1指定的环境变量
+expand( = 重复替换直到找不到匹配,\n可用于展开字符串中的环境变量
+expand(.(字符串,查找模式串,替换函数) = 在字符串中重复执行替换操作,\n直到参数@2指定的模式串找不到匹配,\n省略参数@2,@3则默认展开百分号包含的进程环境变量\n可用于展开文件路径中的环境变量\n注意即使替换函数返回null,此函数仍然会替换为空串,\n如果替换结果为空字符串,此函数返回 null
+fromCharCode(__) = 使用1个或多个 Unicode 编码值转换为 UTF-8 字符串\n参数可以指定1个或多个Unicode编码数值,可指定大于0x10000的编码,\n不可直接传入数组作为参数
+end intellisense**/

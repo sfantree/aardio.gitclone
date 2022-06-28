@@ -1,0 +1,13 @@
+﻿import aaz.libhpsocket;
+
+namespace aaz.libhpsocket.ssl{
+   var _dll = ..aaz.libhpsocket._dll;
+
+	defaultServerNameCallback = function( serverName, context ){
+		return _dll.HP_SSL_DefaultServerNameCallbackW( serverName, context );
+	}
+	
+	removeThreadLocalState = function(threadId){
+		_dll.HP_SSL_RemoveThreadLocalState(threadId);
+	}	
+}

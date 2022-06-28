@@ -1,0 +1,53 @@
+import console; 
+console.setTitle("OSTest");
+
+producer = function(){
+	import console;
+	import semaphore;
+	while(true){
+		console.log("生产者+1");
+		semaphore.down("empty");
+		semaphore.down("mutex");
+		console.log("缓冲区数量+1");
+		semaphore.up("mutex");
+		semaphore.up("full");
+	}
+	/*
+	while(true){
+		console.log("pro");
+	}*/
+		
+}
+
+consumer = function(){
+	import console;
+	import semaphore;
+	while(true){	
+		semaphore.down("full");
+		semaphore.down("mutex");
+		console.log("缓冲区数量-1");
+		semaphore.up("mutex");
+		semaphore.up("empty");
+		console.log("消费者+1");
+	}
+	/*
+	while(true){
+		console.log("con");
+	}*/
+	
+}
+
+var con = thread.create(consumer);
+var pro = thread.create(producer);
+
+/*
+var i = 5;
+while(i != 0){
+	sleep(100);
+	i -= 1;
+}
+*/
+
+raw.closehandle(con);
+raw.closehandle(pro);
+console.pause();

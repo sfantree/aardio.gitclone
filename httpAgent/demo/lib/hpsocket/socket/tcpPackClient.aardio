@@ -1,0 +1,20 @@
+﻿import hpsocket.socket.tcpClient;
+namespace hpsocket.socket;
+
+class tcpPackClient{
+	ctor( obj ){ 
+		this = ..hpsocket.socket.tcpClient(obj);
+	};
+	getMaxPackSize = function(){
+		return ::HPSocket.HP_TcpPackClient_GetMaxPackSize(this.pSocket);
+	}
+	setMaxPackSize = function(size){
+		::HPSocket.HP_TcpPackClient_SetMaxPackSize(this.pSocket,size);
+	}
+	getPackHeaderFlag = function(){
+		return 0xFFFF & ::HPSocket.HP_TcpPackClient_GetPackHeaderFlag(this.pSocket);
+	}
+	setPackHeaderFlag = function(flag){
+		::HPSocket.HP_TcpPackClient_SetPackHeaderFlag(this.pSocket,flag);
+	}
+}

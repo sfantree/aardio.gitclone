@@ -1,0 +1,89 @@
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="aardio form";right=385;bottom=140)
+winform.add(
+button={cls="button";text="运行";left=142;top=43;right=221;bottom=83;z=1}
+)
+/*}}*/
+
+io.open()
+
+import aaz.chrome.dp;
+
+var cdp, err = aaz.chrome.dp()
+if(!cdp){
+    winform.msgboxErr(err);
+	return ; 
+}
+cdp.timeout = 20000;
+
+// 接收事件
+cdp.onChromeEvent = function(method, params){
+	if(method == "Fetch.requestPaused"){
+		// 发现请求图片
+		if(params.resourceType == "Image"){
+			// 中止请求
+			// 使用 raw 属性可以不等待请求的返回值，立即返回
+			// 不是 raw 属性下的所有 Chrome DevTools Protocol 方法都要写在任务函数里面
+			cdp.raw.Fetch.failRequest(
+				requestId = params.requestId;
+				errorReason = "Aborted";
+			);
+		}
+		else {
+			// 继续其他的请求
+			cdp.raw.Fetch.continueRequest(
+				requestId = params.requestId;
+			);
+		}
+	}
+}	
+
+var task = function(){
+ 	// 打开浏览器
+	var ok, err = cdp.open()
+    if(!ok){
+         io.print("打开浏览器失败", err);
+    	return ; 
+    }
+	
+	// 连接浏览器
+    var ok, err = cdp.connect();
+    if(!ok){
+        io.print("连接浏览器失败", err);
+    	return ; 
+    }
+    
+    // 订阅 Fetch 事件，用于对网络请求的拦截
+	 cdp.Fetch.enable()
+ 
+	// 订阅 Page 事件	
+	var ok, err = cdp.Page.enable();
+    if(!ok){
+        io.print("订阅 Page 事件失败", err);
+    	return ; 
+    }
+	
+	// 打开网址
+	var ok, err = cdp.Page.navigate(
+		url = "https://www.cnbeta.com/";
+	)
+    if(!ok){
+        io.print("打开网址失败", err)
+    	return ; 
+    }
+	
+	// 等待页面加载完成
+	var ok, err = cdp.waitEvent( "Page.loadEventFired" );
+    if(!ok){
+        io.print("等待页面加载完成失败", err);
+    	return ; 
+    }
+}
+
+winform.button.oncommand = function(id,event){
+	io.print(cdp.run(task));
+}
+
+winform.show();
+win.loopMessage();

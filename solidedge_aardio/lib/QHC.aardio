@@ -1,0 +1,256 @@
+﻿//QHC DB LIB
+import sqlite;
+
+var table = ..table;
+var string = ..string;
+var sqlite = ..sqlite;
+
+namespace QHC;
+import config;
+sap_db_path = config.dbServer.path + "\QHCSAP.db";
+od_db_path = config.dbServer.path + "\qhc_OD_lib.db";
+drw_rel_path = config.dbServer.path + "\qhc_dw_rel_list.db";
+var rawTab = {
+	[1] =	{["厚度"]=0.5; ["物料"] = "H0087500182-G"; ["物料描述"] = "定尺料组 热锌板 0.5*1250*C"; ["价格"] = 7.16};
+	[2] =	{["厚度"]=0.6; ["物料"] = "H0087500185-G"; ["物料描述"] = "定尺料组 热锌板 0.6*1250*C"; ["价格"] = 7.05};
+	[3] =	{["厚度"]=0.7; ["物料"] = "H0087500186-G"; ["物料描述"] = "定尺料组 热锌板 0.7*1250*C"; ["价格"] = 7.01};
+	[4] =	{["厚度"]=0.8; ["物料"] = "H0087500191-G"; ["物料描述"] = "定尺料组 热锌板 0.8*1250*C"; ["价格"] = 6.79};
+	[5] =	{["厚度"]=1.0; ["物料"] = "H0087500284-G"; ["物料描述"] = "定尺料组 热锌板 1.0*1250*C"; ["价格"] = 6.69};
+	[6] =	{["厚度"]=1.2; ["物料"] = "H0087500193-G"; ["物料描述"] = "定尺料组 热锌板 1.2*1250*C"; ["价格"] = 6.69};
+	[7] =	{["厚度"]=1.5; ["物料"] = "H0087500188-G"; ["物料描述"] = "定尺料组 热锌板 1.5*1250*C"; ["价格"] = 6.69};
+	[8] =	{["厚度"]=2.0; ["物料"] = "H0087500190-G"; ["物料描述"] = "定尺料组 热锌板 2.0*1250*C"; ["价格"] = 6.69};
+	[9] =	{["厚度"]=0.4; ["物料"] = "H0080154856-G"; ["物料描述"] = "定尺料组 热锌板 0.4*1250*C"; ["价格"] = 7.25};
+	["X"] =	{ ["物料"] = ""; ["物料描述"] = "厂内无此规格"; ["价格"] = 7};
+	["白色"] =	{["物料"] = "H0088200085"; ["物料描述"] = "标准白色"; ["价格"] = 17.59}
+}
+class 下料尺寸{
+	ctor( size_str ){
+		if !size_str return; 
+		size_str = ..string.replace(..string.lower(size_str),"x","*");
+		if !..string.indexOf(size_str,"*") return ; 
+		precision = 3;
+		var s = ..string.split(size_str,"*");
+		
+		for (i=1; #s)
+			s[i] = tonumber(s[i]);
+			
+		table.sort(s);
+		table.reverse(s);
+		
+		this.l = s[1];
+		this.w = s[2];
+		this.t = s[3];
+		
+		/* 粉末密度  2022/2/7 更新 */
+		var m = this.l * this.w * 2 * 0.191 / 0.9 / 1E+6;
+		
+		
+		this.powder = (m<0.001) ? 0.001 : ..math.round(m, precision);
+		this.powderItem =  rawTab["白色"] ;
+		/* 
+			利用率93.31%标准计算，密度7.85，最终结果保留3位小数  2021.12.13 更新
+			原材料价格上涨 2021/12/30
+		 */
+		var n = this.l * this.w * this.t * 7.85 / 0.9331 / 1E+6;
+		this.metel = (n<0.001) ? 0.001 : ..math.round(n, precision);
+		this.raw = (function(t){
+			var tab = ..table.filter(rawTab,function(v,index){
+				return  (v.厚度==t);
+			})
+			
+			if !#tab return rawTab["X"] ; 
+			else return tab[1]; 
+		})(this.t)
+	};
+}
+class 发泡料用量{
+	ctor( size_str ){
+		if !size_str return; 
+		precision = 3;
+		
+		size_str = ..string.replace(..string.lower(size_str),"x","*");
+		
+		if ..string.indexOf(size_str,"*") { 
+			var s = ..string.split(size_str,"*");
+			this.l = tonumber(s[1]);
+			this.w = tonumber(s[2]);
+			this.t = tonumber(s[3]);
+			this.volumn = this.l * this.w * this.t / 1E+9;
+		}
+		else { //如果不含星号时按vol计算
+			if ..math.isFinite(size_str)
+				this.volumn = size_str / 1E+9;
+		}
+		
+
+		/* 
+			总重量M=体积*42.7kg/m3，其中黑料异氰酸酯/白料组合聚醚=1.15:1
+		 */
+		this.density = 42.7 /* kg/m3 */;
+		this.proportion = 1.15 /* 黑料异氰酸酯:白料组合聚醚 */;
+
+		this.mass = this.volumn * this.density;
+
+		this.white = ..math.round( this.mass * 1 / (1 + this.proportion), precision );
+		this.black = ..math.round( this.mass * this.proportion / (1 + this.proportion), precision );
+
+		this.raw =  {
+			white = "H0080300487";
+			black = "H0088200013";
+		};
+	};
+}
+
+openDb = function(path){
+	return sqlite(path);
+}
+getColDef =function(){
+	var db,err = openDb(sap_db_path);
+	var t = db.prepare("SELECT * FROM [所有物料]");
+	return t.getColumns(); 
+}
+getSapItem = function(hcode){
+	//import console;
+	//console.log(sap_db_path, hcode)
+	var db,err = openDb(sap_db_path);
+    if string.len(hcode) > 11
+    	hcode = string.trim(hcode);
+	var t = db.stepQuery("SELECT * FROM [所有物料]", { 物料 : hcode } )
+	return t; 
+};
+getSapItemByDesp = function(Desp){
+	var db,err = openDb(sap_db_path);
+	Desp = string.replace(Desp, "*", "%");
+	var symbol = string.indexOf(Desp, "%") ? "LIKE" : "=";
+	var sqlstr = "SELECT * FROM [所有物料] WHERE [物料描述] " ++ symbol ++ " ?";
+	var t = db.getTable (sqlite.format( sqlstr, {Desp}));
+	return t; 
+};
+formatBOM = function(){
+	import com.excel;
+	var excel = com.excel(false);
+	var sht = excel.ActiveWorkbook.ActiveSheet;
+	
+	excel.Application.ScreenUpdating = false   //关闭屏幕刷新
+	excel.Application.EnableEvents = false //先禁止触发事件
+	excel.Application.Calculation = -4135 /* xlCalculationManual */    //手动重算
+  	
+
+    	//Call GetBomColumn(sht)
+    	
+    	sht.UsedRange.FormatConditions.Delete()   //清楚当前颜色
+	
+
+	
+	//if !isThisSheetRawBom(sht) return ; 
+	
+	//删除多余列
+
+    for (i = sht.UsedRange.Columns.Count; 1 ;  -1) {
+        select  sht.Cells(coldef.DefRow, i).Text {
+        	case "备注3", "备注2", "备注1", "备注", "是否禁用", "使用状态", "使用状态", "关键件标志", "使用状态", 
+            	"发料仓库", "工序", "工序号", "子项类型", "坯料数", "坯料尺寸", "位置号", "损耗率(%)", "计划百分比(%)", 
+            	"用量", "图号", "规格型号", "直接材料", "直接人工", "变动制造费用", "固定制造费用", "委外材料费", "委外加工费", "项目编号", "特定工厂的物料状态", 
+            	"固定数量", "特殊采购类", "排序字符串"
+             	{
+            		sht.Columns.Item(i).Delete();
+        	}
+    	}
+	}
+    	//Call GetBomColumn(sht)
+	
+
+	
+	
+	//设置表格线
+	import color;
+	sht.UsedRange.Borders.LineStyle = 1 /* xlContinuous */
+	sht.UsedRange.Borders.weight = 2 /* xlThin */
+	//sht.UsedRange.Borders.ColorIndex = 1
+	sht.UsedRange.Font.Name = "微软雅黑"
+	sht.UsedRange.Font.Size = 10
+	sht.UsedRange.Interior.Color = color.rgb(255, 255, 255);
+	
+	//设置颜色
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1="".1"")")
+	fmtCds.Interior.Color = color.rgb(0, 176, 80)
+	fmtCds.StopIftrue = false
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1=""..2"")")
+	fmtCds.Interior.Color = color.rgb(79, 98, 40)
+	fmtCds.StopIftrue = false
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1=""...3"")")
+	fmtCds.Interior.Color = color.rgb(118, 147, 60)
+	fmtCds.StopIftrue = false
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1=""....4"")")
+	fmtCds.Interior.Color = color.rgb(196, 215, 155)
+	fmtCds.StopIftrue = false
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1="".....5"")")
+	fmtCds.Interior.Color = color.rgb(216, 228, 188)
+	fmtCds.StopIftrue = false
+	var fmtCds = sht.UsedRange.FormatConditions.Add( 2 /* xlExpression */, , "=($A1=""......6"")")
+	fmtCds.Interior.Color = color.rgb(235, 241, 222)
+	fmtCds.StopIftrue = false
+	
+	
+	sht.Columns(coldef.LvlCol).Replace("0.1", "'.1")
+	
+	//调整列宽和对齐方式
+	sht.Columns(coldef.LvlCol).ColumnWidth = 6.5
+	sht.Columns(coldef.LvlCol).HorizontalAlignment = -4131 /* xlLeft */
+
+	if (coldef.LvlCol + 1 !== coldef.codeCol) sht.Columns(coldef.LvlCol + 1).ColumnWidth = 5.5
+	
+	sht.Columns(coldef.codeCol).ColumnWidth = 14
+	sht.Columns(coldef.codeCol).HorizontalAlignment = -4108 /* xlCenter */
+	
+	sht.Columns(coldef.DespCol).AutoFit()
+	sht.Columns(coldef.DespCol).HorizontalAlignment = -4131 /* xlLeft */
+	
+	sht.Columns(coldef.TypeCol).ColumnWidth = 8
+	sht.Columns(coldef.TypeCol).HorizontalAlignment = -4108 /* xlCenter */
+	
+	sht.Columns(coldef.QtyCol).ColumnWidth = 8
+	sht.Columns(coldef.QtyCol).HorizontalAlignment = -4108 /* xlCenter */
+	
+	sht.Columns(coldef.UnitCol).ColumnWidth = 8
+	sht.Columns(coldef.UnitCol).HorizontalAlignment = -4108 /* xlCenter */	
+	
+	if (coldef.DefRow > 2) sht.Rows(coldef.DefRow - 2).HorizontalAlignment = -4108 /* xlCenter */
+	if (coldef.DefRow > 1) sht.Rows(coldef.DefRow - 1).HorizontalAlignment = -4131 /* xlLeft */
+	if (coldef.DefRow > 2) sht.Rows(coldef.DefRow - 2).Font.Bold = true
+
+	excel.Application.EnableEvents = true //恢复触发事件
+	excel.Application.Calculation = -4105 /* xlCalculationAutomatic */   //自动重算
+	excel.Application.ScreenUpdating = true   //开启屏幕刷新
+}
+
+/**intellisense()
+QHC.openDb(sap_db_path) = 返回DB
+QHC.getSapItem(hcode) = 返回hitem\n!QHC_hitem.
+QHC.getSapItemByDesp(desp) = 返回table
+QHC.getSapItem() = 返回hitem\n!QHC_hitem.
+QHC.getColDef() = 获取列名称数组
+!QHC_hitem.物料 = 物料
+!QHC_hitem.物料描述 = 物料描述
+!QHC_hitem.MTyp = 类型
+!QHC_hitem.物料组 = 物料组
+!QHC_hitem.BUn = 单位
+!QHC_hitem.配置 = 配置
+!QHC_hitem.禁用 = 禁用
+!QHC_hitem.价格 = 价格
+end intellisense**/
+/**intellisense(QHC.下料尺寸("__")())
+l = 长
+w = 宽
+t = 厚度
+metal = 钣金用量
+raw = !板材原材料.
+!板材原材料.物料 = 板材物料号
+!板材原材料.物料描述 = 板材物料描述
+!板材原材料.价格 = 板材价格
+powder = 粉末用量
+powderItem = !粉末原材料.
+!粉末原材料.物料 = 粉末物料号
+!粉末原材料.物料描述 = 粉末物料描述
+!粉末原材料.价格 = 粉末价格
+end intellisense**/

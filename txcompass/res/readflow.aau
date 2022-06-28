@@ -1,0 +1,48 @@
+﻿import inet.whttp;
+
+//流水下载函数
+readFlow = function(param){
+	//取HTTP状态码
+	var whttp = inet.whttp()
+	assert( whttp.beginRequest("http://compass.qq.com/dlogs?appid=" + param.appid) )
+	whttp.writeHeader(param.biscuit)
+	whttp.disableRedirects() //防止302跳转后得到200状态
+	var ok,stat,total = whttp.send()
+	whttp.close();
+
+	//根据状态码处理
+	if(stat != 200){ //没有权限，需要登录
+		return false, "ERR_CODE:" ++ tostring(stat) ;
+	} else { //有权限下载流水文件
+		var flow_url = "http://compass.qq.com/dlogs?api=全部" ++ //接口地址
+		string.concat(
+			"&appid=", param.appid, //罗盘应用ID
+			"&domain=", param.domain, //应用平台
+			"&day=", param.date, //基准日期
+			"&startime=", param.tm_begin, //开始时间
+			"&endtime=", param.tm_end, //结束时间
+			"&opuid=", param.user, //用户ID
+			"&_format=", "csv" //文件格式
+		)
+/*
+		whttp = inet.whttp()
+//		whttp.addHeaders = param.biscuit //被注释的这两行代码，和第三行效果一样
+//		flow_raw = whttp.get(flow_url,"cookie:;") //XP系统必需加上"cookie:;"参数
+		flow_raw = whttp.get(flow_url,param.biscuit) //这行就是上面所说的第三行
+		whttp.close();
+*/
+		var flow_raw = win.invoke(
+			function(flow_url,biscuit){
+				import inet.whttp;
+				
+				whttp = inet.whttp()
+				var flow_invoke = whttp.get(flow_url,biscuit)
+				whttp.close()
+				
+				return flow_invoke; 
+			},flow_url,param.biscuit
+		)
+
+		return true, flow_raw;
+	}
+}

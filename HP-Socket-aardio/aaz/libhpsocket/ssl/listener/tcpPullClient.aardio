@@ -1,0 +1,9 @@
+﻿import aaz.libhpsocket.listener.tcpPullClient;
+
+namespace aaz.libhpsocket.ssl.listener;
+class tcpPullClient{
+	ctor(){
+		this = ..aaz.libhpsocket.listener.tcpPullClient();
+		this.componentClassPath = "ssl.component.tcpPullClient";
+	};
+}

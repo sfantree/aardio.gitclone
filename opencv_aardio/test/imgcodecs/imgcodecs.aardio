@@ -1,0 +1,8 @@
+import cv2
+buf = string.load("./images/Lena.jpg")
+img = cv2.imdecode(buf,0/*_CV2_IMREAD_GRAYSCALE*/)
+//cv2.imwrite("./images/test1.jpg",img)
+//cv2.imshow("imdecode",img)
+bytes = cv2.imencode(".png",img)
+//string.save("./images/aaa.jpg",bytes )
+cv2.waitKey(0)

@@ -1,0 +1,684 @@
+﻿import win.ui;
+/*DSG{{*/
+var examForm = ..win.form(text="湖北省会计从业无纸化模拟考试系统【2014试用版】";right=1024;bottom=700)
+examForm.add(
+button_last={cls="button";text="上一题";left=824;top=656;right=906;bottom=688;db=1;dr=1;z=28};
+button_next={cls="button";text="下一题";left=928;top=656;right=1002;bottom=688;db=1;dr=1;z=29};
+button_open_cal={cls="button";text="打开计算器";left=288;top=656;right=376;bottom=688;db=1;dl=1;z=26};
+button_submit={cls="button";text="提交试卷";left=720;top=656;right=808;bottom=688;db=1;dr=1;z=27};
+custom={cls="custom";right=1025;bottom=96;autosize=1;aw=1;bgcolor=16772300;center=1;dl=1;dt=1;edge=1;left=0;top=0;z=3};
+custom_buttons={cls="custom";text="custom2";left=8;top=448;right=256;bottom=624;autosize=1;center=1;dl=1;dt=1;edge=1;transparent=1;z=30};
+custom_question={cls="custom";text="custom_que";left=275;top=146;right=1003;bottom=640;ah=1;aw=1;dl=1;dt=1;edge=1;transparent=1;z=37};
+exam_number={cls="static";text="游客";left=104;top=177;right=240;bottom=201;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=18};
+exam_place={cls="static";text="湖北省武汉市";left=104;top=224;right=232;bottom=248;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=20};
+exam_place_number={cls="static";text="001";left=104;top=248;right=136;bottom=272;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=21};
+id_card={cls="static";text="88888888";left=105;top=200;right=240;bottom=224;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=19};
+name={cls="static";text="金算盘";left=105;top=152;right=231;bottom=176;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=12};
+picturebox={cls="picturebox";left=25;top=28;right=381;bottom=63;autosize=1;dl=1;dt=1;image=$"\res\images\title.jpg";z=4};
+picturebox2={cls="picturebox";left=128;top=288;right=216;bottom=392;dl=1;dt=1;image=$"\res\images\face2.jpg";z=23};
+picturebox3={cls="picturebox";left=24;top=288;right=116;bottom=392;dl=1;dt=1;image=$"\res\images\face1.jpg";z=24};
+seat_number={cls="static";text="002";left=208;top=248;right=248;bottom=272;center=1;dl=1;dt=1;font=LOGFONT( h=-16 );transparent=1;z=22};
+splitter={cls="splitter";left=256;top=104;right=264;bottom=704;ah=1;dl=1;dt=1;frame=1;z=1};
+splitter2={cls="splitter";top=96;right=1025;bottom=104;aw=1;dl=1;dt=1;frame=1;horz=1;left=0;z=2};
+static={cls="static";text="当前考试科目:";left=392;top=32;right=522;bottom=63;align="center";center=1;dt=1;font=LOGFONT( name='宋体';h=-20;weight=700 );transparent=1;z=5};
+static11={cls="static";text="准考证号:";left=24;top=176;right=102;bottom=200;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=13};
+static12={cls="static";text="身份证号:";left=24;top=201;right=105;bottom=224;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=14};
+static13={cls="static";text="考点名称:";left=24;top=224;right=104;bottom=248;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=15};
+static14={cls="static";text="考 场 号:";left=24;top=248;right=104;bottom=272;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=16};
+static15={cls="static";text="座位号:";left=144;top=248;right=208;bottom=272;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=17};
+static17={cls="static";text="未答题";left=56;top=648;right=104;bottom=670;align="center";center=1;db=1;dl=1;transparent=1;z=34};
+static18={cls="static";text="已答题";left=128;top=648;right=176;bottom=670;align="center";center=1;db=1;dl=1;transparent=1;z=35};
+static19={cls="static";text="当前";left=200;top=648;right=232;bottom=670;align="center";center=1;db=1;dl=1;transparent=1;z=36};
+static2={cls="static";text="剩余时间:";left=776;top=32;right=866;bottom=63;align="center";center=1;dr=1;dt=1;font=LOGFONT( name='宋体';h=-20;weight=700 );notify=1;transparent=1;z=7};
+static3={cls="static";text="考试开考30分钟后才能交卷";left=544;top=664;right=704;bottom=680;color=255;db=1;dr=1;transparent=1;z=38};
+static4={cls="static";left=29;top=649;right=54;bottom=667;bgcolor=16241863;db=1;dl=1;z=31};
+static5={cls="static";left=104;top=649;right=127;bottom=667;bgcolor=33023;db=1;dl=1;z=32};
+static6={cls="static";text="  考生信息";top=112;right=264;bottom=144;bgcolor=14517827;center=1;color=16777215;dl=1;dt=1;font=LOGFONT( h=-19;weight=700 );left=0;z=9};
+static7={cls="static";text="  答题面板";top=400;right=264;bottom=432;bgcolor=14583618;center=1;color=16777215;dl=1;dt=1;font=LOGFONT( h=-19;weight=700 );left=0;z=10};
+static8={cls="static";left=175;top=651;right=198;bottom=668;bgcolor=65280;db=1;dl=1;z=33};
+static9={cls="static";text="姓   名:";left=24;top=152;right=96;bottom=176;center=1;dl=1;dt=1;font=LOGFONT( name='黑体';h=-16;weight=700 );transparent=1;z=11};
+static_kemu={cls="static";text="财经法规与职业道德";left=528;top=32;right=715;bottom=63;align="center";center=1;color=255;dt=1;font=LOGFONT( name='宋体';h=-20;weight=700 );transparent=1;z=6};
+static_time={cls="static";left=872;top=29;right=992;bottom=60;center=1;color=255;dr=1;dt=1;font=LOGFONT( name='宋体';h=-29;weight=700 );transparent=1;z=8};
+static_tixing={cls="static";text="1-20是....";left=288;top=112;right=1024;bottom=137;ah=1;aw=1;center=1;dl=1;dt=1;font=LOGFONT( name='宋体';h=-21;weight=700 );z=25}
+)
+/*}}*/
+
+examForm.button_open_cal.oncommand = function(id,event){
+	//examForm.msgbox( examForm.button_open_cal.text );
+	import process;
+    prcs = process("calc.exe");
+	
+}
+
+import web.layout
+import ssexam.db;
+import console;
+import table;
+import ssexam;
+
+
+current_exam="财经法规与职业道德";
+current_timu_index=1;
+tixing_title="<span>1-30</span>单选题、<span>31-50</span>多选题、<span>51-70</span>判断题、<span>71-72</span>案例分析题";
+//current_tixing="单选题";
+var auto_submit=false;
+countdown = 3600;//倒计时3600秒
+
+wbLayout=web.layout(examForm.custom_buttons);
+tixing=web.layout(examForm.static_tixing);
+question_layout=web.layout(examForm.custom_question);
+
+
+试卷={};
+exam_number="游客";//默认
+var 成绩={准考证号=exam_number;考试科目="财经法规与职业道德";得分=0};
+
+
+
+init=function(current_exam){
+auto_submit=false;
+countdown = 3600;//倒计时3600秒
+var score=0;
+成绩["考试科目"]=current_exam;
+
+examForm.static_kemu.text=current_exam;
+试题数量,试卷题目=ssexam.db.getPaper(current_exam);
+
+试卷[current_exam]={};
+试卷[current_exam]["题目"]=试卷题目;
+试卷[current_exam]["题型"]=tixing_title;
+试卷[current_exam]["试题数量"]=试题数量;
+
+//console.dump(试卷[current_exam]["题型"]);
+
+..line={2;2;2;2;1};
+//console.dump(试题数量);
+//console.dump(试卷题目);
+
+
+
+tixing.html = /**
+		 <div id="tixing"><span>1-30</span>单选题、<span>31-50</span>多选题、<span>51-70</span>判断题、<span>71-72</span>案例分析题</div>
+**/;
+tixing.getEle("tixing").innerHTML=tixing_title;
+
+tixing.css = /**
+        html{
+            background: transparent;
+        }
+        div{
+            font-weight: bolder;
+            font-size:20px;
+            color:black;
+        }
+        span{
+            color: red;
+        } 
+} 
+**/
+
+
+
+
+wbLayout.html = /**
+<div class="buttons" id="t_buttons">
+</div>
+
+**/	
+
+
+wbLayout.css = /**
+     html{
+         margin:0;
+         padding:0;
+      }
+      .buttons{
+      	padding-left:1px;
+      }
+
+        
+        .button_t{
+            behavior:button;
+            background-color:#C7D4F7;
+            border:1px solid transparent;
+            margin:1px 2px;
+    
+			width:20px;
+            text-align: center;
+            float: left;
+
+        }
+         
+        .button_t:hover {
+            border:1px solid black;
+        }
+        
+
+ 
+**/
+
+
+var buttons="";
+
+for(i=1;table.count(试卷题目);1){
+     buttons=buttons+"<div class='button_t' id='button_t"+i+"' name='button_t' >"+i+"</div>"
+        
+   
+    //buttons=buttons+"<INPUT type='button' class='button_t' id='button_t"+i+"' name='button_t' value='"+i+"'/>";
+
+}
+
+//console.log(buttons);
+
+
+
+
+wbLayout.getEle("t_buttons").innerHTML=buttons;
+wbLayout.updateWindow();
+
+
+
+
+question_layout.html = /**
+<div id='div_question'>
+<div id='divTitle' class='div_title_question'>1、你理想中的假期生活是什么样的</div>
+<div id='divquestion'>
+        <ul id="type_1" >
+            <li style='width:99%;'><input type='radio' name='q' id='q_1' value='A'><label for='q_1'>A、</label><label for='q_1' id='label_1'>学习为主，玩乐为辅</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_2' value='B'><label for='q_2'>B、</label><label for='q_2' id='label_2'>玩乐为主，学习为辅</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_3' value='C'><label for='q_3'>C、</label><label for='q_3' id='label_3'>外出旅游，增长见识</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_4' value='D'><label for='q_4'>D、</label><label for='q_4' id='label_4'>考证（驾驶证、会计证等）</label>
+            </li>
+            <div style='clear:both;'></div>
+        </ul>
+        
+	   	<ul id="type_2">
+            <li style='width:99%;'><input type='radio' name='q2' id='q2_1' value='1'><label for='q2_1' id='label2_1'>对</label></li>
+            <li style='width:99%;'><input type='radio' name='q2' id='q2_2' value='0'><label for='q2_2' id='label2_2'>错</label></li>
+            <div style='clear:both;'></div>
+        </ul>
+ 
+     <div id="type_3" class="scroll">
+     </div>
+
+     
+      <div id="type_4" class="scroll">
+      </div>  
+        
+        
+</div>
+
+
+
+
+</div> 
+**/
+
+
+//单选题 多选题模板
+type_1="
+        <ul id='type_1' >
+            <li style='width:99%;'><input type='radio' name='q' id='q_1' value='A'><label for='q_1'>A、</label><label for='q_1' id='label_1'>学习为主，玩乐为辅</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_2' value='B'><label for='q_2'>B、</label><label for='q_2' id='label_2'>玩乐为主，学习为辅</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_3' value='C'><label for='q_3'>C、</label><label for='q_3' id='label_3'>外出旅游，增长见识</label></li>
+            <li style='width:99%;'><input type='radio' name='q' id='q_4' value='D'><label for='q_4'>D、</label><label for='q_4' id='label_4'>考证（驾驶证、会计证等）</label>
+            </li>
+            <div style='clear:both;'></div>
+        </ul>";
+
+//判断题模板
+type_2="
+	   	<ul id='type_2'>
+            <li style='width:99%;'><input type='radio' name='q2' id='q2_1' value='1'><label for='q2_1' id='label2_1'>对</label></li>
+            <li style='width:99%;'><input type='radio' name='q2' id='q2_2' value='0'><label for='q2_2' id='label2_2'>错</label></li>
+            <div style='clear:both;'></div>
+        </ul>
+
+";
+
+//案例分析题模板
+  html="";
+	for(j=1;5;1){
+	   	  html=html+"   
+	   	 <div  class='div_title_question' id='st"+j+"'>***</div>
+        <ul>
+            <li style='width:99%;'><input type='checkbox' name='q' id='q3"+j+"_1' value='A'><label for='q3"+j+"_1'>A、</label><label for='q3"+j+"_1' id='label3"+j+"_1'>学习为主，玩乐为辅</label></li>
+            <li style='width:99%;'><input type='checkbox' name='q' id='q3"+j+"_2' value='B'><label for='q3"+j+"_2'>B、</label><label for='q3"+j+"_2' id='label3"+j+"_2'>玩乐为主，学习为辅</label></li>
+            <li style='width:99%;'><input type='checkbox' name='q' id='q3"+j+"_3' value='C'><label for='q3"+j+"_3'>C、</label><label for='q3"+j+"_3' id='label3"+j+"_3'>外出旅游，增长见识</label></li>
+            <li style='width:99%;'><input type='checkbox' name='q' id='q3"+j+"_4' value='D'><label for='q3"+j+"_4'>D、</label><label for='q3"+j+"_4' id='label3"+j+"_4'>考证（驾驶证、会计证等）</label>
+            </li>
+            <div style='clear:both;'></div>
+        </ul>";
+     } 
+ 
+type_3="
+   <div id='type_3' class='scroll'>
+     "+html+"
+    </div>
+    ";
+
+type_4="
+  <div id='type_4' class='scroll'>
+  </div>
+";
+
+
+question_layout.css = /**
+        html{
+          overflow-y:hidden;
+          background:url(/res/images/water.jpg);
+          
+        }
+        #divquestion{
+
+        }
+        #divquestion ul li{
+            __float: left;
+            list-style-type: none;
+            
+        }
+
+        .div_title_question{
+            padding-top: 2px;
+            font-size: 14px;
+            color: black;
+            font-weight: bold;
+            height: auto;
+            line-height: 20px;
+            
+        }
+        
+
+        
+        .scroll{
+          overflow-y:auto;
+          height:300;
+        }
+
+**/
+
+
+var curren_timu_bgcolor="#C7D4F7";
+question_layout.getEle("divTitle").innerHTML=current_timu_index+"、"+试卷题目[current_timu_index].QUESTIONDESCRIPTION;
+wbLayout.getEle("button_t"+current_timu_index+"").style["background-color"]="#00ff00";
+
+
+
+//*************题目切换和答题保存
+
+
+for(i=1;#试卷题目;1){
+     试卷题目[i]["myAnswer"]="";
+     试卷题目[i]["得分"]=试卷题目[i]["题型"]=="判断题"?-0.5:0;
+     
+	 wbLayout.getEle("button_t"+i+"").onButtonClick = function (ltTarget,ltEle,reason,behaviorParams) {
+	  ssexam.保存用户答案及算分();
+	 
+	 
+	 
+	   //颜色
+	   curren_timu_bgcolor=试卷题目[current_timu_index]["myAnswer"]==""||试卷题目[current_timu_index]["myAnswer"]=="|||||"?"#C7D4F7":"#ff8000";
+	   wbLayout.getEle("button_t"+current_timu_index+"").style["background-color"]=curren_timu_bgcolor;	   
+
+	   current_timu_index=i;
+	   ltEle.style["background-color"]="#00ff00";
+	  
+	   
+	  
+	   
+	   
+	   //试题切换
+	   select(试卷题目[i]["题型"]) {
+	   	case "单选题" {
+	   	  current_tixing="单选题";
+	   	  
+	   	  question_layout.getEle("divquestion").innerHTML=type_1;
+/*
+	   	  question_layout.getEle("type_1").style["display"]="block";
+	   	  question_layout.getEle("type_2").style["display"]="none";
+	   	  question_layout.getEle("type_3").style["display"]="none";
+	   	  question_layout.getEle("type_4").style["display"]="none";
+*/
+	   	  
+	   	  question_layout.getEle("divTitle").innerHTML=i+"、"+试卷题目[i].QUESTIONDESCRIPTION//++试卷题目[i]["STANDARDANSWER"]
+	   	  
+	   	  
+	   	  for(j=1;4;1){
+	   	     question_layout.getEle("q_"+j).type="radio";
+	         question_layout.getEle("label_"+j).innerHTML=试卷题目[i]["OPTION"+j];
+	         if(试卷题目[i]["myAnswer"]==question_layout.getEle("q_"+j).getAttribute("value"))
+	             question_layout.getEle("q_"+j).value=true;
+	          else{
+	             question_layout.getEle("q_"+j).value=false;
+	          }
+	          
+	          question_layout.getEle("q_"+j).onButtonStateChanged = function (ltTarget,ltEle,reason,behaviorParams) {
+
+		          curren_timu_bgcolor="#ff8000";
+		
+
+		         
+		         
+			      //下一题
+		         examForm.button_next.oncommand();
+
+	           }
+	            question_layout.getEle("q_"+j).attachEventHandler();
+
+	       
+           }
+	   	   
+	   	}
+	   	case "多选题" {
+	   		current_tixing="多选题";
+            question_layout.getEle("divquestion").innerHTML=type_1;
+            
+	   	    question_layout.getEle("divTitle").innerHTML=i+"、"+试卷题目[i].QUESTIONDESCRIPTION//+试卷题目[i]["STANDARDANSWER"]
+	      	for(j=1;4;1){
+	      	 question_layout.getEle("q_"+j).type="checkbox";
+	         question_layout.getEle("label_"+j).innerHTML=试卷题目[i]["OPTION"+j];
+	         if(string.indexAny(试卷题目[i]["myAnswer"],question_layout.getEle("q_"+j).getAttribute("value")))
+	             question_layout.getEle("q_"+j).value=true;
+	          else{
+	             question_layout.getEle("q_"+j).value=false;
+	          }
+	          
+	       
+           }
+	   	
+	   	}
+	   	case "判断题" {
+	   	  current_tixing="判断题";
+	   	  question_layout.getEle("divquestion").innerHTML=type_2;
+	   	  
+          question_layout.getEle("divTitle").innerHTML=i+"、"+试卷题目[i].QUESTIONDESCRIPTION+""//+试卷题目[i]["STANDARDANSWER"]
+
+	   	  
+          for(j=1;2;1){
+          	if(试卷题目[i]["myAnswer"]==question_layout.getEle("q2_"+j).getAttribute("value"))
+	             question_layout.getEle("q2_"+j).value=true;
+	          else{
+	             question_layout.getEle("q2_"+j).value=false;
+	          }
+	          
+	          question_layout.getEle("q2_"+j).onButtonStateChanged = function (ltTarget,ltEle,reason,behaviorParams) {
+			  curren_timu_bgcolor="#ff8000";  
+			   examForm.button_next.oncommand();
+		      }
+		      question_layout.getEle("q2_"+j).attachEventHandler();
+          }
+          
+
+	   	}
+	   	case "计算分析题"{
+	   	  
+	   	  question_layout.getEle("divquestion").innerHTML=type_4;
+	   	
+
+
+	   	  question_layout.getEle("divTitle").innerHTML="
+              <textarea style='color:black;width:99%;overflow-y:auto;height:180px;font-weight: bold; font-size: 14px;' readonly>
+             "+i+"、"+试卷题目[i].QUESTIONDESCRIPTION+"
+           </textarea>
+	   	    ";
+	   	    
+	   	    
+	   	    
+	   	   if(试卷题目[i]["myAnswer"]==""){//初始
+	   	      试卷题目[i]["myAnswer"]={};
+	   	      for(j=1;4;1){
+	   	        试卷题目[i]["myAnswer"][j]=table.array(2,3,{});
+	   	      	for(k=1;2;1){
+	   	      	    试卷题目[i]["myAnswer"][j][k][1]="";
+	   	      		试卷题目[i]["myAnswer"][j][k][2]="";
+	   	      		试卷题目[i]["myAnswer"][j][k][3]="0.00";
+	   	      	}
+	   	      }
+	   	      试卷题目[i]["myAnswer"][5]={"0.00"};
+	   	      
+	   	   }
+
+	   	   var html="";
+           var answer=ssexam.db.计算分析题答案(试卷题目[i].ID);
+	       for(j=1;5;1){
+	         var liHtml="";
+	         line[j]=#试卷题目[i]["myAnswer"][j];
+	         for(k=1;#试卷题目[i]["myAnswer"][j];1){
+	           //var selectValue={{"借":试卷题目[i]["myAnswer"][j][k][1]=="借"? 'selected':'';"贷":};{}};
+	           var add_delete_line=k==1?"<input id='b4_"+j+"_1' type='button' value='增加行'/><input id='b4_"+j+"_2' type='button' value='删除行'/>":"";
+	           
+               if(j==5){
+                 liHtml=liHtml+"
+        		<li style='width:100%;'>
+            		金额
+            		<input id='q4_5_"+k+"' type='text'  value='"+试卷题目[i]["myAnswer"][5][k]+"' style='text-align: right'/>
+                    "+add_delete_line+"
+        		</li>
+        		"
+	            }else
+                liHtml=liHtml+"
+                   <li style='width:100%;'>
+            			借/贷
+            			<select id='q4_"+j+"_"+k+"_1' >
+                			<option value=' '> </option>
+                			<option value='借' "+ssexam.下拉框(试卷题目[i]["myAnswer"][j][k][1],"借")+">借</option>
+                			<option value='贷' "+ssexam.下拉框(试卷题目[i]["myAnswer"][j][k][1],"贷")+">贷</option>
+            			</select>
+            			科目
+            			<select id='q4_"+j+"_"+k+"_2' >
+                			<option value=' '> </option>
+                			"+ssexam.会计科目列表(试卷题目[i]["myAnswer"][j][k][2])+"
+            			</select>
+            			金额
+            			<input id='q4_"+j+"_"+k+"_3' type='text'  value='"+试卷题目[i]["myAnswer"][j][k][3]+"' style='text-align: right'/>
+        			    "+add_delete_line+"
+        			</li>";
+	          }
+	         
+	         
+	         
+	         
+	          html=html+"
+				<div  class='div_title_question' style='margin-top:10px;' >问题"+j+"答题界面</div>
+    			<ul id='ul4_"+j+"' style='width:100%;'>
+        			"+liHtml+"
+    			</ul>
+    			"
+    			//+试卷题目[i].AMOUNT5
+    			//+answer[j]
+    			;
+	         
+	       }
+	       
+	       
+	 
+	       
+	        question_layout.getEle("type_4").innerHTML=html; 
+	        
+	        
+	        ssexam.行操作(line);
+	        
+	   	
+	   	}
+	   	case "案例分析题"{
+
+	   	  question_layout.getEle("divquestion").innerHTML=type_3;
+
+	   	  question_layout.getEle("divTitle").innerHTML="
+              <textarea style='background-color:white;color:black;width:99%;overflow-y:auto;height:180px;font-weight: bold; font-size: 14px;'  readonly>
+             "+i+"、"+试卷题目[i].QUESTIONDESCRIPTION+"
+           </textarea>
+	   	    ";
+	   	  
+	   	试卷题目[i]["myAnswer"]=试卷题目[i]["myAnswer"]==""?"|||||":试卷题目[i]["myAnswer"];  
+	    myAnswer=string.split(试卷题目[i]["myAnswer"],"|");
+	    
+	    //examForm.msgbox( question_layout.getEle("type_3").scrollTop);
+	   
+        //console.dump(myAnswer);
+	   for(k=1;5;1){
+	      question_layout.getEle("st"+k).innerHTML=k+"、"+试卷题目[i]["SUBQUESTION"+k]//+试卷题目[i]["SUBSTANDARDANSWER"+k];
+
+	     	for(j=1;4;1){
+
+	   	   	  question_layout.getEle("label3"+k+"_"+j).innerHTML=试卷题目[i]["SUBOPTION"+k+""+j];
+
+	   	   	
+	         if(string.indexAny(myAnswer[k],question_layout.getEle("q3"+k+"_"+j).getAttribute("value")))
+	             question_layout.getEle("q3"+k+"_"+j).value=true;
+	          else{
+	             question_layout.getEle("q3"+k+"_"+j).value=false;
+	          }
+
+	   	   
+	   	   }
+          }
+          
+          
+         
+         
+	   	
+	   	
+	   	}
+	   	
+	   }
+	  
+       
+    }
+    wbLayout.getEle("button_t"+i+"").attachEventHandler();
+    
+    
+
+}
+
+wbLayout.getEle("button_t"+current_timu_index+"").click();//默认从第current_timu_index题开始
+
+
+}
+
+//***************
+
+init(current_exam);
+
+
+
+examForm.button_submit.oncommand = function(id,event){
+    var count=0;
+
+	if(ssexam.保存用户答案及算分()){
+	   for(i=1;#试卷题目;1){
+    	if(试卷题目[i]["myAnswer"]==""||试卷题目[i]["myAnswer"]=="|||||")
+    	 count++;
+       }
+	}
+	
+/*
+	if(countdown>1800&&current_exam!="初级会计电算化理论"){
+		examForm.msgbox("考试开考30分钟后才能交卷");
+		return ; 
+	}
+*/
+	
+
+    
+	if(examForm.msgboxTest("您还有"+count+"道题未做，确认提交？点“确定”提交，点“取消”返回检查")||auto_submit){
+
+
+	  //console.dump(试卷题目);
+	  成绩["得分"]=ssexam.分数统计(试卷题目);
+	  成绩["准考证号"]=examForm.exam_number.text;
+	  // console.dump(成绩);
+	  ssexam.db.成绩保存(成绩);
+	  select(current_exam) {
+		case "财经法规与职业道德" {
+			tixing_title="<span>1-30</span>单选题、<span>31-50</span>多选题、<span>51-70</span>判断题、<span>71-72</span>计算分析题";
+	        current_exam="会计基础";
+	         current_timu_index=1;
+             init(current_exam);
+
+		}
+		case "会计基础" {
+			tixing_title="<span>1-20</span>单选题、<span>21-30</span>多选题、<span>31-50</span>判断题";
+	        current_exam="初级会计电算化理论";
+	        examForm.button_submit.text="进行实务考试";
+	         current_timu_index=1;
+             init(current_exam);
+             
+            
+		}
+		case "初级会计电算化理论" {
+		 var pragmaticsForm = examForm.loadForm("\ui\pragmatics2.aau");
+/*
+		   if(countdown==-1){
+		     if(examForm.msgboxTest("初级会计电算化考试时间到,是否查看答案？否则进入首页。"))
+		       var pragmaticsForm = examForm.loadForm("\ui\答案查看.aau");
+		      else {
+		          var indexForm = examForm.loadForm("\ui\index.aau");
+		      }
+		      
+		   }else if(examForm.msgboxTest("是否查看答案？否则进入实务操作题。")){
+		      var answerForm = examForm.loadForm("\ui\答案查看.aau"); 
+		  }else {
+		      var pragmaticsForm = examForm.loadForm("\ui\pragmatics2.aau");
+		  }
+*/
+		    examForm.close();
+		}
+	  }
+	}
+	
+
+
+
+}
+
+examForm.button_last.oncommand = function(id,event){
+	//examForm.msgbox( examForm.button_last.text );
+	if(current_timu_index!=1){
+		wbLayout.getEle("button_t"+current_timu_index-1+"").click();
+	}else {
+	  examForm.msgbox("已经到头了!");
+	}
+	
+
+	
+}
+
+examForm.button_next.oncommand = function(id,event){
+	//examForm.msgbox( examForm.button_next.text );
+	if(current_timu_index!=table.count(试卷题目)){
+		wbLayout.getEle("button_t"+current_timu_index+1+"").click();
+	}else {
+	   examForm.msgbox("已经是最后一题了，您可以提交试卷!");
+	}
+	
+	
+	
+}
+
+
+
+
+var tmId = examForm.addtimer( 
+    1000, function(hwnd,msg,id,tick){
+        
+        if(countdown>0){
+           countdown--;
+        	examForm.static_time.text = ssexam.formatTime(countdown);
+        	 
+        }elseif(countdown==0){
+           countdown=-1;
+            auto_submit=true;
+        	examForm.msgbox("时间到了，自动提交!");
+            examForm.button_submit.oncommand();
+            
+        }
+    } 
+)
+
+
+//ssexam.关闭返回首页(examForm);
+examForm.hitmax();
+examForm.show() 
+win.loopMessage();
+return examForm;

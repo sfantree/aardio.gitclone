@@ -1,0 +1,86 @@
+﻿import win
+import raw
+namespace PLin{
+    class AVAILABLE_HW{
+    	ctor(num){
+    	
+    	};
+    	type=me;
+    	/*对象的所有成员必须用分号分隔*/
+    }
+    
+    
+    class PLINHW{
+       
+    	ctor( /*输入构造函数所需要的参数*/ ){
+    		
+    	};
+    	type=me;
+    	/*对象的所有成员必须用分号分隔*/
+    	DllHandle = null;
+    	
+    	FlashHw = function (){
+        	if(DllHandle = null){
+            	//DLL为空，返回
+        		return 1; 
+        	}
+        	//读取硬件数量
+        	var HWCount = ..raw.buffer(1)
+    		var ret = DllHandle.LIN_GetAvailableHardware(0,0,HWCount)
+    		if(HWCount[1] == 0){
+    			//数量为0，返回
+    			AvailableHW = {}//有效硬件清空
+    			return 2; 
+    		}
+    		//读取硬件数据
+    		var PLinHwbuf={WORD buf[2]}
+    		ret = DllHandle.LIN_GetAvailableHardware(PLinHwbuf,HWCount[1]*2,HWCount)
+    		
+			AvailableHW = {}//有效硬件
+			for(i=1;HWCount[1];1){
+				AvailableHW[i] = {int hLINHW;int devnum;int channel;string name}
+				var HWtemp = PLinHwbuf.buf[i]
+				var HWType = ..raw.buffer(4)//{[1]=0}
+				var DevNum = ..raw.buffer(4)//{[1]=0}
+				var Channel = ..raw.buffer(4)//{[1]=0}
+				DllHandle.LIN_GetHardwareParam(HWtemp,13,HWType,4);
+				DllHandle.LIN_GetHardwareParam(HWtemp,2,DevNum,4);
+				DllHandle.LIN_GetHardwareParam(HWtemp,3,Channel,4);
+				AvailableHW[i].hLINHW = HWtemp
+				AvailableHW[i].devnum = DevNum[1]
+				AvailableHW[i].channel = Channel[1]
+				
+				select(HWType[1]) {
+					case 1 {
+						AvailableHW[i].name = "PCAN Pro"++" - dev."++DevNum[1]++", chan."++Channel[1]
+					}
+					case 2 {
+						AvailableHW[i].name = "PCAN Pro FD"++" - dev."++DevNum[1]++", chan."++Channel[1]
+					}
+					case 3 {
+						AvailableHW[i].name = "PLIN"++" - dev."++DevNum[1]++", chan."++Channel[1]
+					}
+					else {
+						AvailableHW[i].name = "Unknown"
+					}
+				}
+				
+				//..win.msgbox(AvailableHW[i].name,"设备",0)
+			}
+			
+    	}
+    	GetAvailableHW = function(){
+    		return AvailableHW
+    	}
+    	
+    	LoadDll = function (){
+    		DllHandle = ..raw.loadDll("PLinApi.dll")
+    		if(DllHandle == null)return 1;
+    		
+    		return 0; 
+    	}
+    
+    }
+    
+	
+}

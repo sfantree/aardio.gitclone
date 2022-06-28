@@ -1,0 +1,221 @@
+/*
+ **************************
+ *
+ * 豆瓣FM 字体设置窗口
+ * 
+ * by 武斌 http://wubin.in
+ *
+ **************************
+ */
+ 
+import win.ui;
+import win.reg;
+import win.dlg;
+import win.font;
+import web.layout;
+import web.layout.behavior.windowCommand;
+
+
+var fontsForm = ..win.form(
+	parent=...;
+	text="设置歌词字体 - " ++ _app;
+	border="none";
+	right=516;
+	bottom=347;
+	exmode="toolwindow");
+	
+fontsForm.transparent(true); // 透明窗体
+wbLayout_fonts = web.layout(fontsForm);
+wbLayout_fonts.go("/res/fonts.html");
+
+
+
+
+/*
+ * 重新显示字体
+ */
+function redrawText() {
+	var nowPlaying = binFM.song();
+	if(!line1 || line1='' || !line2 || line2='') {
+		if(nowPlaying) drawText(nowPlaying["title"],nowPlaying["artist"] ++ " [ " ++ nowPlaying["albumtitle"] ++ " ]");
+		else drawText(_app,_blank);
+	}
+	else drawText(line1,line2); // lrcForm.aau
+}
+
+
+
+
+/* 
+ * 显示字体列表
+ */
+function showFontsList() {
+	var cnStr = "豆瓣电台";
+	var enStr = "douban.fm"; 
+	var cnFontsHtml = '';
+	var enFontsHtml = '';
+	var but = {"?"; "_GBK"; "Bold"; "Italic"; "Symbol"; "Wingdings"; "Webdings"; "Acropolis"; "Babe-alicious"; "Candide Dingbats";"Marlett"; "Holiday Pi BT"; "TeamViewer8"; "MS Reference Specialty"; "MT Extra"}
+	var fullname_ = "";
+	var flag = true;
+	win.font.enum( 
+    	function(logfont,fullname,ftype,style,script,lpntme){
+    		flag = true;
+    		if(fullname_==fullname) flag = false;
+        	if( ftype == 0x4/*_TRUETYPE_FONTTYPE*/ && fullname[1] != '@'#/*翻转90度字体*/ ){
+        		for(i=1; #but; 1){
+					if(string.find(fullname,"@@"++but[i])) flag = false;
+				}
+           		if(flag && fullname && string.find(fullname,":")){ // 中文字体
+					cnFontsHtml += '<option value="' ++ fullname ++'"><span class="font_view" style="font-family:\''+ fullname +'\';">'+cnStr+'</span><br /><span class="font_name">'+fullname+'</span></option>\r\n'   
+				}
+				if(flag && fullname && !string.find(fullname,":")){ // 英文字体
+					enFontsHtml += '<option value="' ++ fullname ++'"><span class="font_view" style="font-family:\''+ fullname +'\';">'+enStr+'</span><br /><span class="font_name">'+fullname+'</span></option>\r\n'   
+				} 
+        	}
+        	fullname_ = fullname;
+    	},{ charset = _0x86/*_GB2312_CHARSET*/; name = "" }
+	)
+	
+	
+	binFM.ui.html("#cn_fonts_list",cnFontsHtml,wbLayout_fonts);
+	binFM.ui.html("#en_fonts_list",enFontsHtml,wbLayout_fonts);
+}
+
+
+/*
+ * 字体列表事件
+ */
+wbLayout_fonts.onSelectSelectionChanged = {
+	cn_fonts_list = function (ltTarget,ltEle,reason,behaviorParams) {
+		cnFont = string.trim(ltTarget.value);
+		redrawText();
+	}
+	en_fonts_list = function (ltTarget,ltEle,reason,behaviorParams) {
+		if(ltTarget.value) {
+			enFont = string.trim(ltTarget.value);
+			redrawText();
+		}
+		else {
+			io.print("bad fonts");
+		}
+	}	
+}
+
+
+
+
+/*
+ * 按钮点击事件
+ */
+wbLayout_fonts.onButtonClick = {
+	// =============================
+	// 字体大小滑块
+	// =============================	
+	fontsizeBar_hslider = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.css("#fontsizeBar","width",tostring(ltTarget.value) ++ "px",wbLayout_fonts)
+	}
+	// =============================
+	// 颜色选择按钮
+	// =============================	
+	fontcolor1 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var colorDlg1 = win.dlg.color(fontsForm);
+		lrcFontcolor1 = colorDlg1.choose();
+		if(!lrcFontcolor1) return false;
+		lrcFontcolor1 = binFM.string.toHexColor(tonumber(lrcFontcolor1));
+ 		binFM.ui.css("#fontcolor1","background-color","#"++lrcFontcolor1,wbLayout_fonts)   
+		redrawText();
+	}
+	fontcolor2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		var colorDlg2 = win.dlg.color(fontsForm);
+		lrcFontcolor2 = colorDlg2.choose();
+		if(!lrcFontcolor2) return false;
+		lrcFontcolor2 = binFM.string.toHexColor(tonumber(lrcFontcolor2));
+ 		binFM.ui.css("#fontcolor2","background-color","#"++lrcFontcolor2,wbLayout_fonts)   
+		redrawText();
+	}
+	// =============================
+	// 下载字体链接按钮
+	// =============================
+	fonts_down = function (ltTarget,ltEle,reason,behaviorParams) {
+		process.execute("http://wubin.in/fonts.html?doubanFM")	
+	}
+	// =============================
+	// 恢复默认字体按钮
+	// =============================
+	fonts_default = function (ltTarget,ltEle,reason,behaviorParams) {
+		cnFont = "微软雅黑"; // 报错则全为simsun
+		enFont = "Arial";
+		wbLayout_fonts.queryEle("#cn_fonts_list").value = cnFont;
+		wbLayout_fonts.queryEle("#en_fonts_list").value = enFont;
+		
+		lrcFontsize = 40;
+		wbLayout_fonts.queryEle("#fontsizeBar_hslider").value = 20;
+		binFM.ui.css("#fontsizeBar","width","20px",wbLayout_fonts);
+		
+		lrcFontcolor1 = "20795D"; //深
+		lrcFontcolor2 = "84BEAC"; //浅
+		binFM.ui.css("#fontcolor1","background","#"++lrcFontcolor1,wbLayout_fonts);
+		binFM.ui.css("#fontcolor2","background","#"++lrcFontcolor2,wbLayout_fonts);
+		
+		var x,y,width,height = lrcForm.getPos();
+		var height = lrcFontsize + 0.7*lrcFontsize + 30;
+		y = ::GetSystemMetrics(0x11/*_SM_CYFULLSCREEN*/) + ::GetSystemMetrics(0x4/*_SM_CYCAPTION窗口标题的高度*/) - height;
+		y = math.floor(y);
+		lrcForm.setPos(x,y,width,height,,0x10/*_SWP_NOACTIVATE*/); 
+		redrawText();
+	}
+	// =============================
+	// 关闭对话框按钮
+	// =============================
+	fonts_close = function (ltTarget,ltEle,reason,behaviorParams) {
+		fontsForm.close();
+	}
+	fonts_close2 = function (ltTarget,ltEle,reason,behaviorParams) {
+		fontsForm.close();
+	}
+}
+
+
+
+
+/* 
+ * 滑块滑动事件
+ */
+wbLayout_fonts.onButtonStateChanged = {
+	// =============================
+	// 字体大小滑块
+	// =============================
+	fontsizeBar_hslider = function (ltTarget,ltEle,reason,behaviorParams) {
+		binFM.ui.css("#fontsizeBar","width",tostring(ltTarget.value) ++ 'px',wbLayout_fonts)
+		lrcFontsize = ltTarget.value + 20;
+		var x,y,width,height = lrcForm.getPos();
+		var height = lrcFontsize + 0.7*lrcFontsize + 30;
+		var y = ::GetSystemMetrics(0x11/*_SM_CYFULLSCREEN*/) + ::GetSystemMetrics(0x4/*_SM_CYCAPTION窗口标题的高度*/) - height;
+		lrcForm.setPos(x,y,width,height,,0x10/*_SWP_NOACTIVATE*/); 
+		redrawText();
+	}
+}
+
+
+
+
+/*
+ * 窗体事件
+ */	
+fontsForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+        case 0x10/*_WM_CLOSE窗口关闭消息*/{
+			fontsForm.show(false);
+			return "noclose";
+		}
+		else{
+			
+		}
+	}
+}
+
+
+//fontsForm.show();
+
+win.loopMessage();
+return fontsForm;  

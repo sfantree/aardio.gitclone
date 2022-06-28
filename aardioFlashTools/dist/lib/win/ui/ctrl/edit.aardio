@@ -1,0 +1,644 @@
+﻿//edit 文本框 
+import win.ui.ctrl.metaProperty;
+namespace win.ui.ctrl;  
+  
+class edit{
+
+    ctor(parent,tParam){
+		if(tParam){
+			if( tParam.readonly )
+				tParam.style |= 0x800/*_ES_READONLY*/
+				
+			if( tParam.password )
+				tParam.style |= 0x20/*_ES_PASSWORD*/
+
+			else if( tParam.multiline ){
+				tParam.style |= 0x4/*_ES_MULTILINE*/
+				tParam.style |= 0x1000/*_ES_WANTRETURN*/;
+			}
+			
+	    	if( tParam.num )
+	    		tParam.style |=0x2000/*_ES_NUMBER*/
+	    		
+			if(! tParam.hidesel )
+				tParam.style |= 0x100/*_ES_NOHIDESEL*/
+				
+			if ( !tParam.multiline ) {
+				tParam.style |=  0x80/*_ES_AUTOHSCROLL*/;
+			} 
+				
+			if( tParam.autoscroll !== null ){
+				if( tParam.autoscroll ){
+					tParam.style = tParam.style | 0x40/*_ES_AUTOVSCROLL*/  |  0x80/*_ES_AUTOHSCROLL*/;
+				}  
+			}
+			else {
+				if( tParam.autovscroll === null ||  tParam.autovscroll ) {
+					tParam.style |=   0x40/*_ES_AUTOVSCROLL*/ ;
+				}
+				if( tParam.autohscroll === null ||  tParam.autohscroll ) {
+					tParam.style |=  0x80/*_ES_AUTOHSCROLL*/ ;
+				} 
+			} 
+			
+			if(  tParam.color !==null && tParam.bgcolor === null )
+				tParam.bgcolor = ::GetSysColor(0x5/*_COLOR_WINDOW*/ );
+
+        	select(tParam.align) {
+				case  "center"   
+	   			tParam.style |= 0x1/*_ES_CENTER*/; 
+				case "right" 
+	   			tParam.style |= 0x2/*_ES_RIGHT*/; 
+				else 
+				tParam.style |= 0x0/*_ES_LEFT*/;
+			}
+ 	
+			if(tParam.edge)   
+				tParam.exstyle |= 0x200/*_WS_EX_CLIENTEDGE*/;   
+			
+			begin;	
+				var tabstop;
+				if( tParam.tabstop ){
+					tabstop = tParam.multiline ? 0x9/*_VK_TAB*/  : 0xD/*_VK_RETURN*/;
+				}
+				
+				var handleKeys = {[0xD/*_VK_RETURN*/]=1;[0x1B/*_VK_ESC*/]=1;[0x9/*_VK_TAB*/]=1;['A'#]=1}
+				this.defaultTranslateAccelerator = function( msg ){ 
+					if( msg.message != 0x100/*_WM_KEYDOWN*/) return;
+					
+					var vk = msg.wParam;
+    				if(!handleKeys[vk]) return;
+    				
+    				var ctrl = ::GetKeyState( 0x11/*_VK_CONTROL*/ ) & 0x8000;
+    				var alt = ::GetKeyState( 0x12/*_VK_ALT*/ ) & 0x8000;
+    				var shift = ::GetKeyState( 0x10/*_VK_SHIFT*/ ) & 0x8000;
+    				if(alt || shift) return;
+    				
+					if( vk == 'A'#  && ctrl ){
+						this.selectAll();
+						return true;
+					}
+					
+					if(ctrl) return;
+					if(vk ===0xD/*_VK_RETURN*/ && this.onOk && (!ctrl) ){
+						if(this.onOk()){ return true; }
+					}
+					
+					if( ( tabstop == vk ) && tabstop && (!ctrl) ){
+						owner.tabNext(true); 
+						return true;
+					}
+					
+					if( vk == 0x1B/*_VK_ESC*/ ){
+						if(this.onCancel && this.onCancel()){
+							return true;
+						}
+						if( this.parent.onCancel ) this.parent.onCancel();
+						return true;
+					}	
+				}
+			end;
+			
+			this._commandFuncnames ={[0x300/*_EN_CHANGE*/]="onChange";[0x100/*_EN_SETFOCUS*/] ="onFocusGot";[0x200/*_EN_KILLFOCUS*/]="onFocusLost"}
+		}
+    }
+	@_metaProperty;
+}
+
+edit._metaProperty =  metaProperty(
+
+	modified = {
+		_get = function(){ 
+			return  !!::SendMessage(owner[["hwnd"]],0xB8/*_EM_GETMODIFY*/);
+		}
+		_set = function( v ){
+			if(owner.onModified){
+				if(v==::SendMessage(owner[["hwnd"]],0xB8/*_EM_GETMODIFY*/)){
+					return;
+				}
+			}
+			::SendMessageInt(owner[["hwnd"]],0xB9/*_EM_SETMODIFY*/,v?1:0,0 );
+			if(owner.onModified){
+				owner.onModified(v);
+			}
+		} 	
+	}; 
+	getsel = function(){ 
+      var re,min,max = ::SendMessageByInt(owner[["hwnd"]],0xB0/*_EM_GETSEL*/,0,0);
+      if( min >=0 ) {
+          if( min == max ) return min;
+      	  min = min +1;
+      };
+      
+      return  min,max;  
+    }
+    setsel = function(min=0,max){
+        if(max===null) {max = min;if(max>=0){min=max+1}};
+        elseif((min>max) && (max>0) ){
+        	min,max = max,min;
+        }
+        
+    	if( min > 0 ) min = min - 1;
+        ::SendMessageInt(owner[["hwnd"]],0xB1/*_EM_SETSEL*/,min ,max);
+    }  
+    selType = function(){
+    	return ::SendMessage(owner.hwnd,0x442/*_EM_SELECTIONTYPE*/);
+    }
+    setCueBannerText = function(s,f){
+		::SendMessage(owner[["hwnd"]], 0x1501/*EM_SETCUEBANNER*/,f?topointer(1):null,..string.toUnicode(s) ); 
+	}; 
+    lineCount = {
+		_get = function(){ 
+			return  ::SendMessage(owner[["hwnd"]],0xBA/*_EM_GETLINECOUNT*/);
+		} 	
+	};
+	lineLength = function(ind){ 
+		if(ind===null)ind = owner.lineFromChar();
+		elseif( ind < 0 ) ind = owner.lineCount + ind + 1;
+		
+		var chr = owner.lineToChar(ind)-1;
+		if(chr>-1) return ::SendMessageInt(owner[["hwnd"]],0xC1/*_EM_LINELENGTH*/,chr,0);
+	};
+    lineText = function(ind){   
+    	if(ind===null)ind = owner.lineFromChar();
+    	elseif( ind < 0 ) ind = owner.lineCount + ind + 1;
+    	
+    	var chr = owner.lineToChar(ind)-1;
+    	if( chr < 0 ) return; 
+		var cch = ::SendMessageInt(owner[["hwnd"]],0xC1/*_EM_LINELENGTH*/,chr,0);
+		if(!cch) return "";
+		
+	    var buffer = ..raw.buffer(cch* 2 + 4,{INT cch = cch} ); 
+		if( ::User32.SendMessage(  owner[["hwnd"]],0xC4/*_EM_GETLINE*/,ind-1,buffer) )
+			return ..string.fromUnicode(buffer,,cch)
+    };
+    lines = function(trim){
+        var this = owner;
+    	var c = this.lineCount;
+    	var i,line,next = 0;
+    	next = function(){
+    		i++;
+    		if( i > c ) return;
+    		line = this.lineText(i);
+    		if(trim){
+    			line = ..string.trim(line);
+	    		if(!#line)return next();
+    		}
+    		return line;
+    	}
+    	return next;
+    };
+    lineFromChar = function(pos){
+       pos := owner.getsel(); 
+       return  ::SendMessageInt(owner[["hwnd"]],0xC9/*_EM_LINEFROMCHAR*/,pos,0 )+1; 
+    };
+    lineToChar = function(line){
+       if(line===null)line = owner.lineFromChar();
+       elseif( line < 0 ) line = owner.lineCount + line + 1;
+       line--;
+       return  ::SendMessageInt(owner[["hwnd"]],0xBB/*_EM_LINEINDEX*/,line,0 )+1; 
+    };
+    lineScroll = function(line,h=0){ 
+    	if(!line)line=owner.lineCount ;
+       ::SendMessageInt(owner[["hwnd"]],0xB6/*_EM_LINESCROLL*/,h,line-1 );       
+    };
+    lineSel = function(line,text){
+    	var a= owner.lineToChar(line);
+    	if(!a) return;
+    	
+    	var len = owner.lineLength(line) 
+    	owner.setsel(a,a+len);
+    	
+    	if(text) owner.selText = text;
+    };
+    scrollCaret = function(){
+       ::SendMessage( owner[["hwnd"]] , 0xB7/*_EM_SCROLLCARET*/);
+    };
+    canUndo = function(){
+    	return !!::SendMessage(owner.hwnd,0xC6/*_EM_CANUNDO*/)
+    };
+    canCopy = function(){
+        var min,max = owner.getsel();
+    	return max && (max>=min);
+    };
+    redo = function(){
+    	::SendMessage(owner.hwnd,0x454/*_EM_REDO*/)
+    }; 
+    undo = function(){
+    	::SendMessage(owner.hwnd,0xC7/*_EM_UNDO*/ )
+    }
+    clear = function(){
+    	::SendMessage(owner.hwnd,0x303/*_WM_CLEAR*/ )
+    };
+    copy = function(){
+    	::SendMessage(owner.hwnd,0x301/*_WM_COPY*/ )
+    };
+    cut = function(){
+    	::SendMessage(owner.hwnd,0x300/*_WM_CUT*/ )
+    };
+    paste = function(){
+    	::SendMessage(owner.hwnd,0x302/*_WM_PASTE*/ )
+    };
+    getLength = function(){
+		return ::SendMessage(owner[["hwnd"]],0xE/*_WM_GETTEXTLENGTH*/ ); 
+	}; 
+    selectAll = function(){
+		owner.setsel(0,-1);
+	}; 
+	deselect = function(){
+		owner.setsel(-1,0);
+	};
+	appendText = function(s,...){
+		var len = ::SendMessage(owner[["hwnd"]],0xE/*_WM_GETTEXTLENGTH*/ ); 
+		owner.setsel(len+1);
+		 
+		if(s!==null){
+			s = ..string.toUnicode(s);
+			::SendMessage(owner[["hwnd"]],0xC2/*_EM_REPLACESEL*/,,s)
+			len = ::SendMessage(owner[["hwnd"]],0xE/*_WM_GETTEXTLENGTH*/ ); 
+			owner.setsel(len+1,len+1);
+		}
+		
+		if(...===null) return len;
+		return owner.appendText(...);
+	};
+	print = function(...){
+		var args = {...};
+		var b,e,t = ..table.range(args);
+		var stringify = ..web[["json"]] ? ..web.json.stringify : ( lambda(v) v@[["_tostring"]]?tostring(v):..table.tostring(v) );
+		var pretty = !!..web[["json"]]; 
+		for(i=b;e){
+			t = type(args[i]) ;
+			if( t != "string" ) {
+				if( t == "table"  ) {
+					args[i] = stringify(args[i],pretty);
+				}
+				else args[i] = tostring(args[i]); 
+			}
+			else {
+				args[i] = ..string.fromUnicodeIf(args[i]);
+			}
+		};
+		owner.log( ..string.join(args,'\t'),'\r\n');
+	};
+	printf = function(f,...){
+		if(f)owner.appendText( ..string.format(f,...),'\r\n');
+		owner.vScroll();
+	};
+	setFocus = function(b,e){
+		..win.setFocus(owner.hwnd);
+		if( b == null)owner.appendText();
+		else {
+			if(e===null) && ( b> 0 ){
+				return owner.setsel(b);
+			};
+			
+			owner.setsel(b,(e:b));
+		}
+		owner.scrollCaret();
+	};	
+	log = function( ...){ 
+		var s = ..string.concat(owner.text, ... );
+		var len = ..string.len(s);
+		var limit = owner.limit;  
+		if( (limit > 0) && (len > limit) ){  
+			s = ..string.right(s,- ( len - limit + 1 ),true );  
+		}
+		owner.text = s; 
+		owner.appendText();//不可在此添加换行,因为这时候limit基本已经满了
+		owner.vScroll();
+	};
+	dump = function(v,...){
+		if( type(v) == type.table ) owner.log( ..table.tostring(v) )
+		else owner.log( (tostring(v) ) )  
+		if(!...){
+			owner.log('\r\n');
+			return;
+		}
+		owner.log('\t');
+		if(!...)return;
+		return owner.dump(...);
+	};
+	getClientRect = function(){
+		var rc = ::RECT();
+		::SendMessageByStruct(owner[["hwnd"]],0xB2/*_EM_GETRECT*/,0,rc);
+		return rc;
+	}; 
+	setClientRect = function(rc,wParam=0){
+		var rc = ..table.assign(::RECT(),rc);
+		::SendMessageByStruct(owner[["hwnd"]],0xB3/*_EM_SETRECT*/,wParam,rc);
+	};
+	inflateClientRect = function(x=0,y=0,wParam=0){
+		var rc = ::RECT();
+		::SendMessageByStruct(owner[["hwnd"]],0xB2/*_EM_GETRECT*/,0,rc); 
+		rc.inflate(x,y);
+		::SendMessageByStruct(owner[["hwnd"]],0xB3/*_EM_SETRECT*/,wParam,rc);
+	};
+	setPadding = function(t=0,r=0,b=0,l=0){
+		owner.padding = (t||r||b||l) ? {t=t;r=r;b=b;l=l} :null;
+		var rc = ..win.getClientRect(owner.hwnd);
+		rc.top = rc.top+t;
+		rc.right = rc.right-r;
+		rc.left = rc.left+l;
+		rc.bottom = rc.bottom-b;
+		::SendMessageByStruct(owner[["hwnd"]],0xB3/*_EM_SETRECT*/,0,rc);	
+	};
+	_preadjust = function(){
+		var p = owner.padding;
+		if(p)owner.setPadding(p.t,p.r,p.b,p.l);
+	};
+	readonly = {
+		_get = function(){ 
+			return !!..win.getStyle(owner[["hwnd"]],0x800/*_ES_READONLY*/)
+		}
+		_set = function( v ){
+			::User32.SendMessage(owner[["hwnd"]],0xCF/*_EM_SETREADONLY*/,v,0)
+		} 	
+	}
+	selLine = {
+		_get = function(){  
+			var min,max = owner.getsel();  
+			if( min!==null ){
+     	  		return owner.lineFromChar(min);
+			} 
+			return 1;
+		}
+		_set = function( v ){ 
+			var c = owner.lineToChar(v)
+     		if( c!==null ){
+     			owner.lineScroll(v);
+     	  		return owner.setFocus(c-1);
+			} 
+		} 	
+	};
+	passwordChar = {
+		_get = function(){
+			var c = ::SendMessage(owner[["hwnd"]],0xD2/*_EM_GETPASSWORDCHAR*/) 
+			if(c) return ..raw.str( {WORD bytes[1] = {c}},true); 
+		} 
+		_set = function( v ){ 
+			::SendMessageInt(owner[["hwnd"]],0xCC/*_EM_SETPASSWORDCHAR*/,v?v[1]:0,0) 
+			owner.redraw();
+		} 	
+	};
+	disableInputMethod = function(){
+		::Imm32 := ..raw.loadDll("Imm32.dll");
+		var imc = ::Imm32.ImmGetContext(owner.hwnd);
+		if (imc) {
+    		::Imm32.ImmAssociateContext(owner.hwnd,null);
+    		::Imm32.ImmReleaseContext(owner.hwnd,imc); 
+		}
+	};
+	showBalloonTip = function(title,text,icon){ 
+		if(text===null) title,text = text,title;
+		
+		var ti =  {
+			INT cbSize;
+			ustring title = title:"";
+			ustring text = text:"";
+			addr icon = icon;
+		}
+		
+		ti.cbSize = ..raw.sizeof(ti);
+		::SendMessageByStruct(owner.hwnd,5379/*EM_SHOWBALLOONTIP*/,0,ti);
+	};
+	showInfoTip  = function(title,text,large){
+		return owner.showBalloonTip(title,text,large?4:1);
+	};
+	showWarningTip  = function(title,text,large){
+		return owner.showBalloonTip(title,text,large?5:2);
+	};
+	showErrorTip  = function(title,text,large){ 
+		return owner.showBalloonTip(title,text,large?6:3);
+	};
+	popMenu = function(menuTable){
+		var this = owner; 
+	
+		var menu = ..win.ui.popmenu( this._parentForm );
+		menu.addTable( {
+			{ "全选(&A)";  function(id){
+				this.setFocus(0,-1);
+			} };
+			{ /*分隔线*/ };
+			{ "复制(&C)";  function(id){
+				this.copy()
+			}; !this.canCopy() ? 1/*_MF_GRAYED*/ : 0}; 
+			{ "剪切(&T)"; function(id){  
+				this.cut()
+			}; !this.canCopy() ? 1/*_MF_GRAYED*/ : 0 };
+			{ "粘贴(&P)"; function(id){  
+				this.paste()
+			}; !this.canPaste() ? 1/*_MF_GRAYED*/ : 0 };
+			{ "删除(&D)"; function(id){  
+				this.selText = "";
+			}; !this.canCopy() ? 1/*_MF_GRAYED*/ : 0 };
+			{ /*分隔线*/ };
+			this.canRedo() ? ( { "重做(&R)"; function(id){  
+				this.redo()
+			} } ) : ( { "撤消(&U)"; function(id){  
+				this.undo()
+			}; !this.canUndo() ? 1/*_MF_GRAYED*/ : 0 } ) ;
+		} );
+		
+		if(menuTable){
+			menu.addTable(menuTable);
+		}
+		menu.popup();
+		menu.close();  
+	};  
+	enablePopMenu = function(menuTable){
+		owner.wndproc = {
+	    	[0x205/*_WM_RBUTTONUP*/] = function(hwnd,message,wParam,lParam){
+	    		var items = menuTable;
+	    		if( type(menuTable) == "function" ) items = menuTable();
+	        	owner.popMenu(items);
+	        	return true;
+	    	}
+		}
+	};
+	/* richedit已重写下面的属性 */
+	
+	canRedo = function(){ };
+    canPaste = function(){
+        return ::User32.IsClipboardFormatAvailable(1/*_CF_TEXT*/) 
+        	|| ::User32.IsClipboardFormatAvailable(7/*_CF_OEMTEXT*/) 
+        	|| ::User32.IsClipboardFormatAvailable(0x81/*_CF_DSPTEXT*/) 
+        	|| ::User32.IsClipboardFormatAvailable(0xD/*_CF_UNICODETEXT*/);
+    };
+	limit = {
+		_get = function(){ 
+			return ::SendMessage(owner[["hwnd"]], 0xD5/*_EM_GETLIMITTEXT*/);
+		}
+		_set = function( v ){
+			assert( type(v) == type.number )
+     		::SendMessage(owner[["hwnd"]], 0xC5/*_EM_LIMITTEXT*/, topointer(v) , null)
+		} 	
+	};
+	selText = {
+		_get = function(){  
+			var min,max = owner.getsel();  
+			if( (min!==null) && ( max>=min) ){
+     	  		return ..string.slice(owner.text,min,max,true);  
+			} 
+		}
+		_set = function( v ){ 
+     		::User32.SendMessage(owner[["hwnd"]],0xC2/*_EM_REPLACESEL*/,,tostring(v))
+		} 	
+	};
+);
+
+/***intellisense()
+!edit.setCueBannerText(.("提示文本") = 指定单行文本框文本为空时的显示的默认提示文本\nXP系统不支持此函数、但调用不报错\n注意plus控件提供支持XP系统的setCueBannerText函数
+!edit.cls = 设计时类名
+!edit.color = 获取或修改字体颜色数值
+!edit.bgcolor= 获取或修改景颜色数值
+!edit.className = 运行时类名
+!edit.lineCount = 获取行数
+!edit.setsel(.(起始位置,结束位置) = 设置选区,以字符为单位\n1为首字符，选区包含起始与结束位置\n如果结束位置小于开始位置,自动交换参数位置
+!edit.setsel(.(当前位置) = 无选区,\n移动光标到指定位置的字符后面
+!edit.getsel() = 获取选区起始位置,结束位置\n选区包含起始与结束位置的字符，首字符位置为1\n开始位置在指定的字符前面,结束位置表示指定的字符后面\n只有一个返回值时表示无选区,并表示输入光标在指定字符后面\n返回0表示输入光标在最前面,并且无选区
+!edit.selText = 获取或替换选区文本
+!edit.selLine = 获取或设置当前行,\n光标移动到该行开始处,并且滚动到该行,\n设为-1跳转到最后一行
+!edit.getLength() = 获取文本长度\n注意是按字符计数，而不是按字节计数
+!edit.modified = 文本内容是否已修改 
+!edit.text = 编辑控件文本属性\n注意 edit 控件使用'\r\\n'表示换行,而richedit控件则使用'\\n'表示换行，\n用多行注释作为字符串赋值时换行会自动格式化换行为'\r\\n'，\n例如 winform.edit.txt = /*文本\n第二行文本*/
+!edit.disabledText = 指定文本时,禁用此控件,并显示指定文本,\n指定为null时,启用此控件,并恢复控件之前的正常文本
+!edit.hwnd = 控件句柄
+!edit.id = 控件ID
+!edit.readonly = 是否只读\n只读时禁止编辑
+!edit._parentForm = 创建该控件的父窗口（win.form对象）,\n设计时窗体容器是所有拖放在窗体上的控件的 _parentForm,\n\n即使窗口移除子窗口样式、更改父子关系，或以 orphanWindow显示,\n控件的 _parentForm 始终都不会改变\n!winform.
+!edit.getParent() = 返回父窗口\n!static.
+!edit.setParent(__/*控件对象*/) = 改变父窗口 
+!edit.hide = 控件是否隐藏
+!edit.disabled = 控件时否禁用
+!edit.left = 左侧坐标
+!edit.right = 右侧坐标
+!edit.top = 顶部坐标
+!edit.bottom = 底部坐标
+!edit.width = 宽度
+!edit.height = 高度
+!edit.limit = 字符数限制,注意不是以字节为单位,\n此限制主要用于限制用户输入,对读写text属性无效,\n如果设为0，单行文本框指定为0x7FFFFFFE，多行文本框指定为-1\n如果用于限制log,print等函数输出字符数时,值不能设置过大或设为0、负数等
+!edit.log( __,'\r\n' ) = 追加字符串到文本框,可输入多个参数\n如果超出limit属性设定的字符数限制则移除头部多余的字符\n为提升性能,limit不可过大
+!edit.dump(__/*变量*/) = 显示变量的值,支持多参数\n注意仅显示普通table,string,number等类型的值,不显示函数等
+!edit.deselect() = 取消选定 
+!edit.print(.(->->->) = 将多个参数转换为字符串,\n并使用制表符分隔各参数追加到文本尾部\n并追加换行\n如果超出limit属性设定的字符数限制则移除头部多余的字符\n为提升性能,limit不可过大\n\n对于table对象,aardio会序列化为文本然后输出,\n如果当前已经导入了web.json，则自动转换为json后输出,\n可以用于调试代码显示变量的值
+!edit.printf(.(->->->) = 将多个参数调用string.format格式化后追加到文本尾部\n并追加换行
+!edit.appendText(.(追加文本) = 追加文本并移动光标到文本尾部\n支持零个、或多个参数,参数使用tostring()转换为文本\n返回文本总长度
+!edit.scrollCaret() = 滚动到光标处
+!edit.lineScroll(.(滚动到指定行) = 滚动条移动到指定行\n如果不指定参数则滚动到最后一行 
+!edit.lineToChar(__/*指定行号*/) = 获取指定行首字符位置\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!edit.lineToChar() = 获取当前选定行首字符位置
+!edit.lineFromChar(__/*指定位置*/) = 返回指定位置行数
+!edit.lineFromChar() = 不指定参数则返回当前行
+!edit.lineLength(__/*指定行号*/) = 返回指定行字符数\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!edit.lineText(__/*指定行号*/) = 获取指定行文本\n错误行号返回null空值\n省略参数表示当前行,小于0表示自尾部倒数到指定行,-1表示最后一行
+!edit.lineSel(.(行号,替换文本) = 选择指定的行的全部文本,\n行号为-1时表示选取最后一行,\n可选使用参数@2指定一个字符串用于替换该行文本
+!edit.redraw() = 刷新
+!edit.setRedraw(false) = 禁止重绘
+!edit.setRedraw(true) = 恢复重绘
+!edit.show(true__) = 显示控件
+!edit.getRect() = 控件区块位置(::RECT结构体)
+!edit.getRect(true) = 控件屏幕区块位置(::RECT结构体)  
+!edit.setRect(rc) = 设置控件区块位置(::RECT结构体)  
+!edit.setRect(rc,true) = 设置控件屏幕区块位置(::RECT结构体)
+!edit.getClientRect() =  控件文本客户区块位置(::RECT结构体)\n!rect.
+!edit.setClientRect(.(RECT区块) = 参数为指定文本客户区的RECT结构体\n文本框必须在设计时指定为多行\n在文本框改变大小必须重新设置
+!edit.inflateClientRect(.(dx,dy) = 正数增大,负数缩小文本客户区\n文本框必须在设计时指定为多行\n在文本框改变大小必须重新设置
+!edit.setPadding(.(上,右,下,左) = 设置文本边距\n文本框必须在设计时指定为多行\n在文本框改变大小后仍然可以保持此边距
+!edit.padding = 文本边距\n应通过setPadding函数设置该值
+!edit.getFont() = 控件字体(::LOGFONT结构体)\n!logfont.
+!edit.setFont(.(LOGFONT字体对象) = 指定LOGFONT字体对象,或逻辑字体句柄 
+!edit.setFont(.(point=10;name="宋体") = 使用指定属性创建字体; 
+!edit.theme = 外观主题,例如\nwinform.button.theme = "Explorer"\nwinform.button.theme = false
+!edit.modifyStyle(.(remove,add,swpFlags) = 修改窗口样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码 
+!edit.modifyStyleEx(.(remove,add,swpFlags) = 修改窗口扩展样式,所有参数都是可选参数,\n@remove 用数值指定要移除的样式,可使用 _WS_EX_ 前缀的常量\n@add 用数值指定要添加的样式,可使用 _WS_EX_ 前缀的常量\n@swpFlags 可选用数值指定调整窗口选项,可使用 _SWP_ 前缀的常量\n如果指定了 @swpFlag ,则使用该参数调用::SetWindowPos\n细节请参考 win.modifyStyle 函数源码
+!edit.capture = 是否捕获全局鼠标消息
+!edit.close() = 关闭控件窗
+!edit.invalidate(__/*可选使用::RECT()对象指定客户区*/) = 使窗口绘图区无效
+!edit.invalidate(__/*可选使用::RECT()对象指定客户区*/,0) = 使窗口绘图区无效\n不刷新背景
+!edit.update() = 重绘invalidate函数指定的区块
+!edit.wrap = 是否启用自动换行,仅richedit支持
+!edit.setFocus( =  设置焦点,可指定选区参数
+!edit.tabNext(.(移动焦点,是否反向) = 获取下一个支持tab控制焦点的控件\n参数@1为true会自动移动焦点到该控件\n参数@2为true则获取上一个控件,否则获取下一个控件
+!edit.disableInputMethod() = 在此控件中关闭输入法, 仅支持英文输入
+!edit.tabNext() = !static.
+!edit.setFocus(.() = 设置焦点到文本框尾部
+!edit.setFocus(.(0) = 设置焦点到文本框的指定位置
+!edit.setFocus(.(0,-1) = 全选并设置焦点
+!edit.vScroll() = 滚动到底部
+!edit.hScroll() = 滚动到右侧
+!edit.vScroll(_SB__) = 滚动竖向滚动条
+!edit.hScroll(_SB__) = 滚动横向滚动条
+!edit.setPos(.(x坐标,y坐标,宽,高,插入位置,参数) = 调整窗口位置或排序,所有参数可选\n同时指定x,y坐标则移动位置\n同时指定宽高则改变大小\n指定插入位置(句柄或_HWND前缀常量)则调整Z序
+!edit.getPos() = 返回相对坐标,宽,高\nx,y,cx,cy=win.getPos(hwnd)
+!edit.selectAll() = 全选
+!edit.redo() = 重做
+!edit.undo() = 撤消
+!edit.clear() = 清除选中文本
+!edit.copy() = 复制
+!edit.cut() = 剪切
+!edit.paste() = 粘贴
+!edit.canRedo() = 能否重做
+!edit.canUndo() = 能否撤消
+!edit.canPaste() = 能否粘贴
+!edit.canCopy() = 能否复制,\n实际上也就是判断是否存在选区
+!edit.enablePopMenu(itemTable) = @.enablePopMenu({\n	{ /*---分隔线---*/ };\n	{ "__/*要添加的自定义右键菜单项标题,\n菜单参数将传递给win.ui.popmenu对象的addTable函数\n调用此函数必须事先引用win.ui.menu*/";\n		function(id){\n			\n		} \n	}; \n})
+!edit.saveScale() = 根据控件当前位置、缩放比例，更新控件的设计时位置参数。\n以避免下次窗口缩放自适应调整控件当前位置更改被清除，\n控件所有调整位置的属性或成员函数已自动调用此函数。
+!edit.reloadScale() = 按设计时位置参数、重新调整控件位置以适应窗口当前缩放比例。\n父窗口缩放时会自动执行此操作。\n默认在启动窗口消息循环时会自适应调整所有控件。\n所以在启动消息循环前添加控件不必调用此函数。
+!edit.threadCallable() = 开启此控件的跨线程调用功能
+!edit.orphanWindow(.(transparent,hwndBuddy) = 创建悬浮窗口,\n悬浮窗口仍然显示在原来的位置,\n悬浮窗口如影随形的跟随父窗口移动或改变大小,控件原来的固定边距等参数仍然有效\n此控件不建议指定参数
+!edit.lines(忽略空白) = @for line in ??.lines(true){ 
+	__/*遍历所有文本行,\n如果迭代器参数为true则清除每行首尾空格,并忽略空行*/
+}
+!edit.translateAccelerator(msg) = @.translateAccelerator = function(msg){ 
+    var vk = msg.wParam;
+ 	if( (vk == 0x9/*_VK_TAB*/ ) || (vk = 0xD/*_VK_RETURN*/) ){
+		if( msg.message == 0x100/*_WM_KEYDOWN*/) {
+			owner.tabNext(true); 
+			return true;__/*在此事件中可拦截键盘消息并自定义快捷键\ntabNext函数切换到下一个支持tab控制键的控件\n如果这是一个快捷键返回true以取消该消息的默认行为*/
+		}
+	}	
+}
+!edit.onOk() = @.onOk = function(){ 
+	__/*当前已按下回车,返回true阻止默认事件*/
+	return true; 	
+}
+!edit.onCancel() = @.onCancel = function(){ 
+	__/*当前已按下ESC,返回true阻止默认事件*/
+	return true; 	
+}
+!edit.onFocusGot() = @.onFocusGot = function(){ 
+	__/*响应事件，文本框已获得输入焦点*/
+}
+!edit.onFocusLost() = @.onFocusLost = function(){
+	__/*响应事件，文本框已失去输入焦点*/
+}
+!edit.onModified = @.onModified = function(modified){ 
+	__/*使用代码变更modified属性后触发此事件,\n用户编辑文本导致变更modified属性不会触发此事件，\n可在onChange事件内主动调用此事件*/
+}
+!edit.adjust = @.adjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放时会自动触发此函数。\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 参数请参考 _WM_SIZE 消息参数说明,一般不用管。\n\n所有 win.form 创建的窗体和控件都支持此事件,\n重复赋值只会追加而不会覆盖此事件。\n一般不建议添加一个 wndproc 仅仅是为了处理  _WM_SIZE 消息，\n定义 adjust 事件是更好的选择。\n\n可主动调用此事件,省略参数时 cx,cy 参数默认设为窗口大小*/  \n}; 
+!edit.preadjust = @.preadjust = function( cx,cy,wParam ) {	 \n	__/*窗口缩放后重绘前、触发 adjust 事件之前触发此事件。\n所有 win.form 创建的窗体和控件都支持此事件,\n与 adjust 事件不同，对 preadjust 重复赋值则覆盖而不是追加事件。 \n\ncx 参数为窗口宽度,cy 参数为窗口高度,\nwParam 为 _WM_SIZE 消息参数。*/  \n};
+!edit.resize(.(宽度,高度) = 如果指定了参数则调整窗口大小,\n无论是否实际调整窗口大小,发送 _WM_SIZE 消息给窗口
+!edit.addCtrl(tParam) = @.addCtrl(\n	spin={\n		cls="spin";marginRight=4;marginTop=1;marginBottom=4;width=16;\n		oncommand = function(id,event,pos){ \n			if( pos && event == 0x4/*_SB_THUMBPOSITION*/ ){\n 				winform.edit.text = string.format("%.2f",pos / 100 )\n			}\n		}\n	}\n)__/*在edit控件窗口内添加子窗口*/
+!edit.passwordChar = 指定隐藏密码的占位字符,该字符使用UTF-16编码,\n例如指定为'*'u隐藏密码,指定为null正常显示文本
+!edit.sendMessage(.(msg,wParam,lParam) = 发送窗口消息\n此函数用法请参考 ::User32.SendMessage
+!edit.postMessage(.(msg,wParam,lParam) = 投递窗口消息到消息队列中\n此函数用法请参考 ::User32.PostMessage
+!edit.publish("__/*发布消息名*/",) = 在窗口所在界面线程发布消息,\n运行界面线程所有所有调用subscribe函数订阅此消息的函数,\n可添加任意个触发参数
+!edit.showBalloonTip( = 显示气泡提示,\n建议直接调用showInfoTip，showWarningTip 或 showErrorTip
+!edit.showBalloonTip(.(title,text,icon) = 在输入光标处显示汽泡提示,\n@title参数指定标题,\n@text参数指定文本,\nicon指定图标句柄，可省略
+!edit.showBalloonTip(.(text) = 在输入光标处显示汽泡提示,\n@text参数指定文本
+!edit.showInfoTip( = 在输入光标处显示汽泡提示
+!edit.showInfoTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用提示信息图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略
+!edit.showInfoTip(.(text) = 在输入光标处显示汽泡提示,使用提示信息图标,\n@text参数指定文本
+!edit.showWarningTip( = 在输入光标处显示汽泡提示,使用警告图标
+!edit.showWarningTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用警告图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略
+!edit.showWarningTip(.(text) = 在输入光标处显示汽泡提示,使用警告图标,\n@text参数指定文本
+!edit.showErrorTip( = 在输入光标处显示汽泡提示,使用错误图标
+!edit.showErrorTip(.(title,text,large) = 在输入光标处显示汽泡提示,使用错误图标,\n@title参数指定标题,\n@text参数指定文本,\nlarge指定是否使用大图标，可省略
+!edit.showErrorTip(.(text) = 在输入光标处显示汽泡提示,使用错误图标,\n@text参数指定文本
+!edit.getRoot() = 获取顶层父窗口，这个函数会查找 orphanWindow 的父窗口
+!edit._defWindowProc(hwnd,message,wParam,lParam) = 用于在 wndproc 回调中提前调用默认消息回调函数,\n所有窗口和控件定义了 wndproc 回调以后会自动创建这个函数,\n调用此函数以后,wndproc 必须指定非 null 返回值,\n以避免再次重复调用默认回调函数
+?win.ui.ctrl.edit  =!edit.
+win.ui.ctrl.edit() = 文本框控件\n!edit.
+win.ui.ctrl.edit = 文本框控件支持库
+end intellisense***/

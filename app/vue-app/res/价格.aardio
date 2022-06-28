@@ -1,0 +1,124 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="aardio工程25";right=759;bottom=469;border="none";mode="popup")
+mainForm.add()
+/*}}*/
+
+import console;
+import web.json;
+import process;
+import web.blink.form;
+var wb = web.blink.form(mainForm);
+wb.go("/html/index.html");
+
+wb.external = {
+    hitCaption = function(){
+        mainForm.hitCaption();
+    };
+    hitmax = function(){
+    	return mainForm.hitmax()
+    };
+    hitmin = function(){
+    	mainForm.hitmin()
+    };
+    close = function(){
+        mainForm.close();
+    };
+    start = function(){
+        mainForm.setTimeout(start,100);
+    }
+    open = function(url){
+        process.execute(url);
+    }
+}
+
+import my;
+
+var spider = my.Spider(
+ 	"http://www.qinbing.cn",
+    "http://www.qinbing.cn/Portal/Index/news/type/357",
+    '<h1><a target="_blank" href="(.*?)">(.*?)(浙江|全国)',
+    '<a class=\"l left\" href=\"(.*?)\"> 下一页 </a>',
+    '>浙江-建德.*?参考价&nbsp;</td><td.*?>(.*?)&nbsp;</td'+'|'+'<p>浙江-建德.*?参考价 <span style="white-space:pre"></span>(.*?) <span',
+   5
+)
+
+function start(){
+	 var data = {data={}};
+	data.type="table";
+	var chartData = {date={}; price={}}
+	chartData.type="chart"
+	
+	spider.start(function(item){
+    	var itemUrl = item[1];
+    	var date = item[2];
+    	var x = item[3]
+		itemUrl, item  = spider.dealItem(itemUrl);
+		
+		var price = 0;
+		if(#item> 0){
+			price = #item[1] ==1 ? item[1][1] : item[1][2]
+		}
+		
+		//console.log(price)
+		table.push(data.data,{date=date;url=itemUrl;price=price})	
+		sendData(data);
+		
+		table.insert(chartData.date,date,1);
+        table.insert(chartData.price,price,1);
+		sendData(chartData);
+		
+		win.delay(100)
+	})
+}
+
+
+
+
+function sendData(data){
+    var json =web.json.stringify(data);
+   // console.log(json)
+	wb.doScript("onDataChange("+json+")")
+}
+function sendMsg(typex, msg){
+    //console.log(msg)
+	wb.doScript(string.format("onMsg('%s','%s')", typex, msg))
+}
+
+
+
+/*文件监视{{*/
+import fsys.dirWatcher;
+var watchDir="/html";
+var startWatch=function(){
+	mainForm.thrdWatcher = fsys.dirWatcher.thread(
+	function(filename,action,actionText){
+		//console.log(filename)
+		wb.go("/html/index.html");
+		
+	}, watchDir); ;
+}
+
+var stopWatch=function(){
+	if(!mainForm.thrdWatcher) return; 
+    mainForm.thrdWatcher.close(); //停止监视文件
+    logger.info("文件监控","停止监控");
+}
+
+/*}}*/
+
+startWatch();
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    mainForm.thrdWatcher.close(); //停止监视文件
+}
+
+//添加阴影
+import win.ui.shadow;
+win.ui.shadow(mainForm);
+
+//限定最大化范围
+import win.ui.minmax;
+win.ui.minmax(mainForm);
+
+mainForm.show();
+win.loopMessage();
