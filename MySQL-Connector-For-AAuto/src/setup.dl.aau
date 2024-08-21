@@ -1,9 +1,0 @@
-import fsys;
- 
-fsys.copy("/mysql", "~/lib/");
-
-import ide;
-ide.refreshStdLib();
-
-import win;
-win.msgboxTimeout("mysql扩展库已安装成功", "快手(AAuto Quicker) - mysql扩展库安装程序", 1000);

@@ -1,8 +1,0 @@
-import console; 
-import SAP.session;
-
-// find document 后打开,并选中要下载的文件
-var session = SAP.session();
-session.downloadEuroTif();
-
-console.pause(true);

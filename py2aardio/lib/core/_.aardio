@@ -1,9 +1,0 @@
-﻿
-namespace core {
-    /*
-    // 产生 n 个字符组成的字符串, 默认为空格符
-	pad = function(n, char=' ') {
-		return ..string.repeat(n, char);
-	}
-	*/
-}

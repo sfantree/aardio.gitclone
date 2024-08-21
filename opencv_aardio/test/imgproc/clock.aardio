@@ -1,7 +1,0 @@
-import cv2
-img = cv2.Mat()
-img = img.zeros(450,450,0x10/*_CV_8UC3*/)
-img2 = img.ones(450,450,0x10/*_CV_8UC3*/)
-cv2.imshow("clock",img)
-cv2.imshow("img2",img2)
-cv2.waitKey(0) 

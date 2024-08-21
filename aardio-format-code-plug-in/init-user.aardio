@@ -1,3 +1,0 @@
-import ide;
-
-ide.createThread("~\plugins\formatCode.aardio");

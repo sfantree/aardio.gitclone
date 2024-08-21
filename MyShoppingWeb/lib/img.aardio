@@ -1,5 +1,0 @@
-namespace img{
-	path = function(res){
-		return "images/" ++ res ++".jpg"; 
-	}
-}

@@ -1,7 +1,0 @@
-﻿import aaz.libhpsocket.helper.websocket;
-import aaz.libhpsocket.helper.server;
-
-namespace aaz.libhpsocket.helper.httpServer;
-..table.mix(self, ..aaz.libhpsocket.helper.server);
-
-var wsHelper = ..aaz.libhpsocket.helper.websocket;

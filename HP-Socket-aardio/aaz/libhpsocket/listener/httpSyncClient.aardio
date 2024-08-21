@@ -1,9 +1,0 @@
-﻿import aaz.libhpsocket.listener.httpClient;
-
-namespace aaz.libhpsocket.listener;
-class httpSyncClient{
-	ctor(){
-		this = ..aaz.libhpsocket.listener.httpClient();
-		this.componentClassPath = "component.httpSyncClient";
-	};
-}

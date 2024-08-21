@@ -1,9 +1,0 @@
-
-muchzz=function(zzstr,str){
- var zz=preg(zzstr);
-	for a in zz.gmatch(str) {	
-		if(a){return a; }	
-	}
-	return null;
-}
-

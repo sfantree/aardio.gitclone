@@ -1,9 +1,0 @@
-﻿import aaz.libhpsocket.listener.httpClient;
-
-namespace aaz.libhpsocket.ssl.listener;
-class httpClient{
-	ctor(){
-		this = ..aaz.libhpsocket.listener.httpClient();
-		this.componentClassPath = "ssl.component.httpClient";
-	}
-}

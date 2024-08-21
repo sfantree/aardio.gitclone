@@ -1,2 +1,0 @@
-import fcgi.record.processor;
-namespace fcgi.record;

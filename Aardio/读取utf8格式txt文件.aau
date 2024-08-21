@@ -1,9 +1,0 @@
-var file = assert(io.open("C:\Users\Administrator\Desktop\a.txt",'r'),"打开失败")
-//w不设置写入方式，若w,ccs=UTF-8将出错
-//r+不清除原先的内容，直接覆盖
-//往文件里写u8编码就是u8，写gbk编码就是gbk
-
-io.open()
-io.print(string.fromto(file.read(),,936 ) )//读取utf-8编码文件内容，并转成gbk输出
-io.close()
-file.close()

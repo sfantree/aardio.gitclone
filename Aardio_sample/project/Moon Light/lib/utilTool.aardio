@@ -1,7 +1,0 @@
-﻿
-namespace utilTool{
-	err = {
-		network = "网络连接有误";
-		parse = "解析数据有误";
-	}
-}

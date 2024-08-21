@@ -1,9 +1,0 @@
-﻿import win.ui;
-/*DSG{{*/
-var mainForm = ..win.form(text="湖北省会计从业无纸化模拟考试系统【2014试用版】";right=1024;bottom=555;border="thin")
-mainForm.add()
-/*}}*/
-
-var indexForm = mainForm.loadForm("\ui\index.aau");
-
-win.loopMessage();

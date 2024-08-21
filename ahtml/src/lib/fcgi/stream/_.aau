@@ -1,3 +1,0 @@
-import fcgi.stream.reader;
-import fcgi.stream.writer;
-namespace fcgi.stream;
